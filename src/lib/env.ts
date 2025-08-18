@@ -5,7 +5,11 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   DIRECT_URL: z.string().url().optional(),
 
-  // Cache
+  // Cache (Upstash Redis)
+  KV_URL: z.string().optional(),
+  KV_REST_API_URL: z.string().optional(),
+  KV_REST_API_TOKEN: z.string().optional(),
+  KV_REST_API_READ_ONLY_TOKEN: z.string().optional(),
   REDIS_URL: z.string().optional(),
 
   // AI Services
