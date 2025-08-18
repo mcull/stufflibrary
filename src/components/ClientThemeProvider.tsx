@@ -1,11 +1,16 @@
 'use client';
 
-import { ThemeProvider } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
-import { theme } from '@/lib/theme';
-import EmotionRegistry from '@/lib/emotion';
+import { ThemeProvider } from '@mui/material/styles';
 
-export function ClientThemeProvider({ children }: { children: React.ReactNode }) {
+import EmotionRegistry from '@/lib/emotion';
+import { theme } from '@/lib/theme';
+
+export function ClientThemeProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <EmotionRegistry>
       <ThemeProvider theme={theme}>
