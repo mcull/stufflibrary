@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 
 import { testConnection as testDatabase } from '@/lib/db-utils';
 import { RedisService } from '@/lib/redis';
+import { StorageService } from '@/lib/storage';
 
 export async function GET() {
   try {
@@ -11,7 +12,11 @@ export async function GET() {
     // Test Redis connection
     const redisResult = await RedisService.testConnection();
 
-    const overall = dbResult.success && redisResult.success;
+    // Test storage connection
+    const storageResult = await StorageService.testConnection();
+
+    const overall =
+      dbResult.success && redisResult.success && storageResult.success;
 
     return NextResponse.json(
       {
@@ -24,6 +29,10 @@ export async function GET() {
           redis: {
             status: redisResult.success ? 'OK' : 'ERROR',
             message: redisResult.message,
+          },
+          storage: {
+            status: storageResult.success ? 'OK' : 'ERROR',
+            message: storageResult.message,
           },
         },
         timestamp: new Date().toISOString(),

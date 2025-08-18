@@ -15,12 +15,11 @@ const envSchema = z.object({
   // AI Services
   OPENAI_API_KEY: z.string().optional(),
 
-  // File Storage (Wasabi S3)
-  WASABI_ACCESS_KEY_ID: z.string().optional(),
-  WASABI_SECRET_ACCESS_KEY: z.string().optional(),
-  WASABI_REGION: z.string().optional(),
-  WASABI_BUCKET: z.string().optional(),
-  WASABI_ENDPOINT: z.string().optional(),
+  // File Storage (Vercel Blob)
+  BLOB_READ_WRITE_TOKEN: z.string().optional(),
+  BLOB_BASE_URL: z.string().url().optional(),
+  BLOB_UNIQUE_STORE_ID: z.string().optional(),
+  BLOB_STORE_NAME: z.string().optional(),
 
   // Authentication (Future)
   NEXTAUTH_SECRET: z.string().optional(),
