@@ -1,0 +1,109 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  branchMemberships BranchMember[]
+  ownedBranches     Branch[]       @relation("BranchOwner")
+  items             Item[]
+  borrowRequests    BorrowRequest[]
+  lentItems         BorrowRequest[] @relation("Lender")
+
+  @@map("users")
+}
+
+model Branch {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  location    String?
+  rules       Json?
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  ownerId String
+  owner   User           @relation("BranchOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members BranchMember[]
+  items   Item[]
+
+  @@map("branches")
+}
+
+model BranchMember {
+  id        String   @id @default(cuid())
+  joinedAt  DateTime @default(now())
+  role      String   @default("member") // member, admin
+  isActive  Boolean  @default(true)
+  
+  // Relationships
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, branchId])
+  @@map("branch_members")
+}
+
+model Item {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  category    String?
+  condition   String   @default("good") // excellent, good, fair, poor
+  isAvailable Boolean  @default(true)
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  ownerId        String
+  owner          User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  branchId       String
+  branch         Branch          @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  borrowRequests BorrowRequest[]
+
+  @@map("items")
+}
+
+model BorrowRequest {
+  id          String   @id @default(cuid())
+  status      String   @default("pending") // pending, approved, active, returned, cancelled
+  requestedAt DateTime @default(now())
+  approvedAt  DateTime?
+  borrowedAt  DateTime?
+  returnedAt  DateTime?
+  dueDate     DateTime?
+  notes       String?
+
+  // Relationships
+  borrowerId String
+  borrower   User   @relation(fields: [borrowerId], references: [id], onDelete: Cascade)
+  lenderId   String
+  lender     User   @relation("Lender", fields: [lenderId], references: [id], onDelete: Cascade)
+  itemId     String
+  item       Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@map("borrow_requests")
+}
