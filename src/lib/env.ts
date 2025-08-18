@@ -42,13 +42,52 @@ const envSchema = z.object({
 
 export type Env = z.infer<typeof envSchema>;
 
+let _env: Env | null = null;
+
 function validateEnv(): Env {
+  // Skip validation during build time
+  if (process.env.NODE_ENV === undefined) {
+    // Return minimal env for build time
+    return {
+      NODE_ENV: 'production',
+      NEXT_PUBLIC_APP_URL: 'http://localhost:3000',
+      DEBUG: false,
+      LOG_LEVEL: 'info',
+    } as Env;
+  }
+
   try {
     return envSchema.parse(process.env);
   } catch (error) {
+    // During build time, return defaults if validation fails
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
+      console.warn('⚠️ Using default environment values during build');
+      return {
+        NODE_ENV:
+          (process.env.NODE_ENV as 'development' | 'production' | 'test') ||
+          'production',
+        NEXT_PUBLIC_APP_URL:
+          process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+        DEBUG: false,
+        LOG_LEVEL: 'info',
+      } as Env;
+    }
+
     console.error('❌ Invalid environment variables:', error);
     throw new Error('Environment validation failed');
   }
 }
 
-export const env = validateEnv();
+export function getEnv(): Env {
+  if (!_env) {
+    _env = validateEnv();
+  }
+  return _env;
+}
+
+// For backwards compatibility
+export const env = new Proxy({} as Env, {
+  get(target, prop) {
+    return getEnv()[prop as keyof Env];
+  },
+});
