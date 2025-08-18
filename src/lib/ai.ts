@@ -87,8 +87,8 @@ export class AIService {
   }
 
   /**
-   * Classify a photo (stub implementation)
-   * In a real implementation, this would analyze the image and return classifications
+   * Classify a photo of a household object using OpenAI Vision API
+   * Returns object name and condition description
    */
   static async classifyPhoto(
     imageUrl: string,
@@ -98,7 +98,9 @@ export class AIService {
     }
   ): Promise<{
     success: boolean;
-    classifications?: string[];
+    object?: string;
+    description?: string;
+    condition?: string;
     confidence?: number;
     error?: string;
   }> {
@@ -121,36 +123,101 @@ export class AIService {
         };
       }
 
-      // STUB IMPLEMENTATION - Not making real API call yet
-      // In a real implementation, this would call OpenAI Vision API
-      const _mockClassifications = [
-        'photograph',
-        'digital_art',
-        'illustration',
-        'logo',
-        'screenshot',
-        'document',
-      ];
+      const client = this.getClient();
+      const maxTokens = options?.maxTokens || 150;
 
-      // Simulate processing delay
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      const response = await client.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `Analyze this image of a household object. Return a JSON response with:
+- "object": the name of the main object (e.g., "coffee mug", "desk lamp", "bookshelf")
+- "description": a brief description of the object (1-2 sentences)
+- "condition": condition assessment ("excellent", "good", "fair", "poor", or "unknown")
 
-      // Return mock classifications based on URL pattern
-      const urlLower = imageUrl.toLowerCase();
-      let detectedType = 'photograph';
+Focus on household items, furniture, electronics, kitchenware, tools, books, etc. Be specific but concise.`,
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: imageUrl,
+                  detail: 'low', // Use low detail for faster/cheaper processing
+                },
+              },
+            ],
+          },
+        ],
+        max_tokens: maxTokens,
+        temperature: 0.1, // Low temperature for consistent responses
+      });
 
-      if (urlLower.includes('logo')) detectedType = 'logo';
-      else if (urlLower.includes('screenshot')) detectedType = 'screenshot';
-      else if (urlLower.includes('document')) detectedType = 'document';
-      else if (urlLower.includes('art')) detectedType = 'digital_art';
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        return {
+          success: false,
+          error: 'No response from OpenAI Vision API',
+        };
+      }
 
+      // Try to parse JSON response
+      let parsed;
+      try {
+        // Try direct parsing first
+        parsed = JSON.parse(content);
+      } catch {
+        // If that fails, try to extract JSON from markdown code blocks
+        const jsonMatch = content.match(/```json\s*\n(.*?)\n\s*```/s);
+        if (jsonMatch) {
+          try {
+            parsed = JSON.parse(jsonMatch[1]);
+          } catch {
+            // Still couldn't parse, fall back to plain text processing
+          }
+        }
+      }
+
+      if (parsed && typeof parsed === 'object') {
+        return {
+          success: true,
+          object: parsed.object || 'Unknown object',
+          description: parsed.description || 'No description provided',
+          condition: parsed.condition || 'unknown',
+          confidence: 0.85, // Vision API doesn't provide confidence scores
+        };
+      }
+
+      // If JSON parsing failed completely, try to extract information from plain text
       return {
         success: true,
-        classifications: [detectedType],
-        confidence: 0.85,
+        object: 'Household object',
+        description:
+          content.substring(0, 200) + (content.length > 200 ? '...' : ''),
+        condition: 'unknown',
+        confidence: 0.75,
       };
     } catch (error) {
       console.error('AI classification error:', error);
+
+      // Handle specific OpenAI errors
+      if (error instanceof Error) {
+        if (error.message.includes('rate_limit')) {
+          return {
+            success: false,
+            error: 'OpenAI rate limit exceeded. Please try again later.',
+          };
+        }
+        if (error.message.includes('insufficient_quota')) {
+          return {
+            success: false,
+            error: 'OpenAI quota exceeded. Please check your account.',
+          };
+        }
+      }
+
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Classification failed',

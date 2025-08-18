@@ -35,7 +35,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      classifications: result.classifications,
+      object: result.object,
+      description: result.description,
+      condition: result.condition,
       confidence: result.confidence,
     });
   } catch (error) {
