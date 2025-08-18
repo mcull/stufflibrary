@@ -57,7 +57,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the application.
    ```
 
 2. Edit `.env.local` with your actual values:
-   - **Database**: Add your PlanetScale `DATABASE_URL`
+   - **Database**: Add your Supabase `DATABASE_URL`
    - **Cache**: Add your Redis `REDIS_URL`
    - **AI**: Add your `OPENAI_API_KEY`
    - **Storage**: Configure Wasabi S3 credentials
@@ -96,11 +96,16 @@ All environment variables are documented in `.env.example` with examples and des
 - `npm run typecheck` - Run TypeScript type checking
 - `npm run test` - Run tests in watch mode
 - `npm run test:ci` - Run tests with coverage (CI mode)
+- `npm run db:generate` - Generate Prisma client
+- `npm run db:push` - Push schema to database
+- `npm run db:migrate` - Run database migrations
+- `npm run db:studio` - Open Prisma Studio
 
 ## Tech Stack
 
 - **Framework**: Next.js 15 with App Router
 - **Language**: TypeScript (strict mode)
+- **Database**: Supabase (PostgreSQL) + Prisma ORM
 - **Styling**: Material-UI (MUI) + Tailwind CSS
 - **Code Quality**: ESLint, Prettier, Husky git hooks
 - **Testing**: Jest + React Testing Library

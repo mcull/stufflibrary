@@ -1,8 +1,9 @@
 import { z } from 'zod';
 
 const envSchema = z.object({
-  // Database
-  DATABASE_URL: z.string().optional(),
+  // Database (Supabase)
+  DATABASE_URL: z.string().url(),
+  DIRECT_URL: z.string().url().optional(),
 
   // Cache
   REDIS_URL: z.string().optional(),
