@@ -1,7 +1,7 @@
 /// <reference types="vitest" />
-import { defineConfig } from 'vitest/config'
-import react from '@vitejs/plugin-react'
-import { fileURLToPath, URL } from 'node:url'
+import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
+import { fileURLToPath, URL } from 'node:url';
 
 export default defineConfig({
   plugins: [react()],
@@ -9,7 +9,7 @@ export default defineConfig({
     environment: 'happy-dom',
     setupFiles: ['./src/test/setup.ts'],
     typecheck: {
-      include: ['**/*.{test,spec}.?(c|m)[jt]s?(x)']
+      include: ['**/*.{test,spec}.?(c|m)[jt]s?(x)'],
     },
     include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     coverage: {
@@ -23,21 +23,21 @@ export default defineConfig({
         '.next/',
         'coverage/',
         'playwright.config.ts',
-        'tailwind.config.*'
+        'tailwind.config.*',
       ],
       thresholds: {
         global: {
           branches: 30,
           functions: 30,
           lines: 30,
-          statements: 30
-        }
-      }
-    }
+          statements: 30,
+        },
+      },
+    },
   },
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
-    }
-  }
-})
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
+});
