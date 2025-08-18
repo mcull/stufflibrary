@@ -1,16 +1,16 @@
-import { 
-  Container, 
-  Typography, 
-  Button, 
-  Card, 
-  CardContent, 
-  TextField, 
-  AppBar, 
-  Toolbar, 
-  Box,
-  Stack
-} from '@mui/material';
 import { Share, LibraryBooks, Home as HomeIcon } from '@mui/icons-material';
+import {
+  Container,
+  Typography,
+  Button,
+  Card,
+  CardContent,
+  TextField,
+  AppBar,
+  Toolbar,
+  Box,
+  Stack,
+} from '@mui/material';
 
 export default function Home() {
   return (
@@ -31,10 +31,15 @@ export default function Home() {
             Share more, buy less
           </Typography>
           <Typography variant="h5" color="text.secondary" paragraph>
-            A platform for neighbors to safely share under-used items like ladders, 
-            lawnmowers, and camping gear.
+            A platform for neighbors to safely share under-used items like
+            ladders, lawnmowers, and camping gear.
           </Typography>
-          <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 4 }}>
+          <Stack
+            direction="row"
+            spacing={2}
+            justifyContent="center"
+            sx={{ mt: 4 }}
+          >
             <Button variant="contained" size="large" startIcon={<Share />}>
               Get Started
             </Button>
@@ -44,7 +49,11 @@ export default function Home() {
           </Stack>
         </Box>
 
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={4} sx={{ mb: 6 }}>
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          spacing={4}
+          sx={{ mb: 6 }}
+        >
           <Card sx={{ flex: 1 }}>
             <CardContent>
               <Typography variant="h5" gutterBottom>
@@ -86,10 +95,10 @@ export default function Home() {
               This page demonstrates the MUI theme system in action:
             </Typography>
             <Stack spacing={2}>
-              <TextField 
-                label="Search items" 
-                variant="outlined" 
-                fullWidth 
+              <TextField
+                label="Search items"
+                variant="outlined"
+                fullWidth
                 placeholder="e.g., ladder, lawnmower, camping gear"
               />
               <Stack direction="row" spacing={2}>
