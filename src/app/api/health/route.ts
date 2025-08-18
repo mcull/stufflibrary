@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 
+import { AIService } from '@/lib/ai';
 import { testConnection as testDatabase } from '@/lib/db-utils';
 import { RedisService } from '@/lib/redis';
 import { StorageService } from '@/lib/storage';
@@ -15,8 +16,14 @@ export async function GET() {
     // Test storage connection
     const storageResult = await StorageService.testConnection();
 
+    // Test AI service connection
+    const aiResult = await AIService.testConnection();
+
     const overall =
-      dbResult.success && redisResult.success && storageResult.success;
+      dbResult.success &&
+      redisResult.success &&
+      storageResult.success &&
+      aiResult.success;
 
     return NextResponse.json(
       {
@@ -33,6 +40,10 @@ export async function GET() {
           storage: {
             status: storageResult.success ? 'OK' : 'ERROR',
             message: storageResult.message,
+          },
+          ai: {
+            status: aiResult.success ? 'OK' : 'ERROR',
+            message: aiResult.message,
           },
         },
         timestamp: new Date().toISOString(),
