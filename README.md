@@ -65,6 +65,53 @@ Open [http://localhost:3000](http://localhost:3000) to see the application.
 
 3. **Important**: Never commit `.env.local` or any file containing secrets
 
+### Development Commands
+
+#### Quick Start
+
+```bash
+# Option 1: Using npm
+npm run dev
+
+# Option 2: Using make
+make dev
+```
+
+#### All Available Scripts
+
+**Setup:**
+
+- `npm install` / `make install` - Install dependencies
+- `make setup` - Full setup (install + db push)
+- `make clean` - Clean build artifacts
+
+**Development:**
+
+- `npm run dev` / `make dev` - Start dev server with Turbopack
+- `npm run build` / `make build` - Build for production
+- `npm start` / `make start` - Start production server
+
+**Code Quality:**
+
+- `npm run lint` / `make lint` - Lint code with ESLint
+- `npm run format` / `make format` - Format code with Prettier
+- `npm run typecheck` / `make typecheck` - Type check with TypeScript
+- `make check` - Run all quality checks
+
+**Testing:**
+
+- `npm test` / `make test` - Run unit tests
+- `npm run test:unit` / `make test-unit` - Run unit tests
+- `npm run test:e2e` / `make test-e2e` - Run E2E tests (when available)
+
+**Database:**
+
+- `npm run db:push` / `make db-push` - Push schema to database
+- `npm run db:studio` / `make db-studio` - Open Prisma Studio
+- `npm run seed` / `make seed` - Seed database (when available)
+
+Run `make help` to see all available commands.
+
 ### Environment Variables
 
 All environment variables are documented in `.env.example` with examples and descriptions. Key variables include:
