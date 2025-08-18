@@ -4,7 +4,7 @@ import { CssBaseline } from '@mui/material';
 import { ThemeProvider } from '@mui/material/styles';
 
 import EmotionRegistry from '@/lib/emotion';
-import { theme } from '@/lib/theme';
+import { theme } from '@/theme/theme';
 
 export function ClientThemeProvider({
   children,
