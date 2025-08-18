@@ -1,10 +1,15 @@
+'use client';
+
 import { AppBar, Toolbar, Container, Box, Button, Stack } from '@mui/material';
+import { useSession, signIn, signOut } from 'next-auth/react';
 
 import { brandColors } from '@/theme/brandTokens';
 
 import { Wordmark } from './Wordmark';
 
 export function Header() {
+  const { data: session } = useSession();
+
   return (
     <AppBar
       position="static"
@@ -63,33 +68,66 @@ export function Header() {
             >
               About
             </Button>
-            <Button
-              variant="contained"
-              color="primary"
-              sx={{
-                textTransform: 'none',
-                fontWeight: 500,
-                px: 3,
-              }}
-            >
-              Coming Soon
-            </Button>
+            {session ? (
+              <Button
+                onClick={() => signOut()}
+                variant="outlined"
+                color="primary"
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  px: 3,
+                }}
+              >
+                Sign Out
+              </Button>
+            ) : (
+              <Button
+                onClick={() => signIn()}
+                variant="contained"
+                color="primary"
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  px: 3,
+                }}
+              >
+                Sign In
+              </Button>
+            )}
           </Stack>
 
-          {/* Mobile Menu Button (placeholder) */}
+          {/* Mobile Menu Button */}
           <Box sx={{ display: { xs: 'flex', sm: 'none' } }}>
-            <Button
-              variant="contained"
-              color="primary"
-              size="small"
-              sx={{
-                textTransform: 'none',
-                fontWeight: 500,
-                px: 2,
-              }}
-            >
-              Soon
-            </Button>
+            {session ? (
+              <Button
+                onClick={() => signOut()}
+                variant="outlined"
+                color="primary"
+                size="small"
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  px: 2,
+                }}
+              >
+                Sign Out
+              </Button>
+            ) : (
+              <Button
+                onClick={() => signIn()}
+                variant="contained"
+                color="primary"
+                size="small"
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  px: 2,
+                }}
+              >
+                Sign In
+              </Button>
+            )}
           </Box>
         </Toolbar>
       </Container>

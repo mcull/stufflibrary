@@ -4,6 +4,7 @@ import { Roboto } from 'next/font/google';
 import { ClientThemeProvider } from '@/components/ClientThemeProvider';
 import { Footer } from '@/components/Footer';
 import { Header } from '@/components/Header';
+import NextAuthSessionProvider from '@/components/providers/session-provider';
 
 import '@fontsource/inter/300.css';
 import '@fontsource/inter/400.css';
@@ -31,11 +32,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={roboto.variable}>
-        <ClientThemeProvider>
-          <Header />
-          {children}
-          <Footer />
-        </ClientThemeProvider>
+        <NextAuthSessionProvider>
+          <ClientThemeProvider>
+            <Header />
+            {children}
+            <Footer />
+          </ClientThemeProvider>
+        </NextAuthSessionProvider>
       </body>
     </html>
   );
