@@ -42,6 +42,8 @@ const envSchema = z.object({
 
 export type Env = z.infer<typeof envSchema>;
 
+let _env: Env | null = null;
+
 function validateEnv(): Env {
   try {
     return envSchema.parse(process.env);
@@ -51,4 +53,16 @@ function validateEnv(): Env {
   }
 }
 
-export const env = validateEnv();
+export function getEnv(): Env {
+  if (!_env) {
+    _env = validateEnv();
+  }
+  return _env;
+}
+
+// For backwards compatibility
+export const env = new Proxy({} as Env, {
+  get(target, prop) {
+    return getEnv()[prop as keyof Env];
+  },
+});
