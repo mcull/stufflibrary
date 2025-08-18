@@ -45,6 +45,7 @@
     "zod": "^4.0.17"
   },
   "devDependencies": {
+    "@axe-core/cli": "^4.10.2",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.7.0",

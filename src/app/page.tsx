@@ -1,114 +1,131 @@
-import { Share, LibraryBooks, Home as HomeIcon } from '@mui/icons-material';
+import { LibraryBooks, Email, Construction } from '@mui/icons-material';
 import {
   Container,
   Typography,
   Button,
-  Card,
-  CardContent,
-  TextField,
   AppBar,
   Toolbar,
   Box,
   Stack,
+  Chip,
 } from '@mui/material';
 
 export default function Home() {
   return (
     <>
-      <AppBar position="static" elevation={0}>
+      <AppBar
+        component="header"
+        position="static"
+        elevation={0}
+        sx={{ bgcolor: 'primary.main' }}
+      >
         <Toolbar>
           <LibraryBooks sx={{ mr: 2 }} />
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             StuffLibrary.org
           </Typography>
-          <Button color="inherit">Sign In</Button>
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="lg" sx={{ py: 8 }}>
-        <Box textAlign="center" sx={{ mb: 6 }}>
-          <Typography variant="h1" component="h1" gutterBottom>
+      <Container
+        component="main"
+        maxWidth="md"
+        sx={{
+          py: { xs: 8, md: 12 },
+          minHeight: 'calc(100vh - 64px)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          textAlign: 'center',
+        }}
+      >
+        <Box sx={{ mb: 6 }}>
+          <Chip
+            label="Coming Soon"
+            color="primary"
+            sx={{ mb: 3, fontSize: '0.875rem' }}
+          />
+
+          <Typography
+            variant="h2"
+            component="h1"
+            gutterBottom
+            sx={{
+              fontSize: { xs: '2.5rem', sm: '3.5rem', md: '4rem' },
+              fontWeight: 'bold',
+              mb: 2,
+            }}
+          >
+            StuffLibrary.org
+          </Typography>
+
+          <Typography
+            variant="h4"
+            component="h2"
+            color="primary"
+            gutterBottom
+            sx={{
+              fontSize: { xs: '1.5rem', sm: '2rem', md: '2.25rem' },
+              fontWeight: 'medium',
+              mb: 3,
+            }}
+          >
             Share more, buy less
           </Typography>
-          <Typography variant="h5" color="text.secondary" paragraph>
-            A platform for neighbors to safely share under-used items like
-            ladders, lawnmowers, and camping gear.
-          </Typography>
-          <Stack
-            direction="row"
-            spacing={2}
-            justifyContent="center"
-            sx={{ mt: 4 }}
+
+          <Typography
+            variant="h6"
+            color="text.secondary"
+            paragraph
+            sx={{
+              maxWidth: '600px',
+              mx: 'auto',
+              fontSize: { xs: '1rem', md: '1.25rem' },
+              lineHeight: 1.6,
+            }}
           >
-            <Button variant="contained" size="large" startIcon={<Share />}>
-              Get Started
-            </Button>
-            <Button variant="outlined" size="large" startIcon={<HomeIcon />}>
-              Find My Neighborhood
-            </Button>
-          </Stack>
+            A platform for neighbors to safely share under-used items like
+            ladders, lawnmowers, and camping gear. Building stronger communities
+            through sharing and trust.
+          </Typography>
         </Box>
 
         <Stack
-          direction={{ xs: 'column', md: 'row' }}
-          spacing={4}
-          sx={{ mb: 6 }}
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={2}
+          justifyContent="center"
+          alignItems="center"
+          sx={{ mb: 8 }}
         >
-          <Card sx={{ flex: 1 }}>
-            <CardContent>
-              <Typography variant="h5" gutterBottom>
-                Borrow Safely
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Find and request items from verified neighbors in your area.
-              </Typography>
-            </CardContent>
-          </Card>
-          <Card sx={{ flex: 1 }}>
-            <CardContent>
-              <Typography variant="h5" gutterBottom>
-                Lend Easily
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                List your unused items and help neighbors save money.
-              </Typography>
-            </CardContent>
-          </Card>
-          <Card sx={{ flex: 1 }}>
-            <CardContent>
-              <Typography variant="h5" gutterBottom>
-                Build Community
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Strengthen neighborhood connections through sharing and trust.
-              </Typography>
-            </CardContent>
-          </Card>
+          <Button
+            variant="contained"
+            size="large"
+            startIcon={<Email />}
+            sx={{ minWidth: { xs: '200px', sm: 'auto' } }}
+          >
+            Notify Me When Ready
+          </Button>
+          <Button
+            variant="outlined"
+            size="large"
+            startIcon={<Construction />}
+            sx={{ minWidth: { xs: '200px', sm: 'auto' } }}
+          >
+            View Progress
+          </Button>
         </Stack>
 
-        <Card sx={{ mb: 4 }}>
-          <CardContent>
-            <Typography variant="h4" gutterBottom>
-              MUI Theme Demo
-            </Typography>
-            <Typography variant="body1" paragraph>
-              This page demonstrates the MUI theme system in action:
-            </Typography>
-            <Stack spacing={2}>
-              <TextField
-                label="Search items"
-                variant="outlined"
-                fullWidth
-                placeholder="e.g., ladder, lawnmower, camping gear"
-              />
-              <Stack direction="row" spacing={2}>
-                <Button variant="contained">Primary Action</Button>
-                <Button variant="outlined">Secondary Action</Button>
-                <Button variant="text">Text Button</Button>
-              </Stack>
-            </Stack>
-          </CardContent>
-        </Card>
+        <Box sx={{ mt: 'auto', pt: 4 }}>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ opacity: 0.8 }}
+          >
+            Building something special for the community.
+            <br />
+            Stay tuned for updates!
+          </Typography>
+        </Box>
       </Container>
     </>
   );
