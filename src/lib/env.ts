@@ -21,9 +21,10 @@ const envSchema = z.object({
   BLOB_UNIQUE_STORE_ID: z.string().optional(),
   BLOB_STORE_NAME: z.string().optional(),
 
-  // Authentication (Future)
-  NEXTAUTH_SECRET: z.string().optional(),
+  // Authentication
+  NEXTAUTH_SECRET: z.string().min(1),
   NEXTAUTH_URL: z.string().optional(),
+  RESEND_API_KEY: z.string().min(1),
 
   // Application
   NODE_ENV: z
