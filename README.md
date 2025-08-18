@@ -38,11 +38,51 @@ cd stufflibrary
 # Install dependencies
 npm install
 
+# Set up environment variables
+cp .env.example .env.local
+# Edit .env.local with your actual values (see Environment Setup below)
+
 # Start the development server
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to see the application.
+
+### Environment Setup
+
+1. Copy the example environment file:
+
+   ```bash
+   cp .env.example .env.local
+   ```
+
+2. Edit `.env.local` with your actual values:
+   - **Database**: Add your PlanetScale `DATABASE_URL`
+   - **Cache**: Add your Redis `REDIS_URL`
+   - **AI**: Add your `OPENAI_API_KEY`
+   - **Storage**: Configure Wasabi S3 credentials
+   - **App**: Set `NEXT_PUBLIC_APP_URL` to your domain
+
+3. **Important**: Never commit `.env.local` or any file containing secrets
+
+### Environment Variables
+
+All environment variables are documented in `.env.example` with examples and descriptions. Key variables include:
+
+- `DATABASE_URL` - Database connection string
+- `REDIS_URL` - Cache connection string
+- `OPENAI_API_KEY` - AI service authentication
+- `WASABI_*` - File storage configuration
+- `NEXT_PUBLIC_APP_URL` - Public app URL for client-side usage
+
+### Deployment (Vercel)
+
+1. Connect your GitHub repository to Vercel
+2. Configure environment variables in Vercel dashboard:
+   - Go to Project Settings → Environment Variables
+   - Add all variables from `.env.example` with production values
+   - Ensure `NEXT_PUBLIC_APP_URL` matches your domain
+3. Deploy automatically triggers on push to main branch
 
 ### Available Scripts
 
@@ -50,13 +90,23 @@ Open [http://localhost:3000](http://localhost:3000) to see the application.
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
+- `npm run lint:fix` - Run ESLint with auto-fix
+- `npm run format` - Format code with Prettier
+- `npm run format:check` - Check code formatting
+- `npm run typecheck` - Run TypeScript type checking
+- `npm run test` - Run tests in watch mode
+- `npm run test:ci` - Run tests with coverage (CI mode)
 
 ## Tech Stack
 
 - **Framework**: Next.js 15 with App Router
 - **Language**: TypeScript (strict mode)
-- **Styling**: Tailwind CSS
-- **Linting**: ESLint with Next.js config
+- **Styling**: Material-UI (MUI) + Tailwind CSS
+- **Code Quality**: ESLint, Prettier, Husky git hooks
+- **Testing**: Jest + React Testing Library
+- **CI/CD**: GitHub Actions
+- **Deployment**: Vercel
+- **Environment**: Zod validation for type-safe configuration
 
 ## Get Involved
 
