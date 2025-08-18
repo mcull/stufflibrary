@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { Roboto } from 'next/font/google';
 
 import { ClientThemeProvider } from '@/components/ClientThemeProvider';
+import { Footer } from '@/components/Footer';
+import { Header } from '@/components/Header';
 
 import '@fontsource/inter/300.css';
 import '@fontsource/inter/400.css';
@@ -29,7 +31,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={roboto.variable}>
-        <ClientThemeProvider>{children}</ClientThemeProvider>
+        <ClientThemeProvider>
+          <Header />
+          {children}
+          <Footer />
+        </ClientThemeProvider>
       </body>
     </html>
   );
