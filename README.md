@@ -18,5 +18,38 @@ To make it natural and safe for neighbors to borrow and lend things, following p
 - Community: acknowledgments, lightweight messaging, neighborhood stats.
 - Future: verticalized libraries (e.g. LensLibrary), deposits, insurance pools.
 
+## Development Setup
+
+### Prerequisites
+- Node.js 18+ and npm
+- Git
+
+### Quick Start
+```bash
+# Clone the repository
+git clone https://github.com/mcull/stufflibrary.git
+cd stufflibrary
+
+# Install dependencies
+npm install
+
+# Start the development server
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) to see the application.
+
+### Available Scripts
+- `npm run dev` - Start development server with Turbopack
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
+
+## Tech Stack
+- **Framework**: Next.js 15 with App Router
+- **Language**: TypeScript (strict mode)
+- **Styling**: Tailwind CSS
+- **Linting**: ESLint with Next.js config
+
 ## Get Involved
 This is an open-source project. Contributions, ideas, and forks are welcome.
