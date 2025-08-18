@@ -35,10 +35,15 @@ export async function POST(request: NextRequest) {
     const waitlistEntry = await prisma.waitlistEntry.create({
       data: {
         email: validatedData.email,
-        name: validatedData.name,
-        location: validatedData.location,
+        ...(validatedData.name !== undefined &&
+          validatedData.name !== null && { name: validatedData.name }),
+        ...(validatedData.location !== undefined &&
+          validatedData.location !== null && {
+            location: validatedData.location,
+          }),
         interests: validatedData.interests,
-        source: validatedData.source,
+        ...(validatedData.source !== undefined &&
+          validatedData.source !== null && { source: validatedData.source }),
       },
     });
 
@@ -56,7 +61,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           message: 'Invalid data provided',
-          errors: error.errors,
+          errors: error.issues,
         },
         { status: 400 }
       );

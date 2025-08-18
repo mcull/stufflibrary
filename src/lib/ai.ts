@@ -173,7 +173,7 @@ Focus on household items, furniture, electronics, kitchenware, tools, books, etc
         const jsonMatch = content.match(/```json\s*\n(.*?)\n\s*```/s);
         if (jsonMatch) {
           try {
-            parsed = JSON.parse(jsonMatch[1]);
+            parsed = JSON.parse(jsonMatch[1]!);
           } catch {
             // Still couldn't parse, fall back to plain text processing
           }
