@@ -6,7 +6,9 @@ import { Resend } from 'resend';
 import { db } from './db';
 import { env } from './env';
 
-const resend = new Resend(env.RESEND_API_KEY);
+function getResend() {
+  return new Resend(env.RESEND_API_KEY);
+}
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(db) as any,
@@ -23,6 +25,7 @@ export const authOptions: NextAuthOptions = {
       from: 'StuffLibrary <noreply@stufflibrary.com>',
       async sendVerificationRequest({ identifier, url }) {
         try {
+          const resend = getResend();
           await resend.emails.send({
             from: 'StuffLibrary <noreply@stufflibrary.com>',
             to: identifier,
