@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import { Roboto, Space_Grotesk } from 'next/font/google';
 
 import { ClientThemeProvider } from '@/components/ClientThemeProvider';
-import { Footer } from '@/components/Footer';
-import { Header } from '@/components/Header';
+import { ConditionalFooter } from '@/components/ConditionalFooter';
+import { ConditionalHeader } from '@/components/ConditionalHeader';
 import NextAuthSessionProvider from '@/components/providers/session-provider';
 
 import '@fontsource/inter/300.css';
@@ -44,9 +44,9 @@ export default function RootLayout({
       <body className={`${roboto.variable} ${spaceGrotesk.variable}`}>
         <NextAuthSessionProvider>
           <ClientThemeProvider>
-            <Header />
+            <ConditionalHeader />
             {children}
-            <Footer />
+            <ConditionalFooter />
           </ClientThemeProvider>
         </NextAuthSessionProvider>
       </body>
