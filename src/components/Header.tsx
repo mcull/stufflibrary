@@ -1,8 +1,21 @@
 'use client';
 
-import { AppBar, Toolbar, Container, Box, Button, Stack } from '@mui/material';
+import { Menu as MenuIcon, Close as CloseIcon } from '@mui/icons-material';
+import {
+  AppBar,
+  Toolbar,
+  Container,
+  Box,
+  Button,
+  Stack,
+  IconButton,
+  Drawer,
+  List,
+  ListItem,
+} from '@mui/material';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
+import { useState } from 'react';
 
 import { brandColors } from '@/theme/brandTokens';
 
@@ -10,6 +23,11 @@ import { Wordmark } from './Wordmark';
 
 export function Header() {
   const { data: session } = useSession();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const handleMobileMenuToggle = () => {
+    setMobileMenuOpen(!mobileMenuOpen);
+  };
 
   return (
     <AppBar
@@ -31,7 +49,12 @@ export function Header() {
         >
           {/* Wordmark */}
           <Box sx={{ flexGrow: 0 }}>
-            <Wordmark size="medium" color="primary" />
+            <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
+              <Wordmark size="small" color="primary" />
+            </Box>
+            <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+              <Wordmark size="medium" color="primary" />
+            </Box>
           </Box>
 
           {/* Navigation */}
@@ -114,57 +137,153 @@ export function Header() {
             )}
           </Stack>
 
-          {/* Mobile Menu Button */}
-          <Box sx={{ display: { xs: 'flex', sm: 'none' } }}>
-            {session ? (
+          {/* Mobile Navigation */}
+          <Box
+            sx={{
+              display: { xs: 'flex', sm: 'none' },
+              alignItems: 'center',
+              gap: 1,
+            }}
+          >
+            {!session && (
               <Button
-                onClick={() => signOut()}
-                variant="outlined"
+                component={Link}
+                href="/profile/create"
+                variant="contained"
                 color="primary"
                 size="small"
                 sx={{
                   textTransform: 'none',
                   fontWeight: 500,
-                  px: 2,
+                  fontSize: '0.75rem',
+                  px: 1.5,
+                  py: 0.5,
+                  minWidth: 'auto',
                 }}
               >
-                Sign Out
+                GET STARTED
               </Button>
-            ) : (
-              <Stack direction="row" spacing={1}>
+            )}
+
+            <IconButton
+              onClick={handleMobileMenuToggle}
+              sx={{
+                color: brandColors.charcoal,
+                p: 0.5,
+              }}
+            >
+              <MenuIcon />
+            </IconButton>
+          </Box>
+        </Toolbar>
+      </Container>
+
+      {/* Mobile Menu Drawer */}
+      <Drawer
+        anchor="right"
+        open={mobileMenuOpen}
+        onClose={handleMobileMenuToggle}
+        sx={{
+          display: { xs: 'block', sm: 'none' },
+          '& .MuiDrawer-paper': {
+            width: '100%',
+            backgroundColor: brandColors.warmCream,
+          },
+        }}
+      >
+        <Box sx={{ p: 2 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              mb: 3,
+            }}
+          >
+            <Wordmark size="small" color="primary" />
+            <IconButton onClick={handleMobileMenuToggle}>
+              <CloseIcon />
+            </IconButton>
+          </Box>
+
+          <List sx={{ pt: 2 }}>
+            <ListItem sx={{ px: 0 }}>
+              <Button
+                fullWidth
+                sx={{
+                  justifyContent: 'flex-start',
+                  textTransform: 'none',
+                  fontSize: '1.1rem',
+                  fontWeight: 500,
+                  color: brandColors.charcoal,
+                  py: 1.5,
+                }}
+              >
+                How It Works
+              </Button>
+            </ListItem>
+
+            <ListItem sx={{ px: 0 }}>
+              <Button
+                fullWidth
+                sx={{
+                  justifyContent: 'flex-start',
+                  textTransform: 'none',
+                  fontSize: '1.1rem',
+                  fontWeight: 500,
+                  color: brandColors.charcoal,
+                  py: 1.5,
+                }}
+              >
+                About
+              </Button>
+            </ListItem>
+
+            {!session && (
+              <ListItem sx={{ px: 0 }}>
                 <Button
                   component={Link}
                   href="/auth/signin"
-                  variant="outlined"
-                  color="primary"
-                  size="small"
+                  fullWidth
+                  onClick={handleMobileMenuToggle}
                   sx={{
+                    justifyContent: 'flex-start',
                     textTransform: 'none',
+                    fontSize: '1.1rem',
                     fontWeight: 500,
-                    px: 2,
+                    color: brandColors.charcoal,
+                    py: 1.5,
                   }}
                 >
                   Sign In
                 </Button>
+              </ListItem>
+            )}
+
+            {session && (
+              <ListItem sx={{ px: 0 }}>
                 <Button
-                  component={Link}
-                  href="/profile/create"
-                  variant="contained"
-                  color="primary"
-                  size="small"
+                  onClick={() => {
+                    signOut();
+                    handleMobileMenuToggle();
+                  }}
+                  fullWidth
                   sx={{
+                    justifyContent: 'flex-start',
                     textTransform: 'none',
+                    fontSize: '1.1rem',
                     fontWeight: 500,
-                    px: 2,
+                    color: brandColors.charcoal,
+                    py: 1.5,
                   }}
                 >
-                  Get Started
+                  Sign Out
                 </Button>
-              </Stack>
+              </ListItem>
             )}
-          </Box>
-        </Toolbar>
-      </Container>
+          </List>
+        </Box>
+      </Drawer>
     </AppBar>
   );
 }

@@ -72,7 +72,7 @@ export function FeatureShowcase() {
                 color: brandColors.inkBlue,
               }}
             >
-              StuffLibrary
+              sharing a stuff library
             </Box>
           </Typography>
 
@@ -87,8 +87,7 @@ export function FeatureShowcase() {
               lineHeight: 1.6,
             }}
           >
-            Sharing builds stronger communities while creating value for
-            everyone involved.
+            Because not everyone on the street needs to keep a giant ladder.
           </Typography>
         </Box>
 

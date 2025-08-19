@@ -1,7 +1,11 @@
 'use client';
 
 import { Box, useTheme, useMediaQuery } from '@mui/material';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
+
+// Global cache outside component to prevent multiple fetches
+let globalStuffItemsCache: StuffItem[] | null = null;
+let globalFetchPromise: Promise<StuffItem[]> | null = null;
 
 // Types
 interface House {
@@ -13,6 +17,7 @@ interface House {
 interface StuffItem {
   id: string;
   name: string;
+  displayName: string;
   iconPath: string;
   category: string;
 }
@@ -36,58 +41,6 @@ const AVAILABLE_HOUSES = [
   { id: 'house5', iconPath: '/house icons/house5.svg' },
 ];
 
-// Mock stuff items (will be replaced with database data)
-const MOCK_STUFF_ITEMS: StuffItem[] = [
-  {
-    id: '1',
-    name: 'toolbox',
-    iconPath: '/stuff icons/noun-toolbox-8029186.svg',
-    category: 'tools',
-  },
-  {
-    id: '2',
-    name: 'bicycle',
-    iconPath: '/stuff icons/noun-bicycle-6169822.svg',
-    category: 'sports',
-  },
-  {
-    id: '3',
-    name: 'drill',
-    iconPath: '/stuff icons/noun-drill-8029214.svg',
-    category: 'tools',
-  },
-  {
-    id: '4',
-    name: 'backpack',
-    iconPath: '/stuff icons/noun-backpack-4997875.svg',
-    category: 'outdoor',
-  },
-  {
-    id: '5',
-    name: 'lawn mower',
-    iconPath: '/stuff icons/noun-lawn-mower-8029224.svg',
-    category: 'yard',
-  },
-  {
-    id: '6',
-    name: 'tent',
-    iconPath: '/stuff icons/noun-tent-4997877.svg',
-    category: 'outdoor',
-  },
-  {
-    id: '7',
-    name: 'chainsaw',
-    iconPath: '/stuff icons/noun-chainsaw-8029187.svg',
-    category: 'tools',
-  },
-  {
-    id: '8',
-    name: 'basketball',
-    iconPath: '/stuff icons/noun-basketball-ball-4390463.svg',
-    category: 'sports',
-  },
-];
-
 export function AnimatedStuffSharing() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -95,6 +48,49 @@ export function AnimatedStuffSharing() {
 
   // Determine number of houses based on screen size
   const numHouses = isMobile ? 2 : isTablet ? 3 : 4;
+
+  // Fetch stuff items from database (using global cache)
+  const fetchStuffItems = useCallback(async (): Promise<StuffItem[]> => {
+    // Return cached data if available
+    if (globalStuffItemsCache) {
+      console.log('AnimatedStuffSharing: Using cached data');
+      return globalStuffItemsCache;
+    }
+
+    // Return existing promise if already fetching
+    if (globalFetchPromise) {
+      console.log('AnimatedStuffSharing: Waiting for existing fetch');
+      return globalFetchPromise;
+    }
+
+    console.log('AnimatedStuffSharing: Starting new fetch');
+
+    // Start new fetch
+    globalFetchPromise = (async () => {
+      try {
+        const response = await fetch('/api/stuff-types');
+        if (!response.ok) {
+          console.error('Failed to fetch stuff types');
+          return [];
+        }
+        const data = await response.json();
+        globalStuffItemsCache = data; // Cache the result globally
+        console.log('AnimatedStuffSharing: Cached', data.length, 'items');
+        return data;
+      } catch (error) {
+        console.error('Error fetching stuff types:', error);
+        return [];
+      } finally {
+        globalFetchPromise = null; // Clear the promise reference
+      }
+    })();
+
+    return globalFetchPromise;
+  }, []); // Empty dependency array - function never changes
+
+  // Shuffled items list for non-repetitive selection
+  const [shuffledItems, setShuffledItems] = useState<StuffItem[]>([]);
+  const [itemIndex, setItemIndex] = useState(0);
 
   // Calculate house positions
   const getHousePositions = (count: number): number[] => {
@@ -109,8 +105,23 @@ export function AnimatedStuffSharing() {
   // State
   const [houses, setHouses] = useState<House[]>([]);
   const [movingObjects, setMovingObjects] = useState<MovingObject[]>([]);
+  const [stuffItems, setStuffItems] = useState<StuffItem[]>([]);
   const animationRef = useRef<number>(0);
   const lastAnimationTime = useRef<number>(0);
+
+  // Fetch stuff items from database on mount (only once)
+
+  useEffect(() => {
+    console.log(
+      'AnimatedStuffSharing: Fetching stuff items (should only happen once)'
+    );
+    fetchStuffItems().then((items: StuffItem[]) => {
+      console.log('AnimatedStuffSharing: Received items:', items.length);
+      setStuffItems(items);
+      setShuffledItems([...items].sort(() => Math.random() - 0.5));
+      setItemIndex(0);
+    });
+  }, []); // Empty dependency array - only run once on mount
 
   // Initialize houses on mount/resize
   useEffect(() => {
@@ -180,13 +191,19 @@ export function AnimatedStuffSharing() {
         }
 
         // Start a new animation if we have available pairs
-        if (availablePairs.length > 0) {
+        if (availablePairs.length > 0 && shuffledItems.length > 0) {
           const selectedPair =
             availablePairs[Math.floor(Math.random() * availablePairs.length)];
-          const stuffItem =
-            MOCK_STUFF_ITEMS[
-              Math.floor(Math.random() * MOCK_STUFF_ITEMS.length)
-            ];
+
+          // Get next item from shuffled list, loop back if at end
+          const stuffItem = shuffledItems[itemIndex];
+          const nextIndex = (itemIndex + 1) % shuffledItems.length;
+
+          // If we're looping back, reshuffle the items
+          if (nextIndex === 0) {
+            setShuffledItems([...stuffItems].sort(() => Math.random() - 0.5));
+          }
+          setItemIndex(nextIndex);
 
           if (!selectedPair || !stuffItem) return;
 
@@ -216,7 +233,7 @@ export function AnimatedStuffSharing() {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [houses, movingObjects]);
+  }, [houses, movingObjects, shuffledItems, itemIndex, stuffItems]);
 
   // Calculate object position during animation
   const getObjectPosition = (obj: MovingObject) => {
@@ -249,11 +266,9 @@ export function AnimatedStuffSharing() {
     <Box
       sx={{
         position: 'relative',
-        height: { xs: '80px', md: '120px' },
+        height: { xs: '60px', md: '80px' },
         width: '100%',
-        overflow: 'hidden',
-        background: 'linear-gradient(to bottom, #e0f2fe 0%, #f5f5f5 100%)',
-        borderBottom: '1px solid #e0e0e0',
+        overflow: 'visible',
       }}
     >
       {/* Houses */}
@@ -292,15 +307,15 @@ export function AnimatedStuffSharing() {
               position: 'absolute',
               ...position,
               transform: 'translate(-50%, -50%)',
-              width: { xs: '20px', md: '30px' },
-              height: { xs: '20px', md: '30px' },
+              width: { xs: '40px', md: '60px' },
+              height: { xs: '40px', md: '60px' },
               zIndex: 1,
               transition: 'none', // Smooth animation via position updates
             }}
           >
             <img
               src={obj.stuffItem.iconPath}
-              alt={obj.stuffItem.name}
+              alt={obj.stuffItem.displayName}
               style={{
                 width: '100%',
                 height: '100%',
@@ -310,20 +325,6 @@ export function AnimatedStuffSharing() {
           </Box>
         );
       })}
-
-      {/* Optional: Connection lines between houses */}
-      <Box
-        sx={{
-          position: 'absolute',
-          top: '50%',
-          left: '10%',
-          right: '10%',
-          height: '1px',
-          background:
-            'linear-gradient(to right, transparent, #bdbdbd, transparent)',
-          zIndex: 0,
-        }}
-      />
     </Box>
   );
 }
