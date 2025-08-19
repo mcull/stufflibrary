@@ -11,14 +11,16 @@ import {
 interface ProfileCreationHandlerProps {
   userId: string;
   initialData?: Partial<ProfileFormData>;
-  user?: {
-    id: string;
-    name: string;
-    email: string;
-    image?: string;
-    createdAt: string;
-    profileCompleted: boolean;
-  };
+  user?:
+    | {
+        id: string;
+        name: string;
+        email: string;
+        image?: string | undefined;
+        createdAt: string;
+        profileCompleted: boolean;
+      }
+    | undefined;
 }
 
 export function ProfileCreationHandler({

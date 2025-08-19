@@ -75,7 +75,7 @@ export default async function CreateProfilePage() {
                 id: user.id,
                 name: user.name || '',
                 email: session.user.email || '',
-                image: session.user.image || undefined,
+                image: session.user.image ?? undefined,
                 createdAt: user.createdAt.toISOString(),
                 profileCompleted: user.profileCompleted,
               }

@@ -78,7 +78,15 @@ export default async function DashboardPage() {
                 <h2 className="text-2xl font-semibold text-gray-900 text-center mb-6">
                   Your Library Card
                 </h2>
-                <LibraryCard user={user} />
+                <LibraryCard
+                  user={{
+                    ...user,
+                    name: user.name || '',
+                    email: user.email || '',
+                    image: user.image ?? undefined,
+                    createdAt: user.createdAt.toISOString(),
+                  }}
+                />
               </div>
 
               <div className="bg-white shadow rounded-lg p-6 max-w-md mx-auto">

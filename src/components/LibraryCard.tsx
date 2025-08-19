@@ -8,7 +8,7 @@ interface LibraryCardProps {
     id: string;
     name: string;
     email: string;
-    image?: string;
+    image?: string | undefined;
     createdAt: string;
     profileCompleted: boolean;
   };

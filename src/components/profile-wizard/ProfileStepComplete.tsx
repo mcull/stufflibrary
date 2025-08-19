@@ -16,14 +16,16 @@ import { LibraryCard } from '@/components/LibraryCard';
 import { brandColors } from '@/theme/brandTokens';
 
 interface ProfileStepCompleteProps {
-  user?: {
-    id: string;
-    name: string;
-    email: string;
-    image?: string;
-    createdAt: string;
-    profileCompleted: boolean;
-  };
+  user?:
+    | {
+        id: string;
+        name: string;
+        email: string;
+        image?: string | undefined;
+        createdAt: string;
+        profileCompleted: boolean;
+      }
+    | undefined;
 }
 
 export function ProfileStepComplete({ user }: ProfileStepCompleteProps) {
