@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Roboto } from 'next/font/google';
 
+import { AnimatedStuffSharing } from '@/components/AnimatedStuffSharing';
 import { ClientThemeProvider } from '@/components/ClientThemeProvider';
 import { Footer } from '@/components/Footer';
 import { Header } from '@/components/Header';
@@ -35,6 +36,7 @@ export default function RootLayout({
         <NextAuthSessionProvider>
           <ClientThemeProvider>
             <Header />
+            <AnimatedStuffSharing />
             {children}
             <Footer />
           </ClientThemeProvider>

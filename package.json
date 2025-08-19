@@ -12,6 +12,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
+    "seed:stuff": "tsx scripts/seed-stuff-types.ts",
     "test": "vitest",
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
