@@ -7,30 +7,35 @@ import { db } from './db';
 import { env } from './env';
 
 function getResend() {
+  if (!env.RESEND_API_KEY) {
+    throw new Error('RESEND_API_KEY is not configured');
+  }
   return new Resend(env.RESEND_API_KEY);
 }
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(db) as any,
   providers: [
-    EmailProvider({
-      server: {
-        host: 'smtp.resend.com',
-        port: 587,
-        auth: {
-          user: 'resend',
-          pass: env.RESEND_API_KEY,
-        },
-      },
-      from: 'StuffLibrary <noreply@stufflibrary.org>',
-      async sendVerificationRequest({ identifier, url }) {
-        try {
-          const resend = getResend();
-          await resend.emails.send({
+    ...(env.RESEND_API_KEY
+      ? [
+          EmailProvider({
+            server: {
+              host: 'smtp.resend.com',
+              port: 587,
+              auth: {
+                user: 'resend',
+                pass: env.RESEND_API_KEY,
+              },
+            },
             from: 'StuffLibrary <noreply@stufflibrary.org>',
-            to: identifier,
-            subject: 'Sign in to StuffLibrary',
-            html: `
+            async sendVerificationRequest({ identifier, url }) {
+              try {
+                const resend = getResend();
+                await resend.emails.send({
+                  from: 'StuffLibrary <noreply@stufflibrary.org>',
+                  to: identifier,
+                  subject: 'Sign in to StuffLibrary',
+                  html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <h1 style="color: #2563eb; text-align: center;">Welcome to StuffLibrary</h1>
                 <p>Click the link below to sign in to your account:</p>
@@ -46,13 +51,15 @@ export const authOptions: NextAuthOptions = {
                 </p>
               </div>
             `,
-          });
-        } catch (error) {
-          console.error('Error sending verification email:', error);
-          throw new Error('Failed to send verification email');
-        }
-      },
-    }),
+                });
+              } catch (error) {
+                console.error('Error sending verification email:', error);
+                throw new Error('Failed to send verification email');
+              }
+            },
+          }),
+        ]
+      : []),
   ],
   pages: {
     signIn: '/auth/signin',
@@ -60,6 +67,19 @@ export const authOptions: NextAuthOptions = {
     error: '/auth/error',
   },
   callbacks: {
+    async redirect({ url, baseUrl }) {
+      // If user is signing in, check if they have a completed profile
+      if (url.startsWith(baseUrl)) {
+        // Allow relative URLs
+        return url;
+      } else if (url.startsWith('/')) {
+        // Allow absolute paths on same origin
+        return new URL(url, baseUrl).toString();
+      }
+
+      // Default redirect after sign in - go to callback page for smart routing
+      return baseUrl + '/auth/callback';
+    },
     async session({ token, session }) {
       if (token && session.user) {
         (session.user as any).id = token.sub!;
