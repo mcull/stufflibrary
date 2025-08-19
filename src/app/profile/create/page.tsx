@@ -32,6 +32,7 @@ export default async function CreateProfilePage() {
         name: true,
         bio: true,
         interests: true,
+        createdAt: true,
       },
     });
   } else if (session.user?.email) {
@@ -44,6 +45,7 @@ export default async function CreateProfilePage() {
         name: true,
         bio: true,
         interests: true,
+        createdAt: true,
       },
     });
   } else {
@@ -67,6 +69,18 @@ export default async function CreateProfilePage() {
       <ProfileCreationHandler
         userId={user?.id || userId}
         initialData={initialData}
+        user={
+          user
+            ? {
+                id: user.id,
+                name: user.name || '',
+                email: session.user.email || '',
+                image: session.user.image ?? undefined,
+                createdAt: user.createdAt.toISOString(),
+                profileCompleted: user.profileCompleted,
+              }
+            : undefined
+        }
       />
     </Suspense>
   );

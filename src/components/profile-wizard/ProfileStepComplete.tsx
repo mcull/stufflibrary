@@ -8,12 +8,27 @@ import {
   CardContent,
   Stack,
   Typography,
+  Paper,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
 
+import { LibraryCard } from '@/components/LibraryCard';
 import { brandColors } from '@/theme/brandTokens';
 
-export function ProfileStepComplete() {
+interface ProfileStepCompleteProps {
+  user?:
+    | {
+        id: string;
+        name: string;
+        email: string;
+        image?: string | undefined;
+        createdAt: string;
+        profileCompleted: boolean;
+      }
+    | undefined;
+}
+
+export function ProfileStepComplete({ user }: ProfileStepCompleteProps) {
   const router = useRouter();
 
   const nextSteps = [
@@ -84,6 +99,51 @@ export function ProfileStepComplete() {
         Welcome to StuffLibrary! Your profile is now set up and you&apos;re
         ready to start sharing and borrowing with your community.
       </Typography>
+
+      {/* Library Card Display */}
+      {user && (
+        <Box sx={{ mb: 6 }}>
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 600,
+              color: brandColors.charcoal,
+              mb: 3,
+            }}
+          >
+            🎉 Here&apos;s Your Digital Library Card!
+          </Typography>
+
+          <Paper
+            elevation={3}
+            sx={{
+              p: 3,
+              mb: 3,
+              maxWidth: 650,
+              mx: 'auto',
+              backgroundColor: '#f8f9fa',
+              borderRadius: '16px',
+            }}
+          >
+            <LibraryCard user={user} />
+          </Paper>
+
+          <Typography
+            variant="body2"
+            sx={{
+              color: brandColors.charcoal,
+              opacity: 0.7,
+              maxWidth: '500px',
+              mx: 'auto',
+              mb: 4,
+            }}
+          >
+            Your library card is your digital identity in the StuffLibrary
+            community. Use the QR code to connect with neighbors and access
+            shared resources.
+          </Typography>
+        </Box>
+      )}
 
       {/* Next Steps */}
       <Typography

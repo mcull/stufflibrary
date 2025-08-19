@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 
+import { LibraryCard } from '@/components/LibraryCard';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 
@@ -71,6 +72,22 @@ export default async function DashboardPage() {
                 Your profile has been successfully created. This is your
                 personal dashboard.
               </p>
+
+              {/* Library Card */}
+              <div className="bg-white shadow-lg rounded-xl p-6 max-w-2xl mx-auto mb-8">
+                <h2 className="text-2xl font-semibold text-gray-900 text-center mb-6">
+                  Your Library Card
+                </h2>
+                <LibraryCard
+                  user={{
+                    ...user,
+                    name: user.name || '',
+                    email: user.email || '',
+                    image: user.image ?? undefined,
+                    createdAt: user.createdAt.toISOString(),
+                  }}
+                />
+              </div>
 
               <div className="bg-white shadow rounded-lg p-6 max-w-md mx-auto">
                 <div className="text-center">
