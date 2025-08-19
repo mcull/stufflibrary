@@ -3,6 +3,8 @@
 import { Box, useTheme, useMediaQuery } from '@mui/material';
 import { useEffect, useState, useRef, useCallback } from 'react';
 
+import { brandColors } from '@/theme/brandTokens';
+
 // Global cache outside component to prevent multiple fetches
 let globalStuffItemsCache: StuffItem[] | null = null;
 let globalFetchPromise: Promise<StuffItem[]> | null = null;
@@ -12,6 +14,7 @@ interface House {
   id: string;
   iconPath: string;
   position: number; // 0-1 position across the screen
+  color: string; // Random color from theme
 }
 
 interface StuffItem {
@@ -34,11 +37,17 @@ interface MovingObject {
 
 // Available houses (we'll randomly select from these)
 const AVAILABLE_HOUSES = [
-  { id: 'house1', iconPath: '/house icons/house1.svg' },
-  { id: 'house2', iconPath: '/house icons/house2.svg' },
-  { id: 'house3', iconPath: '/house icons/house3.svg' },
-  { id: 'house4', iconPath: '/house icons/house4.svg' },
-  { id: 'house5', iconPath: '/house icons/house5.svg' },
+  { id: 'house1', iconPath: '/house icons/house5.svg' },
+  { id: 'house2', iconPath: '/house icons/house5.svg' },
+  { id: 'house3', iconPath: '/house icons/house5.svg' },
+  { id: 'house4', iconPath: '/house icons/house5.svg' },
+];
+
+// House colors from our theme
+const HOUSE_COLORS = [
+  brandColors.inkBlue,
+  brandColors.mustardYellow,
+  brandColors.tomatoRed,
 ];
 
 export function AnimatedStuffSharing() {
@@ -93,14 +102,24 @@ export function AnimatedStuffSharing() {
   const [itemIndex, setItemIndex] = useState(0);
 
   // Calculate house positions
-  const getHousePositions = (count: number): number[] => {
-    if (count === 1) return [0.5];
-    const positions: number[] = [];
-    for (let i = 0; i < count; i++) {
-      positions.push((i + 1) / (count + 1));
-    }
-    return positions;
-  };
+  const getHousePositions = useCallback(
+    (count: number): number[] => {
+      if (count === 1) return [0.5];
+      const positions: number[] = [];
+
+      // On mobile (2 houses), spread them out more
+      if (count === 2 && isMobile) {
+        return [0.2, 0.8]; // More spacing on mobile
+      }
+
+      // Default spacing for other screen sizes
+      for (let i = 0; i < count; i++) {
+        positions.push((i + 1) / (count + 1));
+      }
+      return positions;
+    },
+    [isMobile]
+  );
 
   // State
   const [houses, setHouses] = useState<House[]>([]);
@@ -121,7 +140,7 @@ export function AnimatedStuffSharing() {
       setShuffledItems([...items].sort(() => Math.random() - 0.5));
       setItemIndex(0);
     });
-  }, []); // Empty dependency array - only run once on mount
+  }, [fetchStuffItems]); // Include fetchStuffItems dependency
 
   // Initialize houses on mount/resize
   useEffect(() => {
@@ -131,11 +150,14 @@ export function AnimatedStuffSharing() {
       .map((house, index) => ({
         ...house,
         position: positions[index] ?? 0.5,
+        color:
+          HOUSE_COLORS[Math.floor(Math.random() * HOUSE_COLORS.length)] ??
+          brandColors.inkBlue, // Random theme color with fallback
       }));
 
     setHouses(selectedHouses);
     setMovingObjects([]); // Reset animations when houses change
-  }, [numHouses]);
+  }, [numHouses, isMobile, getHousePositions]);
 
   // Animation logic
   useEffect(() => {
