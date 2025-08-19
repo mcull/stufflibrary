@@ -186,6 +186,21 @@ model BranchMember {
   @@map("branch_members")
 }
 
+model StuffType {
+  id          String   @id @default(cuid())
+  name        String   @unique // "toolbox", "bicycle", "drill", etc.
+  displayName String   // "Toolbox", "Bicycle", "Drill"
+  iconPath    String   // "/stuff icons/noun-toolbox-8029186.svg"
+  category    String   // "tools", "sports", "kitchen", "yard"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  items Item[]
+
+  @@map("stuff_types")
+}
+
 model Item {
   id          String   @id @default(cuid())
   name        String
@@ -196,6 +211,10 @@ model Item {
   imageUrl    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  // Enhanced with stuff type
+  stuffTypeId String?
+  stuffType   StuffType? @relation(fields: [stuffTypeId], references: [id])
 
   // Relationships
   ownerId        String
