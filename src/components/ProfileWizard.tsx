@@ -100,9 +100,21 @@ const steps = [
 interface ProfileWizardProps {
   onComplete: (data: ProfileFormData) => void;
   initialData?: Partial<ProfileFormData>;
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+    image?: string;
+    createdAt: string;
+    profileCompleted: boolean;
+  };
 }
 
-export function ProfileWizard({ onComplete, initialData }: ProfileWizardProps) {
+export function ProfileWizard({
+  onComplete,
+  initialData,
+  user,
+}: ProfileWizardProps) {
   const [activeStep, setActiveStep] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
 
@@ -181,7 +193,7 @@ export function ProfileWizard({ onComplete, initialData }: ProfileWizardProps) {
   }
 
   if (isComplete) {
-    return <ProfileStepComplete />;
+    return <ProfileStepComplete user={user} />;
   }
 
   const CurrentStepComponent = steps[activeStep]?.component;

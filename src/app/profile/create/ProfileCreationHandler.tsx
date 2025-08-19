@@ -11,11 +11,20 @@ import {
 interface ProfileCreationHandlerProps {
   userId: string;
   initialData?: Partial<ProfileFormData>;
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+    image?: string;
+    createdAt: string;
+    profileCompleted: boolean;
+  };
 }
 
 export function ProfileCreationHandler({
   userId,
   initialData,
+  user,
 }: ProfileCreationHandlerProps) {
   const router = useRouter();
   const [_isSubmitting, setIsSubmitting] = useState(false);
@@ -87,6 +96,7 @@ export function ProfileCreationHandler({
   return (
     <ProfileWizard
       onComplete={handleProfileComplete}
+      user={user}
       {...(initialData ? { initialData } : {})}
     />
   );
