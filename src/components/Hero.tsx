@@ -1,4 +1,5 @@
-import { Box, Container, Typography, Button } from '@mui/material';
+import { Box, Container, Typography, Button, Stack } from '@mui/material';
+import Link from 'next/link';
 
 import { brandColors, spacing } from '@/theme/brandTokens';
 
@@ -63,28 +64,62 @@ export function Hero() {
             Build community. Reduce clutter. Save money.
           </Typography>
 
-          {/* CTA Button */}
-          <Button
-            variant="outlined"
-            color="primary"
-            size="large"
+          {/* CTA Buttons */}
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={{ xs: 2, sm: 3 }}
             sx={{
-              fontSize: '1.125rem',
-              fontWeight: 500,
-              px: { xs: 4, md: 6 },
-              py: { xs: 1.5, md: 2 },
-              borderRadius: '12px',
-              textTransform: 'none',
-              borderWidth: 2,
-              '&:hover': {
-                borderWidth: 2,
-                transform: 'translateY(-1px)',
-              },
-              transition: 'all 0.2s ease',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            Learn More
-          </Button>
+            <Button
+              component={Link}
+              href="/profile/create"
+              variant="contained"
+              color="primary"
+              size="large"
+              sx={{
+                fontSize: '1.125rem',
+                fontWeight: 600,
+                px: { xs: 5, md: 7 },
+                py: { xs: 1.5, md: 2 },
+                borderRadius: '12px',
+                textTransform: 'none',
+                minWidth: { xs: '200px', sm: 'auto' },
+                '&:hover': {
+                  transform: 'translateY(-1px)',
+                },
+                transition: 'all 0.2s ease',
+              }}
+            >
+              Get Started
+            </Button>
+            <Button
+              component={Link}
+              href="/auth/signin"
+              variant="outlined"
+              color="primary"
+              size="large"
+              sx={{
+                fontSize: '1.125rem',
+                fontWeight: 500,
+                px: { xs: 5, md: 7 },
+                py: { xs: 1.5, md: 2 },
+                borderRadius: '12px',
+                textTransform: 'none',
+                borderWidth: 2,
+                minWidth: { xs: '200px', sm: 'auto' },
+                '&:hover': {
+                  borderWidth: 2,
+                  transform: 'translateY(-1px)',
+                },
+                transition: 'all 0.2s ease',
+              }}
+            >
+              Sign In
+            </Button>
+          </Stack>
 
           {/* Trust indicator */}
           <Typography

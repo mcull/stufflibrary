@@ -1,7 +1,8 @@
 'use client';
 
 import { AppBar, Toolbar, Container, Box, Button, Stack } from '@mui/material';
-import { useSession, signIn, signOut } from 'next-auth/react';
+import Link from 'next/link';
+import { useSession, signOut } from 'next-auth/react';
 
 import { brandColors } from '@/theme/brandTokens';
 
@@ -82,18 +83,34 @@ export function Header() {
                 Sign Out
               </Button>
             ) : (
-              <Button
-                onClick={() => signIn()}
-                variant="contained"
-                color="primary"
-                sx={{
-                  textTransform: 'none',
-                  fontWeight: 500,
-                  px: 3,
-                }}
-              >
-                Sign In
-              </Button>
+              <Stack direction="row" spacing={1}>
+                <Button
+                  component={Link}
+                  href="/auth/signin"
+                  variant="outlined"
+                  color="primary"
+                  sx={{
+                    textTransform: 'none',
+                    fontWeight: 500,
+                    px: 3,
+                  }}
+                >
+                  Sign In
+                </Button>
+                <Button
+                  component={Link}
+                  href="/profile/create"
+                  variant="contained"
+                  color="primary"
+                  sx={{
+                    textTransform: 'none',
+                    fontWeight: 500,
+                    px: 3,
+                  }}
+                >
+                  Get Started
+                </Button>
+              </Stack>
             )}
           </Stack>
 
@@ -114,19 +131,36 @@ export function Header() {
                 Sign Out
               </Button>
             ) : (
-              <Button
-                onClick={() => signIn()}
-                variant="contained"
-                color="primary"
-                size="small"
-                sx={{
-                  textTransform: 'none',
-                  fontWeight: 500,
-                  px: 2,
-                }}
-              >
-                Sign In
-              </Button>
+              <Stack direction="row" spacing={1}>
+                <Button
+                  component={Link}
+                  href="/auth/signin"
+                  variant="outlined"
+                  color="primary"
+                  size="small"
+                  sx={{
+                    textTransform: 'none',
+                    fontWeight: 500,
+                    px: 2,
+                  }}
+                >
+                  Sign In
+                </Button>
+                <Button
+                  component={Link}
+                  href="/profile/create"
+                  variant="contained"
+                  color="primary"
+                  size="small"
+                  sx={{
+                    textTransform: 'none',
+                    fontWeight: 500,
+                    px: 2,
+                  }}
+                >
+                  Get Started
+                </Button>
+              </Stack>
             )}
           </Box>
         </Toolbar>

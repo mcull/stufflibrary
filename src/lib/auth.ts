@@ -67,6 +67,19 @@ export const authOptions: NextAuthOptions = {
     error: '/auth/error',
   },
   callbacks: {
+    async redirect({ url, baseUrl }) {
+      // If user is signing in, check if they have a completed profile
+      if (url.startsWith(baseUrl)) {
+        // Allow relative URLs
+        return url;
+      } else if (url.startsWith('/')) {
+        // Allow absolute paths on same origin
+        return new URL(url, baseUrl).toString();
+      }
+
+      // Default redirect after sign in - go to callback page for smart routing
+      return baseUrl + '/auth/callback';
+    },
     async session({ token, session }) {
       if (token && session.user) {
         (session.user as any).id = token.sub!;
