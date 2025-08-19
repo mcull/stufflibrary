@@ -102,21 +102,24 @@ export function AnimatedStuffSharing() {
   const [itemIndex, setItemIndex] = useState(0);
 
   // Calculate house positions
-  const getHousePositions = (count: number): number[] => {
-    if (count === 1) return [0.5];
-    const positions: number[] = [];
+  const getHousePositions = useCallback(
+    (count: number): number[] => {
+      if (count === 1) return [0.5];
+      const positions: number[] = [];
 
-    // On mobile (2 houses), spread them out more
-    if (count === 2 && isMobile) {
-      return [0.2, 0.8]; // More spacing on mobile
-    }
+      // On mobile (2 houses), spread them out more
+      if (count === 2 && isMobile) {
+        return [0.2, 0.8]; // More spacing on mobile
+      }
 
-    // Default spacing for other screen sizes
-    for (let i = 0; i < count; i++) {
-      positions.push((i + 1) / (count + 1));
-    }
-    return positions;
-  };
+      // Default spacing for other screen sizes
+      for (let i = 0; i < count; i++) {
+        positions.push((i + 1) / (count + 1));
+      }
+      return positions;
+    },
+    [isMobile]
+  );
 
   // State
   const [houses, setHouses] = useState<House[]>([]);
@@ -137,7 +140,7 @@ export function AnimatedStuffSharing() {
       setShuffledItems([...items].sort(() => Math.random() - 0.5));
       setItemIndex(0);
     });
-  }, []); // Empty dependency array - only run once on mount
+  }, [fetchStuffItems]); // Include fetchStuffItems dependency
 
   // Initialize houses on mount/resize
   useEffect(() => {
@@ -147,12 +150,14 @@ export function AnimatedStuffSharing() {
       .map((house, index) => ({
         ...house,
         position: positions[index] ?? 0.5,
-        color: HOUSE_COLORS[Math.floor(Math.random() * HOUSE_COLORS.length)], // Random theme color
+        color:
+          HOUSE_COLORS[Math.floor(Math.random() * HOUSE_COLORS.length)] ??
+          brandColors.inkBlue, // Random theme color with fallback
       }));
 
     setHouses(selectedHouses);
     setMovingObjects([]); // Reset animations when houses change
-  }, [numHouses]);
+  }, [numHouses, isMobile, getHousePositions]);
 
   // Animation logic
   useEffect(() => {
