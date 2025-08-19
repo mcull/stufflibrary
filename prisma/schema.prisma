@@ -13,14 +13,61 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Address {
+  id               String   @id @default(cuid())
+  
+  // Address components
+  street           String   // "123 Main St"
+  unit             String?  // "Apt 4B", "Unit 2", etc.
+  city             String
+  state            String
+  postalCode       String
+  country          String   @default("US")
+  
+  // For neighbor discovery and mapping
+  latitude         Float?
+  longitude        Float?
+  formattedAddress String?  // Full formatted address from geocoding
+  
+  // Address verification
+  verifiedAt       DateTime?
+  verificationMethod String? // "postcard", "utility_bill", etc.
+  
+  // Metadata
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  // Relationships
+  users            User[]
+  invitations      Invitation[]
+  
+  @@map("addresses")
+}
+
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id               String    @id @default(cuid())
+  name             String?
+  email            String?   @unique
+  emailVerified    DateTime?
+  image            String?
+  
+  // Enhanced profile fields
+  bio              String?
+  interests        String[]  // Array of interest categories
+  profileCompleted Boolean   @default(false)
+  onboardingStep   String?   // Track signup progress: "email", "profile", "address", "verification", "complete"
+  
+  // Address relationship
+  addressId        String?
+  address          Address?  @relation(fields: [addressId], references: [id])
+  addressVerified  Boolean   @default(false)
+  movedInDate      DateTime? // When they moved to current address
+  
+  // Account status
+  status           String    @default("active") // active, suspended, pending_verification
+  
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   // NextAuth relationships
   accounts Account[]
@@ -32,8 +79,76 @@ model User {
   items             Item[]
   borrowRequests    BorrowRequest[]
   lentItems         BorrowRequest[] @relation("Lender")
+  
+  // Invitation relationships
+  sentInvitations     Invitation[] @relation("InvitationSender")
+  receivedInvitations Invitation[] @relation("InvitationReceiver")
 
   @@map("users")
+}
+
+model Invitation {
+  id          String   @id @default(cuid())
+  email       String   
+  
+  // Invitation context
+  type        String   // "neighbor", "friend", "family", "coworker"
+  status      String   @default("pending") // pending, sent, accepted, expired, declined
+  message     String?  // Custom message from sender
+  
+  // For postcard/QR code invites
+  qrCode      String?  // Unique QR code for postcard
+  postcardSentAt DateTime?
+  
+  // Address context (for neighbor invites)
+  addressId   String?
+  address     Address? @relation(fields: [addressId], references: [id])
+  
+  // User relationships
+  senderId    String?
+  sender      User?    @relation("InvitationSender", fields: [senderId], references: [id])
+  receiverId  String?
+  receiver    User?    @relation("InvitationReceiver", fields: [receiverId], references: [id])
+  
+  // Metadata
+  createdAt   DateTime @default(now())
+  sentAt      DateTime?
+  acceptedAt  DateTime?
+  expiresAt   DateTime // Invitations expire after 30 days
+  
+  @@unique([email, senderId]) // Prevent duplicate invites
+  @@map("invitations")
+}
+
+// For structured signup flow - holds partial applications
+model SignupApplication {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  
+  // Collected data during signup process
+  name            String?
+  bio             String?
+  interests       String[]
+  
+  // Address data (before creating Address record)
+  addressData     Json?    // Temporary storage: {street, city, state, etc.}
+  addressVerified Boolean  @default(false)
+  
+  // Context
+  invitationId    String?  // If they came from an invitation
+  referralSource  String?  // "neighbor_invite", "friend_referral", "web", "social"
+  
+  // Progress tracking
+  currentStep     String   @default("email") // email, profile, address, verification, complete
+  status          String   @default("active") // active, completed, expired, abandoned
+  
+  // Metadata
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  completedAt     DateTime?
+  expiresAt       DateTime // Applications expire after 7 days of inactivity
+  
+  @@map("signup_applications")
 }
 
 model Branch {

@@ -16,7 +16,10 @@ export class StorageService {
       }
 
       // Test by listing objects (this is a light operation)
-      const { blobs } = await list({ limit: 1 });
+      const { blobs } = await list({
+        limit: 1,
+        token: env.BLOB_READ_WRITE_TOKEN!,
+      });
 
       return {
         success: true,
@@ -50,6 +53,9 @@ export class StorageService {
         putOptions.contentType = options.contentType;
       }
 
+      // Add token to options
+      putOptions.token = env.BLOB_READ_WRITE_TOKEN!;
+
       const blob = await put(filename, file, putOptions);
 
       return {
@@ -82,6 +88,9 @@ export class StorageService {
         putOptions.contentType = options.contentType;
       }
 
+      // Add token to options
+      putOptions.token = env.BLOB_READ_WRITE_TOKEN!;
+
       const blob = await put(filename, url, putOptions);
 
       return {
@@ -96,7 +105,9 @@ export class StorageService {
 
   static async deleteFile(url: string): Promise<void> {
     try {
-      await del(url);
+      await del(url, {
+        token: env.BLOB_READ_WRITE_TOKEN!,
+      });
     } catch (error) {
       console.error('Storage delete error:', error);
       throw error;
@@ -105,7 +116,9 @@ export class StorageService {
 
   static async getFileInfo(url: string) {
     try {
-      const info = await head(url);
+      const info = await head(url, {
+        token: env.BLOB_READ_WRITE_TOKEN!,
+      });
       return {
         url: info.url,
         pathname: info.pathname,
@@ -139,6 +152,9 @@ export class StorageService {
         listOptions.cursor = options.cursor;
       }
 
+      // Add token to options
+      listOptions.token = env.BLOB_READ_WRITE_TOKEN!;
+
       const result = await list(listOptions);
 
       return {
@@ -164,6 +180,7 @@ export class StorageService {
     try {
       const blob = await copy(fromUrl, toPathname, {
         access: 'public',
+        token: env.BLOB_READ_WRITE_TOKEN!,
       });
 
       return {
