@@ -30,6 +30,7 @@ export function Wordmark({
         variant={sizeMap[size]}
         component="span"
         sx={{
+          fontFamily: 'var(--font-space-grotesk)',
           fontWeight: 700,
           color: colorMap[color],
           letterSpacing: '-0.02em',
@@ -42,6 +43,7 @@ export function Wordmark({
         variant={sizeMap[size]}
         component="span"
         sx={{
+          fontFamily: 'var(--font-space-grotesk)',
           fontWeight: 400,
           color: colorMap[color],
           letterSpacing: '-0.02em',
