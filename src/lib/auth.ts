@@ -22,12 +22,12 @@ export const authOptions: NextAuthOptions = {
           pass: env.RESEND_API_KEY,
         },
       },
-      from: 'StuffLibrary <noreply@stufflibrary.com>',
+      from: 'StuffLibrary <noreply@stufflibrary.org>',
       async sendVerificationRequest({ identifier, url }) {
         try {
           const resend = getResend();
           await resend.emails.send({
-            from: 'StuffLibrary <noreply@stufflibrary.com>',
+            from: 'StuffLibrary <noreply@stufflibrary.org>',
             to: identifier,
             subject: 'Sign in to StuffLibrary',
             html: `
