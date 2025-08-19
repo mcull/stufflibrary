@@ -24,7 +24,7 @@ const envSchema = z.object({
   // Authentication
   NEXTAUTH_SECRET: z.string().min(1),
   NEXTAUTH_URL: z.string().optional(),
-  RESEND_API_KEY: z.string().min(1),
+  RESEND_API_KEY: z.string().optional(),
 
   // Application
   NODE_ENV: z
