@@ -1,65 +1,72 @@
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { NextAuthOptions } from 'next-auth';
-import EmailProvider from 'next-auth/providers/email';
-import { Resend } from 'resend';
+import CredentialsProvider from 'next-auth/providers/credentials';
 
 import { db } from './db';
 import { env } from './env';
+import { verifyAuthCode } from './auth-codes';
 
-function getResend() {
-  if (!env.RESEND_API_KEY) {
-    throw new Error('RESEND_API_KEY is not configured');
-  }
-  return new Resend(env.RESEND_API_KEY);
-}
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(db) as any,
+  adapter: PrismaAdapter(db),
+  session: {
+    strategy: 'jwt',
+  },
   providers: [
-    ...(env.RESEND_API_KEY
-      ? [
-          EmailProvider({
-            server: {
-              host: 'smtp.resend.com',
-              port: 587,
-              auth: {
-                user: 'resend',
-                pass: env.RESEND_API_KEY,
-              },
+    CredentialsProvider({
+      id: 'email-code',
+      name: 'Email Code',
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        code: { label: 'Code', type: 'text' },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.code) {
+          return null;
+        }
+
+        try {
+          // Verify the auth code
+          const isValidCode = await verifyAuthCode(credentials.email, credentials.code);
+          
+          if (!isValidCode) {
+            return null;
+          }
+
+          // Clear rate limit on successful verification
+          try {
+            const { sendCodeLimiter } = await import('../app/api/auth/send-code/route');
+            sendCodeLimiter.reset(credentials.email);
+          } catch (error) {
+            // ignore rate limit reset errors
+          }
+
+          // Find or create user
+          const user = await db.user.upsert({
+            where: { email: credentials.email },
+            update: { 
+              emailVerified: new Date(),
+              updatedAt: new Date(),
             },
-            from: 'StuffLibrary <noreply@stufflibrary.org>',
-            async sendVerificationRequest({ identifier, url }) {
-              try {
-                const resend = getResend();
-                await resend.emails.send({
-                  from: 'StuffLibrary <noreply@stufflibrary.org>',
-                  to: identifier,
-                  subject: 'Sign in to StuffLibrary',
-                  html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h1 style="color: #2563eb; text-align: center;">Welcome to StuffLibrary</h1>
-                <p>Click the link below to sign in to your account:</p>
-                <div style="text-align: center; margin: 32px 0;">
-                  <a href="${url}" 
-                     style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-                    Sign in to StuffLibrary
-                  </a>
-                </div>
-                <p style="color: #6b7280; font-size: 14px;">
-                  If you didn't request this email, you can safely ignore it.
-                  This link will expire in 24 hours.
-                </p>
-              </div>
-            `,
-                });
-              } catch (error) {
-                console.error('Error sending verification email:', error);
-                throw new Error('Failed to send verification email');
-              }
+            create: {
+              email: credentials.email,
+              emailVerified: new Date(),
+              profileCompleted: false,
             },
-          }),
-        ]
-      : []),
+          });
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            emailVerified: user.emailVerified,
+          };
+        } catch {
+          console.error('Auth code verification error');
+          return null;
+        }
+      },
+    }),
   ],
   pages: {
     signIn: '/auth/signin',
@@ -67,20 +74,23 @@ export const authOptions: NextAuthOptions = {
     error: '/auth/error',
   },
   callbacks: {
+    async signIn() {
+      // Always allow sign in - we'll handle redirects elsewhere
+      return true;
+    },
     async redirect({ url, baseUrl }) {
-      // If user is signing in, check if they have a completed profile
+      // Allow same-origin URLs through unchanged (e.g., /auth/callback)
       if (url.startsWith(baseUrl)) {
-        // Allow relative URLs
         return url;
-      } else if (url.startsWith('/')) {
-        // Allow absolute paths on same origin
+      }
+      if (url.startsWith('/')) {
         return new URL(url, baseUrl).toString();
       }
 
-      // Default redirect after sign in - go to callback page for smart routing
-      return baseUrl + '/auth/callback';
+      // Safe fallback to site root
+      return baseUrl;
     },
-    async session({ token, session }) {
+    async session({ token, session }: { token: any; session: any }) {
       if (token && session.user) {
         (session.user as any).id = token.sub!;
       }

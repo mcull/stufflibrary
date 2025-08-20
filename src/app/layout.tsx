@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Roboto, Space_Grotesk } from 'next/font/google';
+import localFont from 'next/font/local';
 
 import { ClientThemeProvider } from '@/components/ClientThemeProvider';
 import { ConditionalFooter } from '@/components/ConditionalFooter';
@@ -28,6 +29,12 @@ const spaceGrotesk = Space_Grotesk({
   variable: '--font-space-grotesk',
 });
 
+const impactLabel = localFont({
+  src: './fonts/ImpactLabel-lVYZ.ttf',
+  variable: '--font-impact-label',
+  display: 'swap',
+});
+
 export const metadata: Metadata = {
   title: 'StuffLibrary.org',
   description:
@@ -41,7 +48,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${roboto.variable} ${spaceGrotesk.variable}`}>
+      <body className={`${roboto.variable} ${spaceGrotesk.variable} ${impactLabel.variable}`}>
         <NextAuthSessionProvider>
           <ClientThemeProvider>
             <ConditionalHeader />

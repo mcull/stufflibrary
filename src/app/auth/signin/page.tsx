@@ -11,7 +11,7 @@ import {
   Alert,
 } from '@mui/material';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { Suspense, useState } from 'react';
 
@@ -21,36 +21,68 @@ import { brandColors } from '@/theme/brandTokens';
 
 function SignInForm() {
   const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
+  const [step, setStep] = useState<'email' | 'code'>('email');
   const [isLoading, setIsLoading] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [error, setError] = useState('');
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/';
+  // Default to server-side callback that decides destination post-auth
+  const callbackUrl = searchParams.get('callbackUrl') || '/auth/callback';
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError('');
 
     try {
-      const result = await signIn('email', {
-        email,
-        redirect: false,
-        callbackUrl,
+      const response = await fetch('/api/auth/send-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
       });
 
-      if (result?.ok) {
-        setIsSubmitted(true);
+      const result = await response.json();
+
+      if (response.ok) {
+        setStep('code');
       } else {
-        alert('Something went wrong. Please try again.');
+        setError(result.error || 'Something went wrong. Please try again.');
       }
     } catch (error) {
-      console.error('Sign in error:', error);
-      alert('Something went wrong. Please try again.');
+      setError('Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (isSubmitted) {
+  const handleCodeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+
+    try {
+      // Use NextAuth's signIn with automatic redirect
+      // This ensures proper session synchronization
+      const signInResult = await signIn('email-code', {
+        email,
+        code,
+        // Let the callback page decide dashboard vs. profile/create
+        callbackUrl,
+        redirect: true, // Let NextAuth handle the redirect
+      });
+      
+      // If we get here, there was an error (redirect didn't happen)
+      if (signInResult?.error) {
+        setError(signInResult.error || 'Invalid code. Please try again.');
+        setIsLoading(false);
+      }
+    } catch (error) {
+      setError('Something went wrong. Please try again.');
+      setIsLoading(false);
+    }
+  };
+
+  if (step === 'code') {
     return (
       <Box
         sx={{
@@ -91,7 +123,7 @@ function SignInForm() {
                   fontSize: { xs: '1.75rem', sm: '2rem' },
                 }}
               >
-                Check your email
+                Enter your code
               </Typography>
 
               <Typography
@@ -104,7 +136,7 @@ function SignInForm() {
                   lineHeight: 1.6,
                 }}
               >
-                We&apos;ve sent a magic link to{' '}
+                We&apos;ve sent a 6-digit code to{' '}
                 <Box
                   component="span"
                   sx={{ fontWeight: 500, color: brandColors.inkBlue }}
@@ -113,44 +145,114 @@ function SignInForm() {
                 </Box>
               </Typography>
 
-              <Alert
-                severity="info"
-                sx={{
-                  backgroundColor: '#f0f9ff',
-                  border: `1px solid #e0f2fe`,
-                  '& .MuiAlert-icon': {
-                    color: brandColors.inkBlue,
-                  },
-                  '& .MuiAlert-message': {
-                    color: brandColors.charcoal,
-                  },
-                }}
-              >
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  Click the link in your email to sign in to your account.
-                </Typography>
-                <Typography variant="body2">
-                  Didn&apos;t receive the email? Check your spam folder or{' '}
-                  <Button
-                    variant="text"
-                    size="small"
-                    onClick={() => setIsSubmitted(false)}
-                    sx={{
-                      p: 0,
-                      minWidth: 'auto',
-                      textDecoration: 'underline',
-                      color: brandColors.inkBlue,
-                      fontWeight: 500,
-                      '&:hover': {
-                        textDecoration: 'none',
-                        backgroundColor: 'transparent',
+              {error && (
+                <Alert
+                  severity="error"
+                  sx={{
+                    mb: 3,
+                    backgroundColor: '#fef2f2',
+                    border: `1px solid #fecaca`,
+                    '& .MuiAlert-icon': {
+                      color: '#dc2626',
+                    },
+                    '& .MuiAlert-message': {
+                      color: brandColors.charcoal,
+                    },
+                  }}
+                >
+                  {error}
+                </Alert>
+              )}
+
+              <Box component="form" onSubmit={handleCodeSubmit}>
+                <TextField
+                  fullWidth
+                  id="code"
+                  name="code"
+                  type="text"
+                  autoComplete="one-time-code"
+                  required
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="000000"
+                  variant="outlined"
+                  inputProps={{
+                    maxLength: 6,
+                    pattern: '[0-9]{6}',
+                    inputMode: 'numeric',
+                  }}
+                  sx={{
+                    mb: 3,
+                    '& .MuiOutlinedInput-root': {
+                      backgroundColor: brandColors.white,
+                      borderRadius: 2,
+                      fontSize: '1.25rem',
+                      fontFamily: 'monospace',
+                      letterSpacing: '0.2em',
+                      textAlign: 'center',
+                      '& fieldset': {
+                        borderColor: brandColors.softGray,
+                        borderWidth: 2,
                       },
-                    }}
-                  >
-                    try again
-                  </Button>
-                </Typography>
-              </Alert>
+                      '&:hover fieldset': {
+                        borderColor: brandColors.inkBlue,
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: brandColors.inkBlue,
+                        borderWidth: 2,
+                      },
+                    },
+                    '& .MuiOutlinedInput-input': {
+                      py: 1.5,
+                      px: 2,
+                      textAlign: 'center',
+                    },
+                  }}
+                />
+
+                <Button
+                  type="submit"
+                  fullWidth
+                  variant="contained"
+                  disabled={isLoading || code.length !== 6}
+                  sx={{
+                    backgroundColor: brandColors.inkBlue,
+                    color: brandColors.white,
+                    py: 1.5,
+                    fontSize: '1rem',
+                    fontWeight: 600,
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    mb: 2,
+                    '&:hover': {
+                      backgroundColor: '#1a2f4f',
+                    },
+                    '&.Mui-disabled': {
+                      backgroundColor: brandColors.softGray,
+                      color: brandColors.charcoal,
+                      opacity: 0.6,
+                    },
+                  }}
+                >
+                  {isLoading ? 'Verifying...' : 'Sign in'}
+                </Button>
+
+                <Button
+                  variant="text"
+                  fullWidth
+                  onClick={() => setStep('email')}
+                  sx={{
+                    color: brandColors.inkBlue,
+                    textDecoration: 'underline',
+                    '&:hover': {
+                      textDecoration: 'none',
+                      backgroundColor: 'transparent',
+                    },
+                  }}
+                >
+                  Back to email
+                </Button>
+              </Box>
             </CardContent>
           </Card>
         </Container>
@@ -203,8 +305,27 @@ function SignInForm() {
               Enter your email to sign in
             </Typography>
 
+            {error && (
+              <Alert
+                severity="error"
+                sx={{
+                  mb: 3,
+                  backgroundColor: '#fef2f2',
+                  border: `1px solid #fecaca`,
+                  '& .MuiAlert-icon': {
+                    color: '#dc2626',
+                  },
+                  '& .MuiAlert-message': {
+                    color: brandColors.charcoal,
+                  },
+                }}
+              >
+                {error}
+              </Alert>
+            )}
+
             {/* Email Form */}
-            <Box component="form" onSubmit={handleSubmit}>
+            <Box component="form" onSubmit={handleEmailSubmit}>
               <TextField
                 fullWidth
                 id="email"
@@ -264,7 +385,7 @@ function SignInForm() {
                   },
                 }}
               >
-                {isLoading ? 'Sending magic link...' : 'Continue'}
+                {isLoading ? 'Sending code...' : 'Continue'}
               </Button>
             </Box>
           </CardContent>

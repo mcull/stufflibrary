@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import {
   ProfileWizard,
@@ -9,7 +9,7 @@ import {
 } from '@/components/ProfileWizard';
 
 interface ProfileCreationHandlerProps {
-  userId: string;
+  userId?: string;
   initialData?: Partial<ProfileFormData>;
   user?:
     | {
@@ -24,12 +24,51 @@ interface ProfileCreationHandlerProps {
 }
 
 export function ProfileCreationHandler({
-  userId,
+  userId: userIdProp,
   initialData,
-  user,
+  user: userProp,
 }: ProfileCreationHandlerProps) {
   const router = useRouter();
   const [_isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingUser, setLoadingUser] = useState(false);
+  const [userId, setUserId] = useState<string | undefined>(userIdProp);
+  const [user, setUser] = useState<typeof userProp>(userProp);
+
+  // Ensure we have the current user and id; redirect if unauthorized
+  useEffect(() => {
+    if (userId && user) return; // Already provided
+
+    let mounted = true;
+    setLoadingUser(true);
+    (async () => {
+      try {
+        const resp = await fetch('/api/profile');
+        if (resp.status === 401) {
+          router.replace('/auth/signin');
+          return;
+        }
+        if (!resp.ok) throw new Error('Failed to load profile');
+        const data = await resp.json();
+        if (!mounted) return;
+        setUserId(data.user?.id);
+        setUser({
+          id: data.user?.id,
+          name: data.user?.name,
+          email: data.user?.email,
+          image: data.user?.image ?? undefined,
+          createdAt: data.user?.createdAt,
+          profileCompleted: !!data.user?.profileCompleted,
+        });
+      } catch (e) {
+        // ignore
+      } finally {
+        if (mounted) setLoadingUser(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [userId, user, router]);
 
   const handleProfileComplete = async (data: ProfileFormData) => {
     setIsSubmitting(true);
@@ -39,11 +78,24 @@ export function ProfileCreationHandler({
 
       // Upload profile picture if provided
       if (data.profilePicture) {
+        // If we somehow still don't have userId, fetch it before upload
+        let ensuredUserId = userId;
+        if (!ensuredUserId) {
+          try {
+            const r = await fetch('/api/profile');
+            if (r.ok) {
+              const d = await r.json();
+              ensuredUserId = d.user?.id;
+            }
+          } catch (_) {}
+        }
         const formData = new FormData();
         formData.append('file', data.profilePicture);
         formData.append(
           'filename',
-          `profiles/${userId}/avatar.${data.profilePicture.name.split('.').pop()}`
+          `profiles/${ensuredUserId ?? 'me'}/avatar.${data.profilePicture.name
+            .split('.')
+            .pop()}`
         );
 
         const uploadResponse = await fetch('/api/upload', {
@@ -86,7 +138,6 @@ export function ProfileCreationHandler({
       router.push('/dashboard');
       router.refresh(); // Refresh to update session data
     } catch (error) {
-      console.error('Profile creation error:', error);
       alert(
         error instanceof Error ? error.message : 'Failed to create profile'
       );
@@ -96,10 +147,21 @@ export function ProfileCreationHandler({
   };
 
   return (
-    <ProfileWizard
-      onComplete={handleProfileComplete}
-      user={user}
-      {...(initialData ? { initialData } : {})}
-    />
+    <>
+      {loadingUser ? (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Preparing your profile…</p>
+          </div>
+        </div>
+      ) : (
+        <ProfileWizard
+          onComplete={handleProfileComplete}
+          user={user}
+          {...(initialData ? { initialData } : {})}
+        />
+      )}
+    </>
   );
 }

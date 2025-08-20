@@ -7,16 +7,15 @@ describe('Wordmark Component', () => {
   it('renders the wordmark text', () => {
     render(<Wordmark />);
 
-    expect(screen.getByText('Stuff')).toBeInTheDocument();
-    expect(screen.getByText('Library')).toBeInTheDocument();
+    expect(screen.getByText('StuffLibrary')).toBeInTheDocument();
   });
 
   it('renders with different sizes', () => {
     const { rerender } = render(<Wordmark size="small" />);
-    expect(screen.getByText('Stuff')).toBeInTheDocument();
+    expect(screen.getByText('StuffLibrary')).toBeInTheDocument();
 
     rerender(<Wordmark size="large" />);
-    expect(screen.getByText('Stuff')).toBeInTheDocument();
+    expect(screen.getByText('StuffLibrary')).toBeInTheDocument();
   });
 
   it('applies custom className', () => {
