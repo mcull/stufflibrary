@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { rateLimit } from '@/lib/rate-limit';
+
 import { sendAuthCode } from '@/lib/auth-codes';
+import { rateLimit } from '@/lib/rate-limit';
 
 // Rate limiting: 5 attempts per email per 10 minutes
 export const sendCodeLimiter = rateLimit({

@@ -11,7 +11,7 @@ import {
   Alert,
 } from '@mui/material';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { Suspense, useState } from 'react';
 
@@ -48,7 +48,7 @@ function SignInForm() {
       } else {
         setError(result.error || 'Something went wrong. Please try again.');
       }
-    } catch (error) {
+    } catch {
       setError('Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);
@@ -76,7 +76,7 @@ function SignInForm() {
         setError(signInResult.error || 'Invalid code. Please try again.');
         setIsLoading(false);
       }
-    } catch (error) {
+    } catch {
       setError('Something went wrong. Please try again.');
       setIsLoading(false);
     }

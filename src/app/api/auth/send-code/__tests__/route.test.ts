@@ -1,6 +1,7 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { POST } from '../route';
 import { NextRequest } from 'next/server';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+import { POST } from '../route';
 
 // Mock the auth-codes module
 vi.mock('@/lib/auth-codes', () => ({

@@ -59,7 +59,7 @@ export function ProfileCreationHandler({
           createdAt: data.user?.createdAt,
           profileCompleted: !!data.user?.profileCompleted,
         });
-      } catch (e) {
+      } catch {
         // ignore
       } finally {
         if (mounted) setLoadingUser(false);
@@ -87,7 +87,7 @@ export function ProfileCreationHandler({
               const d = await r.json();
               ensuredUserId = d.user?.id;
             }
-          } catch (_) {}
+          } catch {}
         }
         const formData = new FormData();
         formData.append('file', data.profilePicture);

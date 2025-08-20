@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
 import { generateAuthCode, verifyAuthCode, sendAuthCode } from '../auth-codes';
 import { db } from '../db';
 

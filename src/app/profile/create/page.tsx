@@ -1,7 +1,7 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Suspense, useEffect, useState } from 'react';
 
 import { ProfileCreationHandler } from './ProfileCreationHandler';
@@ -43,7 +43,7 @@ export default function CreateProfilePage() {
               return;
             }
           }
-        } catch (e) {
+        } catch {
           // ignore
         } finally {
           setCheckedProfile(true);

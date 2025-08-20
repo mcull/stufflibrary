@@ -2,9 +2,9 @@ import { PrismaAdapter } from '@auth/prisma-adapter';
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 
+import { verifyAuthCode } from './auth-codes';
 import { db } from './db';
 import { env } from './env';
-import { verifyAuthCode } from './auth-codes';
 
 
 export const authOptions: NextAuthOptions = {
@@ -37,7 +37,7 @@ export const authOptions: NextAuthOptions = {
           try {
             const { sendCodeLimiter } = await import('../app/api/auth/send-code/route');
             sendCodeLimiter.reset(credentials.email);
-          } catch (error) {
+          } catch {
             // ignore rate limit reset errors
           }
 
