@@ -21,6 +21,7 @@ import {
   CircularProgress,
   Alert,
 } from '@mui/material';
+import Link from 'next/link';
 import { useState } from 'react';
 
 import { useBranches } from '@/hooks/useBranches';
@@ -210,7 +211,12 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                                 branch.role === 'owner' ? 'primary' : 'default'
                               }
                             />
-                            <Button size="small" variant="text">
+                            <Button
+                              size="small"
+                              variant="text"
+                              component={Link}
+                              href={`/branch/${branch.id}`}
+                            >
                               View
                             </Button>
                           </Box>
