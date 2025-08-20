@@ -6,7 +6,7 @@ const TEST_EMAIL = 'session@playwright.test';
 test.describe('Session Management', () => {
   test.beforeAll(() => {
     if (!process.env.DATABASE_URL) {
-      test.skip('DATABASE_URL not available - skipping database-dependent tests');
+      test.skip();
     }
   });
   test.beforeEach(async () => {

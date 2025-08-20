@@ -4,7 +4,7 @@ import { db } from '../../src/lib/db';
 test.describe('Auth Code Flow', () => {
   test.beforeAll(() => {
     if (!process.env.DATABASE_URL) {
-      test.skip('DATABASE_URL not available - skipping database-dependent tests');
+      test.skip();
     }
   });
   const testEmail = 'test-user@example.com';
