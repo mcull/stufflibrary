@@ -12,7 +12,7 @@ test.describe('Session Management', () => {
         where: { user: { email: TEST_EMAIL } },
       });
       await db.user.deleteMany({ where: { email: TEST_EMAIL } });
-    } catch (error) {
+    } catch {
       // Ignore cleanup errors
     }
   });
@@ -25,7 +25,7 @@ test.describe('Session Management', () => {
         where: { user: { email: TEST_EMAIL } },
       });
       await db.user.deleteMany({ where: { email: TEST_EMAIL } });
-    } catch (error) {
+    } catch {
       // Ignore cleanup errors
     }
   });
@@ -95,11 +95,12 @@ test.describe('Session Management', () => {
     expect(user!.sessions.length).toBeGreaterThan(0);
     
     const session = user!.sessions[0];
-    expect(session.sessionToken).toBeTruthy();
-    expect(session.expires.getTime()).toBeGreaterThan(Date.now());
+    expect(session).toBeDefined();
+    expect(session?.sessionToken).toBeTruthy();
+    expect(session?.expires.getTime()).toBeGreaterThan(Date.now());
   });
 
-  test('should handle session expiration gracefully', async ({ page, browser }) => {
+  test('should handle session expiration gracefully', async ({ page }) => {
     // Complete auth flow
     await page.goto('/auth/signin');
     await page.fill('input[name="email"]', TEST_EMAIL);
@@ -123,7 +124,7 @@ test.describe('Session Management', () => {
       include: { sessions: true },
     });
     
-    if (user && user.sessions.length > 0) {
+    if (user && user.sessions.length > 0 && user.sessions[0]?.id) {
       await db.session.update({
         where: { id: user.sessions[0].id },
         data: { expires: new Date(Date.now() - 1000) }, // Expired 1 second ago

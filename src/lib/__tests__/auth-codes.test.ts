@@ -192,11 +192,12 @@ describe('Auth Codes', () => {
 
       await sendAuthCode(mockEmail);
 
-      const createCall = vi.mocked(db.authCode.upsert).mock.calls[0][0];
-      const expirationTime = createCall.create.expiresAt;
+      const createCall = vi.mocked(db.authCode.upsert).mock.calls[0]?.[0];
+      const expirationTime = createCall?.create?.expiresAt;
 
-      expect(expirationTime.getTime()).toBeGreaterThan(beforeTime.getTime());
-      expect(expirationTime.getTime()).toBeLessThan(afterTime.getTime());
+      expect(expirationTime).toBeDefined();
+      expect((expirationTime as Date).getTime()).toBeGreaterThan(beforeTime.getTime());
+      expect((expirationTime as Date).getTime()).toBeLessThan(afterTime.getTime());
     });
 
     it.skip('should handle email sending errors gracefully', async () => {
