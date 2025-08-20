@@ -11,36 +11,28 @@ export default async function AuthCallbackPage() {
     redirect('/auth/signin');
   }
 
-  // Try different ways to get user ID
   const userId =
-    (session.user as any).id ||
-    (session as any).user?.id ||
-    (session as any).userId;
+    (session.user as { id?: string }).id || 
+    (session as { user?: { id?: string }; userId?: string }).user?.id || 
+    (session as { userId?: string }).userId;
+  const userEmail = session.user?.email ?? undefined;
 
-  // Find user by ID or email
-  let user;
+  let user = null as { id: string; profileCompleted: boolean } | null;
   if (userId) {
     user = await db.user.findUnique({
       where: { id: userId },
-      select: {
-        id: true,
-        profileCompleted: true,
-      },
+      select: { id: true, profileCompleted: true },
     });
-  } else if (session.user?.email) {
+  }
+  if (!user && userEmail) {
     user = await db.user.findUnique({
-      where: { email: session.user.email },
-      select: {
-        id: true,
-        profileCompleted: true,
-      },
+      where: { email: userEmail },
+      select: { id: true, profileCompleted: true },
     });
   }
 
-  // Redirect based on profile completion status
   if (user?.profileCompleted) {
     redirect('/dashboard');
-  } else {
-    redirect('/profile/create');
   }
+  redirect('/profile/create');
 }

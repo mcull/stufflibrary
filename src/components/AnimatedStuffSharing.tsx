@@ -37,10 +37,11 @@ interface MovingObject {
 
 // Available houses (we'll randomly select from these)
 const AVAILABLE_HOUSES = [
-  { id: 'house1', iconPath: '/house icons/house5.svg' },
-  { id: 'house2', iconPath: '/house icons/house5.svg' },
-  { id: 'house3', iconPath: '/house icons/house5.svg' },
-  { id: 'house4', iconPath: '/house icons/house5.svg' },
+  { id: 'house1', iconPath: '/house icons/house1.svg' },
+  { id: 'house2', iconPath: '/house icons/house2.svg' },
+  { id: 'house3', iconPath: '/house icons/house3.svg' },
+  { id: 'house4', iconPath: '/house icons/house4.svg' },
+  { id: 'house5', iconPath: '/house icons/house5.svg' },
 ];
 
 // House colors from our theme

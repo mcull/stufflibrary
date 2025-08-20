@@ -75,7 +75,7 @@ export function Hero() {
           >
             <Button
               component={Link}
-              href="/profile/create"
+              href="/auth/signin"
               variant="contained"
               color="primary"
               size="large"

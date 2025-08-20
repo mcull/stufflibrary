@@ -1,125 +1,406 @@
 'use client';
 
+import {
+  Box,
+  Container,
+  Typography,
+  TextField,
+  Button,
+  Card,
+  CardContent,
+  Alert,
+} from '@mui/material';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { Suspense, useState } from 'react';
 
+import { AuthLayout } from '@/components/AuthLayout';
+import { Wordmark } from '@/components/Wordmark';
+import { brandColors } from '@/theme/brandTokens';
+
 function SignInForm() {
   const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
+  const [step, setStep] = useState<'email' | 'code'>('email');
   const [isLoading, setIsLoading] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [error, setError] = useState('');
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/';
+  // Default to server-side callback that decides destination post-auth
+  const callbackUrl = searchParams.get('callbackUrl') || '/auth/callback';
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError('');
 
     try {
-      const result = await signIn('email', {
-        email,
-        redirect: false,
-        callbackUrl,
+      const response = await fetch('/api/auth/send-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
       });
 
-      if (result?.ok) {
-        setIsSubmitted(true);
+      const result = await response.json();
+
+      if (response.ok) {
+        setStep('code');
       } else {
-        alert('Something went wrong. Please try again.');
+        setError(result.error || 'Something went wrong. Please try again.');
       }
-    } catch (error) {
-      console.error('Sign in error:', error);
-      alert('Something went wrong. Please try again.');
+    } catch {
+      setError('Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (isSubmitted) {
+  const handleCodeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+
+    try {
+      // Use NextAuth's signIn with automatic redirect
+      // This ensures proper session synchronization
+      const signInResult = await signIn('email-code', {
+        email,
+        code,
+        // Let the callback page decide dashboard vs. profile/create
+        callbackUrl,
+        redirect: true, // Let NextAuth handle the redirect
+      });
+      
+      // If we get here, there was an error (redirect didn't happen)
+      if (signInResult?.error) {
+        setError(signInResult.error || 'Invalid code. Please try again.');
+        setIsLoading(false);
+      }
+    } catch {
+      setError('Something went wrong. Please try again.');
+      setIsLoading(false);
+    }
+  };
+
+  if (step === 'code') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="max-w-md w-full space-y-8">
-          <div>
-            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-              Check your email
-            </h2>
-            <p className="mt-2 text-center text-sm text-gray-600">
-              We&apos;ve sent a magic link to{' '}
-              <span className="font-medium text-blue-600">{email}</span>
-            </p>
-          </div>
-          <div className="rounded-md bg-blue-50 p-4">
-            <div className="text-sm text-blue-700">
-              <p>Click the link in your email to sign in to your account.</p>
-              <p className="mt-2">
-                Didn&apos;t receive the email? Check your spam folder or{' '}
-                <button
-                  onClick={() => setIsSubmitted(false)}
-                  className="font-medium underline hover:no-underline"
+      <Box
+        sx={{
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          py: 4,
+          px: 2,
+        }}
+      >
+        <Container maxWidth="sm">
+          <Card
+            elevation={0}
+            sx={{
+              backgroundColor: brandColors.white,
+              borderRadius: 2,
+              border: `1px solid ${brandColors.softGray}`,
+              p: { xs: 3, sm: 5 },
+            }}
+          >
+            <CardContent sx={{ p: 0 }}>
+              <Box sx={{ textAlign: 'center', mb: 4 }}>
+                <Link href="/" style={{ textDecoration: 'none' }}>
+                  <Wordmark size="medium" color="primary" />
+                </Link>
+              </Box>
+
+              <Typography
+                variant="h4"
+                component="h1"
+                sx={{
+                  textAlign: 'center',
+                  mb: 2,
+                  fontWeight: 600,
+                  color: brandColors.charcoal,
+                  fontSize: { xs: '1.75rem', sm: '2rem' },
+                }}
+              >
+                Enter your code
+              </Typography>
+
+              <Typography
+                variant="body1"
+                sx={{
+                  textAlign: 'center',
+                  color: brandColors.charcoal,
+                  opacity: 0.8,
+                  mb: 4,
+                  lineHeight: 1.6,
+                }}
+              >
+                We&apos;ve sent a 6-digit code to{' '}
+                <Box
+                  component="span"
+                  sx={{ fontWeight: 500, color: brandColors.inkBlue }}
                 >
-                  try again
-                </button>
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+                  {email}
+                </Box>
+              </Typography>
+
+              {error && (
+                <Alert
+                  severity="error"
+                  sx={{
+                    mb: 3,
+                    backgroundColor: '#fef2f2',
+                    border: `1px solid #fecaca`,
+                    '& .MuiAlert-icon': {
+                      color: '#dc2626',
+                    },
+                    '& .MuiAlert-message': {
+                      color: brandColors.charcoal,
+                    },
+                  }}
+                >
+                  {error}
+                </Alert>
+              )}
+
+              <Box component="form" onSubmit={handleCodeSubmit}>
+                <TextField
+                  fullWidth
+                  id="code"
+                  name="code"
+                  type="text"
+                  autoComplete="one-time-code"
+                  required
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="000000"
+                  variant="outlined"
+                  inputProps={{
+                    maxLength: 6,
+                    pattern: '[0-9]{6}',
+                    inputMode: 'numeric',
+                  }}
+                  sx={{
+                    mb: 3,
+                    '& .MuiOutlinedInput-root': {
+                      backgroundColor: brandColors.white,
+                      borderRadius: 2,
+                      fontSize: '1.25rem',
+                      fontFamily: 'monospace',
+                      letterSpacing: '0.2em',
+                      textAlign: 'center',
+                      '& fieldset': {
+                        borderColor: brandColors.softGray,
+                        borderWidth: 2,
+                      },
+                      '&:hover fieldset': {
+                        borderColor: brandColors.inkBlue,
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: brandColors.inkBlue,
+                        borderWidth: 2,
+                      },
+                    },
+                    '& .MuiOutlinedInput-input': {
+                      py: 1.5,
+                      px: 2,
+                      textAlign: 'center',
+                    },
+                  }}
+                />
+
+                <Button
+                  type="submit"
+                  fullWidth
+                  variant="contained"
+                  disabled={isLoading || code.length !== 6}
+                  sx={{
+                    backgroundColor: brandColors.inkBlue,
+                    color: brandColors.white,
+                    py: 1.5,
+                    fontSize: '1rem',
+                    fontWeight: 600,
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    mb: 2,
+                    '&:hover': {
+                      backgroundColor: '#1a2f4f',
+                    },
+                    '&.Mui-disabled': {
+                      backgroundColor: brandColors.softGray,
+                      color: brandColors.charcoal,
+                      opacity: 0.6,
+                    },
+                  }}
+                >
+                  {isLoading ? 'Verifying...' : 'Sign in'}
+                </Button>
+
+                <Button
+                  variant="text"
+                  fullWidth
+                  onClick={() => setStep('email')}
+                  sx={{
+                    color: brandColors.inkBlue,
+                    textDecoration: 'underline',
+                    '&:hover': {
+                      textDecoration: 'none',
+                      backgroundColor: 'transparent',
+                    },
+                  }}
+                >
+                  Back to email
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+        </Container>
+      </Box>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <Link href="/" className="flex justify-center">
-            <h1 className="text-2xl font-bold text-blue-600">StuffLibrary</h1>
-          </Link>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Enter your email address and we&apos;ll send you a magic link to
-            sign in.
-          </p>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div>
-            <label htmlFor="email" className="sr-only">
-              Email address
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-              placeholder="Email address"
-            />
-          </div>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        py: 4,
+        px: 2,
+      }}
+    >
+      {/* Logo outside the card */}
+      <Box sx={{ textAlign: 'center', mb: 4 }}>
+        <Link href="/" style={{ textDecoration: 'none' }}>
+          <Wordmark size="medium" color="primary" />
+        </Link>
+      </Box>
 
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+      <Container maxWidth="sm">
+        <Card
+          elevation={0}
+          sx={{
+            backgroundColor: brandColors.white,
+            borderRadius: 2,
+            border: `1px solid ${brandColors.softGray}`,
+            p: { xs: 3, sm: 5 },
+          }}
+        >
+          <CardContent sx={{ p: 0 }}>
+            {/* Title */}
+            <Typography
+              variant="h4"
+              component="h1"
+              sx={{
+                textAlign: 'center',
+                mb: 4,
+                fontWeight: 600,
+                color: brandColors.charcoal,
+                fontSize: { xs: '1.75rem', sm: '2rem' },
+              }}
             >
-              {isLoading ? 'Sending magic link...' : 'Send magic link'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+              Enter your email to sign in
+            </Typography>
+
+            {error && (
+              <Alert
+                severity="error"
+                sx={{
+                  mb: 3,
+                  backgroundColor: '#fef2f2',
+                  border: `1px solid #fecaca`,
+                  '& .MuiAlert-icon': {
+                    color: '#dc2626',
+                  },
+                  '& .MuiAlert-message': {
+                    color: brandColors.charcoal,
+                  },
+                }}
+              >
+                {error}
+              </Alert>
+            )}
+
+            {/* Email Form */}
+            <Box component="form" onSubmit={handleEmailSubmit}>
+              <TextField
+                fullWidth
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@work-email.com"
+                variant="outlined"
+                sx={{
+                  mb: 3,
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: brandColors.white,
+                    borderRadius: 2,
+                    fontSize: '1rem',
+                    '& fieldset': {
+                      borderColor: brandColors.softGray,
+                      borderWidth: 2,
+                    },
+                    '&:hover fieldset': {
+                      borderColor: brandColors.inkBlue,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: brandColors.inkBlue,
+                      borderWidth: 2,
+                    },
+                  },
+                  '& .MuiOutlinedInput-input': {
+                    py: 1.5,
+                    px: 2,
+                  },
+                }}
+              />
+
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                disabled={isLoading}
+                sx={{
+                  backgroundColor: brandColors.inkBlue,
+                  color: brandColors.white,
+                  py: 1.5,
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  '&:hover': {
+                    backgroundColor: '#1a2f4f',
+                  },
+                  '&.Mui-disabled': {
+                    backgroundColor: brandColors.softGray,
+                    color: brandColors.charcoal,
+                    opacity: 0.6,
+                  },
+                }}
+              >
+                {isLoading ? 'Sending code...' : 'Continue'}
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
+      </Container>
+    </Box>
   );
 }
 
 export default function SignIn() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <SignInForm />
-    </Suspense>
+    <AuthLayout>
+      <Suspense fallback={<div>Loading...</div>}>
+        <SignInForm />
+      </Suspense>
+    </AuthLayout>
   );
 }

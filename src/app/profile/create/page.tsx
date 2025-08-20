@@ -1,87 +1,78 @@
-import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
-import { Suspense } from 'react';
+'use client';
 
-import { authOptions } from '@/lib/auth';
-import { db } from '@/lib/db';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { Suspense, useEffect, useState } from 'react';
 
 import { ProfileCreationHandler } from './ProfileCreationHandler';
 
-export default async function CreateProfilePage() {
-  const session = await getServerSession(authOptions);
+export default function CreateProfilePage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [retryCount, setRetryCount] = useState(0);
+  const [isWaiting, setIsWaiting] = useState(true);
+  const [checkedProfile, setCheckedProfile] = useState(false);
+
+  useEffect(() => {
+    if (status === 'loading') {
+      return; // Still loading
+    }
+
+    if (status === 'unauthenticated' && retryCount < 3) {
+      // Session not ready yet, wait a bit and retry
+      setTimeout(() => {
+        setRetryCount(prev => prev + 1);
+      }, 1000);
+      return;
+    }
+
+    if (status === 'unauthenticated' && retryCount >= 3) {
+      router.push('/auth/signin');
+      return;
+    }
+
+    if (status === 'authenticated' && session?.user && !checkedProfile) {
+      // Safety net: if profile already completed, send to dashboard
+      (async () => {
+        try {
+          const resp = await fetch('/api/profile', { method: 'GET' });
+          if (resp.ok) {
+            const data = await resp.json();
+            if (data?.user?.profileCompleted) {
+              router.replace('/dashboard');
+              return;
+            }
+          }
+        } catch {
+          // ignore
+        } finally {
+          setCheckedProfile(true);
+          setIsWaiting(false);
+        }
+      })();
+    }
+  }, [session, status, router, retryCount, checkedProfile]);
+
+  if (status === 'loading' || isWaiting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">
+            {retryCount > 0 ? `Connecting... (${retryCount}/3)` : 'Loading your profile...'}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (!session?.user) {
-    redirect('/auth/signin');
+    return null; // Will redirect via useEffect
   }
-
-  // Try different ways to get user ID
-  const userId =
-    (session.user as any).id ||
-    (session as any).user?.id ||
-    (session as any).userId;
-
-  // If no user ID, try to find user by email
-  let user;
-  if (userId) {
-    user = await db.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        profileCompleted: true,
-        onboardingStep: true,
-        name: true,
-        bio: true,
-        interests: true,
-        createdAt: true,
-      },
-    });
-  } else if (session.user?.email) {
-    user = await db.user.findUnique({
-      where: { email: session.user.email },
-      select: {
-        id: true,
-        profileCompleted: true,
-        onboardingStep: true,
-        name: true,
-        bio: true,
-        interests: true,
-        createdAt: true,
-      },
-    });
-  } else {
-    redirect('/auth/signin');
-  }
-
-  // If user already has a completed profile, redirect to dashboard
-  if (user?.profileCompleted) {
-    redirect('/dashboard');
-  }
-
-  // Pre-populate form with any existing data
-  const initialData = {
-    name: user?.name || '',
-    bio: user?.bio || '',
-    interests: user?.interests || [],
-  };
 
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <ProfileCreationHandler
-        userId={user?.id || userId}
-        initialData={initialData}
-        user={
-          user
-            ? {
-                id: user.id,
-                name: user.name || '',
-                email: session.user.email || '',
-                image: session.user.image ?? undefined,
-                createdAt: user.createdAt.toISOString(),
-                profileCompleted: user.profileCompleted,
-              }
-            : undefined
-        }
-      />
+      <ProfileCreationHandler />
     </Suspense>
   );
 }
