@@ -12,8 +12,8 @@ export default async function AuthCallbackPage() {
   }
 
   const userId =
-    (session.user as { id?: string }).id || 
-    (session as { user?: { id?: string }; userId?: string }).user?.id || 
+    (session.user as { id?: string }).id ||
+    (session as { user?: { id?: string }; userId?: string }).user?.id ||
     (session as { userId?: string }).userId;
   const userEmail = session.user?.email ?? undefined;
 
@@ -32,7 +32,7 @@ export default async function AuthCallbackPage() {
   }
 
   if (user?.profileCompleted) {
-    redirect('/dashboard');
+    redirect('/lobby');
   }
   redirect('/profile/create');
 }

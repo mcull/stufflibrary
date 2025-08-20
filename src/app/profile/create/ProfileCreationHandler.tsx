@@ -134,8 +134,8 @@ export function ProfileCreationHandler({
       // Clear any draft data
       localStorage.removeItem('profile-wizard-draft');
 
-      // Redirect to dashboard
-      router.push('/dashboard');
+      // Redirect to lobby with welcome message
+      router.push('/lobby?welcome=true');
       router.refresh(); // Refresh to update session data
     } catch (error) {
       alert(
