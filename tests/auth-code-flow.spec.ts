@@ -5,6 +5,11 @@ import { db } from '../src/lib/db';
 const TEST_EMAIL = 'test@playwright.test';
 
 test.describe('Auth Code Flow', () => {
+  test.beforeAll(() => {
+    if (!process.env.DATABASE_URL) {
+      test.skip('DATABASE_URL not available - skipping database-dependent tests');
+    }
+  });
   test.beforeEach(async () => {
     // Clean up any existing test data
     try {
@@ -21,16 +26,7 @@ test.describe('Auth Code Flow', () => {
 
   test.afterEach(async () => {
     // Clean up test data
-    try {
-      await db.authCode.deleteMany({
-        where: { email: TEST_EMAIL },
-      });
-      await db.user.deleteMany({
-        where: { email: TEST_EMAIL },
-      });
-    } catch (error) {
-      // Ignore cleanup errors
-    }
+    await cleanupTestData(TEST_EMAIL);
   });
 
   test('should complete full auth code flow successfully', async ({ page }) => {

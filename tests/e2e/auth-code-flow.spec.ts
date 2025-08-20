@@ -2,26 +2,39 @@ import { test, expect } from '@playwright/test';
 import { db } from '../../src/lib/db';
 
 test.describe('Auth Code Flow', () => {
+  test.beforeAll(() => {
+    if (!process.env.DATABASE_URL) {
+      test.skip('DATABASE_URL not available - skipping database-dependent tests');
+    }
+  });
   const testEmail = 'test-user@example.com';
   
   test.beforeEach(async () => {
     // Clean up any existing test data
-    await db.authCode.deleteMany({
-      where: { email: testEmail },
-    });
-    await db.user.deleteMany({
-      where: { email: testEmail },
-    });
+    try {
+      await db.authCode.deleteMany({
+        where: { email: testEmail },
+      });
+      await db.user.deleteMany({
+        where: { email: testEmail },
+      });
+    } catch {
+      // Ignore cleanup errors
+    }
   });
 
   test.afterEach(async () => {
     // Clean up test data
-    await db.authCode.deleteMany({
-      where: { email: testEmail },
-    });
-    await db.user.deleteMany({
-      where: { email: testEmail },
-    });
+    try {
+      await db.authCode.deleteMany({
+        where: { email: testEmail },
+      });
+      await db.user.deleteMany({
+        where: { email: testEmail },
+      });
+    } catch {
+      // Ignore cleanup errors
+    }
   });
 
   test('new user should be redirected to profile creation after auth code verification', async ({ page }) => {
@@ -67,7 +80,7 @@ test.describe('Auth Code Flow', () => {
 
   test('existing user with completed profile should go to dashboard', async ({ page }) => {
     // Pre-create a user with completed profile
-    const existingUser = await db.user.create({
+    await db.user.create({
       data: {
         email: testEmail,
         emailVerified: new Date(),
