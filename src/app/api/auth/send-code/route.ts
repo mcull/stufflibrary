@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { sendAuthCode } from '@/lib/auth-codes';
-import { rateLimit } from '@/lib/rate-limit';
-
-// Rate limiting: 5 attempts per email per 10 minutes
-export const sendCodeLimiter = rateLimit({
-  interval: 10 * 60 * 1000, // 10 minutes
-  uniqueTokenPerInterval: 100,
-});
+import { sendCodeLimiter } from '@/lib/auth-rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
