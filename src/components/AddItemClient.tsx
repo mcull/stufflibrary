@@ -52,7 +52,10 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
 
   // Request camera permission and start stream
   const startCamera = useCallback(async () => {
+    console.log('🎥 Starting camera...');
+
     try {
+      console.log('📱 Requesting media stream...');
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment', // Use rear camera on mobile
@@ -62,13 +65,17 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
         audio: false,
       });
 
+      console.log('✅ Stream obtained:', stream);
+      console.log('📹 Stream tracks:', stream.getTracks().length);
+
       if (videoRef.current) {
+        console.log('🎬 Setting video source...');
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
 
         // Add event listeners for debugging
         videoRef.current.onloadedmetadata = () => {
-          console.log('Video metadata loaded');
+          console.log('📊 Video metadata loaded');
           console.log(
             'Video dimensions:',
             videoRef.current?.videoWidth,
@@ -78,17 +85,28 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
         };
 
         videoRef.current.onplay = () => {
-          console.log('Video started playing');
+          console.log('▶️ Video started playing');
+        };
+
+        videoRef.current.oncanplay = () => {
+          console.log('🎯 Video can play');
         };
 
         videoRef.current.onerror = (e) => {
-          console.error('Video error:', e);
+          console.error('❌ Video error:', e);
         };
 
+        videoRef.current.onloadstart = () => {
+          console.log('🔄 Video load started');
+        };
+
+        console.log('🔄 Setting state to streaming...');
         setState('streaming');
+      } else {
+        console.error('❌ VideoRef is null');
       }
     } catch (err) {
-      console.error('Error accessing camera:', err);
+      console.error('❌ Error accessing camera:', err);
       setError(
         'Unable to access camera. Please ensure you have granted camera permissions.'
       );
@@ -249,6 +267,7 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
   }, [stopCamera]);
 
   const renderContent = () => {
+    console.log('🎯 Current state:', state);
     switch (state) {
       case 'permission':
         return (
@@ -284,6 +303,10 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
         );
 
       case 'streaming':
+        console.log(
+          '🎬 Rendering streaming state, videoRef:',
+          !!videoRef.current
+        );
         return (
           <Box
             sx={{
@@ -296,10 +319,21 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
               borderRadius: 2,
               overflow: 'hidden',
               bgcolor: 'black',
+              border: '2px solid red', // Temporary visual indicator
             }}
           >
             <video
-              ref={videoRef}
+              ref={(el) => {
+                console.log('🎥 Video element ref set:', !!el);
+                if (el) {
+                  videoRef.current = el;
+                  console.log(
+                    '📐 Video element:',
+                    el.style.width,
+                    el.style.height
+                  );
+                }
+              }}
               autoPlay
               playsInline
               muted
@@ -308,6 +342,7 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
                 height: '100%',
                 objectFit: 'cover',
                 display: 'block',
+                border: '2px solid green', // Temporary visual indicator
               }}
               onClick={capturePhoto}
             />
