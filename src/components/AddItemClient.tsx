@@ -68,43 +68,10 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
       console.log('✅ Stream obtained:', stream);
       console.log('📹 Stream tracks:', stream.getTracks().length);
 
-      if (videoRef.current) {
-        console.log('🎬 Setting video source...');
-        videoRef.current.srcObject = stream;
-        streamRef.current = stream;
-
-        // Add event listeners for debugging
-        videoRef.current.onloadedmetadata = () => {
-          console.log('📊 Video metadata loaded');
-          console.log(
-            'Video dimensions:',
-            videoRef.current?.videoWidth,
-            'x',
-            videoRef.current?.videoHeight
-          );
-        };
-
-        videoRef.current.onplay = () => {
-          console.log('▶️ Video started playing');
-        };
-
-        videoRef.current.oncanplay = () => {
-          console.log('🎯 Video can play');
-        };
-
-        videoRef.current.onerror = (e) => {
-          console.error('❌ Video error:', e);
-        };
-
-        videoRef.current.onloadstart = () => {
-          console.log('🔄 Video load started');
-        };
-
-        console.log('🔄 Setting state to streaming...');
-        setState('streaming');
-      } else {
-        console.error('❌ VideoRef is null');
-      }
+      // Store the stream first, then change state to render video element
+      streamRef.current = stream;
+      console.log('🔄 Setting state to streaming...');
+      setState('streaming');
     } catch (err) {
       console.error('❌ Error accessing camera:', err);
       setError(
@@ -325,13 +292,39 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
             <video
               ref={(el) => {
                 console.log('🎥 Video element ref set:', !!el);
-                if (el) {
+                if (el && streamRef.current) {
                   videoRef.current = el;
-                  console.log(
-                    '📐 Video element:',
-                    el.style.width,
-                    el.style.height
-                  );
+                  console.log('🎬 Setting video source from ref...');
+                  el.srcObject = streamRef.current;
+
+                  // Add event listeners for debugging
+                  el.onloadedmetadata = () => {
+                    console.log('📊 Video metadata loaded');
+                    console.log(
+                      'Video dimensions:',
+                      el.videoWidth,
+                      'x',
+                      el.videoHeight
+                    );
+                  };
+
+                  el.onplay = () => {
+                    console.log('▶️ Video started playing');
+                  };
+
+                  el.oncanplay = () => {
+                    console.log('🎯 Video can play');
+                  };
+
+                  el.onerror = (e) => {
+                    console.error('❌ Video error:', e);
+                  };
+
+                  el.onloadstart = () => {
+                    console.log('🔄 Video load started');
+                  };
+
+                  console.log('📐 Video element setup complete');
                 }
               }}
               autoPlay
