@@ -11,8 +11,9 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const session = await getServerSession(authOptions);
 
@@ -21,7 +22,7 @@ export async function POST(
     }
 
     const userId = (session.user as { id?: string }).id!;
-    const branchId = params.id;
+    const branchId = id;
 
     // Validate request body
     const { email } = await request.json();

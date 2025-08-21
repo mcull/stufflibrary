@@ -6,8 +6,9 @@ import { db } from '@/lib/db';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
+  const { token } = await params;
   try {
     const session = await getServerSession(authOptions);
 
@@ -16,7 +17,7 @@ export async function POST(
     }
 
     const userId = (session.user as { id?: string }).id!;
-    const token = params.token;
+    // token already extracted above
 
     if (!token || typeof token !== 'string') {
       return NextResponse.json(

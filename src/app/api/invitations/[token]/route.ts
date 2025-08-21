@@ -5,10 +5,11 @@ import { db } from '@/lib/db';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
+  const { token } = await params;
   try {
-    const token = params.token;
+    // token already extracted above
 
     if (!token || typeof token !== 'string') {
       return redirect('/auth/error?error=invalid_invitation');
