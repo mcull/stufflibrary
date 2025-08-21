@@ -120,6 +120,7 @@ export function ProfileCreationHandler({
         },
         body: JSON.stringify({
           name: data.name,
+          phone: data.phone,
           bio: data.bio || null,
           interests: data.interests,
           image: imageUrl || data.profilePictureUrl || null,

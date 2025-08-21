@@ -1,0 +1,120 @@
+import twilio from 'twilio';
+
+function getTwilioClient() {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+
+  if (!accountSid || !authToken) {
+    throw new Error(
+      'Twilio credentials not found. Please set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN environment variables.'
+    );
+  }
+
+  return twilio(accountSid, authToken);
+}
+
+export interface SMSMessage {
+  to: string;
+  body: string;
+}
+
+export async function sendSMS({ to, body }: SMSMessage) {
+  try {
+    const client = getTwilioClient();
+    const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
+
+    if (!twilioPhoneNumber) {
+      throw new Error('TWILIO_PHONE_NUMBER environment variable is required');
+    }
+
+    // Ensure phone number is in E.164 format
+    const formattedTo = to.startsWith('+') ? to : `+${to}`;
+
+    const message = await client.messages.create({
+      body,
+      from: twilioPhoneNumber,
+      to: formattedTo,
+    });
+
+    console.log(`SMS sent successfully: ${message.sid}`);
+    return {
+      success: true,
+      messageId: message.sid,
+      status: message.status,
+    };
+  } catch (error) {
+    console.error('Failed to send SMS:', error);
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+export async function sendBorrowRequestNotification({
+  _ownerName,
+  ownerPhone,
+  borrowerName,
+  itemName,
+  approvalUrl,
+}: {
+  _ownerName: string;
+  ownerPhone: string;
+  borrowerName: string;
+  itemName: string;
+  approvalUrl: string;
+}) {
+  const message = `📱 Stuff Library: ${borrowerName} wants to borrow your "${itemName}". View their video request and respond here: ${approvalUrl}`;
+
+  return await sendSMS({
+    to: ownerPhone,
+    body: message,
+  });
+}
+
+export async function sendBorrowResponseNotification({
+  _borrowerName,
+  borrowerPhone,
+  ownerName,
+  itemName,
+  approved,
+  message,
+}: {
+  _borrowerName: string;
+  borrowerPhone: string;
+  ownerName: string;
+  itemName: string;
+  approved: boolean;
+  message: string;
+}) {
+  const status = approved ? '✅ Approved' : '❌ Declined';
+  const smsMessage = `📱 Stuff Library: ${status} - ${ownerName} responded to your "${itemName}" request: "${message}"`;
+
+  return await sendSMS({
+    to: borrowerPhone,
+    body: smsMessage,
+  });
+}
+
+export async function sendDueDateReminder({
+  _borrowerName,
+  borrowerPhone,
+  itemName,
+  dueDate,
+  ownerName,
+}: {
+  _borrowerName: string;
+  borrowerPhone: string;
+  itemName: string;
+  dueDate: Date;
+  ownerName: string;
+}) {
+  const dueDateStr = dueDate.toLocaleDateString();
+  const message = `📱 Stuff Library: Reminder - "${itemName}" borrowed from ${ownerName} is due back on ${dueDateStr}. Thanks for being a great community member!`;
+
+  return await sendSMS({
+    to: borrowerPhone,
+    body: message,
+  });
+}

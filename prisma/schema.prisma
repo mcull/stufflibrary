@@ -51,6 +51,8 @@ model User {
   email            String?   @unique
   emailVerified    DateTime?
   image            String?
+  phone            String?   // Phone number for SMS notifications
+  phoneVerified    Boolean   @default(false)
   
   // Enhanced profile fields
   bio              String?
@@ -236,6 +238,23 @@ model BorrowRequest {
   returnedAt  DateTime?
   dueDate     DateTime?
   notes       String?
+  
+  // Video selfie request fields
+  videoUrl         String?  // URL to the borrower's selfie video
+  signature        String?  // Digital signature data (base64 or JSON)
+  promiseText      String?  // "I promise to return by [date]"
+  promisedReturnBy DateTime? // Date the borrower promised to return
+  
+  // Lender response fields
+  lenderResponse   String?  // Approve/decline message from lender
+  responseToken    String?  // Secure token for approval page access
+  
+  // Pickup tracking
+  pickedUpAt       DateTime?
+  
+  // Reminder tracking
+  remindersSent    Int      @default(0) // Count of SMS reminders sent
+  lastReminderAt   DateTime?
 
   // Relationships
   borrowerId String
