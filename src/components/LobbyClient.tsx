@@ -47,7 +47,7 @@ interface LobbyClientProps {
 }
 
 export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
-  const { branches, isLoading, error, refetch } = useBranches();
+  const { branches, isLoading, error, refetch, createBranch } = useBranches();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   // Mock data for checked out items (to be replaced with real data later)
@@ -73,7 +73,6 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
   ];
 
   const handleCreateBranch = (branch: unknown) => {
-    // Branch is automatically added to the list via the hook
     console.log('Branch created:', branch);
   };
 
@@ -471,6 +470,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
         open={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSuccess={handleCreateBranch}
+        createBranch={createBranch}
       />
     </Container>
   );

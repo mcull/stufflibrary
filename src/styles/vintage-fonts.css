@@ -17,7 +17,7 @@
 }
 
 @font-face {
-  font-family: 'ImpactLabel';
+  font-family: 'ImpactLabelVintage';
   src: url('/ImpactLabelReversed-nDMR.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
@@ -33,7 +33,7 @@
 }
 
 .vintage-impact-label {
-  font-family: 'ImpactLabel', sans-serif;
+  font-family: 'ImpactLabelVintage', sans-serif;
 }
 
 /* Ink effect classes */

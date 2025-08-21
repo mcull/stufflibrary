@@ -1,7 +1,4 @@
-import { existsSync } from 'fs';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-
+import { put } from '@vercel/blob';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { v4 as uuidv4 } from 'uuid';
@@ -52,45 +49,39 @@ export async function POST(request: NextRequest) {
 
     // Generate unique filename
     const fileExtension = image.name.split('.').pop() || 'jpg';
-    const filename = `${uuidv4()}.${fileExtension}`;
+    const filename = `items/${uuidv4()}.${fileExtension}`;
 
-    console.log('📁 Saving image:', filename);
+    console.log('📁 Saving image to blob storage:', filename);
     console.log('📏 Image size:', image.size, 'bytes');
 
-    // Save image to public directory
-    const bytes = await image.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    const uploadsDir = join(process.cwd(), 'public', 'uploads');
-    const imagePath = join(uploadsDir, filename);
+    let imageUrl: string;
 
-    console.log('📂 Upload directory:', uploadsDir);
-    console.log('🎯 Full image path:', imagePath);
-
-    // Ensure uploads directory exists
     try {
-      if (!existsSync(uploadsDir)) {
-        console.log('📁 Creating uploads directory...');
-        await mkdir(uploadsDir, { recursive: true });
-      }
+      // Upload to Vercel Blob storage
+      console.log('☁️ Uploading to Vercel Blob...');
+      const blob = await put(filename, image, {
+        access: 'public',
+      });
 
-      console.log('💾 Writing file...');
-      await writeFile(imagePath, buffer);
-      console.log('✅ Image saved successfully');
+      imageUrl = blob.url;
+      console.log('✅ Image uploaded successfully:', imageUrl);
     } catch (err) {
-      console.error('❌ Error saving image:', err);
+      console.error('❌ Error uploading image to blob storage:', err);
       return NextResponse.json(
         {
-          error: 'Failed to save image',
+          error: 'Failed to upload image',
         },
         { status: 500 }
       );
     }
 
     // Find or create stuff type for the category
+    // Create a unique name by combining name and category to avoid conflicts
+    const uniqueName = `${name.toLowerCase().replace(/\s+/g, '-')}-${category}`;
+
     let stuffType = await db.stuffType.findFirst({
       where: {
-        category: category,
-        name: name, // Use 'name' field instead of 'displayName'
+        name: uniqueName,
       },
     });
 
@@ -98,10 +89,10 @@ export async function POST(request: NextRequest) {
       // Create new stuff type
       stuffType = await db.stuffType.create({
         data: {
-          name: name,
+          name: uniqueName,
           displayName: name,
           category: category,
-          iconPath: `/uploads/${filename}`, // Use the uploaded image as icon initially
+          iconPath: imageUrl, // Use the uploaded blob URL as icon initially
         },
       });
     }
@@ -112,7 +103,7 @@ export async function POST(request: NextRequest) {
         name: name,
         description: `Added via camera capture`,
         condition: 'good', // Default condition
-        imageUrl: `/uploads/${filename}`,
+        imageUrl: imageUrl,
         isAvailable: true,
         ownerId: userId,
         branchId: branchId,

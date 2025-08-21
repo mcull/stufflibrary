@@ -28,12 +28,19 @@ interface BranchCreationModalProps {
   open: boolean;
   onClose: () => void;
   onSuccess: (branch: unknown) => void;
+  createBranch?: (branchData: {
+    name: string;
+    description?: string;
+    location?: string;
+    isPublic?: boolean;
+  }) => Promise<unknown>;
 }
 
 export function BranchCreationModal({
   open,
   onClose,
   onSuccess,
+  createBranch,
 }: BranchCreationModalProps) {
   const [formData, setFormData] = useState({
     name: '',
@@ -57,21 +64,29 @@ export function BranchCreationModal({
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('/api/branches', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
+      if (createBranch) {
+        // Use the provided createBranch function
+        const branch = await createBranch(formData);
+        onSuccess(branch);
+      } else {
+        // Fallback to direct API call if createBranch not provided
+        const response = await fetch('/api/branches', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create branch');
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to create branch');
+        }
+
+        const { branch } = await response.json();
+        onSuccess(branch);
       }
 
-      const { branch } = await response.json();
-      onSuccess(branch);
       handleClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create branch');
