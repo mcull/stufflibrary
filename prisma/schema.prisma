@@ -248,6 +248,7 @@ model BorrowRequest {
   // Lender response fields
   lenderResponse   String?  // Approve/decline message from lender
   responseToken    String?  // Secure token for approval page access
+  respondedAt      DateTime? // When the lender responded
   
   // Pickup tracking
   pickedUpAt       DateTime?
