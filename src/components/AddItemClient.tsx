@@ -49,10 +49,14 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
   const [error, setError] = useState<string | null>(null);
   const [recognitionResult, setRecognitionResult] =
     useState<RecognitionResult | null>(null);
+  const [capturedImageUrl, setCapturedImageUrl] = useState<string | null>(null);
 
   // Request camera permission and start stream
   const startCamera = useCallback(async () => {
+    console.log('🎥 Starting camera...');
+
     try {
+      console.log('📱 Requesting media stream...');
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment', // Use rear camera on mobile
@@ -62,13 +66,15 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
         audio: false,
       });
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        streamRef.current = stream;
-        setState('streaming');
-      }
+      console.log('✅ Stream obtained:', stream);
+      console.log('📹 Stream tracks:', stream.getTracks().length);
+
+      // Store the stream first, then change state to render video element
+      streamRef.current = stream;
+      console.log('🔄 Setting state to streaming...');
+      setState('streaming');
     } catch (err) {
-      console.error('Error accessing camera:', err);
+      console.error('❌ Error accessing camera:', err);
       setError(
         'Unable to access camera. Please ensure you have granted camera permissions.'
       );
@@ -100,8 +106,25 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
+    console.log('📷 Canvas size:', canvas.width, 'x', canvas.height);
+    console.log('📹 Video size:', video.videoWidth, 'x', video.videoHeight);
+
     // Draw video frame to canvas
     ctx.drawImage(video, 0, 0);
+
+    console.log('🎨 Canvas drawn, checking image data...');
+    const imageData = ctx.getImageData(
+      0,
+      0,
+      Math.min(10, canvas.width),
+      Math.min(10, canvas.height)
+    );
+    console.log('🖼️ Sample pixel data:', imageData.data.slice(0, 12));
+
+    // Create data URL for display
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+    setCapturedImageUrl(dataUrl);
+    console.log('🖼️ Created image URL for display');
 
     // Convert to blob for analysis
     canvas.toBlob(
@@ -158,11 +181,18 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
   const addItem = useCallback(async () => {
     if (!recognitionResult || !canvasRef.current) return;
 
+    console.log('🏪 Starting add item process...');
+
     try {
       // Convert canvas to blob for storage
       canvasRef.current.toBlob(
         async (blob) => {
-          if (!blob) return;
+          if (!blob) {
+            console.error('❌ Failed to create blob from canvas');
+            return;
+          }
+
+          console.log('📦 Created blob for upload:', blob.size, 'bytes');
 
           // If no branchId provided, try to find or create a default branch
           let effectiveBranchId = branchId;
@@ -186,22 +216,32 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
             }
           }
 
+          console.log('📋 Creating form data...');
           const formData = new FormData();
           formData.append('image', blob, 'item.jpg');
           formData.append('name', recognitionResult.name);
           formData.append('category', recognitionResult.category);
           formData.append('branchId', effectiveBranchId);
 
+          console.log('🚀 Uploading to API...');
           const response = await fetch('/api/items', {
             method: 'POST',
             body: formData,
           });
 
           if (!response.ok) {
+            console.error(
+              '❌ API response not OK:',
+              response.status,
+              response.statusText
+            );
             throw new Error('Failed to create item');
           }
 
-          const { itemId } = await response.json();
+          const responseData = await response.json();
+          console.log('✅ Item created successfully:', responseData);
+          const { itemId } = responseData;
+          console.log('🔄 Navigating to item page:', itemId);
           router.push(`/stuff/${itemId}?new=true`);
         },
         'image/jpeg',
@@ -229,6 +269,7 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
   }, [stopCamera]);
 
   const renderContent = () => {
+    console.log('🎯 Current state:', state);
     switch (state) {
       case 'permission':
         return (
@@ -264,10 +305,62 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
         );
 
       case 'streaming':
+        console.log(
+          '🎬 Rendering streaming state, videoRef:',
+          !!videoRef.current
+        );
         return (
-          <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
+          <Box
+            sx={{
+              position: 'relative',
+              width: '100%',
+              height: '60vh',
+              minHeight: '300px',
+              maxHeight: '500px',
+              mx: 'auto',
+              borderRadius: 2,
+              overflow: 'hidden',
+              bgcolor: 'black',
+            }}
+          >
             <video
-              ref={videoRef}
+              ref={(el) => {
+                console.log('🎥 Video element ref set:', !!el);
+                if (el && streamRef.current) {
+                  videoRef.current = el;
+                  console.log('🎬 Setting video source from ref...');
+                  el.srcObject = streamRef.current;
+
+                  // Add event listeners for debugging
+                  el.onloadedmetadata = () => {
+                    console.log('📊 Video metadata loaded');
+                    console.log(
+                      'Video dimensions:',
+                      el.videoWidth,
+                      'x',
+                      el.videoHeight
+                    );
+                  };
+
+                  el.onplay = () => {
+                    console.log('▶️ Video started playing');
+                  };
+
+                  el.oncanplay = () => {
+                    console.log('🎯 Video can play');
+                  };
+
+                  el.onerror = (e) => {
+                    console.error('❌ Video error:', e);
+                  };
+
+                  el.onloadstart = () => {
+                    console.log('🔄 Video load started');
+                  };
+
+                  console.log('📐 Video element setup complete');
+                }
+              }}
               autoPlay
               playsInline
               muted
@@ -275,7 +368,7 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
-                borderRadius: 8,
+                display: 'block',
               }}
               onClick={capturePhoto}
             />
@@ -350,8 +443,12 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
                   bottom: '10%',
                   border: '2px solid white',
                   borderRadius: 2,
-                  '&::after': {
-                    content: '"Center your item in this area"',
+                  boxShadow: '0 0 0 2px rgba(0,0,0,0.3)',
+                }}
+              >
+                {/* Instruction text */}
+                <Box
+                  sx={{
                     position: 'absolute',
                     top: -40,
                     left: '50%',
@@ -360,9 +457,12 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
                     fontSize: '14px',
                     textShadow: '0 1px 3px rgba(0,0,0,0.8)',
                     whiteSpace: 'nowrap',
-                  },
-                }}
-              />
+                    textAlign: 'center',
+                  }}
+                >
+                  Center your item in this area
+                </Box>
+              </Box>
             </Box>
 
             {/* Tap to capture instruction */}
@@ -402,7 +502,7 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
       case 'recognized':
         return (
           <Box sx={{ textAlign: 'center', py: 4 }}>
-            {canvasRef.current && (
+            {capturedImageUrl && (
               <Paper
                 elevation={3}
                 sx={{
@@ -411,14 +511,17 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
                   mb: 3,
                   borderRadius: 2,
                   overflow: 'hidden',
+                  bgcolor: 'grey.100',
                 }}
               >
-                <canvas
-                  ref={canvasRef}
+                <img
+                  src={capturedImageUrl}
+                  alt="Captured item"
                   style={{
                     width: '100%',
                     height: 'auto',
                     display: 'block',
+                    maxHeight: '300px',
                   }}
                 />
               </Paper>

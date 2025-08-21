@@ -421,21 +421,44 @@ export function BranchDetailClient({ branchId }: BranchDetailClientProps) {
                             )}
                           </Box>
 
-                          {/* Item Image Placeholder */}
+                          {/* Item Image */}
                           <Box
                             sx={{
                               height: 120,
                               bgcolor: 'grey.100',
                               borderRadius: 1,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
                               mb: 2,
+                              overflow: 'hidden',
                             }}
                           >
-                            <Typography variant="body2" color="text.secondary">
-                              {item.imageUrl ? 'IMG' : 'No Image'}
-                            </Typography>
+                            {item.imageUrl ? (
+                              <img
+                                src={item.imageUrl}
+                                alt={item.name}
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'cover',
+                                  display: 'block',
+                                }}
+                              />
+                            ) : (
+                              <Box
+                                sx={{
+                                  height: '100%',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <Typography
+                                  variant="body2"
+                                  color="text.secondary"
+                                >
+                                  No Image
+                                </Typography>
+                              </Box>
+                            )}
                           </Box>
 
                           {/* Item Description */}
