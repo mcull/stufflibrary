@@ -727,7 +727,7 @@ export function BranchDetailClient({ branchId }: BranchDetailClientProps) {
           open={checkoutCardOpen}
           onClose={handleCloseCheckoutCard}
           itemId={selectedItemId}
-          itemName={selectedItemName || undefined}
+          {...(selectedItemName && { itemName: selectedItemName })}
         />
       )}
     </Container>
