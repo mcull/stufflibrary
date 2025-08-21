@@ -261,12 +261,34 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
     setState('streaming');
   }, []);
 
-  // Clean up on unmount
+  // Check for auto-start on mount and clean up on unmount
   useEffect(() => {
+    const checkPermissionAndAutoStart = async () => {
+      try {
+        if ('permissions' in navigator) {
+          const permission = await navigator.permissions.query({
+            name: 'camera' as PermissionName,
+          });
+          if (permission.state === 'granted') {
+            console.log(
+              '🎥 Camera permission already granted, auto-starting...'
+            );
+            await startCamera();
+          }
+        }
+      } catch {
+        console.log(
+          '🔍 Permission API not available or failed, staying on permission screen'
+        );
+      }
+    };
+
+    checkPermissionAndAutoStart();
+
     return () => {
       stopCamera();
     };
-  }, [stopCamera]);
+  }, [startCamera, stopCamera]);
 
   const renderContent = () => {
     console.log('🎯 Current state:', state);
@@ -369,6 +391,7 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
                 height: '100%',
                 objectFit: 'cover',
                 display: 'block',
+                transform: 'scaleX(-1)', // Mirror the camera feed
               }}
               onClick={capturePhoto}
             />
@@ -469,18 +492,22 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
             <Box
               sx={{
                 position: 'absolute',
-                bottom: 20,
+                bottom: 16,
                 left: '50%',
                 transform: 'translateX(-50%)',
-                bgcolor: 'rgba(0, 0, 0, 0.8)',
+                bgcolor: 'rgba(0, 0, 0, 0.9)',
                 color: 'white',
                 px: 3,
-                py: 1,
-                borderRadius: 2,
+                py: 1.5,
+                borderRadius: 3,
                 pointerEvents: 'none',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                boxShadow: '0 4px 8px rgba(0, 0, 0, 0.5)',
               }}
             >
-              <Typography variant="body2">Tap to capture</Typography>
+              <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                Tap to capture
+              </Typography>
             </Box>
           </Box>
         );
@@ -587,7 +614,9 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
     <Container
       maxWidth="sm"
       sx={{
-        py: 2,
+        px: 1,
+        pt: 1,
+        pb: 2,
         height: '100vh',
         display: 'flex',
         flexDirection: 'column',
@@ -595,7 +624,7 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
       }}
     >
       {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, flexShrink: 0 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, flexShrink: 0 }}>
         <IconButton onClick={() => router.back()} sx={{ mr: 1 }}>
           <ArrowBackIcon />
         </IconButton>
@@ -608,7 +637,7 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'center',
+          justifyContent: state === 'streaming' ? 'flex-start' : 'center',
           position: 'relative',
         }}
       >
