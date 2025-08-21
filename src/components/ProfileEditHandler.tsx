@@ -230,9 +230,11 @@ export function ProfileEditHandler({ user }: ProfileEditHandlerProps) {
             {/* Profile Picture Section */}
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
               <Avatar
-                {...((previewImage || user.image) && {
-                  src: previewImage || user.image,
-                })}
+                {...(previewImage
+                  ? { src: previewImage }
+                  : user.image
+                    ? { src: user.image }
+                    : {})}
                 sx={{
                   width: 80,
                   height: 80,

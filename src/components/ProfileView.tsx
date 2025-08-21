@@ -121,7 +121,7 @@ export function ProfileView({ user }: ProfileViewProps) {
           {/* Profile Header */}
           <Box sx={{ display: 'flex', alignItems: 'start', mb: 4 }}>
             <Avatar
-              src={user.image || undefined}
+              {...(user.image && { src: user.image })}
               sx={{
                 width: 80,
                 height: 80,
