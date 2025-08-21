@@ -146,8 +146,8 @@ export function BranchDetailClient({ branchId }: BranchDetailClientProps) {
   };
 
   const handleAskToBorrow = async (itemId: string) => {
-    // TODO: Implement borrow request flow
-    console.log('Ask to borrow item:', itemId);
+    // Navigate to video selfie borrow request page
+    router.push(`/borrow-request?item=${itemId}`);
   };
 
   const handleToggleUsing = async (
