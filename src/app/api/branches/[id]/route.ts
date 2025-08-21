@@ -46,7 +46,6 @@ export async function GET(
           ],
         },
         items: {
-          where: { isAvailable: true },
           include: {
             owner: {
               select: {
@@ -62,8 +61,23 @@ export async function GET(
                 category: true,
               },
             },
+            borrowRequests: {
+              where: {
+                status: { in: ['pending', 'approved', 'active'] },
+              },
+              include: {
+                borrower: {
+                  select: {
+                    id: true,
+                    name: true,
+                    image: true,
+                  },
+                },
+              },
+              orderBy: { requestedAt: 'asc' },
+            },
           },
-          orderBy: { createdAt: 'desc' },
+          orderBy: [{ stuffType: { category: 'asc' } }, { name: 'asc' }],
         },
         _count: {
           select: {
@@ -122,7 +136,87 @@ export async function GET(
           user: member.user,
         })),
       ],
-      items: branch.items,
+      items: branch.items.map((item) => {
+        const activeBorrow = item.borrowRequests.find(
+          (req) => req.status === 'active'
+        );
+        const pendingRequests = item.borrowRequests.filter(
+          (req) => req.status === 'pending'
+        );
+
+        return {
+          id: item.id,
+          name: item.name,
+          description: item.description,
+          condition: item.condition,
+          imageUrl: item.imageUrl,
+          isAvailable: item.isAvailable,
+          createdAt: item.createdAt,
+          category: item.stuffType?.category || 'other',
+          stuffType: item.stuffType,
+          owner: item.owner,
+          isOwnedByUser: item.ownerId === userId,
+          currentBorrow: activeBorrow
+            ? {
+                id: activeBorrow.id,
+                borrower: activeBorrow.borrower,
+                dueDate: activeBorrow.dueDate,
+                borrowedAt: activeBorrow.borrowedAt,
+              }
+            : null,
+          notificationQueue: pendingRequests.map((req) => ({
+            id: req.id,
+            user: req.borrower,
+            requestedAt: req.requestedAt,
+          })),
+          queueDepth: pendingRequests.length,
+        };
+      }),
+      itemsByCategory: branch.items.reduce(
+        (acc, item) => {
+          const category = item.stuffType?.category || 'other';
+          if (!acc[category]) {
+            acc[category] = [];
+          }
+
+          const activeBorrow = item.borrowRequests.find(
+            (req) => req.status === 'active'
+          );
+          const pendingRequests = item.borrowRequests.filter(
+            (req) => req.status === 'pending'
+          );
+
+          acc[category].push({
+            id: item.id,
+            name: item.name,
+            description: item.description,
+            condition: item.condition,
+            imageUrl: item.imageUrl,
+            isAvailable: item.isAvailable,
+            createdAt: item.createdAt,
+            stuffType: item.stuffType,
+            owner: item.owner,
+            isOwnedByUser: item.ownerId === userId,
+            currentBorrow: activeBorrow
+              ? {
+                  id: activeBorrow.id,
+                  borrower: activeBorrow.borrower,
+                  dueDate: activeBorrow.dueDate,
+                  borrowedAt: activeBorrow.borrowedAt,
+                }
+              : null,
+            notificationQueue: pendingRequests.map((req) => ({
+              id: req.id,
+              user: req.borrower,
+              requestedAt: req.requestedAt,
+            })),
+            queueDepth: pendingRequests.length,
+          });
+
+          return acc;
+        },
+        {} as Record<string, any[]>
+      ),
     };
 
     return NextResponse.json({ branch: formattedBranch });
