@@ -23,6 +23,10 @@ import {
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
+import { useBorrowHistory } from '@/hooks/useBorrowHistory';
+
+import { VintageCheckoutCard } from './VintageCheckoutCard';
+
 interface ItemData {
   id: string;
   name: string;
@@ -62,6 +66,9 @@ export function ItemDetailClient({
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [condition, setCondition] = useState('good');
+
+  // Borrow history
+  const { data: borrowHistory } = useBorrowHistory(itemId);
 
   const conditions = [
     { value: 'excellent', label: 'Excellent - Like new' },
@@ -324,6 +331,30 @@ export function ItemDetailClient({
               </CardContent>
             </Card>
           </Box>
+
+          {/* Vintage Checkout Card - only show for existing items with history */}
+          {!isNewItem &&
+            borrowHistory &&
+            borrowHistory.borrowHistory.length > 0 && (
+              <Box sx={{ mt: 4 }}>
+                <Typography
+                  variant="h5"
+                  sx={{
+                    fontWeight: 600,
+                    mb: 3,
+                    textAlign: 'center',
+                    color: 'text.primary',
+                  }}
+                >
+                  Checkout History
+                </Typography>
+                <VintageCheckoutCard
+                  itemName={borrowHistory.itemName}
+                  borrowHistory={borrowHistory.borrowHistory}
+                  compact={false}
+                />
+              </Box>
+            )}
         </Box>
       )}
     </Container>

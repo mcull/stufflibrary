@@ -15,6 +15,7 @@ import '@fontsource/space-grotesk/300.css';
 import '@fontsource/space-grotesk/400.css';
 import '@fontsource/space-grotesk/500.css';
 import '@fontsource/space-grotesk/700.css';
+import '@/styles/vintage-fonts.css';
 import './globals.css';
 
 const roboto = Roboto({
@@ -48,7 +49,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${roboto.variable} ${spaceGrotesk.variable} ${impactLabel.variable}`}>
+      <body
+        className={`${roboto.variable} ${spaceGrotesk.variable} ${impactLabel.variable}`}
+      >
         <NextAuthSessionProvider>
           <ClientThemeProvider>
             <ConditionalHeader />
