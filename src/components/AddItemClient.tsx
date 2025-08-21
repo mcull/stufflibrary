@@ -65,6 +65,26 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
+
+        // Add event listeners for debugging
+        videoRef.current.onloadedmetadata = () => {
+          console.log('Video metadata loaded');
+          console.log(
+            'Video dimensions:',
+            videoRef.current?.videoWidth,
+            'x',
+            videoRef.current?.videoHeight
+          );
+        };
+
+        videoRef.current.onplay = () => {
+          console.log('Video started playing');
+        };
+
+        videoRef.current.onerror = (e) => {
+          console.error('Video error:', e);
+        };
+
         setState('streaming');
       }
     } catch (err) {
@@ -265,7 +285,19 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
 
       case 'streaming':
         return (
-          <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
+          <Box
+            sx={{
+              position: 'relative',
+              width: '100%',
+              height: '60vh',
+              minHeight: '300px',
+              maxHeight: '500px',
+              mx: 'auto',
+              borderRadius: 2,
+              overflow: 'hidden',
+              bgcolor: 'black',
+            }}
+          >
             <video
               ref={videoRef}
               autoPlay
@@ -275,7 +307,7 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
-                borderRadius: 8,
+                display: 'block',
               }}
               onClick={capturePhoto}
             />
