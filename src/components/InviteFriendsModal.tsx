@@ -57,13 +57,6 @@ export function InviteFriendsModal({
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loadingInvitations, setLoadingInvitations] = useState(false);
 
-  // Load existing invitations when modal opens
-  useEffect(() => {
-    if (open) {
-      loadInvitations();
-    }
-  }, [open, branchId, loadInvitations]);
-
   const loadInvitations = useCallback(async () => {
     setLoadingInvitations(true);
     try {
@@ -78,6 +71,13 @@ export function InviteFriendsModal({
       setLoadingInvitations(false);
     }
   }, [branchId]);
+
+  // Load existing invitations when modal opens
+  useEffect(() => {
+    if (open) {
+      loadInvitations();
+    }
+  }, [open, branchId, loadInvitations]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

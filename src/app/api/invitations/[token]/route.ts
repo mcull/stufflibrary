@@ -64,7 +64,10 @@ export async function GET(
       },
     });
 
-    if (existingUser?.branchMemberships.length > 0) {
+    if (
+      existingUser?.branchMemberships &&
+      existingUser.branchMemberships.length > 0
+    ) {
       return redirect(`/branch/${invitation.branchId}?message=already_member`);
     }
 
