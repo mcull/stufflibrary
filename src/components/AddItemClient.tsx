@@ -105,8 +105,20 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
+    console.log('📷 Canvas size:', canvas.width, 'x', canvas.height);
+    console.log('📹 Video size:', video.videoWidth, 'x', video.videoHeight);
+
     // Draw video frame to canvas
     ctx.drawImage(video, 0, 0);
+
+    console.log('🎨 Canvas drawn, checking image data...');
+    const imageData = ctx.getImageData(
+      0,
+      0,
+      Math.min(10, canvas.width),
+      Math.min(10, canvas.height)
+    );
+    console.log('🖼️ Sample pixel data:', imageData.data.slice(0, 12));
 
     // Convert to blob for analysis
     canvas.toBlob(
@@ -467,27 +479,27 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
       case 'recognized':
         return (
           <Box sx={{ textAlign: 'center', py: 4 }}>
-            {canvasRef.current && (
-              <Paper
-                elevation={3}
-                sx={{
-                  maxWidth: 300,
-                  mx: 'auto',
-                  mb: 3,
-                  borderRadius: 2,
-                  overflow: 'hidden',
+            <Paper
+              elevation={3}
+              sx={{
+                maxWidth: 300,
+                mx: 'auto',
+                mb: 3,
+                borderRadius: 2,
+                overflow: 'hidden',
+                bgcolor: 'grey.100',
+              }}
+            >
+              <canvas
+                ref={canvasRef}
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  display: 'block',
+                  maxHeight: '300px',
                 }}
-              >
-                <canvas
-                  ref={canvasRef}
-                  style={{
-                    width: '100%',
-                    height: 'auto',
-                    display: 'block',
-                  }}
-                />
-              </Paper>
-            )}
+              />
+            </Paper>
 
             <CheckIcon sx={{ fontSize: 48, color: 'success.main', mb: 2 }} />
             <Typography variant="h5" gutterBottom>

@@ -54,20 +54,30 @@ export async function POST(request: NextRequest) {
     const fileExtension = image.name.split('.').pop() || 'jpg';
     const filename = `${uuidv4()}.${fileExtension}`;
 
+    console.log('📁 Saving image:', filename);
+    console.log('📏 Image size:', image.size, 'bytes');
+
     // Save image to public directory
     const bytes = await image.arrayBuffer();
     const buffer = Buffer.from(bytes);
     const uploadsDir = join(process.cwd(), 'public', 'uploads');
     const imagePath = join(uploadsDir, filename);
 
+    console.log('📂 Upload directory:', uploadsDir);
+    console.log('🎯 Full image path:', imagePath);
+
     // Ensure uploads directory exists
     try {
       if (!existsSync(uploadsDir)) {
+        console.log('📁 Creating uploads directory...');
         await mkdir(uploadsDir, { recursive: true });
       }
+
+      console.log('💾 Writing file...');
       await writeFile(imagePath, buffer);
+      console.log('✅ Image saved successfully');
     } catch (err) {
-      console.error('Error saving image:', err);
+      console.error('❌ Error saving image:', err);
       return NextResponse.json(
         {
           error: 'Failed to save image',
