@@ -1,27 +1,22 @@
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 
-import { ItemDetailClient } from '@/components/ItemDetailClient';
+import { AddItemClient } from '@/components/AddItemClient';
 import { authOptions } from '@/lib/auth';
 
-interface ItemPageProps {
-  params: Promise<{ id: string }>;
+interface AddItemPageProps {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
-export default async function ItemPage({
-  params,
-  searchParams,
-}: ItemPageProps) {
+export default async function AddItemPage({ searchParams }: AddItemPageProps) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {
     redirect('/auth/signin');
   }
 
-  const { id: itemId } = await params;
   const resolvedSearchParams = await searchParams;
-  const isNewItem = resolvedSearchParams?.new === 'true';
+  const branchId = resolvedSearchParams?.branch as string;
 
-  return <ItemDetailClient itemId={itemId} isNewItem={isNewItem} />;
+  return <AddItemClient branchId={branchId} />;
 }
