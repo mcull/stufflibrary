@@ -49,6 +49,7 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
   const [error, setError] = useState<string | null>(null);
   const [recognitionResult, setRecognitionResult] =
     useState<RecognitionResult | null>(null);
+  const [capturedImageUrl, setCapturedImageUrl] = useState<string | null>(null);
 
   // Request camera permission and start stream
   const startCamera = useCallback(async () => {
@@ -120,6 +121,11 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
     );
     console.log('🖼️ Sample pixel data:', imageData.data.slice(0, 12));
 
+    // Create data URL for display
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+    setCapturedImageUrl(dataUrl);
+    console.log('🖼️ Created image URL for display');
+
     // Convert to blob for analysis
     canvas.toBlob(
       async (blob) => {
@@ -175,11 +181,18 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
   const addItem = useCallback(async () => {
     if (!recognitionResult || !canvasRef.current) return;
 
+    console.log('🏪 Starting add item process...');
+
     try {
       // Convert canvas to blob for storage
       canvasRef.current.toBlob(
         async (blob) => {
-          if (!blob) return;
+          if (!blob) {
+            console.error('❌ Failed to create blob from canvas');
+            return;
+          }
+
+          console.log('📦 Created blob for upload:', blob.size, 'bytes');
 
           // If no branchId provided, try to find or create a default branch
           let effectiveBranchId = branchId;
@@ -203,22 +216,32 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
             }
           }
 
+          console.log('📋 Creating form data...');
           const formData = new FormData();
           formData.append('image', blob, 'item.jpg');
           formData.append('name', recognitionResult.name);
           formData.append('category', recognitionResult.category);
           formData.append('branchId', effectiveBranchId);
 
+          console.log('🚀 Uploading to API...');
           const response = await fetch('/api/items', {
             method: 'POST',
             body: formData,
           });
 
           if (!response.ok) {
+            console.error(
+              '❌ API response not OK:',
+              response.status,
+              response.statusText
+            );
             throw new Error('Failed to create item');
           }
 
-          const { itemId } = await response.json();
+          const responseData = await response.json();
+          console.log('✅ Item created successfully:', responseData);
+          const { itemId } = responseData;
+          console.log('🔄 Navigating to item page:', itemId);
           router.push(`/stuff/${itemId}?new=true`);
         },
         'image/jpeg',
@@ -479,27 +502,30 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
       case 'recognized':
         return (
           <Box sx={{ textAlign: 'center', py: 4 }}>
-            <Paper
-              elevation={3}
-              sx={{
-                maxWidth: 300,
-                mx: 'auto',
-                mb: 3,
-                borderRadius: 2,
-                overflow: 'hidden',
-                bgcolor: 'grey.100',
-              }}
-            >
-              <canvas
-                ref={canvasRef}
-                style={{
-                  width: '100%',
-                  height: 'auto',
-                  display: 'block',
-                  maxHeight: '300px',
+            {capturedImageUrl && (
+              <Paper
+                elevation={3}
+                sx={{
+                  maxWidth: 300,
+                  mx: 'auto',
+                  mb: 3,
+                  borderRadius: 2,
+                  overflow: 'hidden',
+                  bgcolor: 'grey.100',
                 }}
-              />
-            </Paper>
+              >
+                <img
+                  src={capturedImageUrl}
+                  alt="Captured item"
+                  style={{
+                    width: '100%',
+                    height: 'auto',
+                    display: 'block',
+                    maxHeight: '300px',
+                  }}
+                />
+              </Paper>
+            )}
 
             <CheckIcon sx={{ fontSize: 48, color: 'success.main', mb: 2 }} />
             <Typography variant="h5" gutterBottom>
