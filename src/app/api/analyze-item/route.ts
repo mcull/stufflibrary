@@ -4,9 +4,17 @@ import OpenAI from 'openai';
 
 import { authOptions } from '@/lib/auth';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+function getOpenAIClient() {
+  const apiKey = process.env.OPENAI_API_KEY;
+
+  if (!apiKey) {
+    throw new Error('OPENAI_API_KEY environment variable is required');
+  }
+
+  return new OpenAI({
+    apiKey: apiKey,
+  });
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,6 +37,7 @@ export async function POST(request: NextRequest) {
     const base64Image = buffer.toString('base64');
 
     // Analyze image with GPT-4 Vision
+    const openai = getOpenAIClient();
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
