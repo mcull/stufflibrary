@@ -164,8 +164,12 @@ export function BranchDetailClient({ branchId }: BranchDetailClientProps) {
   };
 
   const handleAddItem = (category?: string) => {
-    // TODO: Implement add item flow
-    console.log('Add item to category:', category || 'general');
+    // Navigate to camera-based add item flow
+    const params = new URLSearchParams({
+      branch: branchId,
+      ...(category && { category }),
+    });
+    router.push(`/add-item?${params.toString()}`);
   };
 
   if (isLoading) {
