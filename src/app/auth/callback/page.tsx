@@ -5,16 +5,17 @@ import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 
 interface AuthCallbackPageProps {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 export default async function AuthCallbackPage({
   searchParams,
 }: AuthCallbackPageProps) {
+  const params = await searchParams;
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {
-    const invitationToken = searchParams.invitation as string;
+    const invitationToken = params.invitation as string;
     const signInUrl =
       '/auth/signin' +
       (invitationToken ? `?invitation=${invitationToken}` : '');
@@ -41,7 +42,7 @@ export default async function AuthCallbackPage({
     });
   }
 
-  const invitationToken = searchParams.invitation as string;
+  const invitationToken = params.invitation as string;
 
   // If there's an invitation token, process it
   if (invitationToken && user) {
