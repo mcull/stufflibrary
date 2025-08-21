@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowForward, Person } from '@mui/icons-material';
+import { ArrowForward, Person, Phone } from '@mui/icons-material';
 import { Box, Button, Stack, TextField, Typography } from '@mui/material';
 import { useFormContext } from 'react-hook-form';
 
@@ -43,7 +43,9 @@ export function ProfileStep1({ onNext }: ProfileStep1Props) {
             mb: 4,
           }}
         >
-          Tell us a bit about yourself so other members can get to know you.
+          Tell us a bit about yourself so other members can get to know you. We
+          need your phone number to send SMS notifications for borrowing
+          requests.
         </Typography>
 
         <Stack spacing={3}>
@@ -58,6 +60,48 @@ export function ProfileStep1({ onNext }: ProfileStep1Props) {
             InputProps={{
               startAdornment: (
                 <Person
+                  sx={{ color: brandColors.charcoal, mr: 1, opacity: 0.6 }}
+                />
+              ),
+            }}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: '12px',
+                backgroundColor: brandColors.white,
+                '&:hover': {
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: brandColors.inkBlue,
+                  },
+                },
+                '&.Mui-focused': {
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: brandColors.inkBlue,
+                    borderWidth: 2,
+                  },
+                },
+              },
+              '& .MuiInputLabel-root': {
+                '&.Mui-focused': {
+                  color: brandColors.inkBlue,
+                },
+              },
+            }}
+          />
+
+          <TextField
+            {...register('phone')}
+            label="Phone Number"
+            placeholder="+1 555 123 4567"
+            error={!!errors.phone}
+            helperText={
+              errors.phone?.message ||
+              'Required for SMS notifications about borrow requests'
+            }
+            fullWidth
+            variant="outlined"
+            InputProps={{
+              startAdornment: (
+                <Phone
                   sx={{ color: brandColors.charcoal, mr: 1, opacity: 0.6 }}
                 />
               ),

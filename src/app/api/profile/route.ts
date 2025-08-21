@@ -7,6 +7,13 @@ import { db } from '@/lib/db';
 
 const createProfileSchema = z.object({
   name: z.string().min(1, 'Name is required'),
+  phone: z
+    .string()
+    .min(1, 'Phone number is required for SMS notifications')
+    .regex(
+      /^[\+]?[1-9][\d]{0,15}$/,
+      'Please enter a valid phone number (e.g., +15551234567)'
+    ),
   bio: z.string().optional(),
   interests: z.array(z.string()).min(1, 'At least one interest is required'),
   image: z.string().url().optional(),
@@ -53,6 +60,7 @@ export async function POST(request: NextRequest) {
       where: { id: user.id },
       data: {
         name: validatedData.name,
+        phone: validatedData.phone,
         bio: validatedData.bio || null,
         interests: validatedData.interests,
         image: validatedData.image || null,
@@ -67,6 +75,7 @@ export async function POST(request: NextRequest) {
         id: updatedUser.id,
         name: updatedUser.name,
         email: updatedUser.email,
+        phone: updatedUser.phone,
         image: updatedUser.image,
         bio: updatedUser.bio,
         interests: updatedUser.interests,
@@ -119,6 +128,8 @@ export async function GET(_request: NextRequest) {
           id: true,
           name: true,
           email: true,
+          phone: true,
+          phoneVerified: true,
           image: true,
           bio: true,
           interests: true,
@@ -137,6 +148,8 @@ export async function GET(_request: NextRequest) {
           id: true,
           name: true,
           email: true,
+          phone: true,
+          phoneVerified: true,
           image: true,
           bio: true,
           interests: true,

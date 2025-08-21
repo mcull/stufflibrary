@@ -26,6 +26,13 @@ import { ProfileStepComplete } from './profile-wizard/ProfileStepComplete';
 
 const profileSchema = z.object({
   name: z.string().min(1, 'Name is required'),
+  phone: z
+    .string()
+    .min(1, 'Phone number is required for SMS notifications')
+    .regex(
+      /^[\+]?[1-9][\d]{0,15}$/,
+      'Please enter a valid phone number (e.g., +15551234567)'
+    ),
   bio: z.string().optional(),
   interests: z.array(z.string()).min(1, 'Please select at least one interest'),
   profilePicture: z.instanceof(File).optional(),
@@ -124,6 +131,7 @@ export function ProfileWizard({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       name: '',
+      phone: '',
       bio: '',
       interests: [],
       agreedToTerms: false,
@@ -184,7 +192,7 @@ export function ProfileWizard({
   function getFieldsForStep(step: number): (keyof ProfileFormData)[] {
     switch (step) {
       case 0:
-        return ['name'];
+        return ['name', 'phone'];
       case 1:
         return ['interests'];
       case 2:
