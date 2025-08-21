@@ -34,6 +34,8 @@ import { useEffect, useState } from 'react';
 
 import { brandColors } from '@/theme/brandTokens';
 
+import { InviteButton } from './InviteButton';
+import { InviteFriendsModal } from './InviteFriendsModal';
 import { VintageCheckoutCardDialog } from './VintageCheckoutCardDialog';
 
 // Types
@@ -122,6 +124,7 @@ export function BranchDetailClient({ branchId }: BranchDetailClientProps) {
   const [checkoutCardOpen, setCheckoutCardOpen] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [selectedItemName, setSelectedItemName] = useState<string | null>(null);
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchBranch = async () => {
@@ -270,6 +273,16 @@ export function BranchDetailClient({ branchId }: BranchDetailClientProps) {
             </Typography>
           )}
         </Box>
+
+        {/* Branch Actions */}
+        {(branch.userRole === 'owner' || branch.userRole === 'admin') && (
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+            <InviteButton
+              onClick={() => setInviteModalOpen(true)}
+              size="small"
+            />
+          </Box>
+        )}
       </Box>
 
       {/* Add Item CTA */}
@@ -730,6 +743,14 @@ export function BranchDetailClient({ branchId }: BranchDetailClientProps) {
           {...(selectedItemName && { itemName: selectedItemName })}
         />
       )}
+
+      {/* Invite Friends Modal */}
+      <InviteFriendsModal
+        branchId={branchId}
+        branchName={branch?.name || ''}
+        open={inviteModalOpen}
+        onClose={() => setInviteModalOpen(false)}
+      />
     </Container>
   );
 }

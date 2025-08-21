@@ -95,9 +95,12 @@ model Invitation {
   email       String   
   
   // Invitation context
-  type        String   // "neighbor", "friend", "family", "coworker"
-  status      String   @default("pending") // pending, sent, accepted, expired, declined
+  type        String   // "neighbor", "friend", "family", "coworker", "branch"
+  status      InvitationStatus @default(PENDING)
   message     String?  // Custom message from sender
+  
+  // Magic link for branch invitations
+  token       String?  @unique // Secure token for magic links (branch invites only)
   
   // For postcard/QR code invites
   qrCode      String?  // Unique QR code for postcard
@@ -106,6 +109,10 @@ model Invitation {
   // Address context (for neighbor invites)
   addressId   String?
   address     Address? @relation(fields: [addressId], references: [id])
+  
+  // Branch context (for branch invites)
+  branchId    String?
+  branch      Branch?  @relation(fields: [branchId], references: [id], onDelete: Cascade)
   
   // User relationships
   senderId    String?
@@ -117,10 +124,22 @@ model Invitation {
   createdAt   DateTime @default(now())
   sentAt      DateTime?
   acceptedAt  DateTime?
-  expiresAt   DateTime // Invitations expire after 30 days
+  expiresAt   DateTime // Invitations expire after 7-30 days depending on type
   
-  @@unique([email, senderId]) // Prevent duplicate invites
+  @@unique([email, senderId, branchId]) // Prevent duplicate invites to same branch
+  @@index([token])
+  @@index([email])
+  @@index([branchId])
   @@map("invitations")
+}
+
+enum InvitationStatus {
+  PENDING
+  SENT
+  ACCEPTED
+  EXPIRED
+  DECLINED
+  CANCELLED
 }
 
 // For structured signup flow - holds partial applications
@@ -169,6 +188,7 @@ model Branch {
   owner   User           @relation("BranchOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   members BranchMember[]
   items   Item[]
+  invitations Invitation[]
 
   @@map("branches")
 }
