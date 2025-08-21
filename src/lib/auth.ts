@@ -6,11 +6,12 @@ import { verifyAuthCode } from './auth-codes';
 import { db } from './db';
 import { env } from './env';
 
-
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(db),
   session: {
     strategy: 'jwt',
+    maxAge: 90 * 24 * 60 * 60, // 90 days
+    updateAge: 7 * 24 * 60 * 60, // Update session if older than 7 days
   },
   providers: [
     CredentialsProvider({
@@ -27,8 +28,11 @@ export const authOptions: NextAuthOptions = {
 
         try {
           // Verify the auth code
-          const isValidCode = await verifyAuthCode(credentials.email, credentials.code);
-          
+          const isValidCode = await verifyAuthCode(
+            credentials.email,
+            credentials.code
+          );
+
           if (!isValidCode) {
             return null;
           }
@@ -44,7 +48,7 @@ export const authOptions: NextAuthOptions = {
           // Find or create user
           const user = await db.user.upsert({
             where: { email: credentials.email },
-            update: { 
+            update: {
               emailVerified: new Date(),
               updatedAt: new Date(),
             },
@@ -101,6 +105,23 @@ export const authOptions: NextAuthOptions = {
         token.sub = user.id;
       }
       return token;
+    },
+  },
+  cookies: {
+    sessionToken: {
+      name: 'next-auth.session-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 90 * 24 * 60 * 60, // 90 days
+      },
+    },
+  },
+  events: {
+    async signIn() {
+      console.log('User signed in - session will persist for 90 days');
     },
   },
   secret: env.NEXTAUTH_SECRET,
