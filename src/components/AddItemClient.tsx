@@ -286,7 +286,6 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
               borderRadius: 2,
               overflow: 'hidden',
               bgcolor: 'black',
-              border: '2px solid red', // Temporary visual indicator
             }}
           >
             <video
@@ -335,7 +334,6 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
                 height: '100%',
                 objectFit: 'cover',
                 display: 'block',
-                border: '2px solid green', // Temporary visual indicator
               }}
               onClick={capturePhoto}
             />
@@ -410,8 +408,12 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
                   bottom: '10%',
                   border: '2px solid white',
                   borderRadius: 2,
-                  '&::after': {
-                    content: '"Center your item in this area"',
+                  boxShadow: '0 0 0 2px rgba(0,0,0,0.3)',
+                }}
+              >
+                {/* Instruction text */}
+                <Box
+                  sx={{
                     position: 'absolute',
                     top: -40,
                     left: '50%',
@@ -420,9 +422,12 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
                     fontSize: '14px',
                     textShadow: '0 1px 3px rgba(0,0,0,0.8)',
                     whiteSpace: 'nowrap',
-                  },
-                }}
-              />
+                    textAlign: 'center',
+                  }}
+                >
+                  Center your item in this area
+                </Box>
+              </Box>
             </Box>
 
             {/* Tap to capture instruction */}
