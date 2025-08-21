@@ -9,6 +9,7 @@ import {
   Notifications as NotificationsIcon,
   Check as CheckIcon,
   Visibility as ViewIcon,
+  LibraryBooks as LibraryBooksIcon,
 } from '@mui/icons-material';
 import {
   Box,
@@ -32,6 +33,8 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { brandColors } from '@/theme/brandTokens';
+
+import { VintageCheckoutCardDialog } from './VintageCheckoutCardDialog';
 
 // Types
 interface BranchItem {
@@ -116,6 +119,9 @@ export function BranchDetailClient({ branchId }: BranchDetailClientProps) {
   const [branch, setBranch] = useState<BranchData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [checkoutCardOpen, setCheckoutCardOpen] = useState(false);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [selectedItemName, setSelectedItemName] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchBranch = async () => {
@@ -143,6 +149,18 @@ export function BranchDetailClient({ branchId }: BranchDetailClientProps) {
   const handleNotifyWhenReturned = async (itemId: string) => {
     // TODO: Implement notification queue API
     console.log('Request notification for item:', itemId);
+  };
+
+  const handleShowCheckoutCard = (itemId: string, itemName: string) => {
+    setSelectedItemId(itemId);
+    setSelectedItemName(itemName);
+    setCheckoutCardOpen(true);
+  };
+
+  const handleCloseCheckoutCard = () => {
+    setCheckoutCardOpen(false);
+    setSelectedItemId(null);
+    setSelectedItemName(null);
   };
 
   const handleAskToBorrow = async (itemId: string) => {
@@ -560,6 +578,16 @@ export function BranchDetailClient({ branchId }: BranchDetailClientProps) {
                                     <CloseIcon />
                                   </IconButton>
                                 </Tooltip>
+                                <Tooltip title="View checkout history">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() =>
+                                      handleShowCheckoutCard(item.id, item.name)
+                                    }
+                                  >
+                                    <LibraryBooksIcon />
+                                  </IconButton>
+                                </Tooltip>
                               </>
                             ) : (
                               // Non-owner Actions
@@ -601,6 +629,16 @@ export function BranchDetailClient({ branchId }: BranchDetailClientProps) {
                                     href={`/stuff/${item.id}`}
                                   >
                                     <ViewIcon />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="View checkout history">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() =>
+                                      handleShowCheckoutCard(item.id, item.name)
+                                    }
+                                  >
+                                    <LibraryBooksIcon />
                                   </IconButton>
                                 </Tooltip>
                               </>
@@ -681,6 +719,16 @@ export function BranchDetailClient({ branchId }: BranchDetailClientProps) {
             </Button>
           )}
         </Paper>
+      )}
+
+      {/* Vintage Checkout Card Dialog */}
+      {selectedItemId && (
+        <VintageCheckoutCardDialog
+          open={checkoutCardOpen}
+          onClose={handleCloseCheckoutCard}
+          itemId={selectedItemId}
+          itemName={selectedItemName || undefined}
+        />
       )}
     </Container>
   );

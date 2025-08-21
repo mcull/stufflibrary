@@ -1,0 +1,58 @@
+/* Vintage Library Fonts */
+
+@font-face {
+  font-family: 'Stampette';
+  src:
+    url('/Stampete-2WWw.otf') format('opentype'),
+    url('/Stampete-dpxg.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'StampPress';
+  src: url('/StampPressRegular-pgMYy.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'ImpactLabel';
+  src: url('/ImpactLabelReversed-nDMR.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* Vintage text styles */
+.vintage-stampette {
+  font-family: 'Stampette', monospace;
+}
+
+.vintage-stamp-press {
+  font-family: 'StampPress', serif;
+}
+
+.vintage-impact-label {
+  font-family: 'ImpactLabel', sans-serif;
+}
+
+/* Ink effect classes */
+.ink-blue {
+  color: #1e40af;
+}
+
+.ink-black {
+  color: #1f2937;
+}
+
+.ink-red {
+  color: #dc2626;
+}
+
+.ink-brown {
+  color: #92400e;
+}
+
+.ink-purple {
+  color: #7c2d12;
+}
