@@ -13,7 +13,7 @@ import {
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 
 import { AuthLayout } from '@/components/AuthLayout';
 import { Wordmark } from '@/components/Wordmark';
@@ -25,9 +25,37 @@ function SignInForm() {
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [invitationContext, setInvitationContext] = useState<{
+    branchName: string;
+    inviterName: string;
+  } | null>(null);
   const searchParams = useSearchParams();
+  const invitationToken = searchParams.get('invitation');
   // Default to server-side callback that decides destination post-auth
-  const callbackUrl = searchParams.get('callbackUrl') || '/auth/callback';
+  const callbackUrl =
+    searchParams.get('callbackUrl') ||
+    `/auth/callback${invitationToken ? `?invitation=${invitationToken}` : ''}`;
+
+  // Load invitation context if invitation token exists
+  useEffect(() => {
+    if (invitationToken) {
+      fetch(`/api/invitations/${invitationToken}/details`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.invitation) {
+            setInvitationContext({
+              branchName: data.invitation.branch?.name || 'Unknown Branch',
+              inviterName: data.invitation.sender?.name || 'Someone',
+            });
+            // Pre-fill email if invitation has one
+            if (data.invitation.email) {
+              setEmail(data.invitation.email);
+            }
+          }
+        })
+        .catch(console.error);
+    }
+  }, [invitationToken]);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,7 +98,7 @@ function SignInForm() {
         callbackUrl,
         redirect: true, // Let NextAuth handle the redirect
       });
-      
+
       // If we get here, there was an error (redirect didn't happen)
       if (signInResult?.error) {
         setError(signInResult.error || 'Invalid code. Please try again.');
@@ -290,6 +318,49 @@ function SignInForm() {
           }}
         >
           <CardContent sx={{ p: 0 }}>
+            {/* Invitation Context */}
+            {invitationContext && (
+              <Box
+                sx={{
+                  textAlign: 'center',
+                  mb: 3,
+                  p: 2,
+                  backgroundColor: '#f0f9ff',
+                  borderRadius: 2,
+                  border: `1px solid #bfdbfe`,
+                }}
+              >
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: brandColors.inkBlue,
+                    fontWeight: 500,
+                    mb: 0.5,
+                  }}
+                >
+                  You&apos;ve been invited to join
+                </Typography>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    color: brandColors.charcoal,
+                    fontWeight: 600,
+                  }}
+                >
+                  {invitationContext.branchName}
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: brandColors.charcoal,
+                    opacity: 0.8,
+                  }}
+                >
+                  by {invitationContext.inviterName}
+                </Typography>
+              </Box>
+            )}
+
             {/* Title */}
             <Typography
               variant="h4"
@@ -302,7 +373,9 @@ function SignInForm() {
                 fontSize: { xs: '1.75rem', sm: '2rem' },
               }}
             >
-              Enter your email to sign in
+              {invitationContext
+                ? 'Enter your email to join'
+                : 'Enter your email to sign in'}
             </Typography>
 
             {error && (

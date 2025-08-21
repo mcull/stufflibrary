@@ -28,6 +28,7 @@ import { useBranches } from '@/hooks/useBranches';
 import { brandColors } from '@/theme/brandTokens';
 
 import { BranchCreationModal } from './BranchCreationModal';
+import { InvitedBranchesSection } from './InvitedBranchesSection';
 import { LibraryCard } from './LibraryCard';
 
 interface User {
@@ -112,6 +113,9 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
       >
         {/* Left Column */}
         <Box sx={{ flex: { md: 2 } }}>
+          {/* Invited Branches */}
+          <InvitedBranchesSection />
+
           {/* My Branches */}
           <Card sx={{ mb: 4 }}>
             <CardContent>
