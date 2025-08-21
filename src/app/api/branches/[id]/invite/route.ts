@@ -7,8 +7,6 @@ import { Resend } from 'resend';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -158,6 +156,7 @@ export async function POST(
     try {
       const magicLink = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/invitations/${token}`;
 
+      const resend = new Resend(process.env.RESEND_API_KEY);
       await resend.emails.send({
         from: 'StuffLibrary <invites@stufflibrary.org>',
         to: [email],
