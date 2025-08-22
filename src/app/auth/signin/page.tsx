@@ -37,9 +37,18 @@ function SignInForm() {
   const prefilledCode = searchParams.get('code');
 
   // Default to server-side callback that decides destination post-auth
+  const branchId = searchParams.get('branch');
   const callbackUrl =
     searchParams.get('callbackUrl') ||
-    `/auth/callback${invitationToken ? `?invitation=${invitationToken}` : ''}`;
+    (() => {
+      if (invitationToken) {
+        const params = new URLSearchParams();
+        params.set('invitation', invitationToken);
+        if (branchId) params.set('branch', branchId);
+        return `/auth/callback?${params.toString()}`;
+      }
+      return '/auth/callback';
+    })();
 
   // Auto-complete magic link sign-in
   useEffect(() => {
