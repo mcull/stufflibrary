@@ -14,11 +14,10 @@ export default async function AuthCallbackPage({
   searchParams,
 }: AuthCallbackPageProps) {
   const params = await searchParams;
-  const session = await getServerSession(authOptions);
   const invitationToken = params.invitation as string;
 
-  // If user is not authenticated but has an invitation token, handle magic link auth
-  if (!session?.user && invitationToken) {
+  // Handle magic link authentication FIRST (before checking any existing session)
+  if (invitationToken) {
     try {
       // Validate invitation
       const invitation = await db.invitation.findFirst({
@@ -34,80 +33,138 @@ export default async function AuthCallbackPage({
       });
 
       if (invitation) {
-        // Create or find user from invitation email
-        const user = await db.user.upsert({
-          where: { email: invitation.email },
-          update: {
-            emailVerified: new Date(),
-            updatedAt: new Date(),
-          },
-          create: {
-            email: invitation.email,
-            emailVerified: new Date(),
-            profileCompleted: false,
-          },
-        });
+        // Check if there's already a session
+        const existingSession = await getServerSession(authOptions);
 
-        // Create branch membership
-        const existingMembership = await db.branchMember.findFirst({
-          where: {
-            userId: user.id,
-            branchId: invitation.branchId!,
-            isActive: true,
-          },
-        });
+        if (existingSession?.user) {
+          // User is already authenticated - just process the invitation
+          const userEmail = existingSession.user?.email;
+          if (invitation.email === userEmail) {
+            const userId =
+              (existingSession.user as { id?: string }).id ||
+              (existingSession as any).user?.id ||
+              (existingSession as any).userId;
 
-        if (!existingMembership) {
-          await db.$transaction([
-            db.branchMember.create({
-              data: {
-                userId: user.id,
-                branchId: invitation.branchId!,
-                role: 'member',
-                isActive: true,
-              },
-            }),
-            db.invitation.update({
-              where: { id: invitation.id },
-              data: {
-                status: 'ACCEPTED',
-                acceptedAt: new Date(),
-                receiverId: user.id,
-              },
-            }),
-          ]);
-        }
+            if (userId) {
+              const user = await db.user.findUnique({
+                where: { id: userId },
+                select: { id: true, profileCompleted: true },
+              });
 
-        // Create NextAuth session manually
-        const cookieStore = await cookies();
-        const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET);
+              if (user) {
+                // Create membership if needed
+                const existingMembership = await db.branchMember.findFirst({
+                  where: {
+                    userId: user.id,
+                    branchId: invitation.branchId!,
+                    isActive: true,
+                  },
+                });
 
-        // Create JWT token
-        const token = await new SignJWT({
-          sub: user.id,
-          email: user.email,
-          name: user.name,
-          iat: Math.floor(Date.now() / 1000),
-          exp: Math.floor(Date.now() / 1000) + 90 * 24 * 60 * 60, // 90 days
-        })
-          .setProtectedHeader({ alg: 'HS256' })
-          .sign(secret);
+                if (!existingMembership) {
+                  await db.$transaction([
+                    db.branchMember.create({
+                      data: {
+                        userId: user.id,
+                        branchId: invitation.branchId!,
+                        role: 'member',
+                        isActive: true,
+                      },
+                    }),
+                    db.invitation.update({
+                      where: { id: invitation.id },
+                      data: {
+                        status: 'ACCEPTED',
+                        acceptedAt: new Date(),
+                        receiverId: user.id,
+                      },
+                    }),
+                  ]);
+                }
 
-        // Set session cookie
-        cookieStore.set('next-auth.session-token', token, {
-          httpOnly: true,
-          sameSite: 'lax',
-          path: '/',
-          secure: process.env.NODE_ENV === 'production',
-          maxAge: 90 * 24 * 60 * 60, // 90 days
-        });
-
-        // Redirect based on profile completion
-        if (user.profileCompleted) {
-          redirect(
-            `/branch/${invitation.branchId}?message=joined_successfully`
-          );
+                // Redirect based on profile completion
+                if (user.profileCompleted) {
+                  redirect(
+                    `/branch/${invitation.branchId}?message=joined_successfully`
+                  );
+                } else {
+                  redirect(
+                    `/profile/create?invitation=${invitationToken}&branch=${invitation.branchId}`
+                  );
+                }
+              }
+            }
+          }
         } else {
+          // No existing session - create user and session automatically
+          const user = await db.user.upsert({
+            where: { email: invitation.email },
+            update: {
+              emailVerified: new Date(),
+              updatedAt: new Date(),
+            },
+            create: {
+              email: invitation.email,
+              emailVerified: new Date(),
+              profileCompleted: false,
+            },
+          });
+
+          // Create branch membership
+          const existingMembership = await db.branchMember.findFirst({
+            where: {
+              userId: user.id,
+              branchId: invitation.branchId!,
+              isActive: true,
+            },
+          });
+
+          if (!existingMembership) {
+            await db.$transaction([
+              db.branchMember.create({
+                data: {
+                  userId: user.id,
+                  branchId: invitation.branchId!,
+                  role: 'member',
+                  isActive: true,
+                },
+              }),
+              db.invitation.update({
+                where: { id: invitation.id },
+                data: {
+                  status: 'ACCEPTED',
+                  acceptedAt: new Date(),
+                  receiverId: user.id,
+                },
+              }),
+            ]);
+          }
+
+          // Create NextAuth session manually
+          const cookieStore = await cookies();
+          const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET);
+
+          // Create JWT token
+          const token = await new SignJWT({
+            sub: user.id,
+            email: user.email,
+            name: user.name,
+            iat: Math.floor(Date.now() / 1000),
+            exp: Math.floor(Date.now() / 1000) + 90 * 24 * 60 * 60, // 90 days
+          })
+            .setProtectedHeader({ alg: 'HS256' })
+            .sign(secret);
+
+          // Set session cookie
+          cookieStore.set('next-auth.session-token', token, {
+            httpOnly: true,
+            sameSite: 'lax',
+            path: '/',
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: 90 * 24 * 60 * 60, // 90 days
+          });
+
+          // Always redirect new users to profile creation
           redirect(
             `/profile/create?invitation=${invitationToken}&branch=${invitation.branchId}`
           );
@@ -118,11 +175,11 @@ export default async function AuthCallbackPage({
     }
 
     // Fallback to normal sign-in if invitation processing fails
-    redirect(
-      `/auth/signin${invitationToken ? `?invitation=${invitationToken}` : ''}`
-    );
+    redirect(`/auth/signin?invitation=${invitationToken}`);
   }
 
+  // Normal callback flow for non-invitation requests
+  const session = await getServerSession(authOptions);
   if (!session?.user) {
     redirect('/auth/signin');
   }
