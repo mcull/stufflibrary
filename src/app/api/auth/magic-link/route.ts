@@ -1,7 +1,6 @@
-import { SignJWT } from 'jose';
-import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
+import { storeAuthCode } from '@/lib/auth-codes';
 import { db } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
@@ -99,46 +98,24 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Create NextAuth session manually
-    const cookieStore = await cookies();
-    const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET);
+    // Generate a temporary auth code and redirect to sign-in with auto-fill
+    const tempCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit code
 
-    // Create JWT token compatible with NextAuth
-    const token = await new SignJWT({
-      sub: user.id,
-      email: user.email,
-      name: user.name,
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 90 * 24 * 60 * 60, // 90 days
-    })
-      .setProtectedHeader({ alg: 'HS256' })
-      .sign(secret);
+    // Set the auth code for the user
+    await storeAuthCode(user.email!, tempCode);
 
-    // Set session cookie with same settings as NextAuth
-    cookieStore.set('next-auth.session-token', token, {
-      httpOnly: true,
-      sameSite: 'lax',
-      path: '/',
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 90 * 24 * 60 * 60, // 90 days
-    });
-
-    // Redirect based on profile completion
-    if (user.profileCompleted) {
-      return NextResponse.redirect(
-        new URL(
-          `/branch/${invitation.branchId}?message=joined_successfully`,
-          request.url
-        )
-      );
-    } else {
-      return NextResponse.redirect(
-        new URL(
-          `/profile/create?invitation=${invitationToken}&branch=${invitation.branchId}`,
-          request.url
-        )
-      );
+    // Create a special redirect URL that will auto-complete the sign-in
+    const redirectUrl = new URL('/auth/signin', request.url);
+    redirectUrl.searchParams.set('email', encodeURIComponent(user.email!));
+    redirectUrl.searchParams.set('code', tempCode);
+    if (invitationToken) {
+      redirectUrl.searchParams.set('invitation', invitationToken);
+      redirectUrl.searchParams.set('branch', invitation.branchId!);
     }
+    redirectUrl.searchParams.set('magic', 'true');
+    redirectUrl.searchParams.set('auto', 'true'); // Signal for auto-completion
+
+    return NextResponse.redirect(redirectUrl);
   } catch (error) {
     console.error('Error processing magic link:', error);
     return NextResponse.redirect(
