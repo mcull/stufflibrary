@@ -53,6 +53,7 @@
     "@upstash/redis": "^1.35.3",
     "@vercel/blob": "^1.1.1",
     "date-fns": "^4.1.0",
+    "jose": "^6.0.13",
     "next": "15.4.6",
     "next-auth": "^4.24.11",
     "nodemailer": "^7.0.5",
