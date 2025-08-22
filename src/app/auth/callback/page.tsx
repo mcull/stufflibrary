@@ -1,5 +1,3 @@
-import { SignJWT } from 'jose';
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 
@@ -40,10 +38,7 @@ export default async function AuthCallbackPage({
           // User is already authenticated - just process the invitation
           const userEmail = existingSession.user?.email;
           if (invitation.email === userEmail) {
-            const userId =
-              (existingSession.user as { id?: string }).id ||
-              (existingSession as any).user?.id ||
-              (existingSession as any).userId;
+            const userId = (existingSession.user as { id?: string }).id;
 
             if (userId) {
               const user = await db.user.findUnique({
@@ -96,77 +91,10 @@ export default async function AuthCallbackPage({
             }
           }
         } else {
-          // No existing session - create user and session automatically
-          const user = await db.user.upsert({
-            where: { email: invitation.email },
-            update: {
-              emailVerified: new Date(),
-              updatedAt: new Date(),
-            },
-            create: {
-              email: invitation.email,
-              emailVerified: new Date(),
-              profileCompleted: false,
-            },
-          });
-
-          // Create branch membership
-          const existingMembership = await db.branchMember.findFirst({
-            where: {
-              userId: user.id,
-              branchId: invitation.branchId!,
-              isActive: true,
-            },
-          });
-
-          if (!existingMembership) {
-            await db.$transaction([
-              db.branchMember.create({
-                data: {
-                  userId: user.id,
-                  branchId: invitation.branchId!,
-                  role: 'member',
-                  isActive: true,
-                },
-              }),
-              db.invitation.update({
-                where: { id: invitation.id },
-                data: {
-                  status: 'ACCEPTED',
-                  acceptedAt: new Date(),
-                  receiverId: user.id,
-                },
-              }),
-            ]);
-          }
-
-          // Create NextAuth session manually
-          const cookieStore = await cookies();
-          const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET);
-
-          // Create JWT token
-          const token = await new SignJWT({
-            sub: user.id,
-            email: user.email,
-            name: user.name,
-            iat: Math.floor(Date.now() / 1000),
-            exp: Math.floor(Date.now() / 1000) + 90 * 24 * 60 * 60, // 90 days
-          })
-            .setProtectedHeader({ alg: 'HS256' })
-            .sign(secret);
-
-          // Set session cookie
-          cookieStore.set('next-auth.session-token', token, {
-            httpOnly: true,
-            sameSite: 'lax',
-            path: '/',
-            secure: process.env.NODE_ENV === 'production',
-            maxAge: 90 * 24 * 60 * 60, // 90 days
-          });
-
-          // Always redirect new users to profile creation
+          // No existing session - redirect to sign-in but auto-populate with magic link info
+          // Store invitation processing info in URL for sign-in to handle
           redirect(
-            `/profile/create?invitation=${invitationToken}&branch=${invitation.branchId}`
+            `/auth/signin?invitation=${invitationToken}&magic=true&email=${encodeURIComponent(invitation.email)}`
           );
         }
       }
@@ -263,6 +191,55 @@ export default async function AuthCallbackPage({
             `/profile/create?invitation=${invitationToken}&branch=${invitation.branchId}`
           );
         }
+      } else if (invitation) {
+        // Invitation exists but email doesn't match - create/update user account with invitation email
+        const invitationUser = await db.user.upsert({
+          where: { email: invitation.email },
+          update: {
+            emailVerified: new Date(),
+            updatedAt: new Date(),
+          },
+          create: {
+            email: invitation.email,
+            emailVerified: new Date(),
+            profileCompleted: false,
+          },
+        });
+
+        // Create branch membership
+        const existingMembership = await db.branchMember.findFirst({
+          where: {
+            userId: invitationUser.id,
+            branchId: invitation.branchId!,
+            isActive: true,
+          },
+        });
+
+        if (!existingMembership) {
+          await db.$transaction([
+            db.branchMember.create({
+              data: {
+                userId: invitationUser.id,
+                branchId: invitation.branchId!,
+                role: 'member',
+                isActive: true,
+              },
+            }),
+            db.invitation.update({
+              where: { id: invitation.id },
+              data: {
+                status: 'ACCEPTED',
+                acceptedAt: new Date(),
+                receiverId: invitationUser.id,
+              },
+            }),
+          ]);
+        }
+
+        // Always redirect to profile creation for invitation users
+        redirect(
+          `/profile/create?invitation=${invitationToken}&branch=${invitation.branchId}`
+        );
       }
     } catch (error) {
       console.error('Error processing invitation in callback:', error);
