@@ -31,10 +31,64 @@ function SignInForm() {
   } | null>(null);
   const searchParams = useSearchParams();
   const invitationToken = searchParams.get('invitation');
+  const isMagicLink = searchParams.get('magic') === 'true';
+  const isAutoComplete = searchParams.get('auto') === 'true';
+  const prefilledEmail = searchParams.get('email');
+  const prefilledCode = searchParams.get('code');
+
   // Default to server-side callback that decides destination post-auth
   const callbackUrl =
     searchParams.get('callbackUrl') ||
     `/auth/callback${invitationToken ? `?invitation=${invitationToken}` : ''}`;
+
+  // Auto-complete magic link sign-in
+  useEffect(() => {
+    if (
+      isMagicLink &&
+      isAutoComplete &&
+      prefilledEmail &&
+      prefilledCode &&
+      !isLoading
+    ) {
+      setEmail(decodeURIComponent(prefilledEmail));
+      setCode(prefilledCode);
+      setStep('code');
+
+      // Auto-submit the code
+      const autoSignIn = async () => {
+        setIsLoading(true);
+        setError('');
+
+        try {
+          const signInResult = await signIn('email-code', {
+            email: decodeURIComponent(prefilledEmail),
+            code: prefilledCode,
+            callbackUrl,
+            redirect: true,
+          });
+
+          if (signInResult?.error) {
+            setError(
+              signInResult.error || 'Authentication failed. Please try again.'
+            );
+            setIsLoading(false);
+          }
+        } catch {
+          setError('Something went wrong. Please try again.');
+          setIsLoading(false);
+        }
+      };
+
+      autoSignIn();
+    }
+  }, [
+    isMagicLink,
+    isAutoComplete,
+    prefilledEmail,
+    prefilledCode,
+    isLoading,
+    callbackUrl,
+  ]);
 
   // Load invitation context if invitation token exists
   useEffect(() => {
@@ -47,15 +101,15 @@ function SignInForm() {
               branchName: data.invitation.branch?.name || 'Unknown Branch',
               inviterName: data.invitation.sender?.name || 'Someone',
             });
-            // Pre-fill email if invitation has one
-            if (data.invitation.email) {
+            // Pre-fill email if invitation has one (but don't override magic link email)
+            if (data.invitation.email && !prefilledEmail) {
               setEmail(data.invitation.email);
             }
           }
         })
         .catch(console.error);
     }
-  }, [invitationToken]);
+  }, [invitationToken, prefilledEmail]);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
