@@ -82,12 +82,11 @@ export async function GET(
       );
     }
 
-    // Store invitation token in URL for the auth callback to process
-    const callbackUrl = `/auth/callback?invitation=${token}`;
-
-    // For magic link authentication, we redirect to NextAuth callback
-    // The callback will handle creating/logging in the user and processing the invitation
-    return NextResponse.redirect(new URL(callbackUrl, request.url));
+    // Redirect to magic link authentication endpoint
+    // This will handle user creation, session creation, and invitation processing
+    return NextResponse.redirect(
+      new URL(`/api/auth/magic-link?token=${token}`, request.url)
+    );
   } catch (error) {
     console.error('Error processing invitation link:', error);
     return NextResponse.redirect(
