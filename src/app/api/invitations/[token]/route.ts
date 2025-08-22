@@ -1,5 +1,4 @@
-import { redirect } from 'next/navigation';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 import { db } from '@/lib/db';
 
@@ -12,7 +11,9 @@ export async function GET(
     // token already extracted above
 
     if (!token || typeof token !== 'string') {
-      return redirect('/auth/error?error=invalid_invitation');
+      return NextResponse.redirect(
+        new URL('/auth/error?error=invalid_invitation', request.url)
+      );
     }
 
     // Find and validate invitation
@@ -38,7 +39,9 @@ export async function GET(
     });
 
     if (!invitation) {
-      return redirect('/auth/error?error=invitation_not_found');
+      return NextResponse.redirect(
+        new URL('/auth/error?error=invitation_not_found', request.url)
+      );
     }
 
     // Check if invitation has expired
@@ -49,7 +52,9 @@ export async function GET(
         data: { status: 'EXPIRED' },
       });
 
-      return redirect('/auth/error?error=invitation_expired');
+      return NextResponse.redirect(
+        new URL('/auth/error?error=invitation_expired', request.url)
+      );
     }
 
     // Check if user already exists and is already a member
@@ -69,7 +74,12 @@ export async function GET(
       existingUser?.branchMemberships &&
       existingUser.branchMemberships.length > 0
     ) {
-      return redirect(`/branch/${invitation.branchId}?message=already_member`);
+      return NextResponse.redirect(
+        new URL(
+          `/branch/${invitation.branchId}?message=already_member`,
+          request.url
+        )
+      );
     }
 
     // Store invitation token in URL for the auth callback to process
@@ -77,9 +87,11 @@ export async function GET(
 
     // For magic link authentication, we redirect to NextAuth callback
     // The callback will handle creating/logging in the user and processing the invitation
-    return redirect(callbackUrl);
+    return NextResponse.redirect(new URL(callbackUrl, request.url));
   } catch (error) {
     console.error('Error processing invitation link:', error);
-    return redirect('/auth/error?error=invitation_processing_failed');
+    return NextResponse.redirect(
+      new URL('/auth/error?error=invitation_processing_failed', request.url)
+    );
   }
 }
