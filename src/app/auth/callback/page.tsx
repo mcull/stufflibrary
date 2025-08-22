@@ -4,8 +4,16 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 
-export default async function AuthCallbackPage() {
+interface AuthCallbackPageProps {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+export default async function AuthCallbackPage({
+  searchParams,
+}: AuthCallbackPageProps) {
+  const params = await searchParams;
   const session = await getServerSession(authOptions);
+  const invitationToken = params.invitation as string;
 
   if (!session?.user) {
     redirect('/auth/signin');
@@ -29,7 +37,20 @@ export default async function AuthCallbackPage() {
     });
   }
 
-  // Redirect based on profile completion
+  // If there's an invitation token, handle the redirect to profile creation with branch info
+  if (invitationToken && user) {
+    const branchId = params.branch as string;
+
+    if (user.profileCompleted) {
+      redirect(`/branch/${branchId}?message=joined_successfully`);
+    } else {
+      redirect(
+        `/profile/create?invitation=${invitationToken}&branch=${branchId}`
+      );
+    }
+  }
+
+  // Normal redirect based on profile completion
   if (user?.profileCompleted) {
     redirect('/lobby');
   }
