@@ -232,7 +232,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Create approval URL
-    const approvalUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/borrow-approval/${responseToken}`;
+    const approvalUrl = `${process.env.NEXTAUTH_URL}/borrow-approval/${responseToken}`;
 
     // Send SMS notification to owner
     try {
