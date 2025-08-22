@@ -7,6 +7,87 @@ import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { sendBorrowRequestNotification } from '@/lib/twilio';
 
+// GET - Fetch borrow requests for the current user
+export async function GET(_request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const userId =
+      (session.user as any).id ||
+      (session as any).user?.id ||
+      (session as any).userId;
+
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
+    }
+
+    // Fetch all borrow requests where user is either borrower or lender
+    const borrowRequests = await db.borrowRequest.findMany({
+      where: {
+        OR: [
+          { borrowerId: userId }, // Requests I made
+          { lenderId: userId }, // Requests to my items
+        ],
+      },
+      include: {
+        item: {
+          select: {
+            id: true,
+            name: true,
+            imageUrl: true,
+          },
+        },
+        borrower: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
+        lender: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
+      },
+      orderBy: {
+        requestedAt: 'desc',
+      },
+    });
+
+    // Separate into categories
+    const sentRequests = borrowRequests.filter(
+      (req) => req.borrowerId === userId
+    );
+    const receivedRequests = borrowRequests.filter(
+      (req) => req.lenderId === userId
+    );
+    const activeBorrows = borrowRequests.filter(
+      (req) => req.status === 'active'
+    );
+
+    return NextResponse.json({
+      sentRequests,
+      receivedRequests,
+      activeBorrows,
+      all: borrowRequests,
+    });
+  } catch (error) {
+    console.error('Error fetching borrow requests:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch borrow requests' },
+      { status: 500 }
+    );
+  }
+}
+
+// POST - Create a new borrow request
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);

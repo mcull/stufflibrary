@@ -24,6 +24,7 @@ import {
 import Link from 'next/link';
 import { useState } from 'react';
 
+import { useBorrowRequests } from '@/hooks/useBorrowRequests';
 import { useBranches } from '@/hooks/useBranches';
 import { brandColors } from '@/theme/brandTokens';
 
@@ -49,29 +50,12 @@ interface LobbyClientProps {
 
 export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
   const { branches, isLoading, error, refetch, createBranch } = useBranches();
+  const {
+    activeBorrows,
+    sentRequests,
+    isLoading: borrowsLoading,
+  } = useBorrowRequests();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-
-  // Mock data for checked out items (to be replaced with real data later)
-  const checkedOutItems = [
-    {
-      id: 1,
-      name: 'Power Drill',
-      owner: 'Sarah Chen',
-      ownerAvatar: '/api/placeholder/40/40',
-      itemImage: '/api/placeholder/80/80',
-      dueDate: '2025-01-25',
-      isOverdue: false,
-    },
-    {
-      id: 2,
-      name: 'Camping Tent (4-person)',
-      owner: 'Mike Rodriguez',
-      ownerAvatar: '/api/placeholder/40/40',
-      itemImage: '/api/placeholder/80/80',
-      dueDate: '2025-01-20',
-      isOverdue: true,
-    },
-  ];
 
   const handleCreateBranch = (branch: unknown) => {
     console.log('Branch created:', branch);
@@ -256,145 +240,276 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
             </CardContent>
           </Card>
 
-          {/* Items I Have Checked Out */}
+          {/* My Borrow Requests */}
           <Card>
             <CardContent>
               <Typography variant="h5" component="h2" sx={{ mb: 3 }}>
-                Items I Have Checked Out
+                My Borrow Requests
               </Typography>
-              {checkedOutItems.length === 0 ? (
+
+              {borrowsLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                  <CircularProgress size={40} />
+                </Box>
+              ) : activeBorrows.length === 0 && sentRequests.length === 0 ? (
                 <Box sx={{ textAlign: 'center', py: 4 }}>
-                  <Typography variant="body1" color="text.secondary">
-                    No items currently checked out
+                  <Typography
+                    variant="body1"
+                    color="text.secondary"
+                    gutterBottom
+                  >
+                    No borrow requests yet
                   </Typography>
-                  <Button variant="outlined" sx={{ mt: 2 }}>
-                    Browse Items
-                  </Button>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 2 }}
+                  >
+                    Browse your community branches to find items to borrow
+                  </Typography>
                 </Box>
               ) : (
-                <Stack spacing={2}>
-                  {checkedOutItems.map((item) => (
-                    <Card
-                      key={item.id}
-                      variant="outlined"
-                      sx={{
-                        ...(item.isOverdue && {
-                          border: `2px solid ${brandColors.tomatoRed}`,
-                        }),
-                      }}
-                    >
-                      <CardContent>
-                        <Box sx={{ display: 'flex', gap: 2 }}>
-                          {/* Item Image Placeholder */}
-                          <Box
-                            sx={{
-                              width: 80,
-                              height: 80,
-                              bgcolor: 'grey.200',
-                              borderRadius: 1,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}
-                          >
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
-                              IMG
-                            </Typography>
-                          </Box>
+                <Stack spacing={3}>
+                  {/* Active Borrows */}
+                  {activeBorrows.length > 0 && (
+                    <Box>
+                      <Typography
+                        variant="h6"
+                        sx={{ mb: 2, color: brandColors.inkBlue }}
+                      >
+                        Currently Borrowed ({activeBorrows.length})
+                      </Typography>
+                      <Stack spacing={2}>
+                        {activeBorrows.map((request) => {
+                          const isOverdue =
+                            request.promisedReturnBy &&
+                            new Date() > new Date(request.promisedReturnBy);
 
-                          {/* Item Details */}
-                          <Box sx={{ flex: 1 }}>
-                            <Box
+                          return (
+                            <Card
+                              key={request.id}
+                              variant="outlined"
                               sx={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                mb: 1,
+                                ...(isOverdue && {
+                                  border: `2px solid ${brandColors.tomatoRed}`,
+                                }),
                               }}
                             >
-                              <Typography variant="h6" component="h3">
-                                {item.name}
-                              </Typography>
-                              {item.isOverdue && (
-                                <Chip
-                                  icon={<WarningIcon />}
-                                  label="Overdue"
-                                  color="error"
-                                  size="small"
-                                />
-                              )}
-                            </Box>
+                              <CardContent>
+                                <Box sx={{ display: 'flex', gap: 2 }}>
+                                  {/* Item Image */}
+                                  <Box
+                                    sx={{
+                                      width: 80,
+                                      height: 80,
+                                      bgcolor: 'grey.200',
+                                      borderRadius: 1,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      backgroundImage: request.item.imageUrl
+                                        ? `url(${request.item.imageUrl})`
+                                        : 'none',
+                                      backgroundSize: 'cover',
+                                      backgroundPosition: 'center',
+                                    }}
+                                  >
+                                    {!request.item.imageUrl && (
+                                      <Typography
+                                        variant="caption"
+                                        color="text.secondary"
+                                      >
+                                        📦
+                                      </Typography>
+                                    )}
+                                  </Box>
 
-                            <Box
-                              sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1,
-                                mb: 2,
-                              }}
-                            >
-                              <Avatar sx={{ width: 24, height: 24 }}>
-                                <PersonIcon />
-                              </Avatar>
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
-                              >
-                                {item.owner}
-                              </Typography>
-                            </Box>
+                                  {/* Item Details */}
+                                  <Box sx={{ flex: 1 }}>
+                                    <Box
+                                      sx={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        mb: 1,
+                                      }}
+                                    >
+                                      <Typography variant="h6" component="h3">
+                                        {request.item.name}
+                                      </Typography>
+                                      {isOverdue && (
+                                        <Chip
+                                          icon={<WarningIcon />}
+                                          label="Overdue"
+                                          color="error"
+                                          size="small"
+                                        />
+                                      )}
+                                    </Box>
 
-                            <Box
-                              sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1,
-                                mb: 2,
-                              }}
-                            >
-                              <TimeIcon
-                                sx={{
-                                  width: 20,
-                                  height: 20,
-                                  color: 'text.secondary',
-                                }}
-                              />
-                              <Typography
-                                variant="body2"
-                                color={
-                                  item.isOverdue ? 'error' : 'text.secondary'
-                                }
-                              >
-                                Due:{' '}
-                                {new Date(item.dueDate).toLocaleDateString()}
-                              </Typography>
-                            </Box>
+                                    <Box
+                                      sx={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 1,
+                                        mb: 2,
+                                      }}
+                                    >
+                                      <Avatar
+                                        sx={{ width: 24, height: 24 }}
+                                        {...(request.lender.image && {
+                                          src: request.lender.image,
+                                        })}
+                                      >
+                                        <PersonIcon />
+                                      </Avatar>
+                                      <Typography
+                                        variant="body2"
+                                        color="text.secondary"
+                                      >
+                                        from {request.lender.name}
+                                      </Typography>
+                                    </Box>
 
-                            {/* Actions */}
-                            <Box sx={{ display: 'flex', gap: 1 }}>
-                              <Button
-                                size="small"
-                                startIcon={<ScheduleIcon />}
-                                variant="outlined"
-                              >
-                                Ask for More Time
-                              </Button>
-                              <Button
-                                size="small"
-                                startIcon={<WarningIcon />}
-                                variant="outlined"
-                                color="warning"
-                              >
-                                Report Problem
-                              </Button>
-                            </Box>
-                          </Box>
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  ))}
+                                    {request.promisedReturnBy && (
+                                      <Box
+                                        sx={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: 1,
+                                          mb: 2,
+                                        }}
+                                      >
+                                        <TimeIcon
+                                          sx={{
+                                            width: 20,
+                                            height: 20,
+                                            color: isOverdue
+                                              ? 'error.main'
+                                              : 'text.secondary',
+                                          }}
+                                        />
+                                        <Typography
+                                          variant="body2"
+                                          color={
+                                            isOverdue
+                                              ? 'error'
+                                              : 'text.secondary'
+                                          }
+                                        >
+                                          Due:{' '}
+                                          {new Date(
+                                            request.promisedReturnBy
+                                          ).toLocaleDateString()}
+                                        </Typography>
+                                      </Box>
+                                    )}
+
+                                    {/* Actions */}
+                                    <Box sx={{ display: 'flex', gap: 1 }}>
+                                      <Button
+                                        size="small"
+                                        startIcon={<ScheduleIcon />}
+                                        variant="outlined"
+                                      >
+                                        Ask for More Time
+                                      </Button>
+                                      {isOverdue && (
+                                        <Button
+                                          size="small"
+                                          startIcon={<WarningIcon />}
+                                          variant="outlined"
+                                          color="error"
+                                        >
+                                          Return ASAP
+                                        </Button>
+                                      )}
+                                    </Box>
+                                  </Box>
+                                </Box>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </Stack>
+                    </Box>
+                  )}
+
+                  {/* Pending Requests */}
+                  {sentRequests.filter((req) => req.status === 'pending')
+                    .length > 0 && (
+                    <Box>
+                      <Typography
+                        variant="h6"
+                        sx={{ mb: 2, color: 'text.secondary' }}
+                      >
+                        Pending Requests (
+                        {
+                          sentRequests.filter((req) => req.status === 'pending')
+                            .length
+                        }
+                        )
+                      </Typography>
+                      <Stack spacing={2}>
+                        {sentRequests
+                          .filter((req) => req.status === 'pending')
+                          .map((request) => (
+                            <Card key={request.id} variant="outlined">
+                              <CardContent>
+                                <Box sx={{ display: 'flex', gap: 2 }}>
+                                  <Box
+                                    sx={{
+                                      width: 60,
+                                      height: 60,
+                                      bgcolor: 'grey.200',
+                                      borderRadius: 1,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      backgroundImage: request.item.imageUrl
+                                        ? `url(${request.item.imageUrl})`
+                                        : 'none',
+                                      backgroundSize: 'cover',
+                                      backgroundPosition: 'center',
+                                    }}
+                                  >
+                                    {!request.item.imageUrl && '📦'}
+                                  </Box>
+                                  <Box sx={{ flex: 1 }}>
+                                    <Typography
+                                      variant="subtitle1"
+                                      sx={{ fontWeight: 600 }}
+                                    >
+                                      {request.item.name}
+                                    </Typography>
+                                    <Typography
+                                      variant="body2"
+                                      color="text.secondary"
+                                    >
+                                      Requested from {request.lender.name}
+                                    </Typography>
+                                    <Typography
+                                      variant="caption"
+                                      color="text.secondary"
+                                    >
+                                      {new Date(
+                                        request.requestedAt
+                                      ).toLocaleDateString()}{' '}
+                                      • Awaiting response
+                                    </Typography>
+                                  </Box>
+                                  <Chip
+                                    label="Pending"
+                                    size="small"
+                                    color="warning"
+                                    variant="outlined"
+                                  />
+                                </Box>
+                              </CardContent>
+                            </Card>
+                          ))}
+                      </Stack>
+                    </Box>
+                  )}
                 </Stack>
               )}
             </CardContent>
