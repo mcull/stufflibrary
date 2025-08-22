@@ -31,8 +31,6 @@ function SignInForm() {
   } | null>(null);
   const searchParams = useSearchParams();
   const invitationToken = searchParams.get('invitation');
-  const isMagicLink = searchParams.get('magic') === 'true';
-  const magicEmail = searchParams.get('email');
   // Default to server-side callback that decides destination post-auth
   const callbackUrl =
     searchParams.get('callbackUrl') ||
@@ -58,40 +56,6 @@ function SignInForm() {
         .catch(console.error);
     }
   }, [invitationToken]);
-
-  // Handle magic link auto-authentication
-  useEffect(() => {
-    if (isMagicLink && magicEmail && !isLoading) {
-      setEmail(decodeURIComponent(magicEmail));
-      // Auto-trigger email code sending for magic links
-      const sendMagicCode = async () => {
-        setIsLoading(true);
-        setError('');
-
-        try {
-          const response = await fetch('/api/auth/send-code', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: decodeURIComponent(magicEmail) }),
-          });
-
-          const result = await response.json();
-
-          if (response.ok) {
-            setStep('code');
-          } else {
-            setError(result.error || 'Something went wrong. Please try again.');
-          }
-        } catch {
-          setError('Something went wrong. Please try again.');
-        } finally {
-          setIsLoading(false);
-        }
-      };
-
-      sendMagicCode();
-    }
-  }, [isMagicLink, magicEmail, isLoading]);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
