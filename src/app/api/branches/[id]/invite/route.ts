@@ -154,7 +154,7 @@ export async function POST(
 
     // Send invitation email
     try {
-      const magicLink = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/invitations/${token}`;
+      const magicLink = `${process.env.NEXTAUTH_URL}/api/invitations/${token}`;
 
       const resend = new Resend(process.env.RESEND_API_KEY);
       await resend.emails.send({
