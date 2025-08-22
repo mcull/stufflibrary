@@ -1,7 +1,4 @@
-import { existsSync } from 'fs';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-
+import { put } from '@vercel/blob';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { v4 as uuidv4 } from 'uuid';
@@ -10,6 +7,87 @@ import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { sendBorrowRequestNotification } from '@/lib/twilio';
 
+// GET - Fetch borrow requests for the current user
+export async function GET(_request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const userId =
+      (session.user as any).id ||
+      (session as any).user?.id ||
+      (session as any).userId;
+
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
+    }
+
+    // Fetch all borrow requests where user is either borrower or lender
+    const borrowRequests = await db.borrowRequest.findMany({
+      where: {
+        OR: [
+          { borrowerId: userId }, // Requests I made
+          { lenderId: userId }, // Requests to my items
+        ],
+      },
+      include: {
+        item: {
+          select: {
+            id: true,
+            name: true,
+            imageUrl: true,
+          },
+        },
+        borrower: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
+        lender: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
+      },
+      orderBy: {
+        requestedAt: 'desc',
+      },
+    });
+
+    // Separate into categories
+    const sentRequests = borrowRequests.filter(
+      (req) => req.borrowerId === userId
+    );
+    const receivedRequests = borrowRequests.filter(
+      (req) => req.lenderId === userId
+    );
+    const activeBorrows = borrowRequests.filter(
+      (req) => req.status === 'active'
+    );
+
+    return NextResponse.json({
+      sentRequests,
+      receivedRequests,
+      activeBorrows,
+      all: borrowRequests,
+    });
+  } catch (error) {
+    console.error('Error fetching borrow requests:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch borrow requests' },
+      { status: 500 }
+    );
+  }
+}
+
+// POST - Create a new borrow request
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -97,32 +175,21 @@ export async function POST(request: NextRequest) {
 
     // Generate unique filename for video
     const fileExtension = video.name.split('.').pop() || 'webm';
-    const filename = `${uuidv4()}.${fileExtension}`;
+    const filename = `borrow-request-${uuidv4()}.${fileExtension}`;
 
-    console.log('📹 Saving borrow request video:', filename);
+    console.log('📹 Saving borrow request video to Vercel Blob:', filename);
     console.log('📏 Video size:', video.size, 'bytes');
 
-    // Save video to public directory
-    const bytes = await video.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    const uploadsDir = join(process.cwd(), 'public', 'borrow-videos');
-    const videoPath = join(uploadsDir, filename);
-
-    console.log('📂 Upload directory:', uploadsDir);
-    console.log('🎯 Full video path:', videoPath);
-
-    // Ensure uploads directory exists
+    // Save video to Vercel Blob storage
+    let videoUrl: string;
     try {
-      if (!existsSync(uploadsDir)) {
-        console.log('📁 Creating borrow-videos directory...');
-        await mkdir(uploadsDir, { recursive: true });
-      }
-
-      console.log('💾 Writing video file...');
-      await writeFile(videoPath, buffer);
-      console.log('✅ Video saved successfully');
+      const blob = await put(filename, video, {
+        access: 'public',
+      });
+      videoUrl = blob.url;
+      console.log('✅ Video saved to Vercel Blob:', videoUrl);
     } catch (err) {
-      console.error('❌ Error saving video:', err);
+      console.error('❌ Error saving video to Vercel Blob:', err);
       return NextResponse.json(
         {
           error: 'Failed to save video',
@@ -140,7 +207,7 @@ export async function POST(request: NextRequest) {
         borrowerId: userId,
         lenderId: item.ownerId,
         itemId: itemId,
-        videoUrl: `/borrow-videos/${filename}`,
+        videoUrl: videoUrl,
         promiseText: promiseText,
         promisedReturnBy: new Date(promisedReturnBy),
         responseToken: responseToken,

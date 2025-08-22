@@ -3,6 +3,7 @@
 import {
   ArrowBack as ArrowBackIcon,
   Save as SaveIcon,
+  PersonAdd as PersonAddIcon,
 } from '@mui/icons-material';
 import {
   Box,
@@ -21,6 +22,7 @@ import {
   Paper,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
 import { useBorrowHistory } from '@/hooks/useBorrowHistory';
@@ -57,6 +59,7 @@ export function ItemDetailClient({
   isNewItem = false,
 }: ItemDetailClientProps) {
   const router = useRouter();
+  const { data: session } = useSession();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [item, setItem] = useState<ItemData | null>(null);
@@ -76,6 +79,22 @@ export function ItemDetailClient({
     { value: 'fair', label: 'Fair - Shows use' },
     { value: 'poor', label: 'Poor - Needs repair' },
   ];
+
+  // Get current user ID
+  const currentUserId = (session?.user as any)?.id;
+
+  // Handle borrow request
+  const handleBorrowRequest = () => {
+    router.push(`/borrow-request?item=${itemId}`);
+  };
+
+  // Check if user can borrow this item
+  const canBorrow =
+    !isNewItem &&
+    item &&
+    currentUserId &&
+    item.owner.id !== currentUserId &&
+    item.isAvailable;
 
   // Fetch item data
   useEffect(() => {
@@ -320,13 +339,43 @@ export function ItemDetailClient({
                     </Box>
                   )}
 
-                  {/* Placeholder message for non-editable items */}
-                  {!isNewItem && (
-                    <Alert severity="info" sx={{ mt: 2 }}>
-                      Full item details and borrowing functionality will be
-                      implemented in a future milestone.
-                    </Alert>
+                  {/* Borrow Request Button */}
+                  {canBorrow && (
+                    <Box sx={{ pt: 2 }}>
+                      <Button
+                        variant="contained"
+                        size="large"
+                        startIcon={<PersonAddIcon />}
+                        onClick={handleBorrowRequest}
+                        sx={{
+                          borderRadius: 2,
+                          bgcolor: 'primary.main',
+                          '&:hover': { bgcolor: 'primary.dark' },
+                        }}
+                      >
+                        Request to Borrow
+                      </Button>
+                    </Box>
                   )}
+
+                  {/* Owner info for items you can't borrow */}
+                  {!isNewItem &&
+                    !canBorrow &&
+                    item?.owner.id === currentUserId && (
+                      <Alert severity="info" sx={{ mt: 2 }}>
+                        You own this item. You can manage it from your branch
+                        dashboard.
+                      </Alert>
+                    )}
+
+                  {!isNewItem &&
+                    !canBorrow &&
+                    item?.owner.id !== currentUserId &&
+                    !item?.isAvailable && (
+                      <Alert severity="warning" sx={{ mt: 2 }}>
+                        This item is currently not available for borrowing.
+                      </Alert>
+                    )}
                 </Box>
               </CardContent>
             </Card>
