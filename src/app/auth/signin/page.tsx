@@ -36,6 +36,11 @@ function SignInForm() {
   const prefilledEmail = searchParams.get('email');
   const prefilledCode = searchParams.get('code');
 
+  // Initialize loading state for magic link auto-complete
+  const [isMagicLinkProcessing, setIsMagicLinkProcessing] = useState(
+    isMagicLink && isAutoComplete && prefilledEmail && prefilledCode
+  );
+
   // Default to server-side callback that decides destination post-auth
   const branchId = searchParams.get('branch');
   const callbackUrl =
@@ -63,7 +68,7 @@ function SignInForm() {
       setCode(prefilledCode);
       setStep('code');
 
-      // Auto-submit the code
+      // Auto-submit the code immediately
       const autoSignIn = async () => {
         setIsLoading(true);
         setError('');
@@ -81,14 +86,17 @@ function SignInForm() {
               signInResult.error || 'Authentication failed. Please try again.'
             );
             setIsLoading(false);
+            setIsMagicLinkProcessing(false);
           }
         } catch {
           setError('Something went wrong. Please try again.');
           setIsLoading(false);
+          setIsMagicLinkProcessing(false);
         }
       };
 
-      autoSignIn();
+      // Small delay to ensure the component is ready, then auto-sign in
+      setTimeout(autoSignIn, 100);
     }
   }, [
     isMagicLink,
@@ -172,6 +180,90 @@ function SignInForm() {
       setIsLoading(false);
     }
   };
+
+  // Show loading state for magic link processing to avoid flash
+  if (isMagicLinkProcessing) {
+    return (
+      <Box
+        sx={{
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          py: 4,
+          px: 2,
+        }}
+      >
+        <Container maxWidth="sm">
+          <Card
+            elevation={0}
+            sx={{
+              backgroundColor: brandColors.white,
+              borderRadius: 2,
+              border: `1px solid ${brandColors.softGray}`,
+              p: { xs: 3, sm: 5 },
+              textAlign: 'center',
+            }}
+          >
+            <CardContent sx={{ p: 0 }}>
+              <Box sx={{ textAlign: 'center', mb: 4 }}>
+                <Link href="/" style={{ textDecoration: 'none' }}>
+                  <Wordmark size="medium" color="primary" />
+                </Link>
+              </Box>
+
+              <Typography
+                variant="h4"
+                component="h1"
+                sx={{
+                  textAlign: 'center',
+                  mb: 2,
+                  fontWeight: 600,
+                  color: brandColors.charcoal,
+                  fontSize: { xs: '1.75rem', sm: '2rem' },
+                }}
+              >
+                Signing you in...
+              </Typography>
+
+              <Typography
+                variant="body1"
+                sx={{
+                  textAlign: 'center',
+                  color: brandColors.charcoal,
+                  opacity: 0.8,
+                  mb: 4,
+                  lineHeight: 1.6,
+                }}
+              >
+                Please wait while we complete your magic link sign-in
+              </Typography>
+
+              {error && (
+                <Alert
+                  severity="error"
+                  sx={{
+                    mb: 3,
+                    backgroundColor: '#fef2f2',
+                    border: `1px solid #fecaca`,
+                    '& .MuiAlert-icon': {
+                      color: '#dc2626',
+                    },
+                    '& .MuiAlert-message': {
+                      color: brandColors.charcoal,
+                    },
+                  }}
+                >
+                  {error}
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+        </Container>
+      </Box>
+    );
+  }
 
   if (step === 'code') {
     return (
