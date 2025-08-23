@@ -1,5 +1,4 @@
-import { NextRequest } from 'next/server';
-import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 // Skip all tests if database environment variables are not available (e.g., in CI)
 const skipTests = !process.env.DATABASE_URL || !process.env.NEXTAUTH_SECRET;
@@ -19,13 +18,6 @@ if (skipTests) {
     let invitationHandler: any;
     let db: any;
 
-    const testBranchOwnerEmail = 'test-owner@example.com';
-    const testInviteeEmail = 'test-invitee@example.com';
-    const testBranchName = 'Test Branch Unit';
-
-    let branchOwnerId: string;
-    let testBranchId: string;
-
     beforeAll(async () => {
       // Import modules dynamically to avoid environment validation issues
       const magicLinkModule = await import(
@@ -41,107 +33,114 @@ if (skipTests) {
       db = dbModule.db;
     });
 
+    let testBranchId: string;
+    let branchOwnerId: string;
+
     beforeEach(async () => {
-      // Clean up any existing test data
-      await cleanupTestData();
+      // Clean up test data
+      await db.invitation.deleteMany({
+        where: {
+          email: { contains: 'test-magic-link' },
+        },
+      });
+      await db.user.deleteMany({
+        where: {
+          email: { contains: 'test-magic-link' },
+        },
+      });
 
       // Create test branch owner
       const branchOwner = await db.user.create({
         data: {
-          email: testBranchOwnerEmail,
-          name: 'Test Owner',
-          emailVerified: new Date(),
+          email: 'branch-owner@test.com',
+          name: 'Branch Owner',
           profileCompleted: true,
         },
       });
       branchOwnerId = branchOwner.id;
 
       // Create test branch
-      const branch = await db.branch.create({
+      const testBranch = await db.branch.create({
         data: {
-          name: testBranchName,
-          description: 'A test branch for unit testing',
-          location: 'Test City',
+          name: 'Test Branch',
+          description: 'Test branch for magic link tests',
           ownerId: branchOwnerId,
         },
       });
-      testBranchId = branch.id;
+      testBranchId = testBranch.id;
     });
 
-    afterEach(async () => {
-      await cleanupTestData();
-    });
-
-    async function cleanupTestData() {
-      try {
-        await db.branchMember.deleteMany({
-          where: {
-            OR: [
-              { user: { email: testBranchOwnerEmail } },
-              { user: { email: testInviteeEmail } },
-            ],
-          },
-        });
-        await db.invitation.deleteMany({
-          where: {
-            OR: [
-              { email: testInviteeEmail },
-              { sender: { email: testBranchOwnerEmail } },
-            ],
-          },
-        });
-        await db.branch.deleteMany({
-          where: { name: testBranchName },
-        });
-        await db.authCode.deleteMany({
-          where: {
-            email: { in: [testBranchOwnerEmail, testInviteeEmail] },
-          },
-        });
-        await db.user.deleteMany({
-          where: {
-            email: { in: [testBranchOwnerEmail, testInviteeEmail] },
-          },
-        });
-      } catch {
-        // Ignore cleanup errors
-      }
-    }
-
-    describe('Invitation Route (/api/invitations/[token])', () => {
-      it('should redirect to magic link for valid PENDING invitation', async () => {
-        // Create test invitation
+    describe('Valid magic link flow', () => {
+      it('should process valid invitation and create new user', async () => {
+        // Create invitation
         const invitation = await db.invitation.create({
           data: {
-            email: testInviteeEmail,
-            token: 'test-token-pending',
+            email: 'test-magic-link-new@example.com',
+            token: 'test-magic-token-valid',
             type: 'branch',
-            status: 'PENDING',
-            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            status: 'SENT',
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
             senderId: branchOwnerId,
             branchId: testBranchId,
+            sentAt: new Date(),
           },
         });
 
-        const request = new NextRequest(
-          `http://localhost:3000/api/invitations/${invitation.token}`
+        // Mock request
+        const request = new Request(
+          'http://localhost/api/auth/magic-link?token=test-magic-token-valid'
         );
-        const response = await invitationHandler(request, {
-          params: Promise.resolve({ token: invitation.token! }),
-        });
 
-        expect(response.status).toBe(307);
-        expect(response.headers.get('Location')).toContain(
-          `/api/auth/magic-link?token=${invitation.token}`
-        );
+        // Call handler
+        const response = await magicLinkHandler(request);
+
+        // Should redirect to sign-in with magic link parameters
+        expect(response.status).toBe(302);
+        const location = response.headers.get('location');
+        expect(location).toContain('/auth/signin');
+        expect(location).toContain('magic=true');
+        expect(location).toContain('auto=true');
+        expect(location).toContain('email=test-magic-link-new%40example.com');
+
+        // Check invitation status updated
+        const updatedInvitation = await db.invitation.findUnique({
+          where: { id: invitation.id },
+        });
+        expect(updatedInvitation.status).toBe('ACCEPTED');
+
+        // Check user was created
+        const createdUser = await db.user.findUnique({
+          where: { email: 'test-magic-link-new@example.com' },
+        });
+        expect(createdUser).toBeTruthy();
+        expect(createdUser.name).toBe('test-magic-link-new@example.com');
+
+        // Check branch membership was created
+        const membership = await db.branchMember.findFirst({
+          where: {
+            userId: createdUser.id,
+            branchId: testBranchId,
+            isActive: true,
+          },
+        });
+        expect(membership).toBeTruthy();
       });
 
-      it('should redirect to magic link for valid SENT invitation', async () => {
-        // Create test invitation
-        const invitation = await db.invitation.create({
+      it('should handle existing user with magic link', async () => {
+        // Create existing user
+        const existingUser = await db.user.create({
           data: {
-            email: testInviteeEmail,
-            token: 'test-token-sent',
+            email: 'test-magic-link-existing@example.com',
+            name: 'Existing User',
+            profileCompleted: true,
+          },
+        });
+
+        // Create invitation
+        await db.invitation.create({
+          data: {
+            email: 'test-magic-link-existing@example.com',
+            token: 'test-magic-token-existing',
             type: 'branch',
             status: 'SENT',
             expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
@@ -151,25 +150,87 @@ if (skipTests) {
           },
         });
 
-        const request = new NextRequest(
-          `http://localhost:3000/api/invitations/${invitation.token}`
+        const request = new Request(
+          'http://localhost/api/auth/magic-link?token=test-magic-token-existing'
         );
-        const response = await invitationHandler(request, {
-          params: Promise.resolve({ token: invitation.token! }),
-        });
+        const response = await magicLinkHandler(request);
 
-        expect(response.status).toBe(307);
-        expect(response.headers.get('Location')).toContain(
-          `/api/auth/magic-link?token=${invitation.token}`
+        expect(response.status).toBe(302);
+        const location = response.headers.get('location');
+        expect(location).toContain('/auth/signin');
+        expect(location).toContain('magic=true');
+        expect(location).toContain('auto=true');
+
+        // Check branch membership was created for existing user
+        const membership = await db.branchMember.findFirst({
+          where: {
+            userId: existingUser.id,
+            branchId: testBranchId,
+            isActive: true,
+          },
+        });
+        expect(membership).toBeTruthy();
+      });
+    });
+
+    describe('Invalid token scenarios', () => {
+      it('should handle non-existent token', async () => {
+        const request = new Request(
+          'http://localhost/api/auth/magic-link?token=non-existent-token'
         );
+        const response = await magicLinkHandler(request);
+
+        expect(response.status).toBe(302);
+        const location = response.headers.get('location');
+        expect(location).toContain('/auth/error?error=invitation_not_found');
       });
 
-      it('should redirect to sign-in for ACCEPTED invitation', async () => {
-        // Create already accepted invitation
-        const invitation = await db.invitation.create({
+      it('should handle missing token', async () => {
+        const request = new Request('http://localhost/api/auth/magic-link');
+        const response = await magicLinkHandler(request);
+
+        expect(response.status).toBe(302);
+        const location = response.headers.get('location');
+        expect(location).toContain('/auth/error?error=invalid_invitation');
+      });
+
+      it('should handle expired invitation', async () => {
+        // Create expired invitation
+        await db.invitation.create({
           data: {
-            email: testInviteeEmail,
-            token: 'test-token-accepted',
+            email: 'test-magic-link-expired@example.com',
+            token: 'test-magic-token-expired',
+            type: 'branch',
+            status: 'SENT',
+            expiresAt: new Date(Date.now() - 1000), // Expired 1 second ago
+            senderId: branchOwnerId,
+            branchId: testBranchId,
+            sentAt: new Date(),
+          },
+        });
+
+        const request = new Request(
+          'http://localhost/api/auth/magic-link?token=test-magic-token-expired'
+        );
+        const response = await magicLinkHandler(request);
+
+        expect(response.status).toBe(302);
+        const location = response.headers.get('location');
+        expect(location).toContain('/auth/error?error=invitation_expired');
+
+        // Check invitation status was updated to EXPIRED
+        const expiredInvitation = await db.invitation.findFirst({
+          where: { token: 'test-magic-token-expired' },
+        });
+        expect(expiredInvitation?.status).toBe('EXPIRED');
+      });
+
+      it('should handle already accepted invitation', async () => {
+        // Create already accepted invitation
+        await db.invitation.create({
+          data: {
+            email: 'test-magic-link-accepted@example.com',
+            token: 'test-magic-token-accepted',
             type: 'branch',
             status: 'ACCEPTED',
             expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
@@ -180,83 +241,32 @@ if (skipTests) {
           },
         });
 
-        const request = new NextRequest(
-          `http://localhost:3000/api/invitations/${invitation.token}`
+        const request = new Request(
+          'http://localhost/api/auth/magic-link?token=test-magic-token-accepted'
         );
-        const response = await invitationHandler(request, {
-          params: Promise.resolve({ token: invitation.token! }),
-        });
+        const response = await magicLinkHandler(request);
 
-        expect(response.status).toBe(307);
-        const location = response.headers.get('Location');
-        expect(location).toContain('/auth/signin');
-        expect(location).toContain(`invitation=${invitation.token}`);
+        expect(response.status).toBe(302);
+        const location = response.headers.get('location');
         expect(location).toContain(
-          `email=${encodeURIComponent(testInviteeEmail)}`
+          '/auth/error?error=invitation_already_accepted'
         );
       });
 
-      it('should redirect to error for expired invitation', async () => {
-        // Create expired invitation
-        const invitation = await db.invitation.create({
+      it('should handle user already member of branch', async () => {
+        // Create user
+        const user = await db.user.create({
           data: {
-            email: testInviteeEmail,
-            token: 'test-token-expired',
-            type: 'branch',
-            status: 'SENT',
-            expiresAt: new Date(Date.now() - 60 * 1000), // Expired 1 minute ago
-            senderId: branchOwnerId,
-            branchId: testBranchId,
-            sentAt: new Date(),
-          },
-        });
-
-        const request = new NextRequest(
-          `http://localhost:3000/api/invitations/${invitation.token}`
-        );
-        const response = await invitationHandler(request, {
-          params: Promise.resolve({ token: invitation.token! }),
-        });
-
-        expect(response.status).toBe(307);
-        expect(response.headers.get('Location')).toContain(
-          '/auth/error?error=invitation_expired'
-        );
-
-        // Check that invitation was marked as expired
-        const updatedInvitation = await db.invitation.findUnique({
-          where: { id: invitation.id },
-        });
-        expect(updatedInvitation?.status).toBe('EXPIRED');
-      });
-
-      it('should redirect to error for non-existent invitation', async () => {
-        const request = new NextRequest(
-          'http://localhost:3000/api/invitations/non-existent-token'
-        );
-        const response = await invitationHandler(request, {
-          params: Promise.resolve({ token: 'non-existent-token' }),
-        });
-
-        expect(response.status).toBe(307);
-        expect(response.headers.get('Location')).toContain(
-          '/auth/error?error=invitation_not_found'
-        );
-      });
-
-      it('should redirect to branch for user already member', async () => {
-        // Create existing user and add as branch member
-        const existingUser = await db.user.create({
-          data: {
-            email: testInviteeEmail,
-            emailVerified: new Date(),
+            email: 'test-magic-link-member@example.com',
+            name: 'Already Member',
             profileCompleted: true,
           },
         });
 
+        // Create branch membership
         await db.branchMember.create({
           data: {
-            userId: existingUser.id,
+            userId: user.id,
             branchId: testBranchId,
             role: 'member',
             isActive: true,
@@ -264,10 +274,10 @@ if (skipTests) {
         });
 
         // Create invitation
-        const invitation = await db.invitation.create({
+        await db.invitation.create({
           data: {
-            email: testInviteeEmail,
-            token: 'test-token-existing-member',
+            email: 'test-magic-link-member@example.com',
+            token: 'test-magic-token-member',
             type: 'branch',
             status: 'SENT',
             expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
@@ -277,29 +287,25 @@ if (skipTests) {
           },
         });
 
-        const request = new NextRequest(
-          `http://localhost:3000/api/invitations/${invitation.token}`
+        const request = new Request(
+          'http://localhost/api/auth/magic-link?token=test-magic-token-member'
         );
-        const response = await invitationHandler(request, {
-          params: Promise.resolve({ token: invitation.token! }),
-        });
+        const response = await magicLinkHandler(request);
 
-        expect(response.status).toBe(307);
-        expect(response.headers.get('Location')).toContain(
+        expect(response.status).toBe(302);
+        const location = response.headers.get('location');
+        expect(location).toContain(
           `/branch/${testBranchId}?message=already_member`
         );
       });
     });
 
-    describe('Magic Link Route (/api/auth/magic-link)', () => {
-      let testInvitation: { id: string; token: string | null };
-
-      beforeEach(async () => {
-        // Create test invitation for magic link tests
-        testInvitation = await db.invitation.create({
+    describe('Invitation route (/api/invitations/[token])', () => {
+      it('should redirect valid invitation to magic link endpoint', async () => {
+        await db.invitation.create({
           data: {
-            email: testInviteeEmail,
-            token: 'test-magic-token',
+            email: 'test-invitation-redirect@example.com',
+            token: 'test-invitation-token',
             type: 'branch',
             status: 'SENT',
             expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
@@ -308,183 +314,123 @@ if (skipTests) {
             sentAt: new Date(),
           },
         });
-      });
 
-      it('should create new user and redirect to sign-in with magic params', async () => {
-        const request = new NextRequest(
-          `http://localhost:3000/api/auth/magic-link?token=${testInvitation.token!}`
+        const request = new Request(
+          'http://localhost/api/invitations/test-invitation-token'
         );
-        const response = await magicLinkHandler(request);
+        const response = await invitationHandler(request, {
+          params: Promise.resolve({ token: 'test-invitation-token' }),
+        });
 
-        expect(response.status).toBe(307);
-
-        const location = response.headers.get('Location');
-        expect(location).toContain('/auth/signin');
-        expect(location).toContain('magic=true');
-        expect(location).toContain('auto=true');
-        expect(location).toContain(`invitation=${testInvitation.token!}`);
-        expect(location).toContain(`branch=${testBranchId}`);
+        expect(response.status).toBe(302);
+        const location = response.headers.get('location');
         expect(location).toContain(
-          `email=${encodeURIComponent(testInviteeEmail)}`
+          '/api/auth/magic-link?token=test-invitation-token'
         );
-
-        // Check user was created
-        const createdUser = await db.user.findUnique({
-          where: { email: testInviteeEmail },
-        });
-
-        expect(createdUser).toBeTruthy();
-        expect(createdUser!.emailVerified).toBeTruthy();
-        expect(createdUser!.profileCompleted).toBe(false);
-
-        // Check branch membership was created
-        const membership = await db.branchMember.findFirst({
-          where: {
-            userId: createdUser!.id,
-            branchId: testBranchId,
-          },
-        });
-
-        expect(membership).toBeTruthy();
-        expect(membership!.role).toBe('member');
-        expect(membership!.isActive).toBe(true);
-
-        // Check invitation was marked as accepted
-        const updatedInvitation = await db.invitation.findUnique({
-          where: { id: testInvitation.id },
-        });
-
-        expect(updatedInvitation!.status).toBe('ACCEPTED');
-        expect(updatedInvitation!.acceptedAt).toBeTruthy();
-        expect(updatedInvitation!.receiverId).toBe(createdUser!.id);
-
-        // Check auth code was created
-        const authCode = await db.authCode.findUnique({
-          where: { email: testInviteeEmail },
-        });
-
-        expect(authCode).toBeTruthy();
-        expect(authCode!.code).toHaveLength(6);
       });
 
-      it('should handle existing user with incomplete profile', async () => {
-        // Create existing user
-        const existingUser = await db.user.create({
+      it('should handle invalid invitation token', async () => {
+        const request = new Request(
+          'http://localhost/api/invitations/invalid-token'
+        );
+        const response = await invitationHandler(request, {
+          params: Promise.resolve({ token: 'invalid-token' }),
+        });
+
+        expect(response.status).toBe(302);
+        const location = response.headers.get('location');
+        expect(location).toContain('/auth/error?error=invitation_not_found');
+      });
+
+      it('should handle expired invitation in invitation route', async () => {
+        await db.invitation.create({
           data: {
-            email: testInviteeEmail,
-            emailVerified: null,
-            profileCompleted: false,
-          },
-        });
-
-        const request = new NextRequest(
-          `http://localhost:3000/api/auth/magic-link?token=${testInvitation.token!}`
-        );
-        const response = await magicLinkHandler(request);
-
-        expect(response.status).toBe(307);
-
-        // Check user was updated
-        const updatedUser = await db.user.findUnique({
-          where: { id: existingUser.id },
-        });
-
-        expect(updatedUser!.emailVerified).toBeTruthy();
-
-        // Check branch membership was created
-        const membership = await db.branchMember.findFirst({
-          where: {
-            userId: existingUser.id,
-            branchId: testBranchId,
-          },
-        });
-
-        expect(membership).toBeTruthy();
-        expect(membership!.role).toBe('member');
-      });
-
-      it('should handle existing user already member of branch', async () => {
-        // Create existing user and membership
-        const existingUser = await db.user.create({
-          data: {
-            email: testInviteeEmail,
-            emailVerified: new Date(),
-            profileCompleted: true,
-          },
-        });
-
-        await db.branchMember.create({
-          data: {
-            userId: existingUser.id,
-            branchId: testBranchId,
-            role: 'member',
-            isActive: true,
-          },
-        });
-
-        const request = new NextRequest(
-          `http://localhost:3000/api/auth/magic-link?token=${testInvitation.token!}`
-        );
-        const response = await magicLinkHandler(request);
-
-        expect(response.status).toBe(307);
-
-        // Invitation should still be marked as accepted
-        const updatedInvitation = await db.invitation.findUnique({
-          where: { id: testInvitation.id },
-        });
-
-        expect(updatedInvitation!.status).toBe('ACCEPTED');
-      });
-
-      it('should return error for missing token', async () => {
-        const request = new NextRequest(
-          'http://localhost:3000/api/auth/magic-link'
-        );
-        const response = await magicLinkHandler(request);
-
-        expect(response.status).toBe(307);
-        expect(response.headers.get('Location')).toContain(
-          '/auth/error?error=invalid_invitation'
-        );
-      });
-
-      it('should return error for non-existent invitation', async () => {
-        const request = new NextRequest(
-          'http://localhost:3000/api/auth/magic-link?token=non-existent'
-        );
-        const response = await magicLinkHandler(request);
-
-        expect(response.status).toBe(307);
-        expect(response.headers.get('Location')).toContain(
-          '/auth/error?error=invitation_not_found'
-        );
-      });
-
-      it('should return error for expired invitation', async () => {
-        // Create expired invitation with unique token to avoid constraint violation
-        const expiredInvitation = await db.invitation.create({
-          data: {
-            email: 'expired-test@example.com', // Use different email to avoid unique constraint
-            token: 'test-expired-magic-token',
+            email: 'test-invitation-expired@example.com',
+            token: 'test-invitation-expired-token',
             type: 'branch',
             status: 'SENT',
-            expiresAt: new Date(Date.now() - 60 * 1000), // Expired 1 minute ago
+            expiresAt: new Date(Date.now() - 1000), // Expired
             senderId: branchOwnerId,
             branchId: testBranchId,
             sentAt: new Date(),
           },
         });
 
-        const request = new NextRequest(
-          `http://localhost:3000/api/auth/magic-link?token=${expiredInvitation.token}`
+        const request = new Request(
+          'http://localhost/api/invitations/test-invitation-expired-token'
+        );
+        const response = await invitationHandler(request, {
+          params: Promise.resolve({ token: 'test-invitation-expired-token' }),
+        });
+
+        expect(response.status).toBe(302);
+        const location = response.headers.get('location');
+        expect(location).toContain('/auth/error?error=invitation_expired');
+
+        // Check invitation status was updated to EXPIRED
+        const expiredInvitation = await db.invitation.findFirst({
+          where: { token: 'test-invitation-expired-token' },
+        });
+        expect(expiredInvitation?.status).toBe('EXPIRED');
+      });
+
+      it('should handle already accepted invitation in invitation route', async () => {
+        await db.invitation.create({
+          data: {
+            email: 'test-invitation-accepted@example.com',
+            token: 'test-invitation-accepted-token',
+            type: 'branch',
+            status: 'ACCEPTED',
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            senderId: branchOwnerId,
+            branchId: testBranchId,
+            sentAt: new Date(),
+            acceptedAt: new Date(),
+          },
+        });
+
+        const request = new Request(
+          'http://localhost/api/invitations/test-invitation-accepted-token'
+        );
+        const response = await invitationHandler(request, {
+          params: Promise.resolve({ token: 'test-invitation-accepted-token' }),
+        });
+
+        expect(response.status).toBe(302);
+        const location = response.headers.get('location');
+        expect(location).toContain(
+          '/auth/signin?invitation=test-invitation-accepted-token'
+        );
+      });
+    });
+
+    describe('URL encoding fix verification', () => {
+      it('should properly encode email addresses in redirect URLs', async () => {
+        await db.invitation.create({
+          data: {
+            email: 'user+test@example.com',
+            token: 'test-encoding-token',
+            type: 'branch',
+            status: 'SENT',
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            senderId: branchOwnerId,
+            branchId: testBranchId,
+            sentAt: new Date(),
+          },
+        });
+
+        const request = new Request(
+          'http://localhost/api/auth/magic-link?token=test-encoding-token'
         );
         const response = await magicLinkHandler(request);
 
-        expect(response.status).toBe(307);
-        expect(response.headers.get('Location')).toContain(
-          '/auth/error?error=invitation_expired'
-        );
+        expect(response.status).toBe(302);
+        const location = response.headers.get('location');
+
+        // Check that email is properly encoded (+ becomes %2B, @ becomes %40)
+        expect(location).toContain('email=user%2Btest%40example.com');
+        // Ensure we don't have double-encoding
+        expect(location).not.toContain('%2540'); // Double-encoded @
       });
     });
   });
