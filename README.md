@@ -163,3 +163,4 @@ All environment variables are documented in `.env.example` with examples and des
 ## Get Involved
 
 This is an open-source project. Contributions, ideas, and forks are welcome.
+\n
