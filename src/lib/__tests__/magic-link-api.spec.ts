@@ -264,7 +264,7 @@ describe('Magic Link API Routes', () => {
   });
 
   describe('Magic Link Route (/api/auth/magic-link)', () => {
-    let testInvitation: { id: string; token: string };
+    let testInvitation: { id: string; token: string | null };
 
     beforeEach(async () => {
       // Create test invitation for magic link tests
@@ -284,7 +284,7 @@ describe('Magic Link API Routes', () => {
 
     it('should create new user and redirect to sign-in with magic params', async () => {
       const request = new NextRequest(
-        `http://localhost:3000/api/auth/magic-link?token=${testInvitation.token}`
+        `http://localhost:3000/api/auth/magic-link?token=${testInvitation.token!}`
       );
       const response = await magicLinkHandler(request);
 
@@ -294,7 +294,7 @@ describe('Magic Link API Routes', () => {
       expect(location).toContain('/auth/signin');
       expect(location).toContain('magic=true');
       expect(location).toContain('auto=true');
-      expect(location).toContain(`invitation=${testInvitation.token}`);
+      expect(location).toContain(`invitation=${testInvitation.token!}`);
       expect(location).toContain(`branch=${testBranchId}`);
       expect(location).toContain(
         `email=${encodeURIComponent(testInviteeEmail)}`
@@ -350,7 +350,7 @@ describe('Magic Link API Routes', () => {
       });
 
       const request = new NextRequest(
-        `http://localhost:3000/api/auth/magic-link?token=${testInvitation.token}`
+        `http://localhost:3000/api/auth/magic-link?token=${testInvitation.token!}`
       );
       const response = await magicLinkHandler(request);
 
@@ -395,7 +395,7 @@ describe('Magic Link API Routes', () => {
       });
 
       const request = new NextRequest(
-        `http://localhost:3000/api/auth/magic-link?token=${testInvitation.token}`
+        `http://localhost:3000/api/auth/magic-link?token=${testInvitation.token!}`
       );
       const response = await magicLinkHandler(request);
 
