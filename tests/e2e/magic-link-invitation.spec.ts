@@ -64,7 +64,7 @@ test.describe('Magic Link Invitation Flow', () => {
         sentAt: new Date(),
       },
     });
-    invitationToken = invitation.token;
+    invitationToken = invitation.token!;
 
     // Step 2: Simulate clicking magic link from email
     await page.goto(`/api/invitations/${invitationToken}`);
@@ -132,7 +132,7 @@ test.describe('Magic Link Invitation Flow', () => {
         sentAt: new Date(),
       },
     });
-    invitationToken = invitation.token;
+    invitationToken = invitation.token!;
 
     // Step 3: Click magic link
     await page.goto(`/api/invitations/${invitationToken}`);
