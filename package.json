@@ -24,7 +24,7 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "seed": "echo 'Seed script not implemented yet. See issue #19'",
-    "prepare": "husky"
+    "prepare": "husky || echo 'Husky not available, skipping git hooks setup'"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
