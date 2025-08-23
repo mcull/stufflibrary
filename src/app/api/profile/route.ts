@@ -14,9 +14,15 @@ const createProfileSchema = z.object({
       /^[\+]?[1-9][\d]{0,15}$/,
       'Please enter a valid phone number (e.g., +15551234567)'
     ),
-  bio: z.string().optional(),
+  bio: z.preprocess(
+    (val) => (val === '' || val === null ? undefined : val),
+    z.string().optional()
+  ),
   interests: z.array(z.string()).min(1, 'At least one interest is required'),
-  image: z.string().url().optional(),
+  image: z.preprocess(
+    (val) => (val === '' || val === null ? undefined : val),
+    z.string().url().optional()
+  ),
   // Address will be handled separately for now
 });
 
