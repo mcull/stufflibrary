@@ -175,13 +175,79 @@ export function BranchDetailClient({ branchId }: BranchDetailClientProps) {
     itemId: string,
     isCurrentlyAvailable: boolean
   ) => {
-    // TODO: Implement item availability toggle
-    console.log('Toggle using for item:', itemId, { isCurrentlyAvailable });
+    try {
+      const response = await fetch(`/api/items/${itemId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          isAvailable: !isCurrentlyAvailable,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.error || 'Failed to toggle item availability'
+        );
+      }
+
+      const { message } = await response.json();
+
+      // Refresh branch data to show updated status
+      const refreshResponse = await fetch(`/api/branches/${branchId}`);
+      if (refreshResponse.ok) {
+        const refreshData = await refreshResponse.json();
+        setBranch(refreshData.branch);
+      }
+
+      // Show success message
+      console.log('✅', message);
+    } catch (err) {
+      console.error('Error toggling item availability:', err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to toggle item availability'
+      );
+    }
   };
 
   const handleRemoveItem = async (itemId: string) => {
-    // TODO: Implement item removal
-    console.log('Remove item:', itemId);
+    if (
+      !confirm(
+        'Are you sure you want to remove this item from the branch? This action cannot be undone.'
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/items/${itemId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to remove item');
+      }
+
+      const { message } = await response.json();
+
+      // Refresh branch data to remove the item from the list
+      const refreshResponse = await fetch(`/api/branches/${branchId}`);
+      if (refreshResponse.ok) {
+        const refreshData = await refreshResponse.json();
+        setBranch(refreshData.branch);
+      }
+
+      // Show success message
+      console.log('✅', message);
+    } catch (err) {
+      console.error('Error removing item:', err);
+      setError(err instanceof Error ? err.message : 'Failed to remove item');
+    }
   };
 
   const handleAddItem = (category?: string) => {
