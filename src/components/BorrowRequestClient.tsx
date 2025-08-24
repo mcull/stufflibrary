@@ -19,6 +19,7 @@ import {
   Checkbox,
   Alert,
   CircularProgress,
+  LinearProgress,
 } from '@mui/material';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -96,6 +97,7 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
   const [promiseChecked, setPromiseChecked] = useState(false);
   const [returnDate, setReturnDate] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   // Start camera stream
   const startCamera = useCallback(async () => {
@@ -252,7 +254,41 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
         }
         throw new Error(message);
       }
+      // Step 2: get Mux upload URL
+      const uploadRes = await fetch('/api/mux/create-upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ borrowRequestId }),
+      });
+      if (!uploadRes.ok) {
+        const text = await uploadRes.text();
+        throw new Error(text || 'Failed to initialize video upload');
+      }
+      const { uploadUrl } = await uploadRes.json();
 
+      // Step 3: upload to Mux via XHR to get progress
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', uploadUrl);
+        xhr.setRequestHeader('Content-Type', 'video/webm');
+        setUploadProgress(0);
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            const pct = Math.round((e.loaded / e.total) * 100);
+            setUploadProgress(pct);
+          }
+        };
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) resolve();
+          else reject(new Error(`Upload failed (HTTP ${xhr.status})`));
+        };
+        xhr.onerror = () => reject(new Error('Network error during upload'));
+        xhr.onabort = () => reject(new Error('Upload aborted'));
+        xhr.send(videoBlob);
+      });
+
+      // Success — asset will process; owner is notified when ready via webhook
+      setUploadProgress(100);
       setState('success');
     } catch (err) {
       console.error('Failed to submit request:', err);
@@ -577,7 +613,20 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
       case 'submitting':
         return (
           <Box sx={{ textAlign: 'center', py: 8 }}>
-            <CircularProgress size={64} sx={{ mb: 2 }} />
+            {typeof uploadProgress === 'number' ? (
+              <>
+                <LinearProgress
+                  variant="determinate"
+                  value={uploadProgress}
+                  sx={{ height: 10, borderRadius: 1, mb: 2 }}
+                />
+                <Typography variant="body2" sx={{ mb: 2 }}>
+                  Uploading video: {uploadProgress}%
+                </Typography>
+              </>
+            ) : (
+              <CircularProgress size={64} sx={{ mb: 2 }} />
+            )}
             <Typography variant="h6" gutterBottom>
               Sending Your Request...
             </Typography>
