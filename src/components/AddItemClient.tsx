@@ -73,23 +73,33 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
       if (videoTrack) {
         const settings = videoTrack.getSettings();
 
-        // Check if this is likely a front-facing mobile camera
-        const isMobile =
+        // Check device and camera type for appropriate mirroring
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const isAndroid = /Android/.test(navigator.userAgent);
+        const isMobile = isIOS || isAndroid;
+
+        // Check if this is a front-facing camera (for future use)
+        const _isFrontFacing = settings.facingMode === 'user';
+
+        // Mirroring logic:
+        // - Desktop webcams: always mirror (feels natural)
+        // - iPhone front camera: don't mirror (matches iOS camera app behavior)
+        // - Android front camera: don't mirror (matches Android camera app behavior)
+        // - Mobile rear cameras: never mirror (environment facing)
+        if (!isMobile) {
+          // Desktop: mirror all cameras
+          setShouldMirrorCamera(true);
+        } else {
+          // Mobile: never mirror (matches platform conventions)
+          setShouldMirrorCamera(false);
+        }
+      } else {
+        // Fallback: mirror only for desktop browsers
+        const isMobileFallback =
           /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
             navigator.userAgent
           );
-        const isFrontFacing =
-          settings.facingMode === 'user' || (!settings.facingMode && isMobile);
-
-        // Mirror desktop cameras and webcams, but not mobile front cameras
-        setShouldMirrorCamera(!isMobile || (isMobile && !isFrontFacing));
-      } else {
-        // Fallback: mirror by default for desktop browsers
-        setShouldMirrorCamera(
-          !/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-            navigator.userAgent
-          )
-        );
+        setShouldMirrorCamera(!isMobileFallback);
       }
 
       console.log('✅ Stream obtained:', stream);
@@ -207,7 +217,7 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
       'image/jpeg',
       0.8
     );
-  }, []);
+  }, [shouldMirrorCamera]);
 
   // Add item and navigate to metadata page
   const addItem = useCallback(async () => {
@@ -505,14 +515,21 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
                 <Box
                   sx={{
                     position: 'absolute',
-                    top: -40,
+                    top: -50,
                     left: '50%',
                     transform: 'translateX(-50%)',
                     color: 'white',
-                    fontSize: '14px',
-                    textShadow: '0 1px 3px rgba(0,0,0,0.8)',
+                    fontSize: '16px',
+                    fontWeight: 600,
+                    textShadow: '0 2px 4px rgba(0,0,0,0.9)',
                     whiteSpace: 'nowrap',
                     textAlign: 'center',
+                    bgcolor: 'rgba(0, 0, 0, 0.7)',
+                    px: 2,
+                    py: 1,
+                    borderRadius: 2,
+                    backdropFilter: 'blur(4px)',
+                    WebkitBackdropFilter: 'blur(4px)',
                   }}
                 >
                   Center your item in this area
@@ -520,25 +537,35 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
               </Box>
             </Box>
 
-            {/* Tap to capture instruction */}
+            {/* Tap item instruction */}
             <Box
               sx={{
                 position: 'absolute',
-                bottom: 16,
+                bottom: 20,
                 left: '50%',
                 transform: 'translateX(-50%)',
-                bgcolor: 'rgba(0, 0, 0, 0.9)',
+                bgcolor: 'rgba(0, 0, 0, 0.85)',
                 color: 'white',
-                px: 3,
-                py: 1.5,
-                borderRadius: 3,
+                px: 4,
+                py: 2,
+                borderRadius: 25,
                 pointerEvents: 'none',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-                boxShadow: '0 4px 8px rgba(0, 0, 0, 0.5)',
+                border: '2px solid rgba(255, 255, 255, 0.8)',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.6)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
               }}
             >
-              <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                Tap to capture
+              <Typography
+                variant="body1"
+                sx={{
+                  fontWeight: 600,
+                  fontSize: '1.1rem',
+                  textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+                  letterSpacing: '0.5px',
+                }}
+              >
+                Tap Item
               </Typography>
             </Box>
           </Box>
