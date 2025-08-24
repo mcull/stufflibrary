@@ -14,13 +14,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Validate invitation
+    // Validate invitation - don't filter by expiration here, check it separately
     const invitation = await db.invitation.findFirst({
       where: {
         token: invitationToken,
         type: 'branch',
         status: { in: ['PENDING', 'SENT'] },
-        expiresAt: { gte: new Date() },
       },
       include: {
         branch: { select: { id: true, name: true } },
@@ -106,7 +105,7 @@ export async function GET(request: NextRequest) {
 
     // Create a special redirect URL that will auto-complete the sign-in
     const redirectUrl = new URL('/auth/signin', request.url);
-    redirectUrl.searchParams.set('email', encodeURIComponent(user.email!));
+    redirectUrl.searchParams.set('email', user.email!);
     redirectUrl.searchParams.set('code', tempCode);
     if (invitationToken) {
       redirectUrl.searchParams.set('invitation', invitationToken);

@@ -188,7 +188,7 @@ export function LibraryCard({ user, showActions = true }: LibraryCardProps) {
                 textAnchor="middle"
                 fontFamily="serif"
               >
-                {user.name.charAt(0)}
+                {user.name?.charAt(0) || user.email?.charAt(0) || '?'}
               </text>
             )}
           </g>

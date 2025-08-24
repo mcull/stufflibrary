@@ -21,7 +21,7 @@ export async function GET(
       where: {
         token,
         type: 'branch',
-        status: { in: ['PENDING', 'SENT'] },
+        status: { in: ['PENDING', 'SENT', 'ACCEPTED'] },
       },
       include: {
         branch: {
@@ -77,6 +77,16 @@ export async function GET(
       return NextResponse.redirect(
         new URL(
           `/branch/${invitation.branchId}?message=already_member`,
+          request.url
+        )
+      );
+    }
+
+    // If invitation is already accepted, redirect to sign-in instead of magic link
+    if (invitation.status === 'ACCEPTED') {
+      return NextResponse.redirect(
+        new URL(
+          `/auth/signin?invitation=${token}&email=${encodeURIComponent(invitation.email)}`,
           request.url
         )
       );
