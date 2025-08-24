@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
 
     // Send SMS notification to owner
     try {
-      await sendBorrowRequestNotification({
+      const smsResult = await sendBorrowRequestNotification({
         _ownerName: item.owner.name || 'Owner',
         ownerPhone: item.owner.phone,
         borrowerName: borrower.name || 'Someone',
@@ -230,9 +230,24 @@ export async function POST(request: NextRequest) {
         approvalUrl: approvalUrl,
       });
 
-      console.log('📱 SMS notification sent to owner');
+      if (smsResult.success) {
+        console.log('📱 SMS notification sent to owner successfully');
+      } else {
+        console.error('❌ SMS failed:', smsResult.error);
+      }
     } catch (smsError) {
       console.error('❌ Failed to send SMS notification:', smsError);
+
+      // Provide specific guidance for common Twilio configuration issues
+      if (
+        smsError instanceof Error &&
+        smsError.message.includes('accountSid must start with AC')
+      ) {
+        console.error(
+          '🔧 TWILIO CONFIG ERROR: Please update TWILIO_ACCOUNT_SID in your .env file with a valid Account SID from https://console.twilio.com/'
+        );
+      }
+
       // Don't fail the request if SMS fails, but log it
     }
 

@@ -10,6 +10,17 @@ function getTwilioClient() {
     );
   }
 
+  // Validate Account SID format - must start with 'AC'
+  if (!accountSid.startsWith('AC')) {
+    console.error('Invalid Twilio Account SID format:', {
+      accountSid: accountSid.substring(0, 5) + '***', // Log first 5 chars only for security
+      expectedFormat: 'AC...',
+    });
+    throw new Error(
+      `Invalid TWILIO_ACCOUNT_SID format. Account SID must start with 'AC' but got '${accountSid.substring(0, 2)}***'. Please check your Twilio console for the correct Account SID.`
+    );
+  }
+
   return twilio(accountSid, authToken);
 }
 
