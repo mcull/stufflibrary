@@ -24,7 +24,7 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "seed": "echo 'Seed script not implemented yet. See issue #19'",
-    "prepare": "husky"
+    "prepare": "command -v husky >/dev/null 2>&1 && husky || echo 'Husky not available, skipping git hooks setup'"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
@@ -66,19 +66,22 @@
     "resend": "^6.0.1",
     "twilio": "^5.8.0",
     "uuid": "^11.1.0",
-    "zod": "^4.0.17"
+    "zod": "^4.0.17",
+    "tailwindcss": "^4",
+    "@tailwindcss/postcss": "^4",
+    "lru-cache": "^10.4.3",
+    "typescript": "^5",
+    "@types/react": "^19",
+    "@types/react-dom": "^19"
   },
   "devDependencies": {
     "@axe-core/cli": "^4.10.2",
     "@eslint/eslintrc": "^3",
     "@playwright/test": "^1.54.2",
-    "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.7.0",
     "@testing-library/react": "^16.3.0",
     "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
     "@typescript-eslint/eslint-plugin": "^8.39.1",
     "@typescript-eslint/parser": "^8.39.1",
     "@vitejs/plugin-react": "^5.0.0",
@@ -94,8 +97,6 @@
     "jsdom": "^26.1.0",
     "lint-staged": "^16.1.5",
     "prettier": "^3.6.2",
-    "tailwindcss": "^4",
-    "typescript": "^5",
     "vitest": "^3.2.4"
   }
 }
