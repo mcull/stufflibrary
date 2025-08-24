@@ -22,6 +22,7 @@ import {
   Alert,
   CircularProgress,
 } from '@mui/material';
+import MuxPlayer from '@mux/mux-player-react';
 import { useState } from 'react';
 
 import { brandColors } from '@/theme/brandTokens';
@@ -250,15 +251,30 @@ export function BorrowApprovalClient({
             }}
           >
             {borrowRequest.videoUrl ? (
-              <video
-                src={borrowRequest.videoUrl}
-                controls
-                style={{
-                  width: '100%',
-                  height: 'auto',
-                  display: 'block',
-                }}
-              />
+              (() => {
+                const url = borrowRequest.videoUrl || '';
+                if (url.includes('stream.mux.com/')) {
+                  const match = url.match(/stream\.mux\.com\/([^\.]+)/);
+                  const playbackId = match ? match[1] : null;
+                  if (playbackId) {
+                    return (
+                      <MuxPlayer
+                        style={{ width: '100%', height: 'auto' }}
+                        streamType="on-demand"
+                        playbackId={playbackId}
+                        accentColor="#1f2937"
+                      />
+                    );
+                  }
+                }
+                return (
+                  <video
+                    src={borrowRequest.videoUrl}
+                    controls
+                    style={{ width: '100%', height: 'auto', display: 'block' }}
+                  />
+                );
+              })()
             ) : (
               <Box sx={{ p: 4, textAlign: 'center', color: 'white' }}>
                 <Typography>No video available</Typography>
