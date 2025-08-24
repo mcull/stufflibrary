@@ -333,18 +333,39 @@ export function BranchDetailClient({ branchId }: BranchDetailClientProps) {
                     sx={{
                       display: 'flex',
                       justifyContent: 'space-between',
-                      alignItems: 'center',
+                      alignItems: { xs: 'flex-start', sm: 'center' },
                       mb: 3,
+                      gap: 2,
                     }}
                   >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        flex: 1,
+                        minWidth: 0,
+                      }}
+                    >
                       <Typography
                         variant="h2"
-                        sx={{ fontSize: '1.5rem', mr: 0.5 }}
+                        sx={{
+                          fontSize: { xs: '1.25rem', sm: '1.5rem' },
+                          mr: 0.5,
+                        }}
                       >
                         {categoryConfig.icon}
                       </Typography>
-                      <Typography variant="h5" component="h2">
+                      <Typography
+                        variant="h5"
+                        component="h2"
+                        sx={{
+                          fontSize: { xs: '1.1rem', sm: '1.25rem' },
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
                         {categoryConfig.name}
                       </Typography>
                       <Chip label={items?.length || 0} size="small" />
@@ -353,10 +374,20 @@ export function BranchDetailClient({ branchId }: BranchDetailClientProps) {
                       <Button
                         variant="outlined"
                         size="small"
-                        startIcon={<AddIcon />}
+                        sx={{
+                          flexShrink: 0,
+                          minWidth: { xs: 'auto', sm: 'auto' },
+                          px: { xs: 1, sm: 2 },
+                        }}
                         onClick={() => handleAddItem(categoryKey)}
                       >
-                        Add {categoryConfig.name.split(' & ')[0]}
+                        <AddIcon sx={{ fontSize: { xs: 16, sm: 20 } }} />
+                        <Box
+                          component="span"
+                          sx={{ display: { xs: 'none', sm: 'inline' }, ml: 1 }}
+                        >
+                          Add {categoryConfig.name.split(' & ')[0]}
+                        </Box>
                       </Button>
                     )}
                   </Box>
@@ -455,7 +486,7 @@ export function BranchDetailClient({ branchId }: BranchDetailClientProps) {
                           {/* Item Image */}
                           <Box
                             sx={{
-                              height: 120,
+                              aspectRatio: '1',
                               bgcolor: 'grey.100',
                               borderRadius: 1,
                               mb: 2,
