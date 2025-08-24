@@ -1,4 +1,4 @@
-import { put } from '@vercel/blob';
+// import { put } from '@vercel/blob'; // Not used in Mux flow
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { v4 as uuidv4 } from 'uuid';
@@ -87,7 +87,7 @@ export async function GET(_request: NextRequest) {
   }
 }
 
-// POST - Create a new borrow request
+// POST - Create a new borrow request (Mux flow)
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -106,17 +106,24 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData();
-    const video = formData.get('video') as File;
+    const useMux = formData.get('useMux') as string;
     const itemId = formData.get('itemId') as string;
     const promisedReturnBy = formData.get('promisedReturnBy') as string;
     const promiseText = formData.get('promiseText') as string;
 
-    if (!video || !itemId || !promisedReturnBy || !promiseText) {
+    // Validate required fields for Mux flow
+    if (!useMux || !itemId || !promisedReturnBy || !promiseText) {
       return NextResponse.json(
         {
-          error:
-            'Video, item ID, promised return date, and promise text are required',
+          error: 'Item ID, promised return date, and promise text are required',
         },
+        { status: 400 }
+      );
+    }
+
+    if (useMux !== 'true') {
+      return NextResponse.json(
+        { error: 'Only Mux flow is supported' },
         { status: 400 }
       );
     }
@@ -173,30 +180,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate unique filename for video
-    const fileExtension = video.name.split('.').pop() || 'webm';
-    const filename = `borrow-request-${uuidv4()}.${fileExtension}`;
-
-    console.log('📹 Saving borrow request video to Vercel Blob:', filename);
-    console.log('📏 Video size:', video.size, 'bytes');
-
-    // Save video to Vercel Blob storage
-    let videoUrl: string;
-    try {
-      const blob = await put(filename, video, {
-        access: 'public',
-      });
-      videoUrl = blob.url;
-      console.log('✅ Video saved to Vercel Blob:', videoUrl);
-    } catch (err) {
-      console.error('❌ Error saving video to Vercel Blob:', err);
-      return NextResponse.json(
-        {
-          error: 'Failed to save video',
-        },
-        { status: 500 }
-      );
-    }
+    // For Mux flow, we create the borrow request first without video
+    // Video will be uploaded directly to Mux and connected via webhook
+    console.log('📹 Creating borrow request for Mux upload flow');
 
     // Generate secure token for approval page
     const responseToken = uuidv4();
@@ -207,7 +193,7 @@ export async function POST(request: NextRequest) {
         borrowerId: userId,
         lenderId: item.ownerId,
         itemId: itemId,
-        videoUrl: videoUrl,
+        videoUrl: null, // Will be set by webhook when video is processed
         promiseText: promiseText,
         promisedReturnBy: new Date(promisedReturnBy),
         responseToken: responseToken,

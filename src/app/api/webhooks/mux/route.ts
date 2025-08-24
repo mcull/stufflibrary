@@ -40,9 +40,23 @@ export async function POST(request: NextRequest) {
 
     if (eventType === 'video.asset.ready' && data) {
       const playbackId = data.playback_ids?.[0]?.id as string | undefined;
-      const borrowRequestId = (data.passthrough as string) || undefined;
+
+      // Parse passthrough data that contains borrowRequestId
+      let passthroughData;
+      try {
+        passthroughData = JSON.parse(data.passthrough || '{}');
+      } catch {
+        console.error('Failed to parse passthrough data:', data.passthrough);
+        return NextResponse.json({ ok: true });
+      }
+
+      const borrowRequestId = passthroughData.borrowRequestId;
 
       if (playbackId && borrowRequestId) {
+        console.log(
+          '🎬 Processing video.asset.ready for borrow request:',
+          borrowRequestId
+        );
         // Update borrow request with Mux playback URL
         const borrowRequest = await db.borrowRequest.update({
           where: { id: borrowRequestId },
