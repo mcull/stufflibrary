@@ -188,3 +188,194 @@ export async function PUT(
     );
   }
 }
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const userId =
+      (session.user as any).id ||
+      (session as any).user?.id ||
+      (session as any).userId;
+
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
+    }
+
+    const { id: itemId } = await params;
+    const body = await request.json();
+    const { isAvailable } = body;
+
+    // Check if user owns the item
+    const item = await db.item.findUnique({
+      where: { id: itemId },
+      select: { ownerId: true, isAvailable: true },
+    });
+
+    if (!item) {
+      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+    }
+
+    if (item.ownerId !== userId) {
+      return NextResponse.json(
+        { error: 'Only the item owner can toggle availability' },
+        { status: 403 }
+      );
+    }
+
+    // Validate input
+    if (typeof isAvailable !== 'boolean') {
+      return NextResponse.json(
+        { error: 'isAvailable must be a boolean' },
+        { status: 400 }
+      );
+    }
+
+    // Check if item is currently borrowed
+    const activeBorrow = await db.borrowRequest.findFirst({
+      where: {
+        itemId,
+        status: { in: ['approved', 'active'] },
+      },
+    });
+
+    if (activeBorrow && !isAvailable) {
+      return NextResponse.json(
+        { error: 'Cannot mark item as in use while it is borrowed' },
+        { status: 400 }
+      );
+    }
+
+    // Update item availability
+    const updatedItem = await db.item.update({
+      where: { id: itemId },
+      data: { isAvailable },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
+        stuffType: {
+          select: {
+            displayName: true,
+            category: true,
+            iconPath: true,
+          },
+        },
+      },
+    });
+
+    // Format response
+    const formattedItem = {
+      id: updatedItem.id,
+      name: updatedItem.name,
+      description: updatedItem.description,
+      condition: updatedItem.condition,
+      imageUrl: updatedItem.imageUrl,
+      isAvailable: updatedItem.isAvailable,
+      createdAt: updatedItem.createdAt,
+      updatedAt: updatedItem.updatedAt,
+      owner: updatedItem.owner,
+      stuffType: updatedItem.stuffType,
+    };
+
+    return NextResponse.json({
+      item: formattedItem,
+      message: isAvailable
+        ? 'Item marked as available'
+        : 'Item marked as in use',
+    });
+  } catch (error) {
+    console.error('Error toggling item availability:', error);
+    return NextResponse.json(
+      { error: 'Failed to toggle item availability' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const userId =
+      (session.user as any).id ||
+      (session as any).user?.id ||
+      (session as any).userId;
+
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
+    }
+
+    const { id: itemId } = await params;
+
+    // Check if user owns the item and get item details
+    const item = await db.item.findUnique({
+      where: { id: itemId },
+      select: {
+        ownerId: true,
+        name: true,
+        branchId: true,
+      },
+    });
+
+    if (!item) {
+      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+    }
+
+    if (item.ownerId !== userId) {
+      return NextResponse.json(
+        { error: 'Only the item owner can remove items' },
+        { status: 403 }
+      );
+    }
+
+    // Check if item is currently borrowed
+    const activeBorrow = await db.borrowRequest.findFirst({
+      where: {
+        itemId,
+        status: { in: ['approved', 'active'] },
+      },
+    });
+
+    if (activeBorrow) {
+      return NextResponse.json(
+        { error: 'Cannot remove item that is currently borrowed' },
+        { status: 400 }
+      );
+    }
+
+    // Remove the item (this will cascade to related records)
+    await db.item.delete({
+      where: { id: itemId },
+    });
+
+    return NextResponse.json({
+      message: `"${item.name}" has been removed from your branch`,
+      branchId: item.branchId,
+    });
+  } catch (error) {
+    console.error('Error removing item:', error);
+    return NextResponse.json(
+      { error: 'Failed to remove item' },
+      { status: 500 }
+    );
+  }
+}
