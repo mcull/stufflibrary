@@ -109,8 +109,10 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
     console.log('📷 Canvas size:', canvas.width, 'x', canvas.height);
     console.log('📹 Video size:', video.videoWidth, 'x', video.videoHeight);
 
-    // Draw video frame to canvas
-    ctx.drawImage(video, 0, 0);
+    // Draw video frame to canvas (flip horizontally to match camera preview)
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, -canvas.width, 0);
+    ctx.scale(-1, 1); // Reset the scale
 
     console.log('🎨 Canvas drawn, checking image data...');
     const imageData = ctx.getImageData(
@@ -549,6 +551,7 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
                     height: 'auto',
                     display: 'block',
                     maxHeight: '300px',
+                    objectFit: 'contain',
                   }}
                 />
               </Paper>
