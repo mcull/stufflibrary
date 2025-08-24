@@ -133,8 +133,22 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
     if (!streamRef.current) return;
 
     recordedChunksRef.current = [];
+
+    // Try different codecs based on browser support
+    let mimeType = 'video/webm;codecs=vp9';
+    if (!MediaRecorder.isTypeSupported(mimeType)) {
+      mimeType = 'video/webm;codecs=vp8';
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'video/webm';
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = 'video/mp4';
+        }
+      }
+    }
+
+    console.log('📹 Using MediaRecorder with mimeType:', mimeType);
     const mediaRecorder = new MediaRecorder(streamRef.current, {
-      mimeType: 'video/webm;codecs=vp9',
+      mimeType,
     });
 
     mediaRecorderRef.current = mediaRecorder;
@@ -146,11 +160,31 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
     };
 
     mediaRecorder.onstop = () => {
+      console.log(
+        '📹 MediaRecorder stopped, chunks collected:',
+        recordedChunksRef.current.length
+      );
+
       const blob = new Blob(recordedChunksRef.current, {
-        type: 'video/webm',
+        type: mimeType,
       });
+
+      console.log('🎬 Created video blob:', {
+        size: blob.size,
+        type: blob.type,
+      });
+
       setVideoBlob(blob);
-      setVideoBlobUrl(URL.createObjectURL(blob));
+      const blobUrl = URL.createObjectURL(blob);
+      setVideoBlobUrl(blobUrl);
+
+      console.log('🔗 Created blob URL:', blobUrl);
+
+      // Clear the video element's srcObject to avoid conflicts
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+
       setState('recorded');
       // Clean up
       stopStream();
@@ -485,15 +519,32 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
                 bgcolor: 'black',
               }}
             >
-              <video
-                ref={videoRef}
-                controls
-                style={{
-                  width: '100%',
-                  height: 'auto',
-                  display: 'block',
-                }}
-              />
+              {videoBlobUrl ? (
+                <video
+                  src={videoBlobUrl}
+                  controls
+                  style={{
+                    width: '100%',
+                    height: 'auto',
+                    display: 'block',
+                  }}
+                  onLoadStart={() => console.log('🎬 Video loading started')}
+                  onLoadedData={() => console.log('🎬 Video data loaded')}
+                  onError={(e) => console.error('🎬 Video error:', e)}
+                />
+              ) : (
+                <Box
+                  sx={{
+                    height: 300,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                  }}
+                >
+                  <CircularProgress color="inherit" />
+                </Box>
+              )}
             </Box>
 
             <Box
