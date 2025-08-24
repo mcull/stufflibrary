@@ -62,12 +62,23 @@ export async function POST(request: NextRequest) {
       borrowRequestId
     );
 
-    // Create direct upload URL
+    // Create direct upload URL with auto-generated captions
     const upload = await mux.video.uploads.create({
       new_asset_settings: {
         playback_policy: ['public'],
         encoding_tier: 'baseline', // Faster, cheaper encoding
         max_resolution_tier: '1080p',
+        // Enable auto-generated captions for accessibility
+        input: [
+          {
+            generated_subtitles: [
+              {
+                language_code: 'en',
+                name: 'English CC',
+              },
+            ],
+          },
+        ],
         // Store the borrow request ID in passthrough for webhook processing
         passthrough: JSON.stringify({
           borrowRequestId,

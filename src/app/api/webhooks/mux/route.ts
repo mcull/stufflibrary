@@ -88,6 +88,39 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Handle caption completion events
+    if (eventType === 'video.asset.track.ready' && data) {
+      const track = data;
+
+      // Check if this is a generated caption track
+      if (track.text_source === 'generated_vod') {
+        // Parse passthrough data from the asset
+        let passthroughData;
+        try {
+          passthroughData = JSON.parse(data.passthrough || '{}');
+        } catch {
+          console.error(
+            'Failed to parse passthrough data for captions:',
+            data.passthrough
+          );
+          return NextResponse.json({ ok: true });
+        }
+
+        const borrowRequestId = passthroughData.borrowRequestId;
+
+        if (borrowRequestId) {
+          console.log(
+            '📝 Auto-generated captions ready for borrow request:',
+            borrowRequestId,
+            'Track ID:',
+            track.id
+          );
+          // Captions are now available and will be automatically served with the video
+          // No additional database updates needed as Mux handles caption delivery
+        }
+      }
+    }
+
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error('Mux webhook error:', error);

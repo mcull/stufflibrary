@@ -38,8 +38,40 @@ export async function sendSMS({ to, body }: SMSMessage) {
       throw new Error('TWILIO_PHONE_NUMBER environment variable is required');
     }
 
+    if (!to || to.trim() === '') {
+      throw new Error('Phone number is required but was empty or null');
+    }
+
     // Ensure phone number is in E.164 format
-    const formattedTo = to.startsWith('+') ? to : `+${to}`;
+    let formattedTo = to;
+
+    // Remove all non-digit characters except + at the beginning
+    const cleanNumber = to.replace(/[^\d+]/g, '');
+
+    if (cleanNumber.startsWith('+')) {
+      // Already has + prefix, use as-is
+      formattedTo = cleanNumber;
+    } else if (cleanNumber.length === 11 && cleanNumber.startsWith('1')) {
+      // US number with country code but no + (e.g., 15105551234)
+      formattedTo = `+${cleanNumber}`;
+    } else if (cleanNumber.length === 10) {
+      // US number without country code (e.g., 5105551234)
+      formattedTo = `+1${cleanNumber}`;
+    } else {
+      // For other formats, just add + if missing
+      formattedTo = cleanNumber.startsWith('+')
+        ? cleanNumber
+        : `+${cleanNumber}`;
+    }
+
+    console.log(`📞 Phone number formatting: "${to}" → "${formattedTo}"`);
+
+    // Validate the formatted number meets E.164 requirements
+    if (!formattedTo.match(/^\+[1-9]\d{1,14}$/)) {
+      throw new Error(
+        `Invalid phone number format after formatting: "${formattedTo}". Expected E.164 format (+1234567890).`
+      );
+    }
 
     const message = await client.messages.create({
       body,
