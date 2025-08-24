@@ -24,7 +24,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { useRouter } from 'next/navigation';
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 
 import { brandColors } from '@/theme/brandTokens';
 
@@ -38,6 +38,7 @@ interface Item {
     name: string | null;
     image: string | null;
   };
+
   stuffType: {
     displayName: string;
     category: string;
@@ -66,6 +67,27 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
+  const timerIntervalRef = useRef<number | null>(null);
+  const autoStopTimeoutRef = useRef<number | null>(null);
+  const recordingStartRef = useRef<number | null>(null);
+
+  const stopStream = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+  }, []);
+
+  const clearTimers = useCallback(() => {
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
+    if (autoStopTimeoutRef.current) {
+      clearTimeout(autoStopTimeoutRef.current);
+      autoStopTimeoutRef.current = null;
+    }
+  }, []);
 
   const [state, setState] = useState<RequestState>('intro');
   const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
@@ -80,7 +102,12 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
     try {
       setState('recording');
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: 640, height: 480 },
+        video: {
+          facingMode: 'user',
+          width: { ideal: 480 },
+          height: { ideal: 360 },
+          frameRate: { ideal: 24, max: 30 },
+        },
         audio: true,
       });
 
@@ -122,29 +149,30 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
       setVideoBlob(blob);
       setVideoBlobUrl(URL.createObjectURL(blob));
       setState('recorded');
-
-      // Stop camera stream
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-      }
+      // Clean up
+      stopStream();
+      clearTimers();
     };
 
     mediaRecorder.start();
 
     // Recording timer
-    const startTime = Date.now();
-    const timer = setInterval(() => {
-      setRecordingTime(Math.floor((Date.now() - startTime) / 1000));
+    recordingStartRef.current = Date.now();
+    setRecordingTime(0);
+    timerIntervalRef.current = window.setInterval(() => {
+      if (recordingStartRef.current)
+        setRecordingTime(
+          Math.floor((Date.now() - recordingStartRef.current) / 1000)
+        );
     }, 1000);
 
-    // Auto-stop after 60 seconds
-    setTimeout(() => {
+    // Auto-stop after ~15 seconds to keep uploads small
+    autoStopTimeoutRef.current = window.setTimeout(() => {
       if (mediaRecorderRef.current?.state === 'recording') {
         mediaRecorderRef.current.stop();
       }
-      clearInterval(timer);
-    }, 60000);
+      clearTimers();
+    }, 15000);
   }, []);
 
   // Stop recording
@@ -152,7 +180,8 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
     if (mediaRecorderRef.current?.state === 'recording') {
       mediaRecorderRef.current.stop();
     }
-  }, []);
+    clearTimers();
+  }, [clearTimers]);
 
   // Re-record video
   const reRecord = useCallback(() => {
@@ -161,9 +190,11 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
       setVideoBlobUrl(null);
       setVideoBlob(null);
     }
+    clearTimers();
+    stopStream();
     setRecordingTime(0);
     startCamera();
-  }, [videoBlobUrl, startCamera]);
+  }, [videoBlobUrl, startCamera, clearTimers, stopStream]);
 
   // Continue to confirmation
   const continueToConfirm = useCallback(() => {
@@ -177,6 +208,14 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
     setState('submitting');
 
     try {
+      // Client-side size guard (~9MB)
+      const maxSize = 9 * 1024 * 1024;
+      if (videoBlob.size > maxSize) {
+        throw new Error(
+          'Video too large. Please re-record a shorter clip (~10–15 seconds).'
+        );
+      }
+
       // Create form data with video and request details
       const formData = new FormData();
       formData.append('video', videoBlob, 'borrow-request.webm');
@@ -193,8 +232,25 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to submit request');
+        let message = `Failed to submit request (HTTP ${response.status})`;
+        try {
+          const text = await response.text();
+          message = (() => {
+            try {
+              const j = JSON.parse(text);
+              return j.message || j.error || message;
+            } catch {
+              return text || message;
+            }
+          })();
+        } catch {
+          // ignore
+        }
+        if (response.status === 413) {
+          message =
+            'Upload too large. Please re-record a shorter clip (~10–15 seconds) and try again.';
+        }
+        throw new Error(message);
       }
 
       setState('success');
@@ -223,8 +279,8 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
               variant="body1"
               sx={{ color: brandColors.charcoal, opacity: 0.7, mb: 4 }}
             >
-              Record a short video selfie to introduce yourself and explain why
-              you&apos;d like to borrow this item.
+              Record a short (10–15s) video selfie to introduce yourself and
+              explain why you&apos;d like to borrow this item.
             </Typography>
 
             {/* Item Info */}
@@ -581,6 +637,15 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
         return null;
     }
   };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      clearTimers();
+      stopStream();
+      if (videoBlobUrl) URL.revokeObjectURL(videoBlobUrl);
+    };
+  }, [clearTimers, stopStream, videoBlobUrl]);
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
