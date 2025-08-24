@@ -1,4 +1,5 @@
-import { Webhooks } from '@mux/mux-node';
+// Mux Webhooks are imported dynamically to avoid type export issues
+// import { Webhooks } from '@mux/mux-node';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { db } from '@/lib/db';
@@ -20,7 +21,12 @@ export async function POST(request: NextRequest) {
 
     const rawBody = await request.text();
     try {
-      Webhooks.verifyHeader(rawBody, signature, process.env.MUX_WEBHOOK_SECRET);
+      const muxNode: any = await import('@mux/mux-node');
+      muxNode.Webhooks.verifyHeader(
+        rawBody,
+        signature,
+        process.env.MUX_WEBHOOK_SECRET
+      );
     } catch {
       return NextResponse.json(
         { error: 'Signature verification failed' },

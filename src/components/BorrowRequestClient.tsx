@@ -218,42 +218,25 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
         );
       }
 
-      // Create form data with video and request details
-      const formData = new FormData();
-      formData.append('video', videoBlob, 'borrow-request.webm');
-      formData.append('itemId', item.id);
-      formData.append('promisedReturnBy', returnDate.toISOString());
-      formData.append(
+      // Step 1: create borrow request (Mux flow)
+      const meta = new FormData();
+      meta.append('useMux', 'true');
+      meta.append('itemId', item.id);
+      meta.append('promisedReturnBy', returnDate.toISOString());
+      meta.append(
         'promiseText',
         `I promise to return the ${item.name} by ${returnDate.toLocaleDateString()}`
       );
 
-      const response = await fetch('/api/borrow-requests', {
+      const createRes = await fetch('/api/borrow-requests', {
         method: 'POST',
-        body: formData,
+        body: meta,
       });
-
-      if (!response.ok) {
-        let message = `Failed to submit request (HTTP ${response.status})`;
-        try {
-          const text = await response.text();
-          message = (() => {
-            try {
-              const j = JSON.parse(text);
-              return j.message || j.error || message;
-            } catch {
-              return text || message;
-            }
-          })();
-        } catch {
-          // ignore
-        }
-        if (response.status === 413) {
-          message =
-            'Upload too large. Please re-record a shorter clip (~10–15 seconds) and try again.';
-        }
-        throw new Error(message);
+      if (!createRes.ok) {
+        const text = await createRes.text();
+        throw new Error(text || 'Failed to create request');
       }
+      const { borrowRequestId } = await createRes.json();
       // Step 2: get Mux upload URL
       const uploadRes = await fetch('/api/mux/create-upload', {
         method: 'POST',
