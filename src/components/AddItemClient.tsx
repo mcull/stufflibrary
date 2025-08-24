@@ -50,6 +50,7 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
   const [recognitionResult, setRecognitionResult] =
     useState<RecognitionResult | null>(null);
   const [capturedImageUrl, setCapturedImageUrl] = useState<string | null>(null);
+  const [shouldMirrorCamera, setShouldMirrorCamera] = useState(false);
 
   // Request camera permission and start stream
   const startCamera = useCallback(async () => {
@@ -65,6 +66,31 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
         },
         audio: false,
       });
+
+      // Detect if we should mirror the camera
+      // Mirror for webcam (desktop), don't mirror for phone cameras
+      const videoTrack = stream.getVideoTracks()[0];
+      if (videoTrack) {
+        const settings = videoTrack.getSettings();
+
+        // Check if this is likely a front-facing mobile camera
+        const isMobile =
+          /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+            navigator.userAgent
+          );
+        const isFrontFacing =
+          settings.facingMode === 'user' || (!settings.facingMode && isMobile);
+
+        // Mirror desktop cameras and webcams, but not mobile front cameras
+        setShouldMirrorCamera(!isMobile || (isMobile && !isFrontFacing));
+      } else {
+        // Fallback: mirror by default for desktop browsers
+        setShouldMirrorCamera(
+          !/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+            navigator.userAgent
+          )
+        );
+      }
 
       console.log('✅ Stream obtained:', stream);
       console.log('📹 Stream tracks:', stream.getTracks().length);
@@ -109,10 +135,14 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
     console.log('📷 Canvas size:', canvas.width, 'x', canvas.height);
     console.log('📹 Video size:', video.videoWidth, 'x', video.videoHeight);
 
-    // Draw video frame to canvas (flip horizontally to match camera preview)
-    ctx.scale(-1, 1);
-    ctx.drawImage(video, -canvas.width, 0);
-    ctx.scale(-1, 1); // Reset the scale
+    // Draw video frame to canvas (flip horizontally if mirrored in preview)
+    if (shouldMirrorCamera) {
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, -canvas.width, 0);
+      ctx.scale(-1, 1); // Reset the scale
+    } else {
+      ctx.drawImage(video, 0, 0);
+    }
 
     console.log('🎨 Canvas drawn, checking image data...');
     const imageData = ctx.getImageData(
@@ -393,7 +423,7 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
                 height: '100%',
                 objectFit: 'cover',
                 display: 'block',
-                transform: 'scaleX(-1)', // Mirror the camera feed
+                transform: shouldMirrorCamera ? 'scaleX(-1)' : 'none',
               }}
               onClick={capturePhoto}
             />
