@@ -98,6 +98,7 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
   const [returnDate, setReturnDate] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const xhrRef = useRef<XMLHttpRequest | null>(null);
 
   // Start camera stream
   const startCamera = useCallback(async () => {
@@ -252,6 +253,7 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
       // Step 3: upload to Mux via XHR to get progress
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
+        xhrRef.current = xhr;
         xhr.open('PUT', uploadUrl);
         xhr.setRequestHeader('Content-Type', 'video/webm');
         setUploadProgress(0);
@@ -277,6 +279,8 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
       console.error('Failed to submit request:', err);
       setError(err instanceof Error ? err.message : 'Failed to submit request');
       setState('error');
+    } finally {
+      xhrRef.current = null;
     }
   }, [videoBlob, returnDate, promiseChecked, item]);
 
@@ -318,7 +322,7 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
                 {item.imageUrl && (
                   <Box
                     sx={{
-                      height: 120,
+                      aspectRatio: '1',
                       backgroundImage: `url(${item.imageUrl})`,
                       backgroundSize: 'cover',
                       backgroundPosition: 'center',
@@ -606,6 +610,19 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
                 <Typography variant="body2" sx={{ mb: 2 }}>
                   Uploading video: {uploadProgress}%
                 </Typography>
+                <Button
+                  variant="outlined"
+                  onClick={() => {
+                    if (xhrRef.current) {
+                      xhrRef.current.abort();
+                      setUploadProgress(null);
+                      setState('recorded');
+                    }
+                  }}
+                  sx={{ mb: 2, borderRadius: 2 }}
+                >
+                  Cancel Upload
+                </Button>
               </>
             ) : (
               <CircularProgress size={64} sx={{ mb: 2 }} />
