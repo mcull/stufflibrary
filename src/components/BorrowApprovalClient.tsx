@@ -277,7 +277,12 @@ export function BorrowApprovalClient({
               })()
             ) : (
               <Box sx={{ p: 4, textAlign: 'center', color: 'white' }}>
-                <Typography>No video available</Typography>
+                <Typography variant="body1" sx={{ mb: 1 }}>
+                  Processing video...
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                  This page will refresh shortly.
+                </Typography>
               </Box>
             )}
           </Box>
