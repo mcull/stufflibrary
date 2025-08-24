@@ -242,23 +242,34 @@ export function BorrowApprovalClient({
           <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
             Their Video Request
           </Typography>
-          <Box
-            sx={{
-              borderRadius: 2,
-              overflow: 'hidden',
-              bgcolor: 'black',
-            }}
-          >
+          <Box sx={{ borderRadius: 2, overflow: 'hidden', bgcolor: 'black' }}>
             {borrowRequest.videoUrl ? (
-              <video
-                src={borrowRequest.videoUrl}
-                controls
-                style={{
-                  width: '100%',
-                  height: 'auto',
-                  display: 'block',
-                }}
-              />
+              (() => {
+                const url = borrowRequest.videoUrl || '';
+                if (url.includes('stream.mux.com/')) {
+                  const match = url.match(/stream\.mux\.com\/([^\.]+)/);
+                  const playbackId = match ? match[1] : null;
+                  if (playbackId) {
+                    return (
+                      // Mux web component
+
+                      <mux-player
+                        style={{ width: '100%', height: 'auto' }}
+                        stream-type="on-demand"
+                        playback-id={playbackId}
+                        accent-color="#1f2937"
+                      />
+                    );
+                  }
+                }
+                return (
+                  <video
+                    src={borrowRequest.videoUrl}
+                    controls
+                    style={{ width: '100%', height: 'auto', display: 'block' }}
+                  />
+                );
+              })()
             ) : (
               <Box sx={{ p: 4, textAlign: 'center', color: 'white' }}>
                 <Typography>No video available</Typography>

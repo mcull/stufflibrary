@@ -106,12 +106,13 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData();
-    const video = formData.get('video') as File;
+    const useMux = (formData.get('useMux') as string) === 'true';
+    const video = useMux ? null : (formData.get('video') as File) || null;
     const itemId = formData.get('itemId') as string;
     const promisedReturnBy = formData.get('promisedReturnBy') as string;
     const promiseText = formData.get('promiseText') as string;
 
-    if (!video || !itemId || !promisedReturnBy || !promiseText) {
+    if ((!useMux && !video) || !itemId || !promisedReturnBy || !promiseText) {
       return NextResponse.json(
         {
           error:
@@ -173,29 +174,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate unique filename for video
-    const fileExtension = video.name.split('.').pop() || 'webm';
-    const filename = `borrow-request-${uuidv4()}.${fileExtension}`;
+    let videoUrl: string | null = null;
+    if (!useMux && video) {
+      // Generate unique filename for video
+      const fileExtension = video.name.split('.').pop() || 'webm';
+      const filename = `borrow-request-${uuidv4()}.${fileExtension}`;
 
-    console.log('📹 Saving borrow request video to Vercel Blob:', filename);
-    console.log('📏 Video size:', video.size, 'bytes');
+      console.log('📹 Saving borrow request video to Vercel Blob:', filename);
+      console.log('📏 Video size:', video.size, 'bytes');
 
-    // Save video to Vercel Blob storage
-    let videoUrl: string;
-    try {
-      const blob = await put(filename, video, {
-        access: 'public',
-      });
-      videoUrl = blob.url;
-      console.log('✅ Video saved to Vercel Blob:', videoUrl);
-    } catch (err) {
-      console.error('❌ Error saving video to Vercel Blob:', err);
-      return NextResponse.json(
-        {
-          error: 'Failed to save video',
-        },
-        { status: 500 }
-      );
+      try {
+        const blob = await put(filename, video, {
+          access: 'public',
+        });
+        videoUrl = blob.url;
+        console.log('✅ Video saved to Vercel Blob:', videoUrl);
+      } catch (err) {
+        console.error('❌ Error saving video to Vercel Blob:', err);
+        return NextResponse.json(
+          {
+            error: 'Failed to save video',
+          },
+          { status: 500 }
+        );
+      }
     }
 
     // Generate secure token for approval page
@@ -231,29 +233,35 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Create approval URL
-    const approvalUrl = `${process.env.NEXTAUTH_URL}/borrow-approval/${responseToken}`;
+    if (!useMux) {
+      // Create approval URL
+      const approvalUrl = `${process.env.NEXTAUTH_URL}/borrow-approval/${responseToken}`;
 
-    // Send SMS notification to owner
-    try {
-      await sendBorrowRequestNotification({
-        _ownerName: item.owner.name || 'Owner',
-        ownerPhone: item.owner.phone,
-        borrowerName: borrower.name || 'Someone',
-        itemName: item.name,
-        approvalUrl: approvalUrl,
-      });
+      // Send SMS notification to owner immediately when video is ready (Blob flow)
+      try {
+        await sendBorrowRequestNotification({
+          _ownerName: item.owner.name || 'Owner',
+          ownerPhone: item.owner.phone,
+          borrowerName: borrower.name || 'Someone',
+          itemName: item.name,
+          approvalUrl: approvalUrl,
+        });
 
-      console.log('📱 SMS notification sent to owner');
-    } catch (smsError) {
-      console.error('❌ Failed to send SMS notification:', smsError);
-      // Don't fail the request if SMS fails, but log it
+        console.log('📱 SMS notification sent to owner');
+      } catch (smsError) {
+        console.error('❌ Failed to send SMS notification:', smsError);
+        // Don't fail the request if SMS fails, but log it
+      }
+    } else {
+      console.log(
+        'ℹ️ Using Mux upload flow; SMS will be sent when asset is ready'
+      );
     }
 
     return NextResponse.json({
       success: true,
       borrowRequestId: borrowRequest.id,
-      message: 'Borrow request sent successfully',
+      message: 'Borrow request submitted',
     });
   } catch (error) {
     console.error('Error creating borrow request:', error);

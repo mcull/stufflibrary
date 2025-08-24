@@ -67,6 +67,8 @@
     "twilio": "^5.8.0",
     "uuid": "^11.1.0",
     "zod": "^4.0.17",
+    "@mux/mux-node": "^8.8.0",
+    "@mux/mux-player-react": "^3.1.1",
     "tailwindcss": "^4",
     "@tailwindcss/postcss": "^4",
     "lru-cache": "^10.4.3",
