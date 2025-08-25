@@ -10,14 +10,14 @@ const updateUserSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
     await requireAdminAuth();
 
     const body = await request.json();
     const { action } = updateUserSchema.parse(body);
-    const { userId } = params;
+    const { userId } = await params;
 
     let newStatus: string;
     switch (action) {
@@ -47,7 +47,7 @@ export async function PATCH(
     return NextResponse.json({ user: updatedUser });
   } catch (error) {
     console.error('Admin user update error:', error);
-    
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid request data', details: error.issues },
