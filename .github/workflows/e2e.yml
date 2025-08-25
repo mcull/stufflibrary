@@ -52,7 +52,7 @@ jobs:
 
       - name: Setup database
         run: |
-          npx prisma db push --force-reset
+          npx prisma migrate deploy
           npx prisma db seed || echo "No seed script found"
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/test
