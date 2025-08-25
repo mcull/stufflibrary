@@ -1,8 +1,8 @@
-import { env } from './env';
+// Note: env import removed to avoid unused variable lint error
 
 /**
  * Database Configuration Manager
- * 
+ *
  * Provides environment-specific database configuration with safety checks
  * to prevent accidental operations on production data.
  */
@@ -25,12 +25,15 @@ export function getDatabaseEnvironment(): DatabaseEnvironment {
   if (process.env.NODE_ENV === 'test' || process.env.DATABASE_ENV === 'test') {
     return 'test';
   }
-  
+
   // Check for production
-  if (process.env.NODE_ENV === 'production' || process.env.DATABASE_ENV === 'production') {
+  if (
+    process.env.NODE_ENV === 'production' ||
+    process.env.DATABASE_ENV === 'production'
+  ) {
     return 'production';
   }
-  
+
   // Default to development (local database)
   return 'development';
 }
@@ -40,27 +43,35 @@ export function getDatabaseEnvironment(): DatabaseEnvironment {
  */
 export function getDatabaseConfig(): DatabaseConfig {
   const environment = getDatabaseEnvironment();
-  
+
+  // During build time, some API routes may be evaluated but we don't need real DB access
+  const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build';
+
   switch (environment) {
     case 'production':
       // Use PRODUCTION_DATABASE_URL in production, fallback to DATABASE_URL for backward compatibility
-      const prodUrl = process.env.PRODUCTION_DATABASE_URL || process.env.DATABASE_URL;
-      if (!prodUrl) {
-        throw new Error('PRODUCTION_DATABASE_URL (or DATABASE_URL) is required for production environment');
+      const prodUrl =
+        process.env.PRODUCTION_DATABASE_URL || process.env.DATABASE_URL;
+      if (!prodUrl && !isBuildTime) {
+        throw new Error(
+          'PRODUCTION_DATABASE_URL (or DATABASE_URL) is required for production environment'
+        );
       }
       return {
-        url: prodUrl,
+        url: prodUrl || 'postgresql://placeholder@localhost/placeholder',
         directUrl: process.env.PRODUCTION_DIRECT_URL || process.env.DIRECT_URL,
         environment: 'production',
         isProduction: true,
         allowDestructiveOperations: false,
       };
-      
+
     case 'test':
       // Use test database URL if available, otherwise fall back to development
       const testUrl = process.env.TEST_DATABASE_URL || process.env.DATABASE_URL;
       if (!testUrl) {
-        throw new Error('TEST_DATABASE_URL or DATABASE_URL is required for test environment');
+        throw new Error(
+          'TEST_DATABASE_URL or DATABASE_URL is required for test environment'
+        );
       }
       return {
         url: testUrl,
@@ -69,12 +80,14 @@ export function getDatabaseConfig(): DatabaseConfig {
         isProduction: false,
         allowDestructiveOperations: true,
       };
-      
+
     case 'development':
     default:
       // Development uses local database (Docker or local PostgreSQL)
       if (!process.env.DATABASE_URL) {
-        throw new Error('DATABASE_URL is required for development environment (use local database)');
+        throw new Error(
+          'DATABASE_URL is required for development environment (use local database)'
+        );
       }
       return {
         url: process.env.DATABASE_URL,
@@ -104,7 +117,7 @@ export function requireDestructiveOperationsAllowed(operation: string): void {
     const env = getDatabaseEnvironment();
     throw new Error(
       `Destructive operation "${operation}" is not allowed in ${env} environment. ` +
-      `Use staging or development environment for this operation.`
+        `Use staging or development environment for this operation.`
     );
   }
 }
@@ -116,8 +129,12 @@ export function logDatabaseConfig(): void {
   const config = getDatabaseConfig();
   console.log(`Database Environment: ${config.environment}`);
   console.log(`Production Mode: ${config.isProduction}`);
-  console.log(`Destructive Operations Allowed: ${config.allowDestructiveOperations}`);
-  console.log(`Database URL: ${config.url.replace(/\/\/[^:]+:[^@]+@/, '//***:***@')}`);
+  console.log(
+    `Destructive Operations Allowed: ${config.allowDestructiveOperations}`
+  );
+  console.log(
+    `Database URL: ${config.url.replace(/\/\/[^:]+:[^@]+@/, '//***:***@')}`
+  );
 }
 
 // Note: Don't export databaseConfig as a constant to avoid module-load-time issues
