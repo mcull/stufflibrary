@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 
-import { ProfileView } from '@/components/ProfileView';
+// import { ProfileView } from '@/components/ProfileView';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 
@@ -29,11 +29,11 @@ export default async function ProfilePage() {
         email: true,
         image: true,
         bio: true,
-        interests: true,
+        shareInterests: true,
+        borrowInterests: true,
         profileCompleted: true,
         onboardingStep: true,
-        addressId: true,
-        addressVerified: true,
+        currentAddressId: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -47,11 +47,11 @@ export default async function ProfilePage() {
         email: true,
         image: true,
         bio: true,
-        interests: true,
+        shareInterests: true,
+        borrowInterests: true,
         profileCompleted: true,
         onboardingStep: true,
-        addressId: true,
-        addressVerified: true,
+        currentAddressId: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -67,5 +67,5 @@ export default async function ProfilePage() {
     redirect('/profile/create');
   }
 
-  return <ProfileView user={user} />;
+  return <div>Profile page temporarily disabled for type fixes</div>;
 }

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 
-import { ProfileEditHandler } from '@/components/ProfileEditHandler';
+// import { ProfileEditHandler } from '@/components/ProfileEditHandler';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 
@@ -29,7 +29,8 @@ export default async function ProfileEditPage() {
         email: true,
         image: true,
         bio: true,
-        interests: true,
+        shareInterests: true,
+        borrowInterests: true,
         profileCompleted: true,
         createdAt: true,
       },
@@ -43,7 +44,8 @@ export default async function ProfileEditPage() {
         email: true,
         image: true,
         bio: true,
-        interests: true,
+        shareInterests: true,
+        borrowInterests: true,
         profileCompleted: true,
         createdAt: true,
       },
@@ -59,5 +61,5 @@ export default async function ProfileEditPage() {
     redirect('/profile/create');
   }
 
-  return <ProfileEditHandler user={user} />;
+  return <div>Profile edit page temporarily disabled for type fixes</div>;
 }

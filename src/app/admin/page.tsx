@@ -2,8 +2,8 @@ import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 
 import { AdminUserManagement } from '@/components/admin/AdminUserManagement';
-import { authOptions } from '@/lib/auth';
 import { isAdmin } from '@/lib/admin-auth';
+import { authOptions } from '@/lib/auth';
 
 export default async function AdminPage() {
   const session = await getServerSession(authOptions);

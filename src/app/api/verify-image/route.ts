@@ -77,7 +77,7 @@ Be strict but fair. When in doubt, reject and ask for a different photo.`
     let analysis;
     try {
       analysis = JSON.parse(result);
-    } catch (parseError) {
+    } catch {
       console.error('Failed to parse OpenAI response:', result);
       return NextResponse.json(
         { 

@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       user = await db.user.create({
         data: {
           id: userId || undefined,
-          email: session.user.email,
+          email: session.user.email || null,
           name: session.user.name || null,
           image: session.user.image || null,
         },
@@ -104,10 +104,10 @@ export async function POST(request: NextRequest) {
             state: validatedData.parsedAddress.state!,
             zip: validatedData.parsedAddress.zip!,
             country: validatedData.parsedAddress.country || 'US',
-            latitude: validatedData.parsedAddress.latitude || undefined,
-            longitude: validatedData.parsedAddress.longitude || undefined,
-            formattedAddress: validatedData.parsedAddress.formatted_address || undefined,
-            placeId: validatedData.parsedAddress.place_id || undefined,
+            latitude: validatedData.parsedAddress.latitude ?? null,
+            longitude: validatedData.parsedAddress.longitude ?? null,
+            formattedAddress: validatedData.parsedAddress.formatted_address ?? null,
+            placeId: validatedData.parsedAddress.place_id ?? null,
             verificationMethod: 'google_places',
             isActive: true,
           }

@@ -28,8 +28,8 @@ import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { useState } from 'react';
 
-import { brandColors } from '@/theme/brandTokens';
 import { useProfileDraftCleanup } from '@/hooks/useProfileDraftCleanup';
+import { brandColors } from '@/theme/brandTokens';
 
 import { Wordmark } from './Wordmark';
 

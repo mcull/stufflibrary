@@ -12,11 +12,11 @@ import {
   Alert,
   CircularProgress,
 } from '@mui/material';
-import { useFormContext } from 'react-hook-form';
 import { useState, useRef } from 'react';
+import { useFormContext } from 'react-hook-form';
 
+// import { STUFF_CATEGORIES } from '@/data/stuffCategories';
 import { brandColors } from '@/theme/brandTokens';
-import { STUFF_CATEGORIES } from '@/data/stuffCategories';
 
 import type { ProfileFormData } from '../ProfileWizard';
 
@@ -116,7 +116,7 @@ export function ProfileStep2({ onNext, onBack }: ProfileStep2Props) {
   };
 
   const handleRemoveImage = () => {
-    setValue('profilePicture', undefined);
+    setValue('profilePicture', null as any);
     setValue('profilePictureUrl', undefined);
     setPreviewUrl(null);
     setUploadError(null);

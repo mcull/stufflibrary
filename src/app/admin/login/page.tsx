@@ -1,7 +1,7 @@
 'use client';
 
-import { signIn, getSession, getProviders } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { signIn, getSession, getProviders } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 
 export default function AdminLoginPage() {
