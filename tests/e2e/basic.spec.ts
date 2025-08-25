@@ -37,7 +37,7 @@ test.describe('Basic Homepage Tests', () => {
       page.getByText(/neighborhood platform for safely sharing stuff/i)
     ).toBeVisible();
     await expect(
-      page.getByText(/free to use, expensive not to/i)
+      page.getByText(/build community.*reduce clutter.*save money/i)
     ).toBeVisible();
   });
 });
