@@ -1,4 +1,3 @@
-import { Email, Twitter, GitHub, LinkedIn } from '@mui/icons-material';
 import {
   Box,
   Container,
@@ -6,7 +5,6 @@ import {
   Link,
   Stack,
   Divider,
-  IconButton,
 } from '@mui/material';
 
 import { brandColors, spacing } from '@/theme/brandTokens';
@@ -20,7 +18,6 @@ const footerSections = [
       { label: 'How It Works', href: '#' },
       { label: 'Features', href: '#' },
       { label: 'Safety', href: '#' },
-      { label: 'Pricing', href: '#' },
     ],
   },
   {
@@ -28,26 +25,17 @@ const footerSections = [
     links: [
       { label: 'About Us', href: '#' },
       { label: 'Our Mission', href: '#' },
-      { label: 'Careers', href: '#' },
-      { label: 'Blog', href: '#' },
+      { label: 'Success Stories', href: '#' },
     ],
   },
   {
     title: 'Support',
     links: [
-      { label: 'Help Center', href: '#' },
       { label: 'Community Guidelines', href: '#' },
       { label: 'Contact Us', href: 'mailto:hello@stufflibrary.org' },
       { label: 'Report Issue', href: '#' },
     ],
   },
-];
-
-const socialLinks = [
-  { icon: Twitter, href: '#', label: 'Twitter' },
-  { icon: GitHub, href: '#', label: 'GitHub' },
-  { icon: LinkedIn, href: '#', label: 'LinkedIn' },
-  { icon: Email, href: 'mailto:hello@stufflibrary.org', label: 'Email' },
 ];
 
 export function Footer() {
@@ -57,8 +45,8 @@ export function Footer() {
       sx={{
         backgroundColor: brandColors.charcoal,
         color: brandColors.white,
-        pt: { xs: spacing.xxxl / 4, md: spacing.xxxl / 2 },
-        pb: { xs: spacing.lg, md: spacing.xl },
+        pt: { xs: spacing.sm, md: spacing.md },
+        pb: { xs: spacing.xs, md: spacing.sm },
       }}
     >
       <Container maxWidth="lg">
@@ -67,13 +55,15 @@ export function Footer() {
           sx={{
             display: 'grid',
             gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr 1fr' },
-            gap: { xs: 4, md: 6 },
+            gap: { xs: 2, md: 3 },
           }}
         >
           {/* Brand Column */}
           <Box>
-            <Stack spacing={3}>
-              <Wordmark size="medium" color="white" />
+            <Stack spacing={2}>
+              <Box sx={{ transform: 'rotate(1.8deg)' }}>
+                <Wordmark size="medium" color="primary" />
+              </Box>
 
               <Typography
                 variant="body1"
@@ -84,36 +74,8 @@ export function Footer() {
                   maxWidth: '300px',
                 }}
               >
-                Building stronger communities through sharing. Connect with
-                neighbors, save money, and reduce waste together.
+                Make stuff sharing simple and safe in your neighborhood.
               </Typography>
-
-              {/* Social Links */}
-              <Stack direction="row" spacing={1}>
-                {socialLinks.map((social, index) => {
-                  const IconComponent = social.icon;
-
-                  return (
-                    <IconButton
-                      key={index}
-                      href={social.href}
-                      aria-label={social.label}
-                      sx={{
-                        color: brandColors.white,
-                        opacity: 0.7,
-                        '&:hover': {
-                          opacity: 1,
-                          backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                          transform: 'translateY(-2px)',
-                        },
-                        transition: 'all 0.2s ease',
-                      }}
-                    >
-                      <IconComponent fontSize="small" />
-                    </IconButton>
-                  );
-                })}
-              </Stack>
             </Stack>
           </Box>
 
@@ -166,7 +128,7 @@ export function Footer() {
         {/* Divider */}
         <Divider
           sx={{
-            my: { xs: 4, md: 6 },
+            my: { xs: 2, md: 3 },
             borderColor: 'rgba(255, 255, 255, 0.2)',
           }}
         />

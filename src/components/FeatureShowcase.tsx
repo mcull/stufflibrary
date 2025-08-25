@@ -46,7 +46,7 @@ export function FeatureShowcase() {
     <Box
       component="section"
       sx={{
-        py: { xs: spacing.xxxl / 4, md: spacing.xxxl / 2 }, // 16px to 32px scale
+        py: { xs: spacing.md, md: spacing.lg }, // Minimal spacing
         backgroundColor: brandColors.white,
         position: 'relative',
       }}

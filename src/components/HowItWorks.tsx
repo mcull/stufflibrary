@@ -42,7 +42,7 @@ export function HowItWorks() {
     <Box
       component="section"
       sx={{
-        py: { xs: spacing.xxxl / 4, md: spacing.xxxl / 2 },
+        py: { xs: spacing.xs, md: spacing.xs },
         backgroundColor: brandColors.white,
         position: 'relative',
       }}

@@ -8,7 +8,7 @@ export function Hero() {
       component="section"
       sx={{
         backgroundColor: brandColors.warmCream,
-        py: { xs: spacing.xxxl / 3, md: spacing.xxxl / 3 }, // Much tighter spacing
+        py: { xs: spacing.lg, md: spacing.xl }, // Minimal spacing
         position: 'relative',
       }}
     >
