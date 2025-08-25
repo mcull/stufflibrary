@@ -16,7 +16,6 @@ import {
   Chip,
   Avatar,
   Badge,
-  Grid,
   Paper,
 } from '@mui/material';
 import Link from 'next/link';
@@ -202,15 +201,21 @@ export default function DashboardConceptsDemo() {
                 </Box>
 
                 {/* Stats Row */}
-                <Grid
-                  container
-                  spacing={spacing.md / 16}
-                  sx={{ mb: spacing.lg / 16 }}
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: {
+                      xs: 'repeat(2, 1fr)',
+                      md: 'repeat(4, 1fr)',
+                    },
+                    gap: spacing.md / 16,
+                    mb: spacing.lg / 16,
+                  }}
                 >
                   {neighborhoodStats.map((stat) => {
                     const IconComponent = stat.icon;
                     return (
-                      <Grid item xs={6} md={3} key={stat.label}>
+                      <Box key={stat.label}>
                         <Box
                           sx={{
                             display: 'flex',
@@ -248,10 +253,10 @@ export default function DashboardConceptsDemo() {
                             </Typography>
                           </Box>
                         </Box>
-                      </Grid>
+                      </Box>
                     );
                   })}
-                </Grid>
+                </Box>
 
                 {/* Activity Feed */}
                 <Box>

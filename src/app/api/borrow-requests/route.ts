@@ -222,18 +222,24 @@ export async function POST(request: NextRequest) {
 
     // Send SMS notification to owner
     try {
-      const smsResult = await sendBorrowRequestNotification({
-        _ownerName: item.owner.name || 'Owner',
-        ownerPhone: item.owner.phone,
-        borrowerName: borrower.name || 'Someone',
-        itemName: item.name,
-        approvalUrl: approvalUrl,
-      });
-
-      if (smsResult.success) {
-        console.log('📱 SMS notification sent to owner successfully');
+      if (!item.owner.phone) {
+        console.warn(
+          '⚠️ Owner does not have a phone number - SMS notification skipped'
+        );
       } else {
-        console.error('❌ SMS failed:', smsResult.error);
+        const smsResult = await sendBorrowRequestNotification({
+          _ownerName: item.owner.name || 'Owner',
+          ownerPhone: item.owner.phone,
+          borrowerName: borrower.name || 'Someone',
+          itemName: item.name,
+          approvalUrl: approvalUrl,
+        });
+
+        if (smsResult.success) {
+          console.log('📱 SMS notification sent to owner successfully');
+        } else {
+          console.error('❌ SMS failed:', smsResult.error);
+        }
       }
     } catch (smsError) {
       console.error('❌ Failed to send SMS notification:', smsError);
@@ -245,6 +251,21 @@ export async function POST(request: NextRequest) {
       ) {
         console.error(
           '🔧 TWILIO CONFIG ERROR: Please update TWILIO_ACCOUNT_SID in your .env file with a valid Account SID from https://console.twilio.com/'
+        );
+      } else if (
+        smsError instanceof Error &&
+        smsError.message.includes('Phone number is required but was empty')
+      ) {
+        console.error(
+          '📞 PHONE NUMBER ERROR: Owner does not have a valid phone number set in their profile'
+        );
+      } else if (
+        smsError instanceof Error &&
+        smsError.message.includes('Invalid phone number format')
+      ) {
+        console.error(
+          '📞 PHONE FORMAT ERROR: Owner phone number is not in valid E.164 format:',
+          item.owner.phone
         );
       }
 
