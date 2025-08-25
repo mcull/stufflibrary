@@ -1,12 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 export async function POST(request: NextRequest) {
   try {
+    // Check if OpenAI API key is configured
+    if (!process.env.OPENAI_API_KEY) {
+      console.warn(
+        'OPENAI_API_KEY not configured - image verification disabled'
+      );
+      return NextResponse.json(
+        {
+          error: 'Image verification service not available',
+          details: 'OpenAI API key not configured',
+        },
+        { status: 503 }
+      );
+    }
+
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
     const formData = await request.formData();
     const file = formData.get('image') as File;
 
@@ -21,10 +34,10 @@ export async function POST(request: NextRequest) {
 
     // Use OpenAI Vision API to analyze the image
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: 'gpt-4o-mini',
       messages: [
         {
-          role: "system",
+          role: 'system',
           content: `You are an image content moderator for a neighborhood sharing app. Analyze the uploaded profile picture and determine if it meets our community guidelines.
 
 REQUIREMENTS:
@@ -42,33 +55,33 @@ Respond with a JSON object:
   "confidence": "high|medium|low"
 }
 
-Be strict but fair. When in doubt, reject and ask for a different photo.`
+Be strict but fair. When in doubt, reject and ask for a different photo.`,
         },
         {
-          role: "user",
+          role: 'user',
           content: [
             {
-              type: "text",
-              text: "Please analyze this profile picture according to our community guidelines."
+              type: 'text',
+              text: 'Please analyze this profile picture according to our community guidelines.',
             },
             {
-              type: "image_url",
+              type: 'image_url',
               image_url: {
-                url: dataUrl
-              }
-            }
-          ]
-        }
+                url: dataUrl,
+              },
+            },
+          ],
+        },
       ],
       max_tokens: 150,
       temperature: 0.3,
     });
 
     const result = response.choices[0]?.message?.content;
-    
+
     if (!result) {
       return NextResponse.json(
-        { error: 'Failed to analyze image' }, 
+        { error: 'Failed to analyze image' },
         { status: 500 }
       );
     }
@@ -80,10 +93,10 @@ Be strict but fair. When in doubt, reject and ask for a different photo.`
     } catch {
       console.error('Failed to parse OpenAI response:', result);
       return NextResponse.json(
-        { 
+        {
           error: 'Unable to analyze image at this time',
-          details: 'Analysis service error' 
-        }, 
+          details: 'Analysis service error',
+        },
         { status: 500 }
       );
     }
@@ -93,16 +106,15 @@ Be strict but fair. When in doubt, reject and ask for a different photo.`
       reason: analysis.reason,
       confidence: analysis.confidence,
     });
-
   } catch (error) {
     console.error('Image verification error:', error);
-    
+
     // If OpenAI API is down, we could implement a fallback or temporary approval
     return NextResponse.json(
-      { 
+      {
         error: 'Unable to verify image at this time',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      }, 
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
       { status: 500 }
     );
   }
