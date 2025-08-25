@@ -42,7 +42,21 @@ export default async function AuthCallbackPage({
     const branchId = params.branch as string;
 
     if (user.profileCompleted) {
-      redirect(`/branch/${branchId}?message=joined_successfully`);
+      // Get user's first name for welcome banner
+      const fullUser = await db.user.findUnique({
+        where: { id: user.id },
+        select: { name: true },
+      });
+      const firstName = fullUser?.name?.split(' ')[0] || '';
+      const welcomeUrl = new URL(
+        `/branch/${branchId}`,
+        'http://localhost:3000'
+      );
+      welcomeUrl.searchParams.set('message', 'joined_successfully');
+      if (firstName) {
+        welcomeUrl.searchParams.set('welcomeName', firstName);
+      }
+      redirect(welcomeUrl.toString().replace('http://localhost:3000', ''));
     } else {
       redirect(
         `/profile/create?invitation=${invitationToken}&branch=${branchId}`
