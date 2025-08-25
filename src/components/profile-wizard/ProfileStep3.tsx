@@ -29,35 +29,40 @@ interface ProfileStep3Props {
   profilePicturePreviewUrl?: string | null;
 }
 
-
-export function ProfileStep3({ onBack, profilePicturePreviewUrl }: ProfileStep3Props) {
+export function ProfileStep3({
+  onBack,
+  profilePicturePreviewUrl,
+}: ProfileStep3Props) {
   const {
-    register,
-    setValue,
     watch,
     control,
     formState: { errors, isSubmitting },
   } = useFormContext<ProfileFormData>();
 
-
   const formData = watch();
-  const { 
-    name, 
-    bio, 
-    shareInterests, 
-    borrowInterests, 
-    profilePicture, 
+  const {
+    name,
+    bio,
+    shareInterests,
+    borrowInterests,
+    profilePicture,
     profilePictureUrl,
     agreedToHouseholdGoods,
     agreedToTrustAndCare,
     agreedToCommunityValues,
     agreedToAgeRestrictions,
     agreedToTerms,
-    parsedAddress 
+    parsedAddress,
   } = formData;
 
   const currentImageUrl = profilePicturePreviewUrl || profilePictureUrl;
-  const canProceed = agreedToTerms && agreedToHouseholdGoods && agreedToTrustAndCare && agreedToCommunityValues && agreedToAgeRestrictions && profilePicture;
+  const canProceed =
+    agreedToTerms &&
+    agreedToHouseholdGoods &&
+    agreedToTrustAndCare &&
+    agreedToCommunityValues &&
+    agreedToAgeRestrictions &&
+    profilePicture;
 
   return (
     <Box sx={{ minHeight: '600px' }}>
@@ -81,13 +86,18 @@ export function ProfileStep3({ onBack, profilePicturePreviewUrl }: ProfileStep3P
             mb: 4,
           }}
         >
-          Review your profile information and agree to our terms to complete your registration.
+          Review your profile information and agree to our terms to complete
+          your registration.
         </Typography>
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-
           {/* Profile Summary */}
-          <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)' }}>
+          <Card
+            sx={{
+              borderRadius: 3,
+              boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)',
+            }}
+          >
             <CardContent sx={{ p: 3 }}>
               <Typography
                 variant="subtitle1"
@@ -108,12 +118,18 @@ export function ProfileStep3({ onBack, profilePicturePreviewUrl }: ProfileStep3P
                     {name || 'Your Name'}
                   </Typography>
                   {parsedAddress && (
-                    <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ color: 'text.secondary', mb: 1 }}
+                    >
                       {parsedAddress.city}, {parsedAddress.state}
                     </Typography>
                   )}
                   {bio && (
-                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ color: 'text.secondary' }}
+                    >
                       {bio}
                     </Typography>
                   )}
@@ -180,10 +196,13 @@ export function ProfileStep3({ onBack, profilePicturePreviewUrl }: ProfileStep3P
 
           {/* Community Guidelines */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: brandColors.charcoal, mb: 1 }}>
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: 600, color: brandColors.charcoal, mb: 1 }}
+            >
               Community Guidelines
             </Typography>
-            
+
             <Controller
               name="agreedToHouseholdGoods"
               control={control}
@@ -202,9 +221,13 @@ export function ProfileStep3({ onBack, profilePicturePreviewUrl }: ProfileStep3P
                     />
                   }
                   label={
-                    <Typography variant="body2" sx={{ color: brandColors.charcoal }}>
-                      I understand that Stuff Library is for sharing normal household goods only. 
-                      Sharing anything illegal, unsafe, or inappropriate will result in account closure.
+                    <Typography
+                      variant="body2"
+                      sx={{ color: brandColors.charcoal }}
+                    >
+                      I understand that Stuff Library is for sharing normal
+                      household goods only. Sharing anything illegal, unsafe, or
+                      inappropriate will result in account closure.
                     </Typography>
                   }
                 />
@@ -229,9 +252,13 @@ export function ProfileStep3({ onBack, profilePicturePreviewUrl }: ProfileStep3P
                     />
                   }
                   label={
-                    <Typography variant="body2" sx={{ color: brandColors.charcoal }}>
-                      I'll do my best to take care of borrowed items, and I won't share anything 
-                      irreplaceable or where normal wear and tear would upset me.
+                    <Typography
+                      variant="body2"
+                      sx={{ color: brandColors.charcoal }}
+                    >
+                      I&apos;ll do my best to take care of borrowed items, and I
+                      won&apos;t share anything irreplaceable or where normal
+                      wear and tear would upset me.
                     </Typography>
                   }
                 />
@@ -256,9 +283,13 @@ export function ProfileStep3({ onBack, profilePicturePreviewUrl }: ProfileStep3P
                     />
                   }
                   label={
-                    <Typography variant="body2" sx={{ color: brandColors.charcoal }}>
-                      I'm here to build community through sharing. I'll treat neighbors with 
-                      kindness and respect—hurtful behavior won't be tolerated.
+                    <Typography
+                      variant="body2"
+                      sx={{ color: brandColors.charcoal }}
+                    >
+                      I&apos;m here to build community through sharing.
+                      I&apos;ll treat neighbors with kindness and
+                      respect—hurtful behavior won&apos;t be tolerated.
                     </Typography>
                   }
                 />
@@ -283,9 +314,13 @@ export function ProfileStep3({ onBack, profilePicturePreviewUrl }: ProfileStep3P
                     />
                   }
                   label={
-                    <Typography variant="body2" sx={{ color: brandColors.charcoal }}>
-                      I understand that Stuff Library doesn't verify ages, so I won't share 
-                      age-restricted items like alcohol, tobacco, firearms, or anything requiring ID.
+                    <Typography
+                      variant="body2"
+                      sx={{ color: brandColors.charcoal }}
+                    >
+                      I understand that Stuff Library doesn&apos;t verify ages,
+                      so I won&apos;t share age-restricted items like alcohol,
+                      tobacco, firearms, or anything requiring ID.
                     </Typography>
                   }
                 />
@@ -303,7 +338,12 @@ export function ProfileStep3({ onBack, profilePicturePreviewUrl }: ProfileStep3P
                   <Checkbox
                     checked={value || false}
                     onChange={(e) => onChange(e.target.checked)}
-                    disabled={!agreedToHouseholdGoods || !agreedToTrustAndCare || !agreedToCommunityValues || !agreedToAgeRestrictions}
+                    disabled={
+                      !agreedToHouseholdGoods ||
+                      !agreedToTrustAndCare ||
+                      !agreedToCommunityValues ||
+                      !agreedToAgeRestrictions
+                    }
                     sx={{
                       color: brandColors.inkBlue,
                       '&.Mui-checked': {
@@ -316,34 +356,46 @@ export function ProfileStep3({ onBack, profilePicturePreviewUrl }: ProfileStep3P
                   />
                 }
                 label={
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
-                      color: (!agreedToHouseholdGoods || !agreedToTrustAndCare || !agreedToCommunityValues || !agreedToAgeRestrictions) 
-                        ? brandColors.softGray 
-                        : brandColors.charcoal 
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color:
+                        !agreedToHouseholdGoods ||
+                        !agreedToTrustAndCare ||
+                        !agreedToCommunityValues ||
+                        !agreedToAgeRestrictions
+                          ? brandColors.softGray
+                          : brandColors.charcoal,
                     }}
                   >
                     I agree to the{' '}
-                    <Link 
-                      href="/terms" 
-                      target="_blank" 
-                      sx={{ 
-                        color: (!agreedToHouseholdGoods || !agreedToTrustAndCare || !agreedToCommunityValues || !agreedToAgeRestrictions) 
-                          ? brandColors.softGray 
-                          : brandColors.inkBlue 
+                    <Link
+                      href="/terms"
+                      target="_blank"
+                      sx={{
+                        color:
+                          !agreedToHouseholdGoods ||
+                          !agreedToTrustAndCare ||
+                          !agreedToCommunityValues ||
+                          !agreedToAgeRestrictions
+                            ? brandColors.softGray
+                            : brandColors.inkBlue,
                       }}
                     >
                       Terms of Service
                     </Link>{' '}
                     and{' '}
-                    <Link 
-                      href="/privacy" 
-                      target="_blank" 
-                      sx={{ 
-                        color: (!agreedToHouseholdGoods || !agreedToTrustAndCare || !agreedToCommunityValues || !agreedToAgeRestrictions) 
-                          ? brandColors.softGray 
-                          : brandColors.inkBlue 
+                    <Link
+                      href="/privacy"
+                      target="_blank"
+                      sx={{
+                        color:
+                          !agreedToHouseholdGoods ||
+                          !agreedToTrustAndCare ||
+                          !agreedToCommunityValues ||
+                          !agreedToAgeRestrictions
+                            ? brandColors.softGray
+                            : brandColors.inkBlue,
                       }}
                     >
                       Privacy Policy
@@ -418,36 +470,40 @@ export function ProfileStep3({ onBack, profilePicturePreviewUrl }: ProfileStep3P
       </Box>
 
       {/* Navigation */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 2 }}>
+      <Box sx={{ pt: 2 }}>
+        {/* Back link */}
         <Button
-          variant="outlined"
+          variant="text"
           onClick={onBack}
           startIcon={<ArrowBack />}
           sx={{
-            px: 4,
-            py: 1.5,
-            fontSize: '1rem',
-            fontWeight: 600,
-            borderRadius: '12px',
+            mb: 2,
+            px: 0,
+            py: 1,
+            fontSize: '0.875rem',
+            fontWeight: 500,
             textTransform: 'none',
-            borderColor: brandColors.softGray,
             color: brandColors.charcoal,
+            opacity: 0.7,
             '&:hover': {
-              borderColor: brandColors.charcoal,
-              backgroundColor: 'rgba(0, 0, 0, 0.04)',
+              opacity: 1,
+              backgroundColor: 'transparent',
             },
           }}
         >
           Back
         </Button>
 
+        {/* Full-width primary button */}
         <Button
           type="submit"
           variant="contained"
           disabled={!canProceed || isSubmitting}
-          endIcon={isSubmitting ? <CircularProgress size={16} /> : <CheckCircle />}
+          endIcon={
+            isSubmitting ? <CircularProgress size={16} /> : <CheckCircle />
+          }
+          fullWidth
           sx={{
-            px: 4,
             py: 1.5,
             fontSize: '1rem',
             fontWeight: 600,

@@ -334,7 +334,7 @@ export function ProfileWizard({
               opacity: 0.7,
             }}
           >
-            Help us create a personalized experience for you
+            Let your neighbors know who you are and where your stuff is
           </Typography>
         </Box>
 
@@ -363,6 +363,8 @@ export function ProfileWizard({
                         ? brandColors.charcoal
                         : brandColors.softGray,
                     mt: 1,
+                    // Hide labels on mobile for cleaner UI
+                    display: { xs: 'none', sm: 'block' },
                   },
                 }}
               >

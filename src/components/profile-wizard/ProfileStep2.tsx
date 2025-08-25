@@ -1,6 +1,13 @@
 'use client';
 
-import { ArrowBack, ArrowForward, CameraAlt, Close, CheckCircle, Warning } from '@mui/icons-material';
+import {
+  ArrowBack,
+  ArrowForward,
+  CameraAlt,
+  Close,
+  CheckCircle,
+  Warning,
+} from '@mui/icons-material';
 import {
   Avatar,
   Box,
@@ -45,15 +52,20 @@ export function ProfileStep2({ onNext, onBack }: ProfileStep2Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [verificationStatus, setVerificationStatus] = useState<'pending' | 'verifying' | 'approved' | 'rejected' | null>(null);
-  const [verificationResult, setVerificationResult] = useState<ImageVerificationResult | null>(null);
+  const [verificationStatus, setVerificationStatus] = useState<
+    'pending' | 'verifying' | 'approved' | 'rejected' | null
+  >(null);
+  const [_verificationResult, setVerificationResult] =
+    useState<ImageVerificationResult | null>(null);
 
-  const profilePicture = watch('profilePicture');
+  const _profilePicture = watch('profilePicture');
   const profilePictureUrl = watch('profilePictureUrl');
 
   const currentImageUrl = previewUrl || profilePictureUrl;
 
-  const verifyImageWithAI = async (file: File): Promise<ImageVerificationResult> => {
+  const verifyImageWithAI = async (
+    file: File
+  ): Promise<ImageVerificationResult> => {
     const formData = new FormData();
     formData.append('image', file);
 
@@ -69,7 +81,9 @@ export function ProfileStep2({ onNext, onBack }: ProfileStep2Props) {
     return response.json();
   };
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -79,7 +93,11 @@ export function ProfileStep2({ onNext, onBack }: ProfileStep2Props) {
     setVerificationResult(null);
 
     // Validate file type
-    if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type)) {
+    if (
+      !['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(
+        file.type
+      )
+    ) {
       setUploadError('Please select a JPEG, PNG, or WebP image');
       return;
     }
@@ -106,12 +124,16 @@ export function ProfileStep2({ onNext, onBack }: ProfileStep2Props) {
         setValue('profilePicture', file);
       } else {
         setVerificationStatus('rejected');
-        setUploadError(result.reason || 'Image does not meet our community guidelines');
+        setUploadError(
+          result.reason || 'Image does not meet our community guidelines'
+        );
       }
     } catch (error) {
       console.error('Image verification error:', error);
       setVerificationStatus('rejected');
-      setUploadError('Unable to verify image. Please try again or choose a different photo.');
+      setUploadError(
+        'Unable to verify image. Please try again or choose a different photo.'
+      );
     }
   };
 
@@ -174,9 +196,11 @@ export function ProfileStep2({ onNext, onBack }: ProfileStep2Props) {
             lineHeight: 1.6,
           }}
         >
-          Your profile photo helps neighbors recognize you when borrowing or sharing items, building trust in our community. 
-          A brief "About me" section helps others understand your interests and sharing style, making it easier to connect 
-          with the right neighbors for your needs.
+          Your profile photo helps neighbors recognize you when borrowing or
+          sharing items, building trust in our community. A brief &quot;About
+          me&quot; section helps others understand your interests and sharing
+          style, making it easier to connect with the right neighbors for your
+          needs.
         </Typography>
 
         <Stack spacing={4}>
@@ -320,16 +344,16 @@ export function ProfileStep2({ onNext, onBack }: ProfileStep2Props) {
 
             {/* Verification Message */}
             {verificationMessage && (
-              <Alert 
-                severity={verificationMessage.type} 
-                sx={{ 
-                  mt: 2, 
+              <Alert
+                severity={verificationMessage.type}
+                sx={{
+                  mt: 2,
                   borderRadius: 2,
                   ...(verificationMessage.type === 'error' && {
                     '& .MuiAlert-message': {
                       fontSize: '0.875rem',
-                    }
-                  })
+                    },
+                  }),
                 }}
               >
                 {verificationMessage.message}
@@ -337,9 +361,15 @@ export function ProfileStep2({ onNext, onBack }: ProfileStep2Props) {
                   <Box sx={{ mt: 1, fontSize: '0.8rem', opacity: 0.8 }}>
                     <strong>Photo Guidelines:</strong>
                     <ul style={{ margin: '4px 0', paddingLeft: '16px' }}>
-                      <li>Must be a clear photo of a real person (no cartoons, animals, or objects)</li>
+                      <li>
+                        Must be a clear photo of a real person (no cartoons,
+                        animals, or objects)
+                      </li>
                       <li>Should show your face clearly</li>
-                      <li>No inappropriate content, gestures, or offensive text/symbols</li>
+                      <li>
+                        No inappropriate content, gestures, or offensive
+                        text/symbols
+                      </li>
                       <li>Family-friendly and welcoming for our community</li>
                     </ul>
                   </Box>
@@ -393,7 +423,7 @@ export function ProfileStep2({ onNext, onBack }: ProfileStep2Props) {
                 },
               }}
             />
-            
+
             <Typography
               variant="caption"
               sx={{
@@ -405,44 +435,48 @@ export function ProfileStep2({ onNext, onBack }: ProfileStep2Props) {
                 lineHeight: 1.4,
               }}
             >
-              Example: "I've been in the neighborhood for 3 years. Live with my spouse, two kids, and three big dogs. 
-              Love gardening and camping, and have a bunch of sporting goods the kids have outgrown. I'm generally 
-              not too fussy with stuff, but I admit a pet peeve is leaving tools outside overnight!"
+              Example: &quot;I&apos;ve been in the neighborhood for 3 years.
+              Live with my spouse, two kids, and three big dogs. Love gardening
+              and camping, and have a bunch of sporting goods the kids have
+              outgrown. I&apos;m generally not too fussy with stuff, but I admit
+              a pet peeve is leaving tools outside overnight!&quot;
             </Typography>
           </Box>
         </Stack>
       </Box>
 
       {/* Navigation */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 2 }}>
+      <Box sx={{ pt: 2 }}>
+        {/* Back link */}
         <Button
-          variant="outlined"
+          variant="text"
           onClick={onBack}
           startIcon={<ArrowBack />}
           sx={{
-            px: 4,
-            py: 1.5,
-            fontSize: '1rem',
-            fontWeight: 600,
-            borderRadius: '12px',
+            mb: 2,
+            px: 0,
+            py: 1,
+            fontSize: '0.875rem',
+            fontWeight: 500,
             textTransform: 'none',
-            borderColor: brandColors.softGray,
             color: brandColors.charcoal,
+            opacity: 0.7,
             '&:hover': {
-              borderColor: brandColors.charcoal,
-              backgroundColor: 'rgba(0, 0, 0, 0.04)',
+              opacity: 1,
+              backgroundColor: 'transparent',
             },
           }}
         >
           Back
         </Button>
 
+        {/* Full-width primary button */}
         <Button
           variant="contained"
           onClick={onNext}
           endIcon={<ArrowForward />}
+          fullWidth
           sx={{
-            px: 4,
             py: 1.5,
             fontSize: '1rem',
             fontWeight: 600,
