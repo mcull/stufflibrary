@@ -25,7 +25,7 @@
     "db:studio": "prisma studio",
     "db:local:start": "docker-compose up -d postgres",
     "db:local:stop": "docker-compose down",
-    "db:local:reset": "tsx scripts/db-safety-check.ts 'migrate reset' && prisma migrate reset",
+    "db:local:reset": "tsx scripts/db-safety-check.ts 'migrate reset' && prisma migrate reset --force",
     "db:production:deploy": "DATABASE_ENV=production tsx scripts/db-safety-check.ts 'migrate deploy' --allow-production && DATABASE_ENV=production prisma migrate deploy",
     "db:production:status": "DATABASE_ENV=production prisma migrate status",
     "db:production:studio": "DATABASE_ENV=production prisma studio --browser none",
