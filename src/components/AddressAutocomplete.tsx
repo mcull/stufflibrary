@@ -1,12 +1,12 @@
 'use client';
 
 import { LocationOn } from '@mui/icons-material';
-import { 
-  TextField, 
-  Autocomplete, 
-  Box, 
+import {
+  TextField,
+  Autocomplete,
+  Box,
   Typography,
-  CircularProgress 
+  CircularProgress,
 } from '@mui/material';
 import { useState, useEffect } from 'react';
 import { useDebounce } from 'use-debounce';
@@ -48,7 +48,7 @@ export function AddressAutocomplete({
   onChange,
   error,
   helperText,
-  placeholder = '123 Main Street, City, State'
+  placeholder = '123 Main Street, City, State',
 }: AddressAutocompleteProps) {
   const [inputValue, setInputValue] = useState(value);
   const [options, setOptions] = useState<AddressOption[]>([]);
@@ -58,16 +58,18 @@ export function AddressAutocomplete({
   // Google Places API autocomplete
   const searchAddresses = async (query: string): Promise<AddressOption[]> => {
     if (!query || query.length < 3) return [];
-    
+
     try {
-      const response = await fetch(`/api/places/autocomplete?input=${encodeURIComponent(query)}`);
+      const response = await fetch(
+        `/api/places/autocomplete?input=${encodeURIComponent(query)}`
+      );
       if (!response.ok) {
         console.error('Failed to fetch address suggestions');
         return [];
       }
-      
+
       const data = await response.json();
-      
+
       return data.predictions.map((prediction: any) => ({
         label: prediction.description,
         value: prediction.description,
@@ -84,10 +86,10 @@ export function AddressAutocomplete({
     if (debouncedValue && debouncedValue.length >= 3) {
       setLoading(true);
       searchAddresses(debouncedValue)
-        .then(results => {
+        .then((results) => {
           setOptions(results);
         })
-        .catch(error => {
+        .catch((error) => {
           console.error('Address search error:', error);
           setOptions([]);
         })
@@ -104,7 +106,7 @@ export function AddressAutocomplete({
     <Autocomplete
       freeSolo
       options={options}
-      getOptionLabel={(option) => 
+      getOptionLabel={(option) =>
         typeof option === 'string' ? option : option.label
       }
       value={value}
@@ -113,14 +115,15 @@ export function AddressAutocomplete({
         setInputValue(newInputValue);
       }}
       onChange={async (_, newValue) => {
-        const selectedValue = typeof newValue === 'string' 
-          ? newValue 
-          : newValue?.value || '';
-        
+        const selectedValue =
+          typeof newValue === 'string' ? newValue : newValue?.value || '';
+
         // If a place was selected (not just typed), get detailed address info
         if (newValue && typeof newValue === 'object' && newValue.place_id) {
           try {
-            const response = await fetch(`/api/places/details?place_id=${newValue.place_id}`);
+            const response = await fetch(
+              `/api/places/details?place_id=${newValue.place_id}`
+            );
             if (response.ok) {
               const parsedAddress = await response.json();
               onChange(selectedValue, parsedAddress);
@@ -134,17 +137,20 @@ export function AddressAutocomplete({
         } else {
           onChange(selectedValue);
         }
-        
+
         setInputValue(selectedValue);
       }}
       loading={loading}
       renderInput={(params) => (
         <TextField
-          {...params}
+          {...(params as any)}
           label="Address"
           placeholder={placeholder}
           error={error || false}
-          helperText={helperText || 'Your address helps us connect you with nearby neighbors'}
+          helperText={
+            helperText ||
+            'Your address helps us connect you with nearby neighbors'
+          }
           fullWidth
           variant="outlined"
           InputProps={{
@@ -156,7 +162,9 @@ export function AddressAutocomplete({
             ),
             endAdornment: (
               <>
-                {loading ? <CircularProgress color="inherit" size={20} /> : null}
+                {loading ? (
+                  <CircularProgress color="inherit" size={20} />
+                ) : null}
                 {params.InputProps.endAdornment}
               </>
             ),
@@ -198,24 +206,24 @@ export function AddressAutocomplete({
               },
             }}
           >
-          <LocationOn
-            sx={{ 
-              color: brandColors.inkBlue, 
-              mr: 2, 
-              opacity: 0.7,
-              fontSize: 20 
-            }}
-          />
-          <Typography variant="body2" color="text.primary">
-            {option.label}
-          </Typography>
-        </Box>
+            <LocationOn
+              sx={{
+                color: brandColors.inkBlue,
+                mr: 2,
+                opacity: 0.7,
+                fontSize: 20,
+              }}
+            />
+            <Typography variant="body2" color="text.primary">
+              {option.label}
+            </Typography>
+          </Box>
         );
       }}
       noOptionsText={
-        inputValue.length < 3 
-          ? "Type at least 3 characters to search addresses"
-          : "No addresses found"
+        inputValue.length < 3
+          ? 'Type at least 3 characters to search addresses'
+          : 'No addresses found'
       }
     />
   );

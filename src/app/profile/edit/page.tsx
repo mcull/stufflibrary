@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 
-// import { ProfileEditHandler } from '@/components/ProfileEditHandler';
+import { ProfileEditHandler } from '@/components/ProfileEditHandler';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 
@@ -61,5 +61,5 @@ export default async function ProfileEditPage() {
     redirect('/profile/create');
   }
 
-  return <div>Profile edit page temporarily disabled for type fixes</div>;
+  return <ProfileEditHandler user={user} />;
 }

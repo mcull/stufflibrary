@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 
-// import { ProfileView } from '@/components/ProfileView';
+import { ProfileView } from '@/components/ProfileView';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 
@@ -67,5 +67,5 @@ export default async function ProfilePage() {
     redirect('/profile/create');
   }
 
-  return <div>Profile page temporarily disabled for type fixes</div>;
+  return <ProfileView user={user} />;
 }

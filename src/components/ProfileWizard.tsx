@@ -30,16 +30,20 @@ const profileSchema = z.object({
   bio: z.string().optional(),
   shareInterests: z.array(z.string()).default([]),
   borrowInterests: z.array(z.string()).default([]),
-  profilePicture: z.instanceof(File).refine(
-    (file) => file instanceof File,
-    'Profile picture is required'
-  ).refine(
-    (file) => file.size <= 10 * 1024 * 1024, // 10MB limit
-    'Profile picture must be less than 10MB'
-  ).refine(
-    (file) => ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type),
-    'Profile picture must be a JPEG, PNG, or WebP image'
-  ),
+  profilePicture: z
+    .instanceof(File)
+    .refine((file) => file instanceof File, 'Profile picture is required')
+    .refine(
+      (file) => file.size <= 10 * 1024 * 1024, // 10MB limit
+      'Profile picture must be less than 10MB'
+    )
+    .refine(
+      (file) =>
+        ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(
+          file.type
+        ),
+      'Profile picture must be a JPEG, PNG, or WebP image'
+    ),
   profilePictureUrl: z.string().optional(),
   agreedToHouseholdGoods: z.boolean().default(false),
   agreedToTrustAndCare: z.boolean().default(false),
@@ -133,21 +137,25 @@ export function ProfileWizard({
   user,
 }: ProfileWizardProps) {
   const [activeStep, setActiveStep] = useState(0);
-  const [profilePicturePreviewUrl, setProfilePicturePreviewUrl] = useState<string | null>(null);
+  const [profilePicturePreviewUrl, setProfilePicturePreviewUrl] = useState<
+    string | null
+  >(null);
 
   const methods = useForm<ProfileFormData>({
-    resolver: zodResolver(profileSchema),
+    resolver: zodResolver(profileSchema) as any,
     defaultValues: {
       name: '',
       address: '',
-      bio: '',
+      bio: undefined,
       shareInterests: [],
       borrowInterests: [],
+      profilePictureUrl: undefined,
       agreedToHouseholdGoods: false,
       agreedToTrustAndCare: false,
       agreedToCommunityValues: false,
       agreedToAgeRestrictions: false,
       agreedToTerms: false,
+      parsedAddress: undefined,
       ...initialData,
     },
     mode: 'onBlur',
@@ -161,7 +169,7 @@ export function ProfileWizard({
     if (profilePicture instanceof File) {
       // Create new preview URL
       const newUrl = URL.createObjectURL(profilePicture);
-      setProfilePicturePreviewUrl(prevUrl => {
+      setProfilePicturePreviewUrl((prevUrl) => {
         // Revoke old URL to prevent memory leaks
         if (prevUrl) {
           URL.revokeObjectURL(prevUrl);
@@ -170,7 +178,7 @@ export function ProfileWizard({
       });
     } else if (!profilePicture) {
       // Clean up when file is removed
-      setProfilePicturePreviewUrl(prevUrl => {
+      setProfilePicturePreviewUrl((prevUrl) => {
         if (prevUrl) {
           URL.revokeObjectURL(prevUrl);
         }
@@ -192,7 +200,9 @@ export function ProfileWizard({
   const watchedValues = watch();
   useEffect(() => {
     // Create user-specific key to prevent data leakage between users
-    const draftKey = user?.email ? `profile-wizard-draft-${user.email}` : 'profile-wizard-draft-temp';
+    const draftKey = user?.email
+      ? `profile-wizard-draft-${user.email}`
+      : 'profile-wizard-draft-temp';
     const timeoutId = setTimeout(() => {
       localStorage.setItem(draftKey, JSON.stringify(watchedValues));
     }, 1000);
@@ -203,18 +213,20 @@ export function ProfileWizard({
   // Load draft on mount and clean up stale drafts
   useEffect(() => {
     // Create user-specific key
-    const draftKey = user?.email ? `profile-wizard-draft-${user.email}` : 'profile-wizard-draft-temp';
-    
+    const draftKey = user?.email
+      ? `profile-wizard-draft-${user.email}`
+      : 'profile-wizard-draft-temp';
+
     // Clean up any old non-user-specific drafts first
     localStorage.removeItem('profile-wizard-draft');
-    
+
     // Clean up drafts from other users by removing all profile wizard draft keys except current user
-    Object.keys(localStorage).forEach(key => {
+    Object.keys(localStorage).forEach((key) => {
       if (key.startsWith('profile-wizard-draft-') && key !== draftKey) {
         localStorage.removeItem(key);
       }
     });
-    
+
     // Load current user's draft
     const savedDraft = localStorage.getItem(draftKey);
     if (savedDraft && !initialData) {
@@ -244,15 +256,21 @@ export function ProfileWizard({
 
   const handleComplete = async (data: ProfileFormData) => {
     // Validate checkboxes before proceeding
-    if (!data.agreedToHouseholdGoods || !data.agreedToTrustAndCare || 
-        !data.agreedToCommunityValues || !data.agreedToAgeRestrictions || 
-        !data.agreedToTerms) {
+    if (
+      !data.agreedToHouseholdGoods ||
+      !data.agreedToTrustAndCare ||
+      !data.agreedToCommunityValues ||
+      !data.agreedToAgeRestrictions ||
+      !data.agreedToTerms
+    ) {
       // This shouldn't happen due to UI logic, but just in case
       return;
     }
 
     // Clear user-specific draft
-    const draftKey = user?.email ? `profile-wizard-draft-${user.email}` : 'profile-wizard-draft-temp';
+    const draftKey = user?.email
+      ? `profile-wizard-draft-${user.email}`
+      : 'profile-wizard-draft-temp';
     localStorage.removeItem(draftKey);
 
     // Skip interstitial and go directly to onComplete callback
@@ -267,12 +285,17 @@ export function ProfileWizard({
       case 1:
         return ['profilePicture'];
       case 2:
-        return ['agreedToHouseholdGoods', 'agreedToTrustAndCare', 'agreedToCommunityValues', 'agreedToAgeRestrictions', 'agreedToTerms'];
+        return [
+          'agreedToHouseholdGoods',
+          'agreedToTrustAndCare',
+          'agreedToCommunityValues',
+          'agreedToAgeRestrictions',
+          'agreedToTerms',
+        ];
       default:
         return [];
     }
   }
-
 
   const CurrentStepComponent = steps[activeStep]?.component;
 
@@ -351,7 +374,7 @@ export function ProfileWizard({
 
         {/* Form Content */}
         <FormProvider {...methods}>
-          <Box component="form" onSubmit={handleSubmit(handleComplete)}>
+          <Box component="form" onSubmit={handleSubmit(handleComplete as any)}>
             {CurrentStepComponent && (
               <CurrentStepComponent
                 onNext={handleNext}
