@@ -1,3 +1,4 @@
+import { Resend } from 'resend';
 import twilio from 'twilio';
 
 function getTwilioClient() {
@@ -95,25 +96,154 @@ export async function sendSMS({ to, body }: SMSMessage) {
   }
 }
 
+export async function sendEmail({
+  to,
+  subject,
+  html,
+}: {
+  to: string;
+  subject: string;
+  html: string;
+}) {
+  try {
+    if (!process.env.RESEND_API_KEY) {
+      throw new Error('RESEND_API_KEY environment variable is required');
+    }
+
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
+    const result = await resend.emails.send({
+      from: 'StuffLibrary <notifications@stufflibrary.org>',
+      to: [to],
+      subject,
+      html,
+    });
+
+    console.log(`Email sent successfully: ${result.data?.id}`);
+    return {
+      success: true,
+      messageId: result.data?.id,
+    };
+  } catch (error) {
+    console.error('Failed to send email:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
 export async function sendBorrowRequestNotification({
-  _ownerName,
+  ownerName,
   ownerPhone,
+  ownerEmail,
   borrowerName,
   itemName,
   approvalUrl,
 }: {
-  _ownerName: string;
-  ownerPhone: string;
+  ownerName: string;
+  ownerPhone?: string;
+  ownerEmail?: string;
   borrowerName: string;
   itemName: string;
   approvalUrl: string;
 }) {
-  const message = `📱 Stuff Library: ${borrowerName} wants to borrow your "${itemName}". View their video request and respond here: ${approvalUrl}`;
+  const results: {
+    sms: { success: boolean; error: string; messageId?: string };
+    email: { success: boolean; error: string; messageId?: string };
+  } = {
+    sms: { success: false, error: 'SMS not attempted' },
+    email: { success: false, error: 'Email not attempted' },
+  };
 
-  return await sendSMS({
-    to: ownerPhone,
-    body: message,
-  });
+  // Try SMS first if phone number is provided
+  if (ownerPhone) {
+    const smsMessage = `📱 Stuff Library: ${borrowerName} wants to borrow your "${itemName}". View their video request and respond here: ${approvalUrl}`;
+
+    const smsResult = await sendSMS({
+      to: ownerPhone,
+      body: smsMessage,
+    });
+
+    results.sms = {
+      success: smsResult.success,
+      error: smsResult.error || '',
+      ...(smsResult.messageId && { messageId: smsResult.messageId }),
+    };
+
+    console.log('📱 SMS result:', results.sms);
+  }
+
+  // Send email as primary or backup notification
+  if (ownerEmail) {
+    const emailSubject = `${borrowerName} wants to borrow your "${itemName}"`;
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #2563eb; font-size: 28px; margin: 0;">StuffLibrary</h1>
+          <p style="color: #6b7280; font-size: 16px; margin: 5px 0 0 0;">Share more, buy less</p>
+        </div>
+        
+        <h2 style="color: #1f2937; font-size: 24px; margin-bottom: 20px;">
+          New Borrow Request! 📱
+        </h2>
+        
+        <p style="font-size: 16px; line-height: 1.5; color: #374151; margin-bottom: 20px;">
+          Hi ${ownerName},
+        </p>
+        
+        <p style="font-size: 16px; line-height: 1.5; color: #374151; margin-bottom: 20px;">
+          <strong>${borrowerName}</strong> would like to borrow your <strong>"${itemName}"</strong>. 
+          They've sent you a video request explaining what they need it for and when they'll return it.
+        </p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${approvalUrl}" 
+             style="background-color: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; display: inline-block;">
+            View Video Request & Respond
+          </a>
+        </div>
+        
+        <p style="font-size: 14px; color: #6b7280; margin-bottom: 10px;">
+          You can approve or decline this request after viewing their video message.
+        </p>
+        
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 25px 0;">
+        
+        <p style="font-size: 12px; color: #9ca3af; text-align: center;">
+          StuffLibrary - Building sharing communities, one neighborhood at a time.<br>
+          This notification was sent because someone requested to borrow your item.
+        </p>
+      </div>
+    `;
+
+    const emailResult = await sendEmail({
+      to: ownerEmail,
+      subject: emailSubject,
+      html: emailHtml,
+    });
+
+    results.email = {
+      success: emailResult.success,
+      error: emailResult.error || '',
+      ...(emailResult.messageId && { messageId: emailResult.messageId }),
+    };
+
+    console.log('📧 Email result:', results.email);
+  }
+
+  // Return success if either SMS or email succeeded
+  const overallSuccess = results.sms.success || results.email.success;
+  const primaryResult = results.sms.success ? results.sms : results.email;
+
+  return {
+    success: overallSuccess,
+    sms: results.sms,
+    email: results.email,
+    error: overallSuccess ? undefined : 'Both SMS and email failed',
+    messageId:
+      'messageId' in primaryResult ? primaryResult.messageId : undefined,
+  };
 }
 
 export async function sendBorrowResponseNotification({
