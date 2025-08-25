@@ -104,26 +104,109 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
   const startCamera = useCallback(async () => {
     try {
       setState('recording');
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'user',
-          width: { ideal: 480 },
-          height: { ideal: 360 },
-          frameRate: { ideal: 24, max: 30 },
+      console.log('📱 Requesting camera access...');
+
+      // Try different camera configurations for mobile compatibility
+      const constraints = [
+        // First try: front-facing camera with specific constraints
+        {
+          video: {
+            facingMode: 'user',
+            width: { ideal: 480, min: 320 },
+            height: { ideal: 360, min: 240 },
+            frameRate: { ideal: 24, max: 30 },
+          },
+          audio: true,
         },
-        audio: true,
-      });
+        // Fallback 1: any camera with basic constraints
+        {
+          video: {
+            width: { ideal: 480, min: 320 },
+            height: { ideal: 360, min: 240 },
+          },
+          audio: true,
+        },
+        // Fallback 2: minimal constraints
+        {
+          video: true,
+          audio: true,
+        },
+        // Fallback 3: video only
+        {
+          video: true,
+        },
+      ];
+
+      let stream = null;
+      let lastError = null;
+
+      for (let i = 0; i < constraints.length; i++) {
+        try {
+          console.log(
+            `📱 Trying camera configuration ${i + 1}:`,
+            constraints[i]
+          );
+          stream = await navigator.mediaDevices.getUserMedia(constraints[i]);
+          console.log('✅ Camera access successful with configuration:', i + 1);
+          break;
+        } catch (err) {
+          lastError = err;
+          console.warn(`❌ Camera configuration ${i + 1} failed:`, err);
+          if (i === constraints.length - 1) {
+            throw err;
+          }
+        }
+      }
+
+      if (!stream) {
+        throw lastError;
+      }
 
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.play();
+        await videoRef.current.play();
+        console.log('✅ Video element playing');
       }
     } catch (err) {
-      console.error('Failed to access camera:', err);
-      setError(
-        'Unable to access camera. Please ensure you have granted camera and microphone permissions.'
-      );
+      console.error('❌ Failed to access camera:', err);
+
+      // Provide specific error messages based on the error type
+      let errorMessage = 'Unable to access camera. ';
+
+      if (err instanceof Error) {
+        if (err.name === 'NotAllowedError') {
+          errorMessage +=
+            'Please allow camera and microphone permissions in your browser settings.';
+          // Add mobile-specific guidance
+          if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+            errorMessage +=
+              ' On mobile, you may need to refresh the page and try again.';
+          }
+        } else if (err.name === 'NotFoundError') {
+          errorMessage += 'No camera found on this device.';
+        } else if (err.name === 'NotSupportedError') {
+          errorMessage +=
+            'Camera access is not supported in this browser. Try using Chrome or Safari.';
+        } else if (err.name === 'NotReadableError') {
+          errorMessage +=
+            'Camera is already in use by another application. Please close other apps using the camera.';
+        } else {
+          errorMessage +=
+            'Please ensure you have granted camera and microphone permissions.';
+        }
+      } else {
+        errorMessage +=
+          'Please ensure you have granted camera and microphone permissions.';
+      }
+
+      // Add HTTPS warning for localhost
+      if (location.protocol === 'http:' && location.hostname !== 'localhost') {
+        errorMessage +=
+          ' Note: Camera access requires HTTPS on non-localhost domains.';
+      }
+
+      setError(errorMessage);
       setState('error');
     }
   }, []);
@@ -725,7 +808,10 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
             </Alert>
             <Button
               variant="contained"
-              onClick={() => setState('intro')}
+              onClick={() => {
+                setError(null);
+                setState('intro');
+              }}
               sx={{ borderRadius: 2 }}
             >
               Try Again
