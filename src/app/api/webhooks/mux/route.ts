@@ -69,21 +69,36 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        // Send SMS to owner now that video is ready
+        // Send notification to owner now that video is ready
         const owner = await db.user.findUnique({
           where: { id: borrowRequest.item.ownerId },
-          select: { name: true, phone: true },
+          select: { name: true, phone: true, email: true },
         });
 
-        if (owner?.phone) {
+        if (owner?.phone || owner?.email) {
           const approvalUrl = `${process.env.NEXTAUTH_URL}/borrow-approval/${borrowRequest.responseToken}`;
-          await sendBorrowRequestNotification({
-            _ownerName: owner.name || 'Owner',
-            ownerPhone: owner.phone,
+          const notificationResult = await sendBorrowRequestNotification({
+            ownerName: owner.name || 'Owner',
+            ...(owner.phone && { ownerPhone: owner.phone }),
+            ...(owner.email && { ownerEmail: owner.email }),
             borrowerName: borrowRequest.borrower.name || 'Someone',
             itemName: borrowRequest.item.name,
             approvalUrl,
           });
+
+          if (notificationResult.success) {
+            const methods = [];
+            if (notificationResult.sms.success) methods.push('SMS');
+            if (notificationResult.email.success) methods.push('email');
+            console.log(
+              `📱 Mux webhook notification sent via: ${methods.join(' and ')}`
+            );
+          } else {
+            console.error('❌ Mux webhook notification failed:', {
+              sms: notificationResult.sms.error,
+              email: notificationResult.email.error,
+            });
+          }
         }
       }
     }

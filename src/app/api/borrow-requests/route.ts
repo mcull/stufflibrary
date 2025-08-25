@@ -220,48 +220,66 @@ export async function POST(request: NextRequest) {
     // Create approval URL
     const approvalUrl = `${process.env.NEXTAUTH_URL}/borrow-approval/${responseToken}`;
 
-    // Send SMS notification to owner
+    // Send SMS and email notification to owner
     try {
-      if (!item.owner.phone) {
+      if (!item.owner.phone && !item.owner.email) {
         console.warn(
-          '⚠️ Owner does not have a phone number - SMS notification skipped'
+          '⚠️ Owner has no phone number or email - notification skipped'
         );
       } else {
-        const smsResult = await sendBorrowRequestNotification({
-          _ownerName: item.owner.name || 'Owner',
-          ownerPhone: item.owner.phone,
+        const notificationResult = await sendBorrowRequestNotification({
+          ownerName: item.owner.name || 'Owner',
+          ...(item.owner.phone && { ownerPhone: item.owner.phone }),
+          ...(item.owner.email && { ownerEmail: item.owner.email }),
           borrowerName: borrower.name || 'Someone',
           itemName: item.name,
           approvalUrl: approvalUrl,
         });
 
-        if (smsResult.success) {
-          console.log('📱 SMS notification sent to owner successfully');
+        if (notificationResult.success) {
+          const methods = [];
+          if (notificationResult.sms.success) methods.push('SMS');
+          if (notificationResult.email.success) methods.push('email');
+          console.log(
+            `📱 Notification sent successfully via: ${methods.join(' and ')}`
+          );
         } else {
-          console.error('❌ SMS failed:', smsResult.error);
+          console.error('❌ All notifications failed:', {
+            sms: notificationResult.sms.error,
+            email: notificationResult.email.error,
+          });
         }
       }
-    } catch (smsError) {
-      console.error('❌ Failed to send SMS notification:', smsError);
+    } catch (notificationError) {
+      console.error('❌ Failed to send notification:', notificationError);
 
-      // Provide specific guidance for common Twilio configuration issues
+      // Provide specific guidance for common issues
       if (
-        smsError instanceof Error &&
-        smsError.message.includes('accountSid must start with AC')
+        notificationError instanceof Error &&
+        notificationError.message.includes('accountSid must start with AC')
       ) {
         console.error(
           '🔧 TWILIO CONFIG ERROR: Please update TWILIO_ACCOUNT_SID in your .env file with a valid Account SID from https://console.twilio.com/'
         );
       } else if (
-        smsError instanceof Error &&
-        smsError.message.includes('Phone number is required but was empty')
+        notificationError instanceof Error &&
+        notificationError.message.includes('RESEND_API_KEY')
+      ) {
+        console.error(
+          '📧 RESEND CONFIG ERROR: Please check RESEND_API_KEY in your .env file'
+        );
+      } else if (
+        notificationError instanceof Error &&
+        notificationError.message.includes(
+          'Phone number is required but was empty'
+        )
       ) {
         console.error(
           '📞 PHONE NUMBER ERROR: Owner does not have a valid phone number set in their profile'
         );
       } else if (
-        smsError instanceof Error &&
-        smsError.message.includes('Invalid phone number format')
+        notificationError instanceof Error &&
+        notificationError.message.includes('Invalid phone number format')
       ) {
         console.error(
           '📞 PHONE FORMAT ERROR: Owner phone number is not in valid E.164 format:',
@@ -269,7 +287,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Don't fail the request if SMS fails, but log it
+      // Don't fail the request if notifications fail, but log it
     }
 
     return NextResponse.json({
