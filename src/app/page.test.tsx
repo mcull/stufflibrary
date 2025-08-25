@@ -11,8 +11,10 @@ describe('Home Page', () => {
     );
   });
 
-  it('renders the main call-to-action button', () => {
+  it('renders the main subheading', () => {
     render(<Home />);
-    expect(screen.getAllByText('Learn More')[0]).toBeInTheDocument();
+    expect(
+      screen.getByText(/A neighborhood platform for safely sharing stuff/)
+    ).toBeInTheDocument();
   });
 });

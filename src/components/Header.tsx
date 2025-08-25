@@ -12,6 +12,7 @@ import {
   Drawer,
   List,
   ListItem,
+  Link as MuiLink,
 } from '@mui/material';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
@@ -48,7 +49,7 @@ export function Header() {
           }}
         >
           {/* Wordmark */}
-          <Box sx={{ flexGrow: 0 }}>
+          <Box sx={{ flexGrow: 0, transform: 'rotate(-1.2deg)' }}>
             <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
               <Wordmark size="small" color="primary" />
             </Box>
@@ -66,32 +67,6 @@ export function Header() {
               alignItems: 'center',
             }}
           >
-            <Button
-              color="inherit"
-              sx={{
-                color: brandColors.charcoal,
-                textTransform: 'none',
-                fontWeight: 500,
-                '&:hover': {
-                  backgroundColor: 'rgba(30, 58, 95, 0.08)',
-                },
-              }}
-            >
-              How It Works
-            </Button>
-            <Button
-              color="inherit"
-              sx={{
-                color: brandColors.charcoal,
-                textTransform: 'none',
-                fontWeight: 500,
-                '&:hover': {
-                  backgroundColor: 'rgba(30, 58, 95, 0.08)',
-                },
-              }}
-            >
-              About
-            </Button>
             {session ? (
               <Button
                 onClick={() => signOut()}
@@ -106,23 +81,25 @@ export function Header() {
                 Sign Out
               </Button>
             ) : (
-              <Stack direction="row" spacing={1}>
-                <Button
+              <Stack direction="row" spacing={2} alignItems="center">
+                <MuiLink
                   component={Link}
                   href="/auth/signin"
-                  variant="outlined"
-                  color="primary"
+                  underline="none"
                   sx={{
-                    textTransform: 'none',
-                    fontWeight: 500,
-                    px: 3,
+                    fontSize: '0.9rem',
+                    color: brandColors.charcoal,
+                    opacity: 0.8,
+                    '&:hover': {
+                      opacity: 1,
+                    },
                   }}
                 >
                   Sign In
-                </Button>
+                </MuiLink>
                 <Button
                   component={Link}
-                  href="/profile/create"
+                  href="/auth/signin"
                   variant="contained"
                   color="primary"
                   sx={{
@@ -148,7 +125,7 @@ export function Header() {
             {!session && (
               <Button
                 component={Link}
-                href="/profile/create"
+                href="/auth/signin"
                 variant="contained"
                 color="primary"
                 size="small"
@@ -207,57 +184,46 @@ export function Header() {
           </Box>
 
           <List sx={{ pt: 2 }}>
-            <ListItem sx={{ px: 0 }}>
-              <Button
-                fullWidth
-                sx={{
-                  justifyContent: 'flex-start',
-                  textTransform: 'none',
-                  fontSize: '1.1rem',
-                  fontWeight: 500,
-                  color: brandColors.charcoal,
-                  py: 1.5,
-                }}
-              >
-                How It Works
-              </Button>
-            </ListItem>
-
-            <ListItem sx={{ px: 0 }}>
-              <Button
-                fullWidth
-                sx={{
-                  justifyContent: 'flex-start',
-                  textTransform: 'none',
-                  fontSize: '1.1rem',
-                  fontWeight: 500,
-                  color: brandColors.charcoal,
-                  py: 1.5,
-                }}
-              >
-                About
-              </Button>
-            </ListItem>
-
             {!session && (
-              <ListItem sx={{ px: 0 }}>
-                <Button
-                  component={Link}
-                  href="/auth/signin"
-                  fullWidth
-                  onClick={handleMobileMenuToggle}
-                  sx={{
-                    justifyContent: 'flex-start',
-                    textTransform: 'none',
-                    fontSize: '1.1rem',
-                    fontWeight: 500,
-                    color: brandColors.charcoal,
-                    py: 1.5,
-                  }}
-                >
-                  Sign In
-                </Button>
-              </ListItem>
+              <>
+                <ListItem sx={{ px: 0 }}>
+                  <Button
+                    component={Link}
+                    href="/auth/signin"
+                    fullWidth
+                    onClick={handleMobileMenuToggle}
+                    sx={{
+                      justifyContent: 'flex-start',
+                      textTransform: 'none',
+                      fontSize: '1.1rem',
+                      fontWeight: 500,
+                      color: brandColors.charcoal,
+                      py: 1.5,
+                    }}
+                  >
+                    Sign In
+                  </Button>
+                </ListItem>
+                <ListItem sx={{ px: 0 }}>
+                  <Button
+                    component={Link}
+                    href="/auth/signin"
+                    fullWidth
+                    onClick={handleMobileMenuToggle}
+                    variant="contained"
+                    color="primary"
+                    sx={{
+                      justifyContent: 'center',
+                      textTransform: 'none',
+                      fontSize: '1.1rem',
+                      fontWeight: 500,
+                      py: 1.5,
+                    }}
+                  >
+                    Get Started
+                  </Button>
+                </ListItem>
+              </>
             )}
 
             {session && (

@@ -46,7 +46,7 @@ export function FeatureShowcase() {
     <Box
       component="section"
       sx={{
-        py: { xs: spacing.xxxl / 4, md: spacing.xxxl / 2 }, // 16px to 32px scale
+        py: { xs: spacing.md, md: spacing.lg }, // Minimal spacing
         backgroundColor: brandColors.white,
         position: 'relative',
       }}
@@ -190,21 +190,6 @@ export function FeatureShowcase() {
               </Box>
             );
           })}
-        </Box>
-
-        {/* Call to Action */}
-        <Box sx={{ textAlign: 'center', mt: { xs: 6, md: 8 } }}>
-          <Typography
-            variant="body1"
-            sx={{
-              fontSize: '1.1rem',
-              color: brandColors.charcoal,
-              opacity: 0.8,
-              fontStyle: 'italic',
-            }}
-          >
-            Join the movement toward more sustainable, connected communities
-          </Typography>
         </Box>
       </Container>
     </Box>
