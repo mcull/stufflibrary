@@ -29,7 +29,7 @@ import {
   Paper,
 } from '@mui/material';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { brandColors } from '@/theme/brandTokens';
@@ -118,6 +118,7 @@ const CATEGORY_CONFIG = {
 
 export function BranchDetailClient({ branchId }: BranchDetailClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [branch, setBranch] = useState<BranchData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -125,6 +126,8 @@ export function BranchDetailClient({ branchId }: BranchDetailClientProps) {
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [selectedItemName, setSelectedItemName] = useState<string | null>(null);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
+  const [currentUserName, setCurrentUserName] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchBranch = async () => {
@@ -148,6 +151,24 @@ export function BranchDetailClient({ branchId }: BranchDetailClientProps) {
 
     fetchBranch();
   }, [branchId]);
+
+  // Handle welcome banner for new members
+  useEffect(() => {
+    const message = searchParams.get('message');
+    if (message === 'joined_successfully') {
+      const welcomeName = searchParams.get('welcomeName');
+      if (welcomeName) {
+        setCurrentUserName(welcomeName);
+      }
+      setShowWelcomeBanner(true);
+
+      // Clear the message parameters from URL without page reload
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('message');
+      newUrl.searchParams.delete('welcomeName');
+      window.history.replaceState({}, '', newUrl.toString());
+    }
+  }, [searchParams]);
 
   const handleNotifyWhenReturned = async (itemId: string) => {
     // TODO: Implement notification queue API
@@ -295,6 +316,43 @@ export function BranchDetailClient({ branchId }: BranchDetailClientProps) {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
+      {/* Welcome Banner for New Members */}
+      {showWelcomeBanner && (
+        <Alert
+          severity="success"
+          action={
+            <IconButton
+              aria-label="close"
+              color="inherit"
+              size="small"
+              onClick={() => setShowWelcomeBanner(false)}
+            >
+              <CloseIcon fontSize="inherit" />
+            </IconButton>
+          }
+          sx={{
+            mb: 4,
+            bgcolor: '#f0f9ff',
+            border: '1px solid #3b82f6',
+            borderRadius: 2,
+            '& .MuiAlert-icon': {
+              color: '#3b82f6',
+            },
+            '& .MuiAlert-message': {
+              color: '#1e40af',
+              fontSize: '1rem',
+              fontWeight: 500,
+            },
+            '& .MuiAlert-action': {
+              color: '#3b82f6',
+            },
+          }}
+        >
+          Welcome{currentUserName ? `, ${currentUserName}` : ''}, to{' '}
+          {branch.name}! 🎉
+        </Alert>
+      )}
+
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
         <IconButton

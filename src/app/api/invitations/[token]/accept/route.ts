@@ -133,6 +133,13 @@ export async function POST(
       }),
     ]);
 
+    // Get user's name for welcome banner
+    const userDetails = await db.user.findUnique({
+      where: { id: userId },
+      select: { name: true },
+    });
+    const firstName = userDetails?.name?.split(' ')[0] || '';
+
     return NextResponse.json({
       success: true,
       branch: {
@@ -140,6 +147,9 @@ export async function POST(
         name: invitation.branch!.name,
         location: invitation.branch!.location,
         role: branchMember.role,
+      },
+      user: {
+        firstName,
       },
     });
   } catch (error) {

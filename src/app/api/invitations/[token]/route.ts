@@ -57,7 +57,7 @@ export async function GET(
       );
     }
 
-    // Check if user already exists and is already a member
+    // Check if user already exists and is already a member of THIS SPECIFIC branch
     const existingUser = await db.user.findFirst({
       where: { email: invitation.email },
       include: {
@@ -70,6 +70,7 @@ export async function GET(
       },
     });
 
+    // Only redirect if they're already a member of THIS specific branch
     if (
       existingUser?.branchMemberships &&
       existingUser.branchMemberships.length > 0

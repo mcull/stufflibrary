@@ -85,8 +85,16 @@ export function InvitedBranchesSection() {
         // Remove the accepted invitation from the list
         setInvitations((prev) => prev.filter((inv) => inv.token !== token));
 
-        // Redirect to the branch page
-        window.location.href = `/branch/${data.branch.id}?message=joined_successfully`;
+        // Redirect to the branch page with welcome banner
+        const redirectUrl = new URL(
+          `/branch/${data.branch.id}`,
+          window.location.origin
+        );
+        redirectUrl.searchParams.set('message', 'joined_successfully');
+        if (data.user?.firstName) {
+          redirectUrl.searchParams.set('welcomeName', data.user.firstName);
+        }
+        window.location.href = redirectUrl.toString();
       } else {
         const errorData = await response.json();
         setError(errorData.error || 'Failed to join branch');
