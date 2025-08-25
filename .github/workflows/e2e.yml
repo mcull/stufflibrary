@@ -10,6 +10,21 @@ jobs:
   e2e-tests:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: test
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
 
     steps:
       - uses: actions/checkout@v4
@@ -28,12 +43,25 @@ jobs:
       - name: Create environment file
         run: |
           echo "DATABASE_URL=postgresql://test:test@localhost:5432/test" >> .env
+          echo "DATABASE_ENV=test" >> .env
           echo "NEXT_PUBLIC_APP_URL=http://localhost:3001" >> .env
+          echo "NEXTAUTH_SECRET=test-secret-for-ci-only" >> .env
+          echo "NEXTAUTH_URL=http://localhost:3001" >> .env
+          echo "RESEND_API_KEY=test-key" >> .env
+
+      - name: Setup database
+        run: |
+          npx prisma migrate deploy
+          npx prisma db seed || echo "No seed script found"
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
 
       - name: Run E2E tests
         run: npm run test:e2e
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:3001
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
+          DATABASE_ENV: test
 
       - uses: actions/upload-artifact@v4
         if: always()
