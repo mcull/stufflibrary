@@ -1,4 +1,4 @@
-import { Search, HandshakeOutlined, SwapHoriz } from '@mui/icons-material';
+import { CameraAlt, VideoCall, CheckCircle } from '@mui/icons-material';
 import {
   Box,
   Container,
@@ -13,26 +13,26 @@ import { brandColors, spacing } from '@/theme/brandTokens';
 const steps = [
   {
     number: '1',
-    icon: Search,
-    title: 'Find What You Need',
+    icon: CameraAlt,
+    title: 'Add Your Items',
     description:
-      'Browse items in your neighborhood or post a request for something specific.',
+      "Use your phone camera to add items to your branch's shared library with AI-powered descriptions.",
     color: brandColors.inkBlue,
   },
   {
     number: '2',
-    icon: HandshakeOutlined,
-    title: 'Connect Safely',
+    icon: VideoCall,
+    title: 'Request with Video',
     description:
-      'Message verified neighbors and arrange pickup times that work for everyone.',
+      "Send a personal video message explaining what you need and when you'll return it.",
     color: brandColors.mustardYellow,
   },
   {
     number: '3',
-    icon: SwapHoriz,
-    title: 'Share & Return',
+    icon: CheckCircle,
+    title: 'Approve & Share',
     description:
-      'Use the item when you need it, then return it in good condition. Build trust!',
+      'Owners approve requests and arrange handoff. Get notified via email when your items are returned.',
     color: brandColors.tomatoRed,
   },
 ];
@@ -83,7 +83,7 @@ export function HowItWorks() {
               lineHeight: 1.6,
             }}
           >
-            Three simple steps to start sharing with your neighbors
+            Camera-first sharing with personal video requests
           </Typography>
         </Box>
 

@@ -1,5 +1,4 @@
-import { Box, Container, Typography, Button, Stack } from '@mui/material';
-import Link from 'next/link';
+import { Box, Container, Typography } from '@mui/material';
 
 import { brandColors, spacing } from '@/theme/brandTokens';
 
@@ -62,76 +61,6 @@ export function Hero() {
             A neighborhood platform for safely sharing stuff.
             <br />
             Build community. Reduce clutter. Save money.
-          </Typography>
-
-          {/* CTA Buttons */}
-          <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            spacing={{ xs: 2, sm: 3 }}
-            sx={{
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Button
-              component={Link}
-              href="/auth/signin"
-              variant="contained"
-              color="primary"
-              size="large"
-              sx={{
-                fontSize: '1.125rem',
-                fontWeight: 600,
-                px: { xs: 5, md: 7 },
-                py: { xs: 1.5, md: 2 },
-                borderRadius: '12px',
-                textTransform: 'none',
-                minWidth: { xs: '200px', sm: 'auto' },
-                '&:hover': {
-                  transform: 'translateY(-1px)',
-                },
-                transition: 'all 0.2s ease',
-              }}
-            >
-              Get Started
-            </Button>
-            <Button
-              component={Link}
-              href="/auth/signin"
-              variant="outlined"
-              color="primary"
-              size="large"
-              sx={{
-                fontSize: '1.125rem',
-                fontWeight: 500,
-                px: { xs: 5, md: 7 },
-                py: { xs: 1.5, md: 2 },
-                borderRadius: '12px',
-                textTransform: 'none',
-                borderWidth: 2,
-                minWidth: { xs: '200px', sm: 'auto' },
-                '&:hover': {
-                  borderWidth: 2,
-                  transform: 'translateY(-1px)',
-                },
-                transition: 'all 0.2s ease',
-              }}
-            >
-              Sign In
-            </Button>
-          </Stack>
-
-          {/* Trust indicator */}
-          <Typography
-            variant="body2"
-            sx={{
-              mt: { xs: 4, md: 6 },
-              color: brandColors.charcoal,
-              opacity: 0.7,
-              fontSize: '0.9rem',
-            }}
-          >
-            Free to use, expensive not to.
           </Typography>
         </Box>
       </Container>

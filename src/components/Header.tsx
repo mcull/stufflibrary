@@ -66,32 +66,6 @@ export function Header() {
               alignItems: 'center',
             }}
           >
-            <Button
-              color="inherit"
-              sx={{
-                color: brandColors.charcoal,
-                textTransform: 'none',
-                fontWeight: 500,
-                '&:hover': {
-                  backgroundColor: 'rgba(30, 58, 95, 0.08)',
-                },
-              }}
-            >
-              How It Works
-            </Button>
-            <Button
-              color="inherit"
-              sx={{
-                color: brandColors.charcoal,
-                textTransform: 'none',
-                fontWeight: 500,
-                '&:hover': {
-                  backgroundColor: 'rgba(30, 58, 95, 0.08)',
-                },
-              }}
-            >
-              About
-            </Button>
             {session ? (
               <Button
                 onClick={() => signOut()}
@@ -122,7 +96,7 @@ export function Header() {
                 </Button>
                 <Button
                   component={Link}
-                  href="/profile/create"
+                  href="/auth/signin"
                   variant="contained"
                   color="primary"
                   sx={{
@@ -148,7 +122,7 @@ export function Header() {
             {!session && (
               <Button
                 component={Link}
-                href="/profile/create"
+                href="/auth/signin"
                 variant="contained"
                 color="primary"
                 size="small"
@@ -207,38 +181,6 @@ export function Header() {
           </Box>
 
           <List sx={{ pt: 2 }}>
-            <ListItem sx={{ px: 0 }}>
-              <Button
-                fullWidth
-                sx={{
-                  justifyContent: 'flex-start',
-                  textTransform: 'none',
-                  fontSize: '1.1rem',
-                  fontWeight: 500,
-                  color: brandColors.charcoal,
-                  py: 1.5,
-                }}
-              >
-                How It Works
-              </Button>
-            </ListItem>
-
-            <ListItem sx={{ px: 0 }}>
-              <Button
-                fullWidth
-                sx={{
-                  justifyContent: 'flex-start',
-                  textTransform: 'none',
-                  fontSize: '1.1rem',
-                  fontWeight: 500,
-                  color: brandColors.charcoal,
-                  py: 1.5,
-                }}
-              >
-                About
-              </Button>
-            </ListItem>
-
             {!session && (
               <ListItem sx={{ px: 0 }}>
                 <Button
