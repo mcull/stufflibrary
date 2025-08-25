@@ -1,0 +1,62 @@
+#!/usr/bin/env sh
+# Database Safety Pre-commit Hook
+# 
+# This hook prevents dangerous database commands from being committed
+# to the repository that could accidentally be run against production.
+
+echo "🔍 Checking for dangerous database commands in commit..."
+
+# List of dangerous patterns that should not be committed
+DANGEROUS_PATTERNS=(
+  "prisma migrate reset"
+  "prisma db push --accept-data-loss" 
+  "DROP TABLE"
+  "DROP DATABASE"
+  "TRUNCATE TABLE"
+  "DELETE FROM.*WHERE.*1.*=.*1"
+)
+
+# Check staged files for dangerous patterns
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|ts|json|sql|sh|md)$')
+
+if [ -z "$STAGED_FILES" ]; then
+  echo "✅ No relevant files to check"
+  exit 0
+fi
+
+FOUND_DANGEROUS=false
+
+for file in $STAGED_FILES; do
+  if [ -f "$file" ]; then
+    for pattern in "${DANGEROUS_PATTERNS[@]}"; do
+      if git diff --cached "$file" | grep -q "$pattern"; then
+        echo "❌ BLOCKED: Dangerous database command found in $file:"
+        echo "   Pattern: $pattern"
+        FOUND_DANGEROUS=true
+      fi
+    done
+  fi
+done
+
+if [ "$FOUND_DANGEROUS" = true ]; then
+  echo ""
+  echo "🚨 COMMIT BLOCKED: Dangerous database commands detected!"
+  echo ""
+  echo "These patterns can cause data loss if accidentally run in production:"
+  for pattern in "${DANGEROUS_PATTERNS[@]}"; do
+    echo "  - $pattern"
+  done
+  echo ""
+  echo "If you need to include these commands:"
+  echo "1. Use safe alternatives (e.g., environment-specific scripts)"
+  echo "2. Add proper safety checks around the commands"
+  echo "3. Document why the command is needed"
+  echo ""
+  echo "To bypass this check (use with extreme caution):"
+  echo "  git commit --no-verify"
+  echo ""
+  exit 1
+fi
+
+echo "✅ No dangerous database commands found"
+exit 0

@@ -20,9 +20,20 @@
     "test:ci": "vitest run --coverage --reporter=junit --reporter=json --reporter=verbose",
     "test:auth-regression": "./scripts/test-auth-regression.sh",
     "db:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:migrate": "prisma migrate dev",
+    "db:push": "tsx scripts/db-safety-check.ts 'db push' && prisma db push",
+    "db:migrate": "tsx scripts/db-safety-check.ts 'migrate dev' && prisma migrate dev",
     "db:studio": "prisma studio",
+    "db:staging:push": "DATABASE_ENV=staging prisma db push",
+    "db:staging:migrate": "DATABASE_ENV=staging prisma migrate dev",
+    "db:staging:reset": "DATABASE_ENV=staging tsx scripts/db-safety-check.ts 'migrate reset' && DATABASE_ENV=staging prisma migrate reset",
+    "db:staging:studio": "DATABASE_ENV=staging prisma studio",
+    "db:production:deploy": "DATABASE_ENV=production tsx scripts/db-safety-check.ts 'migrate deploy' --allow-production && DATABASE_ENV=production prisma migrate deploy",
+    "db:production:status": "DATABASE_ENV=production prisma migrate status",
+    "db:production:studio": "DATABASE_ENV=production prisma studio --browser none",
+    "db:safety-check": "tsx scripts/db-safety-check.ts",
+    "db:backup:monitor": "tsx scripts/backup-monitor.ts monitor",
+    "db:backup:test": "tsx scripts/backup-monitor.ts test-restore",
+    "db:migrate:production": "tsx scripts/migrate-production.ts",
     "seed": "echo 'Seed script not implemented yet. See issue #19'",
     "prepare": "command -v husky >/dev/null 2>&1 && husky || echo 'Husky not available, skipping git hooks setup'"
   },
@@ -101,6 +112,7 @@
     "jsdom": "^26.1.0",
     "lint-staged": "^16.1.5",
     "prettier": "^3.6.2",
+    "tsx": "^4.20.5",
     "vitest": "^3.2.4"
   }
 }

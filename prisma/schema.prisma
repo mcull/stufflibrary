@@ -6,6 +6,11 @@ datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
+  
+  // Note: Use DATABASE_ENV to switch between environments:
+  // DATABASE_ENV=staging for staging database
+  // DATABASE_ENV=production for production database
+  // See src/lib/db-config.ts for configuration logic
 }
 
 model Address {
