@@ -8,6 +8,9 @@
  * or destructive database command.
  */
 
+import { config } from 'dotenv';
+config(); // Load environment variables first
+
 import { getDatabaseConfig, requireDestructiveOperationsAllowed } from '../src/lib/db-config';
 
 interface SafetyCheckOptions {

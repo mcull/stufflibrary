@@ -167,12 +167,22 @@ function SignInForm() {
         code,
         // Let the callback page decide dashboard vs. profile/create
         callbackUrl,
-        redirect: true, // Let NextAuth handle the redirect
+        redirect: false, // Handle redirect manually for better error handling
       });
 
-      // If we get here, there was an error (redirect didn't happen)
+      // Handle the result
       if (signInResult?.error) {
-        setError(signInResult.error || 'Invalid code. Please try again.');
+        // Translate NextAuth error codes to user-friendly messages
+        const errorMessage = signInResult.error === 'CredentialsSignin' 
+          ? 'Invalid code. Please check your code and try again.'
+          : signInResult.error;
+        setError(errorMessage);
+        setIsLoading(false);
+      } else if (signInResult?.ok) {
+        // Success! Manually redirect to the callback URL
+        window.location.href = callbackUrl;
+      } else {
+        setError('Authentication failed. Please try again.');
         setIsLoading(false);
       }
     } catch {

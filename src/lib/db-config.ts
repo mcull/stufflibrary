@@ -7,7 +7,7 @@ import { env } from './env';
  * to prevent accidental operations on production data.
  */
 
-export type DatabaseEnvironment = 'development' | 'staging' | 'production' | 'test';
+export type DatabaseEnvironment = 'development' | 'production' | 'test';
 
 export interface DatabaseConfig {
   url: string;
@@ -21,12 +21,7 @@ export interface DatabaseConfig {
  * Get the current database environment
  */
 export function getDatabaseEnvironment(): DatabaseEnvironment {
-  // Explicitly check for staging environment
-  if (process.env.DATABASE_ENV === 'staging') {
-    return 'staging';
-  }
-  
-  // Check for test environment
+  // Check for test environment first
   if (process.env.NODE_ENV === 'test' || process.env.DATABASE_ENV === 'test') {
     return 'test';
   }
@@ -36,7 +31,7 @@ export function getDatabaseEnvironment(): DatabaseEnvironment {
     return 'production';
   }
   
-  // Default to development
+  // Default to development (local database)
   return 'development';
 }
 
@@ -48,27 +43,17 @@ export function getDatabaseConfig(): DatabaseConfig {
   
   switch (environment) {
     case 'production':
-      if (!process.env.DATABASE_URL) {
-        throw new Error('DATABASE_URL is required for production environment');
+      // Use PRODUCTION_DATABASE_URL in production, fallback to DATABASE_URL for backward compatibility
+      const prodUrl = process.env.PRODUCTION_DATABASE_URL || process.env.DATABASE_URL;
+      if (!prodUrl) {
+        throw new Error('PRODUCTION_DATABASE_URL (or DATABASE_URL) is required for production environment');
       }
       return {
-        url: process.env.DATABASE_URL,
-        directUrl: process.env.DIRECT_URL,
+        url: prodUrl,
+        directUrl: process.env.PRODUCTION_DIRECT_URL || process.env.DIRECT_URL,
         environment: 'production',
         isProduction: true,
         allowDestructiveOperations: false,
-      };
-      
-    case 'staging':
-      if (!process.env.STAGING_DATABASE_URL) {
-        throw new Error('STAGING_DATABASE_URL is required for staging environment');
-      }
-      return {
-        url: process.env.STAGING_DATABASE_URL,
-        directUrl: process.env.STAGING_DIRECT_URL,
-        environment: 'staging',
-        isProduction: false,
-        allowDestructiveOperations: true,
       };
       
     case 'test':
@@ -87,8 +72,9 @@ export function getDatabaseConfig(): DatabaseConfig {
       
     case 'development':
     default:
+      // Development uses local database (Docker or local PostgreSQL)
       if (!process.env.DATABASE_URL) {
-        throw new Error('DATABASE_URL is required for development environment');
+        throw new Error('DATABASE_URL is required for development environment (use local database)');
       }
       return {
         url: process.env.DATABASE_URL,
@@ -134,5 +120,5 @@ export function logDatabaseConfig(): void {
   console.log(`Database URL: ${config.url.replace(/\/\/[^:]+:[^@]+@/, '//***:***@')}`);
 }
 
-// Export configuration for use in Prisma schema
-export const databaseConfig = getDatabaseConfig();
+// Note: Don't export databaseConfig as a constant to avoid module-load-time issues
+// Instead, call getDatabaseConfig() when you need the configuration
