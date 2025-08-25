@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -15,195 +9,137 @@ datasource db {
 }
 
 model Address {
-  id               String   @id @default(cuid())
-  
-  // Address components
-  street           String   // "123 Main St"
-  unit             String?  // "Apt 4B", "Unit 2", etc.
-  city             String
-  state            String
-  postalCode       String
-  country          String   @default("US")
-  
-  // For neighbor discovery and mapping
-  latitude         Float?
-  longitude        Float?
-  formattedAddress String?  // Full formatted address from geocoding
-  
-  // Address verification
-  verifiedAt       DateTime?
-  verificationMethod String? // "postcard", "utility_bill", etc.
-  
-  // Metadata
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  
-  // Relationships
-  users            User[]
-  invitations      Invitation[]
-  
+  id                 String       @id @default(cuid())
+  address1           String
+  address2           String?
+  city               String
+  state              String
+  zip                String
+  country            String       @default("US")
+  latitude           Float?
+  longitude          Float?
+  formattedAddress   String?
+  placeId            String?
+  verifiedAt         DateTime?
+  verificationMethod String?
+  isActive           Boolean      @default(true)
+  userId             String
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invitations        Invitation[]
+
   @@map("addresses")
 }
 
 model User {
-  id               String    @id @default(cuid())
-  name             String?
-  email            String?   @unique
-  emailVerified    DateTime?
-  image            String?
-  phone            String?   // Phone number for SMS notifications
-  phoneVerified    Boolean   @default(false)
-  
-  // Enhanced profile fields
-  bio              String?
-  interests        String[]  // Array of interest categories
-  profileCompleted Boolean   @default(false)
-  onboardingStep   String?   // Track signup progress: "email", "profile", "address", "verification", "complete"
-  
-  // Address relationship
-  addressId        String?
-  address          Address?  @relation(fields: [addressId], references: [id])
-  addressVerified  Boolean   @default(false)
-  movedInDate      DateTime? // When they moved to current address
-  
-  // Account status
-  status           String    @default("active") // active, suspended, pending_verification
-  
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-
-  // NextAuth relationships
-  accounts Account[]
-  sessions Session[]
-
-  // App relationships
-  branchMemberships BranchMember[]
-  ownedBranches     Branch[]       @relation("BranchOwner")
-  items             Item[]
-  borrowRequests    BorrowRequest[]
-  lentItems         BorrowRequest[] @relation("Lender")
-  
-  // Invitation relationships
-  sentInvitations     Invitation[] @relation("InvitationSender")
-  receivedInvitations Invitation[] @relation("InvitationReceiver")
+  id                  String          @id @default(cuid())
+  name                String?
+  email               String?         @unique
+  emailVerified       DateTime?
+  image               String?
+  phone               String?
+  phoneVerified       Boolean         @default(false)
+  bio                 String?
+  shareInterests      String[]
+  borrowInterests     String[]
+  profileCompleted    Boolean         @default(false)
+  onboardingStep      String?
+  currentAddressId    String?
+  movedInDate         DateTime?
+  status              String          @default("active")
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  accounts            Account[]
+  addresses           Address[]
+  borrowRequests      BorrowRequest[]
+  lentItems           BorrowRequest[] @relation("Lender")
+  branchMemberships   BranchMember[]
+  ownedBranches       Branch[]        @relation("BranchOwner")
+  receivedInvitations Invitation[]    @relation("InvitationReceiver")
+  sentInvitations     Invitation[]    @relation("InvitationSender")
+  items               Item[]
+  sessions            Session[]
 
   @@map("users")
 }
 
 model Invitation {
-  id          String   @id @default(cuid())
-  email       String   
-  
-  // Invitation context
-  type        String   // "neighbor", "friend", "family", "coworker", "branch"
-  status      InvitationStatus @default(PENDING)
-  message     String?  // Custom message from sender
-  
-  // Magic link for branch invitations
-  token       String?  @unique // Secure token for magic links (branch invites only)
-  
-  // For postcard/QR code invites
-  qrCode      String?  // Unique QR code for postcard
+  id             String           @id @default(cuid())
+  email          String
+  type           String
+  status         InvitationStatus @default(PENDING)
+  message        String?
+  token          String?          @unique
+  qrCode         String?
   postcardSentAt DateTime?
-  
-  // Address context (for neighbor invites)
-  addressId   String?
-  address     Address? @relation(fields: [addressId], references: [id])
-  
-  // Branch context (for branch invites)
-  branchId    String?
-  branch      Branch?  @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  
-  // User relationships
-  senderId    String?
-  sender      User?    @relation("InvitationSender", fields: [senderId], references: [id])
-  receiverId  String?
-  receiver    User?    @relation("InvitationReceiver", fields: [receiverId], references: [id])
-  
-  // Metadata
-  createdAt   DateTime @default(now())
-  sentAt      DateTime?
-  acceptedAt  DateTime?
-  expiresAt   DateTime // Invitations expire after 7-30 days depending on type
-  
-  @@unique([email, senderId, branchId]) // Prevent duplicate invites to same branch
+  addressId      String?
+  branchId       String?
+  senderId       String?
+  receiverId     String?
+  createdAt      DateTime         @default(now())
+  sentAt         DateTime?
+  acceptedAt     DateTime?
+  expiresAt      DateTime
+  address        Address?         @relation(fields: [addressId], references: [id])
+  branch         Branch?          @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  receiver       User?            @relation("InvitationReceiver", fields: [receiverId], references: [id])
+  sender         User?            @relation("InvitationSender", fields: [senderId], references: [id])
+
+  @@unique([email, senderId, branchId])
   @@index([token])
   @@index([email])
   @@index([branchId])
   @@map("invitations")
 }
 
-enum InvitationStatus {
-  PENDING
-  SENT
-  ACCEPTED
-  EXPIRED
-  DECLINED
-  CANCELLED
-}
-
-// For structured signup flow - holds partial applications
 model SignupApplication {
-  id              String   @id @default(cuid())
-  email           String   @unique
-  
-  // Collected data during signup process
+  id              String    @id @default(cuid())
+  email           String    @unique
   name            String?
   bio             String?
   interests       String[]
-  
-  // Address data (before creating Address record)
-  addressData     Json?    // Temporary storage: {street, city, state, etc.}
-  addressVerified Boolean  @default(false)
-  
-  // Context
-  invitationId    String?  // If they came from an invitation
-  referralSource  String?  // "neighbor_invite", "friend_referral", "web", "social"
-  
-  // Progress tracking
-  currentStep     String   @default("email") // email, profile, address, verification, complete
-  status          String   @default("active") // active, completed, expired, abandoned
-  
-  // Metadata
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  addressData     Json?
+  addressVerified Boolean   @default(false)
+  invitationId    String?
+  referralSource  String?
+  currentStep     String    @default("email")
+  status          String    @default("active")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
   completedAt     DateTime?
-  expiresAt       DateTime // Applications expire after 7 days of inactivity
-  
+  expiresAt       DateTime
+
   @@map("signup_applications")
 }
 
 model Branch {
-  id          String   @id @default(cuid())
+  id          String         @id @default(cuid())
   name        String
   description String?
   location    String?
   rules       Json?
-  isPublic    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relationships
-  ownerId String
-  owner   User           @relation("BranchOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  members BranchMember[]
-  items   Item[]
+  isPublic    Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  ownerId     String
+  members     BranchMember[]
+  owner       User           @relation("BranchOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   invitations Invitation[]
+  items       Item[]
 
   @@map("branches")
 }
 
 model BranchMember {
-  id        String   @id @default(cuid())
-  joinedAt  DateTime @default(now())
-  role      String   @default("member") // member, admin
-  isActive  Boolean  @default(true)
-  
-  // Relationships
+  id       String   @id @default(cuid())
+  joinedAt DateTime @default(now())
+  role     String   @default("member")
+  isActive Boolean  @default(true)
   userId   String
-  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   branchId String
-  branch   Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  branch   Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, branchId])
   @@map("branch_members")
@@ -211,79 +147,63 @@ model BranchMember {
 
 model StuffType {
   id          String   @id @default(cuid())
-  name        String   @unique // "toolbox", "bicycle", "drill", etc.
-  displayName String   // "Toolbox", "Bicycle", "Drill"
-  iconPath    String   // "/stuff icons/noun-toolbox-8029186.svg"
-  category    String   // "tools", "sports", "kitchen", "yard"
+  name        String   @unique
+  displayName String
+  iconPath    String
+  category    String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  // Relationships
-  items Item[]
+  items       Item[]
 
   @@map("stuff_types")
 }
 
 model Item {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  category    String?
-  condition   String   @default("good") // excellent, good, fair, poor
-  isAvailable Boolean  @default(true)
-  imageUrl    String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Enhanced with stuff type
-  stuffTypeId String?
-  stuffType   StuffType? @relation(fields: [stuffTypeId], references: [id])
-
-  // Relationships
+  id             String          @id @default(cuid())
+  name           String
+  description    String?
+  category       String?
+  condition      String          @default("good")
+  isAvailable    Boolean         @default(true)
+  imageUrl       String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  stuffTypeId    String?
   ownerId        String
-  owner          User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   branchId       String
-  branch         Branch          @relation(fields: [branchId], references: [id], onDelete: Cascade)
   borrowRequests BorrowRequest[]
+  branch         Branch          @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  owner          User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  stuffType      StuffType?      @relation(fields: [stuffTypeId], references: [id])
 
   @@map("items")
 }
 
 model BorrowRequest {
-  id          String   @id @default(cuid())
-  status      String   @default("pending") // pending, approved, active, returned, cancelled
-  requestedAt DateTime @default(now())
-  approvedAt  DateTime?
-  borrowedAt  DateTime?
-  returnedAt  DateTime?
-  dueDate     DateTime?
-  notes       String?
-  
-  // Video selfie request fields
-  videoUrl         String?  // URL to the borrower's selfie video
-  signature        String?  // Digital signature data (base64 or JSON)
-  promiseText      String?  // "I promise to return by [date]"
-  promisedReturnBy DateTime? // Date the borrower promised to return
-  
-  // Lender response fields
-  lenderResponse   String?  // Approve/decline message from lender
-  responseToken    String?  // Secure token for approval page access
-  respondedAt      DateTime? // When the lender responded
-  
-  // Pickup tracking
+  id               String    @id @default(cuid())
+  status           String    @default("pending")
+  requestedAt      DateTime  @default(now())
+  approvedAt       DateTime?
+  borrowedAt       DateTime?
+  returnedAt       DateTime?
+  dueDate          DateTime?
+  notes            String?
+  videoUrl         String?
+  signature        String?
+  promiseText      String?
+  promisedReturnBy DateTime?
+  lenderResponse   String?
+  responseToken    String?
+  respondedAt      DateTime?
   pickedUpAt       DateTime?
-  
-  // Reminder tracking
-  remindersSent    Int      @default(0) // Count of SMS reminders sent
+  remindersSent    Int       @default(0)
   lastReminderAt   DateTime?
-
-  // Relationships
-  borrowerId String
-  borrower   User   @relation(fields: [borrowerId], references: [id], onDelete: Cascade)
-  lenderId   String
-  lender     User   @relation("Lender", fields: [lenderId], references: [id], onDelete: Cascade)
-  itemId     String
-  item       Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  borrowerId       String
+  lenderId         String
+  itemId           String
+  borrower         User      @relation(fields: [borrowerId], references: [id], onDelete: Cascade)
+  item             Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  lender           User      @relation("Lender", fields: [lenderId], references: [id], onDelete: Cascade)
 
   @@map("borrow_requests")
 }
@@ -293,30 +213,28 @@ model WaitlistEntry {
   email     String   @unique
   name      String?
   location  String?
-  interests String[] // Array of interests like "tools", "outdoor", "kitchen"
-  source    String?  // How they heard about us
+  interests String[]
+  source    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("waitlist_entries")
 }
 
-// NextAuth models
 model Account {
   id                String  @id @default(cuid())
   userId            String
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@map("accounts")
@@ -348,4 +266,13 @@ model AuthCode {
   createdAt DateTime @default(now())
 
   @@map("auth_codes")
+}
+
+enum InvitationStatus {
+  PENDING
+  SENT
+  ACCEPTED
+  EXPIRED
+  DECLINED
+  CANCELLED
 }

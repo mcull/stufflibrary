@@ -28,6 +28,7 @@ import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { useState } from 'react';
 
+import { useProfileDraftCleanup } from '@/hooks/useProfileDraftCleanup';
 import { brandColors } from '@/theme/brandTokens';
 
 import { Wordmark } from './Wordmark';
@@ -35,6 +36,9 @@ import { Wordmark } from './Wordmark';
 export function AuthenticatedHeader() {
   const { data: session } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Clean up profile drafts when user signs out
+  useProfileDraftCleanup();
 
   const handleMobileMenuToggle = () => {
     setMobileMenuOpen(!mobileMenuOpen);

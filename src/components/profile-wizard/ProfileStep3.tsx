@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowBack, CheckCircle, Person, Interests } from '@mui/icons-material';
+import { ArrowBack, CameraAlt, CheckCircle } from '@mui/icons-material';
 import {
   Avatar,
   Box,
@@ -10,12 +10,12 @@ import {
   Checkbox,
   FormControlLabel,
   Typography,
+  CircularProgress,
   Chip,
   Link,
-  CircularProgress,
 } from '@mui/material';
-import React, { useState } from 'react';
-import { useFormContext } from 'react-hook-form';
+import React from 'react';
+import { useFormContext, Controller } from 'react-hook-form';
 
 import { brandColors } from '@/theme/brandTokens';
 
@@ -26,44 +26,41 @@ interface ProfileStep3Props {
   onBack: () => void;
   isFirstStep: boolean;
   isLastStep: boolean;
+  profilePicturePreviewUrl?: string | null;
 }
 
-export function ProfileStep3({ onBack }: ProfileStep3Props) {
+
+export function ProfileStep3({ onBack, profilePicturePreviewUrl }: ProfileStep3Props) {
   const {
     register,
+    setValue,
     watch,
+    control,
     formState: { errors, isSubmitting },
   } = useFormContext<ProfileFormData>();
 
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const formData = watch();
-  const {
-    name,
-    bio,
-    interests,
-    profilePicture,
+  const { 
+    name, 
+    bio, 
+    shareInterests, 
+    borrowInterests, 
+    profilePicture, 
     profilePictureUrl,
+    agreedToHouseholdGoods,
+    agreedToTrustAndCare,
+    agreedToCommunityValues,
+    agreedToAgeRestrictions,
     agreedToTerms,
+    parsedAddress 
   } = formData;
 
-  // Create preview URL for uploaded file
-  React.useEffect(() => {
-    if (profilePicture) {
-      const url = URL.createObjectURL(profilePicture);
-      setPreviewUrl(url);
-
-      return () => {
-        URL.revokeObjectURL(url);
-      };
-    }
-    return undefined;
-  }, [profilePicture]);
-
-  const currentImageUrl = previewUrl || profilePictureUrl;
+  const currentImageUrl = profilePicturePreviewUrl || profilePictureUrl;
+  const canProceed = agreedToTerms && agreedToHouseholdGoods && agreedToTrustAndCare && agreedToCommunityValues && agreedToAgeRestrictions && profilePicture;
 
   return (
-    <Box sx={{ minHeight: '500px' }}>
+    <Box sx={{ minHeight: '600px' }}>
       {/* Step Content */}
       <Box sx={{ mb: 4 }}>
         <Typography
@@ -84,155 +81,334 @@ export function ProfileStep3({ onBack }: ProfileStep3Props) {
             mb: 4,
           }}
         >
-          Take a moment to review your profile before submitting.
+          Review your profile information and agree to our terms to complete your registration.
         </Typography>
 
-        {/* Profile Preview Card */}
-        <Card
-          elevation={0}
-          sx={{
-            border: `1px solid ${brandColors.softGray}`,
-            borderRadius: '12px',
-            mb: 4,
-          }}
-        >
-          <CardContent sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', gap: 3, mb: 3 }}>
-              <Avatar
-                {...(currentImageUrl ? { src: currentImageUrl } : {})}
-                sx={{
-                  width: 60,
-                  height: 60,
-                  bgcolor: brandColors.softGray,
-                  color: brandColors.charcoal,
-                }}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+
+          {/* Profile Summary */}
+          <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)' }}>
+            <CardContent sx={{ p: 3 }}>
+              <Typography
+                variant="subtitle1"
+                sx={{ fontWeight: 600, color: brandColors.charcoal, mb: 2 }}
               >
-                {currentImageUrl ? null : <Person />}
-              </Avatar>
+                Profile Summary
+              </Typography>
 
-              <Box sx={{ flex: 1 }}>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    fontWeight: 600,
-                    color: brandColors.charcoal,
-                    mb: 1,
-                  }}
+              <Box sx={{ display: 'flex', gap: 3, mb: 2 }}>
+                <Avatar
+                  {...(currentImageUrl ? { src: currentImageUrl } : {})}
+                  sx={{ width: 60, height: 60 }}
                 >
-                  {name || 'Your Name'}
-                </Typography>
-
-                {bio && (
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: brandColors.charcoal,
-                      opacity: 0.8,
-                      mt: 1,
-                    }}
-                  >
-                    {bio}
+                  {!currentImageUrl && <CameraAlt />}
+                </Avatar>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    {name || 'Your Name'}
                   </Typography>
-                )}
-              </Box>
-            </Box>
-
-            {/* Interests */}
-            {interests && interests.length > 0 && (
-              <Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <Interests
-                    sx={{
-                      fontSize: 16,
-                      color: brandColors.charcoal,
-                      opacity: 0.6,
-                      mr: 0.5,
-                    }}
-                  />
-                  <Typography
-                    variant="subtitle2"
-                    sx={{
-                      fontWeight: 600,
-                      color: brandColors.charcoal,
-                    }}
-                  >
-                    Interests
-                  </Typography>
+                  {parsedAddress && (
+                    <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+                      {parsedAddress.city}, {parsedAddress.state}
+                    </Typography>
+                  )}
+                  {bio && (
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      {bio}
+                    </Typography>
+                  )}
                 </Box>
+              </Box>
 
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                  {interests.map((interest) => (
-                    <Chip
-                      key={interest}
-                      label={interest}
-                      size="small"
+              {shareInterests?.length > 0 && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+                    Willing to share:
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {shareInterests.slice(0, 3).map((interest) => (
+                      <Chip
+                        key={interest}
+                        label={interest}
+                        size="small"
+                        color="primary"
+                        variant="filled"
+                        sx={{ fontSize: '0.75rem' }}
+                      />
+                    ))}
+                    {shareInterests.length > 3 && (
+                      <Chip
+                        label={`+${shareInterests.length - 3} more`}
+                        size="small"
+                        variant="outlined"
+                        sx={{ fontSize: '0.75rem' }}
+                      />
+                    )}
+                  </Box>
+                </Box>
+              )}
+
+              {borrowInterests?.length > 0 && (
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+                    Looking to borrow:
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {borrowInterests.slice(0, 3).map((interest) => (
+                      <Chip
+                        key={interest}
+                        label={interest}
+                        size="small"
+                        color="secondary"
+                        variant="filled"
+                        sx={{ fontSize: '0.75rem' }}
+                      />
+                    ))}
+                    {borrowInterests.length > 3 && (
+                      <Chip
+                        label={`+${borrowInterests.length - 3} more`}
+                        size="small"
+                        variant="outlined"
+                        sx={{ fontSize: '0.75rem' }}
+                      />
+                    )}
+                  </Box>
+                </Box>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Community Guidelines */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: brandColors.charcoal, mb: 1 }}>
+              Community Guidelines
+            </Typography>
+            
+            <Controller
+              name="agreedToHouseholdGoods"
+              control={control}
+              render={({ field: { onChange, value } }) => (
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={value || false}
+                      onChange={(e) => onChange(e.target.checked)}
                       sx={{
-                        backgroundColor: brandColors.inkBlue,
-                        color: brandColors.white,
-                        borderRadius: '16px',
+                        color: brandColors.inkBlue,
+                        '&.Mui-checked': {
+                          color: brandColors.inkBlue,
+                        },
                       }}
                     />
-                  ))}
-                </Box>
-              </Box>
-            )}
-          </CardContent>
-        </Card>
+                  }
+                  label={
+                    <Typography variant="body2" sx={{ color: brandColors.charcoal }}>
+                      I understand that Stuff Library is for sharing normal household goods only. 
+                      Sharing anything illegal, unsafe, or inappropriate will result in account closure.
+                    </Typography>
+                  }
+                />
+              )}
+            />
 
-        {/* Terms Agreement */}
-        <Box
-          sx={{
-            p: 3,
-            border: `1px solid ${brandColors.softGray}`,
-            borderRadius: '12px',
-            backgroundColor: 'rgba(37, 99, 235, 0.02)',
-          }}
-        >
-          <FormControlLabel
-            control={
-              <Checkbox
-                {...register('agreedToTerms')}
-                checked={agreedToTerms || false}
-                sx={{
-                  color: brandColors.inkBlue,
-                  '&.Mui-checked': {
-                    color: brandColors.inkBlue,
-                  },
-                }}
+            <Controller
+              name="agreedToTrustAndCare"
+              control={control}
+              render={({ field: { onChange, value } }) => (
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={value || false}
+                      onChange={(e) => onChange(e.target.checked)}
+                      sx={{
+                        color: brandColors.inkBlue,
+                        '&.Mui-checked': {
+                          color: brandColors.inkBlue,
+                        },
+                      }}
+                    />
+                  }
+                  label={
+                    <Typography variant="body2" sx={{ color: brandColors.charcoal }}>
+                      I'll do my best to take care of borrowed items, and I won't share anything 
+                      irreplaceable or where normal wear and tear would upset me.
+                    </Typography>
+                  }
+                />
+              )}
+            />
+
+            <Controller
+              name="agreedToCommunityValues"
+              control={control}
+              render={({ field: { onChange, value } }) => (
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={value || false}
+                      onChange={(e) => onChange(e.target.checked)}
+                      sx={{
+                        color: brandColors.inkBlue,
+                        '&.Mui-checked': {
+                          color: brandColors.inkBlue,
+                        },
+                      }}
+                    />
+                  }
+                  label={
+                    <Typography variant="body2" sx={{ color: brandColors.charcoal }}>
+                      I'm here to build community through sharing. I'll treat neighbors with 
+                      kindness and respect—hurtful behavior won't be tolerated.
+                    </Typography>
+                  }
+                />
+              )}
+            />
+
+            <Controller
+              name="agreedToAgeRestrictions"
+              control={control}
+              render={({ field: { onChange, value } }) => (
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={value || false}
+                      onChange={(e) => onChange(e.target.checked)}
+                      sx={{
+                        color: brandColors.inkBlue,
+                        '&.Mui-checked': {
+                          color: brandColors.inkBlue,
+                        },
+                      }}
+                    />
+                  }
+                  label={
+                    <Typography variant="body2" sx={{ color: brandColors.charcoal }}>
+                      I understand that Stuff Library doesn't verify ages, so I won't share 
+                      age-restricted items like alcohol, tobacco, firearms, or anything requiring ID.
+                    </Typography>
+                  }
+                />
+              )}
+            />
+          </Box>
+
+          {/* Terms Agreement */}
+          <Controller
+            name="agreedToTerms"
+            control={control}
+            render={({ field: { onChange, value } }) => (
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={value || false}
+                    onChange={(e) => onChange(e.target.checked)}
+                    disabled={!agreedToHouseholdGoods || !agreedToTrustAndCare || !agreedToCommunityValues || !agreedToAgeRestrictions}
+                    sx={{
+                      color: brandColors.inkBlue,
+                      '&.Mui-checked': {
+                        color: brandColors.inkBlue,
+                      },
+                      '&.Mui-disabled': {
+                        color: brandColors.softGray,
+                      },
+                    }}
+                  />
+                }
+                label={
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      color: (!agreedToHouseholdGoods || !agreedToTrustAndCare || !agreedToCommunityValues || !agreedToAgeRestrictions) 
+                        ? brandColors.softGray 
+                        : brandColors.charcoal 
+                    }}
+                  >
+                    I agree to the{' '}
+                    <Link 
+                      href="/terms" 
+                      target="_blank" 
+                      sx={{ 
+                        color: (!agreedToHouseholdGoods || !agreedToTrustAndCare || !agreedToCommunityValues || !agreedToAgeRestrictions) 
+                          ? brandColors.softGray 
+                          : brandColors.inkBlue 
+                      }}
+                    >
+                      Terms of Service
+                    </Link>{' '}
+                    and{' '}
+                    <Link 
+                      href="/privacy" 
+                      target="_blank" 
+                      sx={{ 
+                        color: (!agreedToHouseholdGoods || !agreedToTrustAndCare || !agreedToCommunityValues || !agreedToAgeRestrictions) 
+                          ? brandColors.softGray 
+                          : brandColors.inkBlue 
+                      }}
+                    >
+                      Privacy Policy
+                    </Link>
+                  </Typography>
+                }
               />
-            }
-            label={
-              <Typography variant="body2" sx={{ color: brandColors.charcoal }}>
-                I agree to the{' '}
-                <Link
-                  href="/terms"
-                  target="_blank"
-                  sx={{ color: brandColors.inkBlue }}
-                >
-                  Terms of Service
-                </Link>{' '}
-                and{' '}
-                <Link
-                  href="/privacy"
-                  target="_blank"
-                  sx={{ color: brandColors.inkBlue }}
-                >
-                  Privacy Policy
-                </Link>
-                , and I understand that my profile will be visible to other
-                StuffLibrary members.
-              </Typography>
-            }
+            )}
           />
+
+          {/* Error Messages */}
+          {errors.agreedToHouseholdGoods && (
+            <Typography
+              variant="caption"
+              sx={{
+                color: 'error.main',
+                display: 'block',
+              }}
+            >
+              {errors.agreedToHouseholdGoods.message}
+            </Typography>
+          )}
+
+          {errors.agreedToTrustAndCare && (
+            <Typography
+              variant="caption"
+              sx={{
+                color: 'error.main',
+                display: 'block',
+              }}
+            >
+              {errors.agreedToTrustAndCare.message}
+            </Typography>
+          )}
+
+          {errors.agreedToCommunityValues && (
+            <Typography
+              variant="caption"
+              sx={{
+                color: 'error.main',
+                display: 'block',
+              }}
+            >
+              {errors.agreedToCommunityValues.message}
+            </Typography>
+          )}
+
+          {errors.agreedToAgeRestrictions && (
+            <Typography
+              variant="caption"
+              sx={{
+                color: 'error.main',
+                display: 'block',
+              }}
+            >
+              {errors.agreedToAgeRestrictions.message}
+            </Typography>
+          )}
 
           {errors.agreedToTerms && (
             <Typography
               variant="caption"
               sx={{
                 color: 'error.main',
-                mt: 1,
                 display: 'block',
-                ml: 4,
               }}
             >
               {errors.agreedToTerms.message}
@@ -247,7 +423,6 @@ export function ProfileStep3({ onBack }: ProfileStep3Props) {
           variant="outlined"
           onClick={onBack}
           startIcon={<ArrowBack />}
-          disabled={isSubmitting}
           sx={{
             px: 4,
             py: 1.5,
@@ -269,14 +444,8 @@ export function ProfileStep3({ onBack }: ProfileStep3Props) {
         <Button
           type="submit"
           variant="contained"
-          disabled={isSubmitting}
-          startIcon={
-            isSubmitting ? (
-              <CircularProgress size={20} color="inherit" />
-            ) : (
-              <CheckCircle />
-            )
-          }
+          disabled={!canProceed || isSubmitting}
+          endIcon={isSubmitting ? <CircularProgress size={16} /> : <CheckCircle />}
           sx={{
             px: 4,
             py: 1.5,
@@ -290,8 +459,9 @@ export function ProfileStep3({ onBack }: ProfileStep3Props) {
               transform: 'translateY(-1px)',
             },
             '&:disabled': {
-              transform: 'none',
-              boxShadow: '0 4px 14px 0 rgba(30, 58, 95, 0.1)',
+              backgroundColor: brandColors.softGray,
+              color: brandColors.charcoal,
+              opacity: 0.6,
             },
             transition: 'all 0.2s ease',
           }}

@@ -7,23 +7,30 @@ import { db } from '@/lib/db';
 
 const createProfileSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  phone: z
-    .string()
-    .min(1, 'Phone number is required for SMS notifications')
-    .regex(
-      /^[\+]?[1-9][\d]{0,15}$/,
-      'Please enter a valid phone number (e.g., +15551234567)'
-    ),
+  address: z.string().min(1, 'Address is required to find your neighbors'),
   bio: z.preprocess(
     (val) => (val === '' || val === null ? undefined : val),
     z.string().optional()
   ),
-  interests: z.array(z.string()).min(1, 'At least one interest is required'),
+  shareInterests: z.array(z.string()).optional().default([]),
+  borrowInterests: z.array(z.string()).optional().default([]),
   image: z.preprocess(
     (val) => (val === '' || val === null ? undefined : val),
     z.string().url().optional()
   ),
-  // Address will be handled separately for now
+  // Optional parsed address components from Google Places
+  parsedAddress: z.object({
+    place_id: z.string().nullable().optional(),
+    formatted_address: z.string().nullable().optional(),
+    address1: z.string().nullable().optional(),
+    address2: z.string().nullable().optional(),
+    city: z.string().nullable().optional(),
+    state: z.string().nullable().optional(),
+    zip: z.string().nullable().optional(),
+    country: z.string().nullable().optional(),
+    latitude: z.number().nullable().optional(),
+    longitude: z.number().nullable().optional(),
+  }).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -55,37 +62,112 @@ export async function POST(request: NextRequest) {
     }
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      // Create user if they don't exist (happens on first profile creation)
+      user = await db.user.create({
+        data: {
+          id: userId || undefined,
+          email: session.user.email || null,
+          name: session.user.name || null,
+          image: session.user.image || null,
+        },
+        select: { id: true },
+      });
     }
 
     const body = await request.json();
     const validatedData = createProfileSchema.parse(body);
 
-    // Update user with profile information
-    const updatedUser = await db.user.update({
-      where: { id: user.id },
-      data: {
-        name: validatedData.name,
-        phone: validatedData.phone,
-        bio: validatedData.bio ?? null,
-        interests: validatedData.interests,
-        image: validatedData.image ?? null,
-        profileCompleted: true,
-        onboardingStep: 'complete',
-      },
+    // Use a transaction to create address and update user
+    const result = await db.$transaction(async (tx) => {
+      let addressId = null;
+
+      // Create address record if we have parsed address data
+      if (validatedData.parsedAddress && 
+          validatedData.parsedAddress.address1 && 
+          validatedData.parsedAddress.city && 
+          validatedData.parsedAddress.state && 
+          validatedData.parsedAddress.zip) {
+        
+        // Deactivate any existing active addresses for this user
+        await tx.address.updateMany({
+          where: { userId: user.id, isActive: true },
+          data: { isActive: false }
+        });
+
+        // Create new active address
+        const newAddress = await tx.address.create({
+          data: {
+            userId: user.id,
+            address1: validatedData.parsedAddress.address1!,
+            address2: validatedData.parsedAddress.address2 || '',
+            city: validatedData.parsedAddress.city!,
+            state: validatedData.parsedAddress.state!,
+            zip: validatedData.parsedAddress.zip!,
+            country: validatedData.parsedAddress.country || 'US',
+            latitude: validatedData.parsedAddress.latitude ?? null,
+            longitude: validatedData.parsedAddress.longitude ?? null,
+            formattedAddress: validatedData.parsedAddress.formatted_address ?? null,
+            placeId: validatedData.parsedAddress.place_id ?? null,
+            verificationMethod: 'google_places',
+            isActive: true,
+          }
+        });
+        
+        addressId = newAddress.id;
+      }
+
+      // Update user with profile information
+      const updatedUser = await tx.user.update({
+        where: { id: user.id },
+        data: {
+          name: validatedData.name,
+          bio: validatedData.bio ?? null,
+          shareInterests: validatedData.shareInterests,
+          borrowInterests: validatedData.borrowInterests,
+          image: validatedData.image ?? null,
+          currentAddressId: addressId,
+          profileCompleted: true,
+          onboardingStep: 'complete',
+        },
+      });
+
+      return updatedUser;
     });
+
+    // Get the user with their current address for the response
+    const userWithAddress = await db.user.findUnique({
+      where: { id: user.id },
+      include: {
+        addresses: {
+          where: { isActive: true },
+          orderBy: { createdAt: 'desc' },
+          take: 1
+        }
+      }
+    });
+
+    const currentAddress = userWithAddress?.addresses[0];
 
     return NextResponse.json({
       success: true,
       user: {
-        id: updatedUser.id,
-        name: updatedUser.name,
-        email: updatedUser.email,
-        phone: updatedUser.phone,
-        image: updatedUser.image,
-        bio: updatedUser.bio,
-        interests: updatedUser.interests,
-        profileCompleted: updatedUser.profileCompleted,
+        id: result.id,
+        name: result.name,
+        email: result.email,
+        image: result.image,
+        bio: result.bio,
+        shareInterests: result.shareInterests,
+        borrowInterests: result.borrowInterests,
+        profileCompleted: result.profileCompleted,
+        currentAddress: currentAddress ? {
+          id: currentAddress.id,
+          address1: currentAddress.address1,
+          address2: currentAddress.address2,
+          city: currentAddress.city,
+          state: currentAddress.state,
+          zip: currentAddress.zip,
+          formattedAddress: currentAddress.formattedAddress,
+        } : null,
       },
     });
   } catch (error) {
@@ -158,7 +240,8 @@ export async function PUT(request: NextRequest) {
       data: {
         ...(validatedData.name && { name: validatedData.name }),
         ...(validatedData.bio !== undefined && { bio: validatedData.bio }),
-        ...(validatedData.interests && { interests: validatedData.interests }),
+        ...(validatedData.shareInterests && { shareInterests: validatedData.shareInterests }),
+        ...(validatedData.borrowInterests && { borrowInterests: validatedData.borrowInterests }),
         ...(validatedData.image && { image: validatedData.image }),
         // Don't update profileCompleted or onboardingStep on edit
       },
@@ -172,7 +255,8 @@ export async function PUT(request: NextRequest) {
         email: updatedUser.email,
         image: updatedUser.image,
         bio: updatedUser.bio,
-        interests: updatedUser.interests,
+        shareInterests: updatedUser.shareInterests,
+        borrowInterests: updatedUser.borrowInterests,
         profileCompleted: updatedUser.profileCompleted,
       },
     });
@@ -226,11 +310,13 @@ export async function GET(_request: NextRequest) {
           phoneVerified: true,
           image: true,
           bio: true,
-          interests: true,
+          shareInterests: true,
+          borrowInterests: true,
           profileCompleted: true,
           onboardingStep: true,
-          addressId: true,
-          addressVerified: true,
+          currentAddressId: true,
+          movedInDate: true,
+          status: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -246,11 +332,13 @@ export async function GET(_request: NextRequest) {
           phoneVerified: true,
           image: true,
           bio: true,
-          interests: true,
+          shareInterests: true,
+          borrowInterests: true,
           profileCompleted: true,
           onboardingStep: true,
-          addressId: true,
-          addressVerified: true,
+          currentAddressId: true,
+          movedInDate: true,
+          status: true,
           createdAt: true,
           updatedAt: true,
         },

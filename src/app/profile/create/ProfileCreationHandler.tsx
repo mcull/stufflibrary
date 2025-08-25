@@ -120,10 +120,12 @@ export function ProfileCreationHandler({
         },
         body: JSON.stringify({
           name: data.name,
-          phone: data.phone,
+          address: data.address,
           bio: data.bio || null,
-          interests: data.interests,
+          shareInterests: data.shareInterests,
+          borrowInterests: data.borrowInterests,
           image: imageUrl || data.profilePictureUrl || null,
+          parsedAddress: data.parsedAddress,
         }),
       });
 

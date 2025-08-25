@@ -1,50 +1,42 @@
 'use client';
 
-import { ArrowBack, ArrowForward, CameraAlt, Close } from '@mui/icons-material';
+import { ArrowBack, ArrowForward, CameraAlt, Close, CheckCircle, Warning } from '@mui/icons-material';
 import {
   Avatar,
   Box,
   Button,
-  Chip,
   IconButton,
   Stack,
   TextField,
   Typography,
   Alert,
+  CircularProgress,
 } from '@mui/material';
-import { useRef, useState } from 'react';
-import { useFormContext, Controller } from 'react-hook-form';
+import { useState, useRef } from 'react';
+import { useFormContext } from 'react-hook-form';
 
+// import { STUFF_CATEGORIES } from '@/data/stuffCategories';
 import { brandColors } from '@/theme/brandTokens';
 
 import type { ProfileFormData } from '../ProfileWizard';
-
-const interestOptions = [
-  'Tools & Hardware',
-  'Kitchen & Cooking',
-  'Outdoor & Sports',
-  'Arts & Crafts',
-  'Books & Media',
-  'Technology',
-  'Gardening',
-  'Baby & Kids',
-  'Musical Instruments',
-  'Home & Decor',
-  'Automotive',
-  'Exercise & Fitness',
-];
 
 interface ProfileStep2Props {
   onNext: () => void;
   onBack: () => void;
   isFirstStep: boolean;
   isLastStep: boolean;
+  profilePicturePreviewUrl?: string | null;
+}
+
+interface ImageVerificationResult {
+  approved: boolean;
+  reason?: string;
+  confidence: 'high' | 'medium' | 'low';
 }
 
 export function ProfileStep2({ onNext, onBack }: ProfileStep2Props) {
   const {
     register,
-    control,
     setValue,
     watch,
     formState: { errors },
@@ -53,62 +45,114 @@ export function ProfileStep2({ onNext, onBack }: ProfileStep2Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [verificationStatus, setVerificationStatus] = useState<'pending' | 'verifying' | 'approved' | 'rejected' | null>(null);
+  const [verificationResult, setVerificationResult] = useState<ImageVerificationResult | null>(null);
 
-  const _profilePicture = watch('profilePicture');
+  const profilePicture = watch('profilePicture');
   const profilePictureUrl = watch('profilePictureUrl');
-  const selectedInterests = watch('interests') || [];
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const currentImageUrl = previewUrl || profilePictureUrl;
+
+  const verifyImageWithAI = async (file: File): Promise<ImageVerificationResult> => {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const response = await fetch('/api/verify-image', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to verify image');
+    }
+
+    return response.json();
+  };
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      setUploadError('Please select an image file');
-      return;
-    }
-
-    // Validate file size (2MB limit)
-    if (file.size > 2 * 1024 * 1024) {
-      setUploadError('Image must be less than 2MB');
-      return;
-    }
-
+    // Reset states
     setUploadError(null);
-    setValue('profilePicture', file);
+    setVerificationStatus(null);
+    setVerificationResult(null);
+
+    // Validate file type
+    if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type)) {
+      setUploadError('Please select a JPEG, PNG, or WebP image');
+      return;
+    }
+
+    // Validate file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError('Image must be less than 10MB');
+      return;
+    }
 
     // Create preview URL
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
+    setVerificationStatus('pending');
 
-    // Cleanup old preview URL
-    return () => {
-      URL.revokeObjectURL(url);
-    };
+    try {
+      // Start verification
+      setVerificationStatus('verifying');
+      const result = await verifyImageWithAI(file);
+      setVerificationResult(result);
+
+      if (result.approved) {
+        setVerificationStatus('approved');
+        setValue('profilePicture', file);
+      } else {
+        setVerificationStatus('rejected');
+        setUploadError(result.reason || 'Image does not meet our community guidelines');
+      }
+    } catch (error) {
+      console.error('Image verification error:', error);
+      setVerificationStatus('rejected');
+      setUploadError('Unable to verify image. Please try again or choose a different photo.');
+    }
   };
 
   const handleRemoveImage = () => {
-    setValue('profilePicture', undefined);
+    setValue('profilePicture', null as any);
     setValue('profilePictureUrl', undefined);
     setPreviewUrl(null);
     setUploadError(null);
+    setVerificationStatus(null);
+    setVerificationResult(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  const handleInterestToggle = (interest: string) => {
-    const newInterests = selectedInterests.includes(interest)
-      ? selectedInterests.filter((i) => i !== interest)
-      : [...selectedInterests, interest];
-
-    setValue('interests', newInterests, { shouldValidate: true });
+  const getVerificationMessage = () => {
+    switch (verificationStatus) {
+      case 'verifying':
+        return {
+          type: 'info' as const,
+          message: 'Verifying your photo...',
+        };
+      case 'approved':
+        return {
+          type: 'success' as const,
+          message: 'Great! Your photo looks good.',
+        };
+      case 'rejected':
+        return {
+          type: 'error' as const,
+          message: uploadError || 'Photo verification failed',
+        };
+      default:
+        return null;
+    }
   };
 
-  const currentImageUrl = previewUrl || profilePictureUrl;
+  const verificationMessage = getVerificationMessage();
 
   return (
-    <Box sx={{ minHeight: '500px' }}>
+    <Box sx={{ minHeight: '600px' }}>
       {/* Step Content */}
       <Box sx={{ mb: 4 }}>
         <Typography
@@ -127,9 +171,12 @@ export function ProfileStep2({ onNext, onBack }: ProfileStep2Props) {
             color: brandColors.charcoal,
             opacity: 0.7,
             mb: 4,
+            lineHeight: 1.6,
           }}
         >
-          Add a photo and tell us what interests you most.
+          Your profile photo helps neighbors recognize you when borrowing or sharing items, building trust in our community. 
+          A brief "About me" section helps others understand your interests and sharing style, making it easier to connect 
+          with the right neighbors for your needs.
         </Typography>
 
         <Stack spacing={4}>
@@ -143,7 +190,7 @@ export function ProfileStep2({ onNext, onBack }: ProfileStep2Props) {
                 mb: 2,
               }}
             >
-              Profile Picture (Optional)
+              Profile Picture *
             </Typography>
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
@@ -151,15 +198,61 @@ export function ProfileStep2({ onNext, onBack }: ProfileStep2Props) {
                 <Avatar
                   {...(currentImageUrl ? { src: currentImageUrl } : {})}
                   sx={{
-                    width: 80,
-                    height: 80,
+                    width: 100,
+                    height: 100,
                     bgcolor: brandColors.softGray,
                     color: brandColors.charcoal,
-                    fontSize: '2rem',
+                    fontSize: '2.5rem',
                   }}
                 >
                   {currentImageUrl ? null : <CameraAlt />}
                 </Avatar>
+
+                {/* Verification Status Overlay */}
+                {verificationStatus === 'verifying' && (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      borderRadius: '50%',
+                      backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <CircularProgress size={24} />
+                  </Box>
+                )}
+
+                {verificationStatus === 'approved' && (
+                  <CheckCircle
+                    sx={{
+                      position: 'absolute',
+                      bottom: 5,
+                      right: 5,
+                      color: 'success.main',
+                      backgroundColor: 'white',
+                      borderRadius: '50%',
+                    }}
+                  />
+                )}
+
+                {verificationStatus === 'rejected' && (
+                  <Warning
+                    sx={{
+                      position: 'absolute',
+                      bottom: 5,
+                      right: 5,
+                      color: 'error.main',
+                      backgroundColor: 'white',
+                      borderRadius: '50%',
+                    }}
+                  />
+                )}
 
                 {currentImageUrl && (
                   <IconButton
@@ -174,11 +267,11 @@ export function ProfileStep2({ onNext, onBack }: ProfileStep2Props) {
                       '&:hover': {
                         bgcolor: brandColors.charcoal,
                       },
-                      width: 24,
-                      height: 24,
+                      width: 28,
+                      height: 28,
                     }}
                   >
-                    <Close sx={{ fontSize: 16 }} />
+                    <Close sx={{ fontSize: 18 }} />
                   </IconButton>
                 )}
               </Box>
@@ -187,7 +280,7 @@ export function ProfileStep2({ onNext, onBack }: ProfileStep2Props) {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
                   onChange={handleFileSelect}
                   style={{ display: 'none' }}
                 />
@@ -196,6 +289,7 @@ export function ProfileStep2({ onNext, onBack }: ProfileStep2Props) {
                   variant="outlined"
                   onClick={() => fileInputRef.current?.click()}
                   startIcon={<CameraAlt />}
+                  disabled={verificationStatus === 'verifying'}
                   sx={{
                     borderRadius: '8px',
                     textTransform: 'none',
@@ -207,7 +301,7 @@ export function ProfileStep2({ onNext, onBack }: ProfileStep2Props) {
                     },
                   }}
                 >
-                  {currentImageUrl ? 'Change Photo' : 'Upload Photo'}
+                  {currentImageUrl ? 'Change Photo' : 'Add Photo'}
                 </Button>
 
                 <Typography
@@ -219,119 +313,103 @@ export function ProfileStep2({ onNext, onBack }: ProfileStep2Props) {
                     opacity: 0.6,
                   }}
                 >
-                  JPG, PNG up to 2MB
+                  JPEG, PNG, WebP up to 10MB
                 </Typography>
               </Box>
             </Box>
 
-            {uploadError && (
-              <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>
-                {uploadError}
+            {/* Verification Message */}
+            {verificationMessage && (
+              <Alert 
+                severity={verificationMessage.type} 
+                sx={{ 
+                  mt: 2, 
+                  borderRadius: 2,
+                  ...(verificationMessage.type === 'error' && {
+                    '& .MuiAlert-message': {
+                      fontSize: '0.875rem',
+                    }
+                  })
+                }}
+              >
+                {verificationMessage.message}
+                {verificationStatus === 'rejected' && (
+                  <Box sx={{ mt: 1, fontSize: '0.8rem', opacity: 0.8 }}>
+                    <strong>Photo Guidelines:</strong>
+                    <ul style={{ margin: '4px 0', paddingLeft: '16px' }}>
+                      <li>Must be a clear photo of a real person (no cartoons, animals, or objects)</li>
+                      <li>Should show your face clearly</li>
+                      <li>No inappropriate content, gestures, or offensive text/symbols</li>
+                      <li>Family-friendly and welcoming for our community</li>
+                    </ul>
+                  </Box>
+                )}
               </Alert>
+            )}
+
+            {errors.profilePicture && (
+              <Typography
+                variant="caption"
+                sx={{
+                  color: 'error.main',
+                  mt: 1,
+                  display: 'block',
+                }}
+              >
+                {errors.profilePicture.message}
+              </Typography>
             )}
           </Box>
 
-          {/* Bio */}
-          <TextField
-            {...register('bio')}
-            label="Bio (Optional)"
-            placeholder="Tell us a bit about yourself..."
-            multiline
-            rows={3}
-            fullWidth
-            variant="outlined"
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                borderRadius: '12px',
-                backgroundColor: brandColors.white,
-                '&:hover': {
-                  '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: brandColors.inkBlue,
+          {/* About Me */}
+          <Box>
+            <TextField
+              {...register('bio')}
+              label="About me (Optional)"
+              multiline
+              rows={4}
+              fullWidth
+              variant="outlined"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '12px',
+                  backgroundColor: brandColors.white,
+                  '&:hover': {
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: brandColors.inkBlue,
+                    },
+                  },
+                  '&.Mui-focused': {
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: brandColors.inkBlue,
+                      borderWidth: 2,
+                    },
                   },
                 },
-                '&.Mui-focused': {
-                  '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: brandColors.inkBlue,
-                    borderWidth: 2,
+                '& .MuiInputLabel-root': {
+                  '&.Mui-focused': {
+                    color: brandColors.inkBlue,
                   },
                 },
-              },
-              '& .MuiInputLabel-root': {
-                '&.Mui-focused': {
-                  color: brandColors.inkBlue,
-                },
-              },
-            }}
-          />
-
-          {/* Interests */}
-          <Controller
-            name="interests"
-            control={control}
-            render={() => (
-              <Box>
-                <Typography
-                  variant="subtitle1"
-                  sx={{
-                    fontWeight: 600,
-                    color: brandColors.charcoal,
-                    mb: 2,
-                  }}
-                >
-                  What interests you? *
-                </Typography>
-
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
-                  {interestOptions.map((interest) => (
-                    <Chip
-                      key={interest}
-                      label={interest}
-                      onClick={() => handleInterestToggle(interest)}
-                      color={
-                        selectedInterests.includes(interest)
-                          ? 'primary'
-                          : 'default'
-                      }
-                      variant={
-                        selectedInterests.includes(interest)
-                          ? 'filled'
-                          : 'outlined'
-                      }
-                      sx={{
-                        borderRadius: '20px',
-                        '&.MuiChip-colorPrimary': {
-                          backgroundColor: brandColors.inkBlue,
-                          '&:hover': {
-                            backgroundColor: brandColors.inkBlue,
-                          },
-                        },
-                        '&.MuiChip-outlined': {
-                          borderColor: brandColors.softGray,
-                          '&:hover': {
-                            borderColor: brandColors.inkBlue,
-                            backgroundColor: 'rgba(37, 99, 235, 0.04)',
-                          },
-                        },
-                      }}
-                    />
-                  ))}
-                </Box>
-
-                {errors.interests && (
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: 'error.main',
-                      mt: 1,
-                      display: 'block',
-                    }}
-                  >
-                    {errors.interests.message}
-                  </Typography>
-                )}
-              </Box>
-            )}
-          />
+              }}
+            />
+            
+            <Typography
+              variant="caption"
+              sx={{
+                display: 'block',
+                mt: 1,
+                color: brandColors.charcoal,
+                opacity: 0.6,
+                fontStyle: 'italic',
+                lineHeight: 1.4,
+              }}
+            >
+              Example: "I've been in the neighborhood for 3 years. Live with my spouse, two kids, and three big dogs. 
+              Love gardening and camping, and have a bunch of sporting goods the kids have outgrown. I'm generally 
+              not too fussy with stuff, but I admit a pet peeve is leaving tools outside overnight!"
+            </Typography>
+          </Box>
         </Stack>
       </Box>
 

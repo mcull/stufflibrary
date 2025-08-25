@@ -1,6 +1,7 @@
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import GitHubProvider from 'next-auth/providers/github';
 
 import { verifyAuthCode } from './auth-codes';
 import { db } from './db';
@@ -14,6 +15,12 @@ export const authOptions: NextAuthOptions = {
     updateAge: 7 * 24 * 60 * 60, // Update session if older than 7 days
   },
   providers: [
+    ...(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET ? [
+      GitHubProvider({
+        clientId: process.env.GITHUB_CLIENT_ID,
+        clientSecret: process.env.GITHUB_CLIENT_SECRET,
+      })
+    ] : []),
     CredentialsProvider({
       id: 'email-code',
       name: 'Email Code',
@@ -97,12 +104,34 @@ export const authOptions: NextAuthOptions = {
     async session({ token, session }: { token: any; session: any }) {
       if (token && session.user) {
         (session.user as any).id = token.sub!;
+        // Add GitHub username for admin access control
+        if (token.githubUsername) {
+          (session.user as any).githubUsername = token.githubUsername;
+        }
       }
       return session;
     },
-    async jwt({ user, token }) {
+    async jwt({ user, token, account }) {
       if (user) {
         token.sub = user.id;
+        // Store GitHub username for admin access
+        if (account?.provider === 'github' && user.email) {
+          // Extract GitHub username from GitHub profile
+          try {
+            const response = await fetch(`https://api.github.com/user`, {
+              headers: {
+                'Authorization': `token ${account.access_token}`,
+                'User-Agent': 'StuffLibrary-Admin'
+              }
+            });
+            if (response.ok) {
+              const githubUser = await response.json();
+              token.githubUsername = githubUser.login;
+            }
+          } catch (error) {
+            console.warn('Failed to fetch GitHub username:', error);
+          }
+        }
       }
       return token;
     },
