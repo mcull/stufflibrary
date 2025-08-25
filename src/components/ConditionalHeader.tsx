@@ -10,10 +10,11 @@ export function ConditionalHeader() {
   const pathname = usePathname();
   const { data: session } = useSession();
 
-  // Don't show header on auth pages
+  // Don't show header on auth pages or profile creation
   const isAuthPage = pathname.startsWith('/auth/');
+  const isProfileCreation = pathname.startsWith('/profile/create');
 
-  if (isAuthPage) {
+  if (isAuthPage || isProfileCreation) {
     return null;
   }
 

@@ -5,6 +5,7 @@ import localFont from 'next/font/local';
 import { ClientThemeProvider } from '@/components/ClientThemeProvider';
 import { ConditionalFooter } from '@/components/ConditionalFooter';
 import { ConditionalHeader } from '@/components/ConditionalHeader';
+import { ProfileDraftCleanup } from '@/components/ProfileDraftCleanup';
 import NextAuthSessionProvider from '@/components/providers/session-provider';
 
 import '@fontsource/inter/300.css';
@@ -76,6 +77,7 @@ export default function RootLayout({
       >
         <NextAuthSessionProvider>
           <ClientThemeProvider>
+            <ProfileDraftCleanup />
             <ConditionalHeader />
             {children}
             <ConditionalFooter />

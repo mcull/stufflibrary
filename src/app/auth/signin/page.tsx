@@ -209,7 +209,9 @@ function SignInForm() {
             <CardContent sx={{ p: 0 }}>
               <Box sx={{ textAlign: 'center', mb: 4 }}>
                 <Link href="/" style={{ textDecoration: 'none' }}>
-                  <Wordmark size="medium" color="primary" />
+                  <Box sx={{ transform: 'rotate(-1.2deg)' }}>
+                    <Wordmark size="medium" color="primary" />
+                  </Box>
                 </Link>
               </Box>
 
@@ -286,12 +288,17 @@ function SignInForm() {
               borderRadius: 2,
               border: `1px solid ${brandColors.softGray}`,
               p: { xs: 3, sm: 5 },
+              minHeight: { xs: '500px', sm: '550px' },
+              display: 'flex',
+              flexDirection: 'column',
             }}
           >
-            <CardContent sx={{ p: 0 }}>
+            <CardContent sx={{ p: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
               <Box sx={{ textAlign: 'center', mb: 4 }}>
                 <Link href="/" style={{ textDecoration: 'none' }}>
-                  <Wordmark size="medium" color="primary" />
+                  <Box sx={{ transform: 'rotate(-1.2deg)' }}>
+                    <Wordmark size="medium" color="primary" />
+                  </Box>
                 </Link>
               </Box>
 
@@ -455,13 +462,6 @@ function SignInForm() {
         px: 2,
       }}
     >
-      {/* Logo outside the card */}
-      <Box sx={{ textAlign: 'center', mb: 4 }}>
-        <Link href="/" style={{ textDecoration: 'none' }}>
-          <Wordmark size="medium" color="primary" />
-        </Link>
-      </Box>
-
       <Container maxWidth="sm">
         <Card
           elevation={0}
@@ -470,9 +470,21 @@ function SignInForm() {
             borderRadius: 2,
             border: `1px solid ${brandColors.softGray}`,
             p: { xs: 3, sm: 5 },
+            minHeight: { xs: '500px', sm: '550px' },
+            display: 'flex',
+            flexDirection: 'column',
           }}
         >
-          <CardContent sx={{ p: 0 }}>
+          <CardContent sx={{ p: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
+            {/* Logo inside the card */}
+            <Box sx={{ textAlign: 'center', mb: 4 }}>
+              <Link href="/" style={{ textDecoration: 'none' }}>
+                <Box sx={{ transform: 'rotate(-1.2deg)' }}>
+                  <Wordmark size="medium" color="primary" />
+                </Box>
+              </Link>
+            </Box>
+
             {/* Invitation Context */}
             {invitationContext && (
               <Box

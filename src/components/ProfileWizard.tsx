@@ -22,24 +22,32 @@ import { brandColors } from '@/theme/brandTokens';
 import { ProfileStep1 } from './profile-wizard/ProfileStep1';
 import { ProfileStep2 } from './profile-wizard/ProfileStep2';
 import { ProfileStep3 } from './profile-wizard/ProfileStep3';
-import { ProfileStepComplete } from './profile-wizard/ProfileStepComplete';
+import { Wordmark } from './Wordmark';
 
 const profileSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  phone: z
-    .string()
-    .min(1, 'Phone number is required for SMS notifications')
-    .regex(
-      /^[\+]?[1-9][\d]{0,15}$/,
-      'Please enter a valid phone number (e.g., +15551234567)'
-    ),
+  address: z.string().min(1, 'Address is required to find your neighbors'),
   bio: z.string().optional(),
-  interests: z.array(z.string()).min(1, 'Please select at least one interest'),
-  profilePicture: z.instanceof(File).optional(),
+  shareInterests: z.array(z.string()).default([]),
+  borrowInterests: z.array(z.string()).default([]),
+  profilePicture: z.instanceof(File).refine(
+    (file) => file instanceof File,
+    'Profile picture is required'
+  ).refine(
+    (file) => file.size <= 10 * 1024 * 1024, // 10MB limit
+    'Profile picture must be less than 10MB'
+  ).refine(
+    (file) => ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type),
+    'Profile picture must be a JPEG, PNG, or WebP image'
+  ),
   profilePictureUrl: z.string().optional(),
-  agreedToTerms: z
-    .boolean()
-    .refine((val) => val === true, 'You must agree to the terms'),
+  agreedToHouseholdGoods: z.boolean().default(false),
+  agreedToTrustAndCare: z.boolean().default(false),
+  agreedToCommunityValues: z.boolean().default(false),
+  agreedToAgeRestrictions: z.boolean().default(false),
+  agreedToTerms: z.boolean().default(false),
+  // Store parsed address data from Google Places
+  parsedAddress: z.any().optional(),
 });
 
 export type ProfileFormData = z.infer<typeof profileSchema>;
@@ -125,37 +133,89 @@ export function ProfileWizard({
   user,
 }: ProfileWizardProps) {
   const [activeStep, setActiveStep] = useState(0);
-  const [isComplete, setIsComplete] = useState(false);
+  const [profilePicturePreviewUrl, setProfilePicturePreviewUrl] = useState<string | null>(null);
 
   const methods = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       name: '',
-      phone: '',
+      address: '',
       bio: '',
-      interests: [],
+      shareInterests: [],
+      borrowInterests: [],
+      agreedToHouseholdGoods: false,
+      agreedToTrustAndCare: false,
+      agreedToCommunityValues: false,
+      agreedToAgeRestrictions: false,
       agreedToTerms: false,
       ...initialData,
     },
-    mode: 'onChange',
+    mode: 'onBlur',
   });
 
   const { handleSubmit, trigger, watch } = methods;
 
-  // Auto-save draft to localStorage
+  // Watch profilePicture to create/update preview URL
+  const profilePicture = watch('profilePicture');
+  useEffect(() => {
+    if (profilePicture instanceof File) {
+      // Create new preview URL
+      const newUrl = URL.createObjectURL(profilePicture);
+      setProfilePicturePreviewUrl(prevUrl => {
+        // Revoke old URL to prevent memory leaks
+        if (prevUrl) {
+          URL.revokeObjectURL(prevUrl);
+        }
+        return newUrl;
+      });
+    } else if (!profilePicture) {
+      // Clean up when file is removed
+      setProfilePicturePreviewUrl(prevUrl => {
+        if (prevUrl) {
+          URL.revokeObjectURL(prevUrl);
+        }
+        return null;
+      });
+    }
+  }, [profilePicture]);
+
+  // Cleanup preview URL on unmount
+  useEffect(() => {
+    return () => {
+      if (profilePicturePreviewUrl) {
+        URL.revokeObjectURL(profilePicturePreviewUrl);
+      }
+    };
+  }, [profilePicturePreviewUrl]);
+
+  // Auto-save draft to localStorage (user-specific)
   const watchedValues = watch();
   useEffect(() => {
-    const draftKey = 'profile-wizard-draft';
+    // Create user-specific key to prevent data leakage between users
+    const draftKey = user?.email ? `profile-wizard-draft-${user.email}` : 'profile-wizard-draft-temp';
     const timeoutId = setTimeout(() => {
       localStorage.setItem(draftKey, JSON.stringify(watchedValues));
     }, 1000);
 
     return () => clearTimeout(timeoutId);
-  }, [watchedValues]);
+  }, [watchedValues, user?.email]);
 
-  // Load draft on mount
+  // Load draft on mount and clean up stale drafts
   useEffect(() => {
-    const draftKey = 'profile-wizard-draft';
+    // Create user-specific key
+    const draftKey = user?.email ? `profile-wizard-draft-${user.email}` : 'profile-wizard-draft-temp';
+    
+    // Clean up any old non-user-specific drafts first
+    localStorage.removeItem('profile-wizard-draft');
+    
+    // Clean up drafts from other users by removing all profile wizard draft keys except current user
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('profile-wizard-draft-') && key !== draftKey) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    // Load current user's draft
     const savedDraft = localStorage.getItem(draftKey);
     if (savedDraft && !initialData) {
       try {
@@ -163,9 +223,11 @@ export function ProfileWizard({
         methods.reset(draft);
       } catch (error) {
         console.warn('Failed to load profile draft:', error);
+        // Clear corrupted draft
+        localStorage.removeItem(draftKey);
       }
     }
-  }, [methods, initialData]);
+  }, [methods, initialData, user?.email]);
 
   const handleNext = async () => {
     const fieldsToValidate = getFieldsForStep(activeStep);
@@ -181,30 +243,36 @@ export function ProfileWizard({
   };
 
   const handleComplete = async (data: ProfileFormData) => {
-    setIsComplete(true);
+    // Validate checkboxes before proceeding
+    if (!data.agreedToHouseholdGoods || !data.agreedToTrustAndCare || 
+        !data.agreedToCommunityValues || !data.agreedToAgeRestrictions || 
+        !data.agreedToTerms) {
+      // This shouldn't happen due to UI logic, but just in case
+      return;
+    }
 
-    // Clear draft
-    localStorage.removeItem('profile-wizard-draft');
+    // Clear user-specific draft
+    const draftKey = user?.email ? `profile-wizard-draft-${user.email}` : 'profile-wizard-draft-temp';
+    localStorage.removeItem(draftKey);
 
+    // Skip interstitial and go directly to onComplete callback
+    // which will handle the redirect to lobby
     onComplete(data);
   };
 
   function getFieldsForStep(step: number): (keyof ProfileFormData)[] {
     switch (step) {
       case 0:
-        return ['name', 'phone'];
+        return ['name', 'address'];
       case 1:
-        return ['interests'];
+        return ['profilePicture'];
       case 2:
-        return ['agreedToTerms'];
+        return ['agreedToHouseholdGoods', 'agreedToTrustAndCare', 'agreedToCommunityValues', 'agreedToAgeRestrictions', 'agreedToTerms'];
       default:
         return [];
     }
   }
 
-  if (isComplete) {
-    return <ProfileStepComplete user={user} />;
-  }
 
   const CurrentStepComponent = steps[activeStep]?.component;
 
@@ -221,6 +289,11 @@ export function ProfileWizard({
       >
         {/* Header */}
         <Box sx={{ mb: 4, textAlign: 'center' }}>
+          <Box sx={{ mb: 3 }}>
+            <Box sx={{ transform: 'rotate(-1.2deg)' }}>
+              <Wordmark size="medium" color="primary" />
+            </Box>
+          </Box>
           <Typography
             variant="h4"
             sx={{
@@ -285,6 +358,7 @@ export function ProfileWizard({
                 onBack={handleBack}
                 isFirstStep={activeStep === 0}
                 isLastStep={activeStep === steps.length - 1}
+                profilePicturePreviewUrl={profilePicturePreviewUrl}
               />
             )}
           </Box>

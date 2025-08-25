@@ -38,7 +38,8 @@ interface User {
   email: string | null;
   image?: string | null;
   bio: string | null;
-  interests: string[];
+  shareInterests: string[];
+  borrowInterests: string[];
   profileCompleted: boolean;
   createdAt: Date;
 }
@@ -546,36 +547,74 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                 <Typography variant="body2" color="text.secondary" gutterBottom>
                   Member since {new Date(user.createdAt).toLocaleDateString()}
                 </Typography>
-                {user.interests.length > 0 && (
+                {(user.shareInterests.length > 0 || user.borrowInterests.length > 0) && (
                   <Box sx={{ mt: 2 }}>
-                    <Typography variant="body2" sx={{ mb: 1 }}>
-                      Interests
-                    </Typography>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        gap: 0.5,
-                        justifyContent: 'center',
-                      }}
-                    >
-                      {user.interests.slice(0, 3).map((interest) => (
-                        <Chip
-                          key={interest}
-                          label={interest}
-                          size="small"
-                          sx={{ fontSize: '0.7rem' }}
-                        />
-                      ))}
-                      {user.interests.length > 3 && (
-                        <Chip
-                          label={`+${user.interests.length - 3} more`}
-                          size="small"
-                          variant="outlined"
-                          sx={{ fontSize: '0.7rem' }}
-                        />
-                      )}
-                    </Box>
+                    {user.shareInterests.length > 0 && (
+                      <Box sx={{ mb: 1 }}>
+                        <Typography variant="body2" sx={{ mb: 0.5 }}>
+                          Shares
+                        </Typography>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: 0.5,
+                            justifyContent: 'center',
+                          }}
+                        >
+                          {user.shareInterests.slice(0, 3).map((interest) => (
+                            <Chip
+                              key={interest}
+                              label={interest}
+                              size="small"
+                              color="primary"
+                              sx={{ fontSize: '0.7rem' }}
+                            />
+                          ))}
+                          {user.shareInterests.length > 3 && (
+                            <Chip
+                              label={`+${user.shareInterests.length - 3} more`}
+                              size="small"
+                              variant="outlined"
+                              sx={{ fontSize: '0.7rem' }}
+                            />
+                          )}
+                        </Box>
+                      </Box>
+                    )}
+                    {user.borrowInterests.length > 0 && (
+                      <Box>
+                        <Typography variant="body2" sx={{ mb: 0.5 }}>
+                          Looking for
+                        </Typography>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: 0.5,
+                            justifyContent: 'center',
+                          }}
+                        >
+                          {user.borrowInterests.slice(0, 3).map((interest) => (
+                            <Chip
+                              key={interest}
+                              label={interest}
+                              size="small"
+                              color="secondary"
+                              sx={{ fontSize: '0.7rem' }}
+                            />
+                          ))}
+                          {user.borrowInterests.length > 3 && (
+                            <Chip
+                              label={`+${user.borrowInterests.length - 3} more`}
+                              size="small"
+                              variant="outlined"
+                              sx={{ fontSize: '0.7rem' }}
+                            />
+                          )}
+                        </Box>
+                      </Box>
+                    )}
                   </Box>
                 )}
               </Box>
