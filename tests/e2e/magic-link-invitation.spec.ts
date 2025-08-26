@@ -293,7 +293,7 @@ test.describe('Magic Link Invitation Flow', () => {
     );
 
     // Should show profile creation form
-    await expect(page.locator('text=Tell us about yourself')).toBeVisible({
+    await expect(page.locator("text=Let's start with the basics")).toBeVisible({
       timeout: 5000,
     });
 
