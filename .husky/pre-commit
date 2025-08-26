@@ -1,1 +1,8 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run database safety check first
+.husky/pre-commit-db-safety
+
+# Run lint-staged if db safety check passes
 npx lint-staged

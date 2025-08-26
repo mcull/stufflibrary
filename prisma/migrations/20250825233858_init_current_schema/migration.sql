@@ -1,17 +1,23 @@
+-- CreateEnum
+CREATE TYPE "public"."InvitationStatus" AS ENUM ('PENDING', 'SENT', 'ACCEPTED', 'EXPIRED', 'DECLINED', 'CANCELLED');
+
 -- CreateTable
 CREATE TABLE "public"."addresses" (
     "id" TEXT NOT NULL,
-    "street" TEXT NOT NULL,
-    "unit" TEXT,
+    "address1" TEXT NOT NULL,
+    "address2" TEXT,
     "city" TEXT NOT NULL,
     "state" TEXT NOT NULL,
-    "postalCode" TEXT NOT NULL,
+    "zip" TEXT NOT NULL,
     "country" TEXT NOT NULL DEFAULT 'US',
     "latitude" DOUBLE PRECISION,
     "longitude" DOUBLE PRECISION,
     "formattedAddress" TEXT,
+    "placeId" TEXT,
     "verifiedAt" TIMESTAMP(3),
     "verificationMethod" TEXT,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "userId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -25,12 +31,14 @@ CREATE TABLE "public"."users" (
     "email" TEXT,
     "emailVerified" TIMESTAMP(3),
     "image" TEXT,
+    "phone" TEXT,
+    "phoneVerified" BOOLEAN NOT NULL DEFAULT false,
     "bio" TEXT,
-    "interests" TEXT[],
+    "shareInterests" TEXT[],
+    "borrowInterests" TEXT[],
     "profileCompleted" BOOLEAN NOT NULL DEFAULT false,
     "onboardingStep" TEXT,
-    "addressId" TEXT,
-    "addressVerified" BOOLEAN NOT NULL DEFAULT false,
+    "currentAddressId" TEXT,
     "movedInDate" TIMESTAMP(3),
     "status" TEXT NOT NULL DEFAULT 'active',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -44,11 +52,13 @@ CREATE TABLE "public"."invitations" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "type" TEXT NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'pending',
+    "status" "public"."InvitationStatus" NOT NULL DEFAULT 'PENDING',
     "message" TEXT,
+    "token" TEXT,
     "qrCode" TEXT,
     "postcardSentAt" TIMESTAMP(3),
     "addressId" TEXT,
+    "branchId" TEXT,
     "senderId" TEXT,
     "receiverId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -108,6 +118,19 @@ CREATE TABLE "public"."branch_members" (
 );
 
 -- CreateTable
+CREATE TABLE "public"."stuff_types" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "displayName" TEXT NOT NULL,
+    "iconPath" TEXT NOT NULL,
+    "category" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "stuff_types_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "public"."items" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -118,6 +141,7 @@ CREATE TABLE "public"."items" (
     "imageUrl" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "stuffTypeId" TEXT,
     "ownerId" TEXT NOT NULL,
     "branchId" TEXT NOT NULL,
 
@@ -134,6 +158,16 @@ CREATE TABLE "public"."borrow_requests" (
     "returnedAt" TIMESTAMP(3),
     "dueDate" TIMESTAMP(3),
     "notes" TEXT,
+    "videoUrl" TEXT,
+    "signature" TEXT,
+    "promiseText" TEXT,
+    "promisedReturnBy" TIMESTAMP(3),
+    "lenderResponse" TEXT,
+    "responseToken" TEXT,
+    "respondedAt" TIMESTAMP(3),
+    "pickedUpAt" TIMESTAMP(3),
+    "remindersSent" INTEGER NOT NULL DEFAULT 0,
+    "lastReminderAt" TIMESTAMP(3),
     "borrowerId" TEXT NOT NULL,
     "lenderId" TEXT NOT NULL,
     "itemId" TEXT NOT NULL,
@@ -190,17 +224,42 @@ CREATE TABLE "public"."verification_tokens" (
     "expires" TIMESTAMP(3) NOT NULL
 );
 
+-- CreateTable
+CREATE TABLE "public"."auth_codes" (
+    "email" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "auth_codes_pkey" PRIMARY KEY ("email")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "users_email_key" ON "public"."users"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "invitations_email_senderId_key" ON "public"."invitations"("email", "senderId");
+CREATE UNIQUE INDEX "invitations_token_key" ON "public"."invitations"("token");
+
+-- CreateIndex
+CREATE INDEX "invitations_token_idx" ON "public"."invitations"("token");
+
+-- CreateIndex
+CREATE INDEX "invitations_email_idx" ON "public"."invitations"("email");
+
+-- CreateIndex
+CREATE INDEX "invitations_branchId_idx" ON "public"."invitations"("branchId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "invitations_email_senderId_branchId_key" ON "public"."invitations"("email", "senderId", "branchId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "signup_applications_email_key" ON "public"."signup_applications"("email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "branch_members_userId_branchId_key" ON "public"."branch_members"("userId", "branchId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "stuff_types_name_key" ON "public"."stuff_types"("name");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "waitlist_entries_email_key" ON "public"."waitlist_entries"("email");
@@ -218,40 +277,46 @@ CREATE UNIQUE INDEX "verification_tokens_token_key" ON "public"."verification_to
 CREATE UNIQUE INDEX "verification_tokens_identifier_token_key" ON "public"."verification_tokens"("identifier", "token");
 
 -- AddForeignKey
-ALTER TABLE "public"."users" ADD CONSTRAINT "users_addressId_fkey" FOREIGN KEY ("addressId") REFERENCES "public"."addresses"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "public"."addresses" ADD CONSTRAINT "addresses_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."invitations" ADD CONSTRAINT "invitations_addressId_fkey" FOREIGN KEY ("addressId") REFERENCES "public"."addresses"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."invitations" ADD CONSTRAINT "invitations_senderId_fkey" FOREIGN KEY ("senderId") REFERENCES "public"."users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "public"."invitations" ADD CONSTRAINT "invitations_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES "public"."branches"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."invitations" ADD CONSTRAINT "invitations_receiverId_fkey" FOREIGN KEY ("receiverId") REFERENCES "public"."users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."branches" ADD CONSTRAINT "branches_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "public"."users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."invitations" ADD CONSTRAINT "invitations_senderId_fkey" FOREIGN KEY ("senderId") REFERENCES "public"."users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."branch_members" ADD CONSTRAINT "branch_members_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."branches" ADD CONSTRAINT "branches_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "public"."users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."branch_members" ADD CONSTRAINT "branch_members_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES "public"."branches"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."items" ADD CONSTRAINT "items_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "public"."users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."branch_members" ADD CONSTRAINT "branch_members_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."items" ADD CONSTRAINT "items_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES "public"."branches"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "public"."items" ADD CONSTRAINT "items_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "public"."users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."items" ADD CONSTRAINT "items_stuffTypeId_fkey" FOREIGN KEY ("stuffTypeId") REFERENCES "public"."stuff_types"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "public"."borrow_requests" ADD CONSTRAINT "borrow_requests_borrowerId_fkey" FOREIGN KEY ("borrowerId") REFERENCES "public"."users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."borrow_requests" ADD CONSTRAINT "borrow_requests_lenderId_fkey" FOREIGN KEY ("lenderId") REFERENCES "public"."users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."borrow_requests" ADD CONSTRAINT "borrow_requests_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "public"."items"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."borrow_requests" ADD CONSTRAINT "borrow_requests_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "public"."items"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."borrow_requests" ADD CONSTRAINT "borrow_requests_lenderId_fkey" FOREIGN KEY ("lenderId") REFERENCES "public"."users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."accounts" ADD CONSTRAINT "accounts_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE CASCADE ON UPDATE CASCADE;

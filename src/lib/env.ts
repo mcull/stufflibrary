@@ -1,9 +1,24 @@
 import { z } from 'zod';
+import { config } from 'dotenv';
+
+// Load environment variables from .env file
+config();
 
 const envSchema = z.object({
   // Database (Supabase)
   DATABASE_URL: z.string().url(),
   DIRECT_URL: z.string().url().optional(),
+  
+  // Staging Database
+  STAGING_DATABASE_URL: z.string().url().optional(),
+  STAGING_DIRECT_URL: z.string().url().optional(),
+  
+  // Test Database
+  TEST_DATABASE_URL: z.string().url().optional(),
+  TEST_DIRECT_URL: z.string().url().optional(),
+  
+  // Database Environment Override
+  DATABASE_ENV: z.enum(['development', 'staging', 'production', 'test']).optional(),
 
   // Cache (Upstash Redis)
   KV_URL: z.string().optional(),
