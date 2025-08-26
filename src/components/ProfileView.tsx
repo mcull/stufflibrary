@@ -156,9 +156,26 @@ export function ProfileView({ user, currentAddress }: ProfileViewProps) {
         let errorMessage = 'Failed to validate image';
         try {
           const errorResult = await response.json();
+          console.error('Image validation API error:', errorResult);
           errorMessage = errorResult.error || errorMessage;
+
+          // If it's a service unavailable error (OpenAI API key not configured),
+          // allow upload but show warning
+          if (
+            response.status === 503 ||
+            errorResult.details?.includes('API key not configured')
+          ) {
+            setImageValidationError(
+              'Image validation is temporarily unavailable. Your photo will be uploaded without validation.'
+            );
+            setProfileImage(file); // Allow the upload
+            return; // Don't throw error
+          }
         } catch {
-          // If we can't parse the error response, use default message
+          console.error(
+            'Failed to parse error response, status:',
+            response.status
+          );
         }
         throw new Error(errorMessage);
       }
@@ -177,11 +194,20 @@ export function ProfileView({ user, currentAddress }: ProfileViewProps) {
       }
     } catch (error) {
       console.error('Image validation error:', error);
-      setImageValidationError(
-        'Unable to validate image at this time. Please try again or choose a different photo.'
-      );
-      setProfileImagePreview(user.image); // Reset to original
-      setProfileImage(null);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+
+      // If it's a service unavailability message, allow the upload
+      if (errorMessage.includes('temporarily unavailable')) {
+        setImageValidationError(errorMessage);
+        setProfileImage(file); // Allow the upload
+      } else {
+        setImageValidationError(
+          'Unable to validate image at this time. Please try again or choose a different photo.'
+        );
+        setProfileImagePreview(user.image); // Reset to original
+        setProfileImage(null);
+      }
     } finally {
       setIsValidatingImage(false);
     }
