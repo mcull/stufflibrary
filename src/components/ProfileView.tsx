@@ -1,13 +1,10 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { PhotoCamera } from '@mui/icons-material';
 import {
-  Avatar,
   Box,
   Button,
   Container,
-  IconButton,
   Paper,
   Stack,
   TextField,
@@ -18,11 +15,13 @@ import {
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { brandColors } from '@/theme/brandTokens';
+
+import { AddressAutocomplete } from './AddressAutocomplete';
 
 // Predefined interest options for autocomplete
 const INTEREST_OPTIONS = [
@@ -88,11 +87,7 @@ interface ProfileViewProps {
 export function ProfileView({ user, currentAddress }: ProfileViewProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [profileImage, setProfileImage] = useState<File | null>(null);
-  const [profileImagePreview, setProfileImagePreview] = useState<string | null>(
-    user.image
-  );
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [parsedAddress, setParsedAddress] = useState<any>(null);
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -121,33 +116,25 @@ export function ProfileView({ user, currentAddress }: ProfileViewProps) {
   const shareInterests = watch('shareInterests');
   const borrowInterests = watch('borrowInterests');
 
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setProfileImage(file);
-      const previewUrl = URL.createObjectURL(file);
-      setProfileImagePreview(previewUrl);
-    }
-  };
-
   const onSubmit = async (data: ProfileFormData) => {
     setIsLoading(true);
     try {
-      // Create FormData for file upload
-      const formData = new FormData();
-      formData.append('name', data.name);
-      formData.append('bio', data.bio || '');
-      formData.append('shareInterests', JSON.stringify(data.shareInterests));
-      formData.append('borrowInterests', JSON.stringify(data.borrowInterests));
-      formData.append('address', data.address);
-
-      if (profileImage) {
-        formData.append('profileImage', profileImage);
-      }
+      // Prepare request body with parsed address data
+      const requestBody = {
+        name: data.name,
+        bio: data.bio || '',
+        shareInterests: data.shareInterests,
+        borrowInterests: data.borrowInterests,
+        address: data.address,
+        parsedAddress: parsedAddress,
+      };
 
       const response = await fetch('/api/profile', {
         method: 'PUT',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -200,53 +187,6 @@ export function ProfileView({ user, currentAddress }: ProfileViewProps) {
 
         <Box component="form" onSubmit={handleSubmit(onSubmit)}>
           <Stack spacing={4}>
-            {/* Profile Photo Section */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-              <Box sx={{ position: 'relative' }}>
-                <Avatar
-                  src={profileImagePreview || ''}
-                  alt={user.name || 'Profile'}
-                  sx={{
-                    width: 100,
-                    height: 100,
-                    border: `3px solid ${brandColors.inkBlue}`,
-                  }}
-                />
-                <IconButton
-                  onClick={() => fileInputRef.current?.click()}
-                  sx={{
-                    position: 'absolute',
-                    bottom: -8,
-                    right: -8,
-                    backgroundColor: brandColors.inkBlue,
-                    color: brandColors.white,
-                    width: 36,
-                    height: 36,
-                    '&:hover': {
-                      backgroundColor: brandColors.charcoal,
-                    },
-                  }}
-                >
-                  <PhotoCamera fontSize="small" />
-                </IconButton>
-              </Box>
-              <Box>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Profile Photo
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Click the camera icon to update your photo
-                </Typography>
-              </Box>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleImageChange}
-                accept="image/*"
-                style={{ display: 'none' }}
-              />
-            </Box>
-
             {/* Name Field */}
             <TextField
               label="Full Name"
@@ -262,20 +202,17 @@ export function ProfileView({ user, currentAddress }: ProfileViewProps) {
             />
 
             {/* Address Field */}
-            <TextField
-              label="Address"
-              fullWidth
-              placeholder="Your current address"
-              {...register('address')}
+            <AddressAutocomplete
+              value={watch('address')}
+              onChange={(value, addressData) => {
+                setValue('address', value || '', { shouldDirty: true });
+                setParsedAddress(addressData);
+              }}
               error={!!errors.address}
               helperText={
                 errors.address?.message || 'This helps neighbors find you'
               }
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 2,
-                },
-              }}
+              placeholder="Your current address"
             />
 
             {/* Bio Field */}

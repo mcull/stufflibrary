@@ -173,9 +173,10 @@ function SignInForm() {
       // Handle the result
       if (signInResult?.error) {
         // Translate NextAuth error codes to user-friendly messages
-        const errorMessage = signInResult.error === 'CredentialsSignin' 
-          ? 'Invalid code. Please check your code and try again.'
-          : signInResult.error;
+        const errorMessage =
+          signInResult.error === 'CredentialsSignin'
+            ? 'Invalid code. Please check your code and try again.'
+            : signInResult.error;
         setError(errorMessage);
         setIsLoading(false);
       } else if (signInResult?.ok) {
@@ -303,7 +304,9 @@ function SignInForm() {
               flexDirection: 'column',
             }}
           >
-            <CardContent sx={{ p: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <CardContent
+              sx={{ p: 0, flex: 1, display: 'flex', flexDirection: 'column' }}
+            >
               <Box sx={{ textAlign: 'center', mb: 4 }}>
                 <Link href="/" style={{ textDecoration: 'none' }}>
                   <Box sx={{ transform: 'rotate(-1.2deg)' }}>
@@ -485,7 +488,9 @@ function SignInForm() {
             flexDirection: 'column',
           }}
         >
-          <CardContent sx={{ p: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <CardContent
+            sx={{ p: 0, flex: 1, display: 'flex', flexDirection: 'column' }}
+          >
             {/* Logo inside the card */}
             <Box sx={{ textAlign: 'center', mb: 4 }}>
               <Link href="/" style={{ textDecoration: 'none' }}>
@@ -585,7 +590,7 @@ function SignInForm() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@work-email.com"
+                placeholder="your.email@example.com"
                 variant="outlined"
                 sx={{
                   mb: 3,

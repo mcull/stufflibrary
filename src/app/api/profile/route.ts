@@ -218,12 +218,12 @@ export async function PUT(request: NextRequest) {
     if (userId) {
       user = await db.user.findUnique({
         where: { id: userId },
-        select: { id: true },
+        select: { id: true, currentAddressId: true },
       });
     } else if (session.user?.email) {
       user = await db.user.findUnique({
         where: { email: session.user.email },
-        select: { id: true },
+        select: { id: true, currentAddressId: true },
       });
     }
 
@@ -273,35 +273,79 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
     }
 
-    // Update user with profile information
-    const updateData: any = {
-      name: data.name.trim(),
-    };
+    // Use a transaction to update user and potentially create/update address
+    const result = await db.$transaction(async (tx) => {
+      let addressId = user.currentAddressId;
 
-    if (data.bio !== undefined) {
-      updateData.bio = data.bio.trim() || null;
-    }
+      // Handle address update if we have parsed address data
+      if (
+        data.parsedAddress &&
+        data.parsedAddress.address1 &&
+        data.parsedAddress.city &&
+        data.parsedAddress.state &&
+        data.parsedAddress.zip
+      ) {
+        // Deactivate any existing active addresses for this user
+        await tx.address.updateMany({
+          where: { userId: user.id, isActive: true },
+          data: { isActive: false },
+        });
 
-    if (data.shareInterests) {
-      updateData.shareInterests = Array.isArray(data.shareInterests)
-        ? data.shareInterests
-        : [];
-    }
+        // Create new active address
+        const newAddress = await tx.address.create({
+          data: {
+            userId: user.id,
+            address1: data.parsedAddress.address1,
+            address2: data.parsedAddress.address2 || '',
+            city: data.parsedAddress.city,
+            state: data.parsedAddress.state,
+            zip: data.parsedAddress.zip,
+            country: data.parsedAddress.country || 'US',
+            latitude: data.parsedAddress.latitude ?? null,
+            longitude: data.parsedAddress.longitude ?? null,
+            formattedAddress: data.parsedAddress.formatted_address ?? null,
+            placeId: data.parsedAddress.place_id ?? null,
+            verificationMethod: 'google_places',
+            isActive: true,
+          },
+        });
 
-    if (data.borrowInterests) {
-      updateData.borrowInterests = Array.isArray(data.borrowInterests)
-        ? data.borrowInterests
-        : [];
-    }
+        addressId = newAddress.id;
+      }
 
-    if (data.image) {
-      updateData.image = data.image;
-    }
+      // Update user with profile information
+      const updateData: any = {
+        name: data.name.trim(),
+        currentAddressId: addressId,
+      };
 
-    const updatedUser = await db.user.update({
-      where: { id: user.id },
-      data: updateData,
+      if (data.bio !== undefined) {
+        updateData.bio = data.bio.trim() || null;
+      }
+
+      if (data.shareInterests) {
+        updateData.shareInterests = Array.isArray(data.shareInterests)
+          ? data.shareInterests
+          : [];
+      }
+
+      if (data.borrowInterests) {
+        updateData.borrowInterests = Array.isArray(data.borrowInterests)
+          ? data.borrowInterests
+          : [];
+      }
+
+      if (data.image) {
+        updateData.image = data.image;
+      }
+
+      return await tx.user.update({
+        where: { id: user.id },
+        data: updateData,
+      });
     });
+
+    const updatedUser = result;
 
     return NextResponse.json({
       success: true,
