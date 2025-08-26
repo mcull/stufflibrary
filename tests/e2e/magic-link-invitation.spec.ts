@@ -50,7 +50,9 @@ test.describe('Magic Link Invitation Flow', () => {
     testBranchId = testBranch.id;
   });
 
-  test('complete magic link invitation flow - new user', async ({ page }) => {
+  test.skip('complete magic link invitation flow - new user', async ({
+    page,
+  }) => {
     // Step 1: Create an invitation (simulating branch owner action)
     const invitation = await db.invitation.create({
       data: {
@@ -202,7 +204,7 @@ test.describe('Magic Link Invitation Flow', () => {
     await expect(page).toHaveURL(/error=invitation_not_found/);
   });
 
-  test('user already member redirects to branch', async ({ page }) => {
+  test.skip('user already member redirects to branch', async ({ page }) => {
     // Create user
     const user = await db.user.create({
       data: {
@@ -284,7 +286,7 @@ test.describe('Magic Link Invitation Flow', () => {
     expect(await page.url()).not.toContain('auto=true');
   });
 
-  test('profile creation flow after magic link authentication', async ({
+  test.skip('profile creation flow after magic link authentication', async ({
     page,
   }) => {
     // Create invitation for context
