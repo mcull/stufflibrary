@@ -204,7 +204,7 @@ export function ProfileView({ user, currentAddress }: ProfileViewProps) {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
               <Box sx={{ position: 'relative' }}>
                 <Avatar
-                  src={profileImagePreview || undefined}
+                  src={profileImagePreview || ''}
                   alt={user.name || 'Profile'}
                   sx={{
                     width: 100,
@@ -324,7 +324,7 @@ export function ProfileView({ user, currentAddress }: ProfileViewProps) {
                 }
                 renderInput={(params) => (
                   <TextField
-                    {...params}
+                    {...(params as any)}
                     placeholder="Add items you're willing to share..."
                     helperText="Type to add custom items or select from suggestions"
                     sx={{
@@ -367,7 +367,7 @@ export function ProfileView({ user, currentAddress }: ProfileViewProps) {
                 }
                 renderInput={(params) => (
                   <TextField
-                    {...params}
+                    {...(params as any)}
                     placeholder="Add items you might want to borrow..."
                     helperText="This helps neighbors know what you're looking for"
                     sx={{

@@ -27,7 +27,7 @@ export function AuthenticatedHeader() {
 
   // Fetch user's current profile image
   useEffect(() => {
-    if (session?.user?.id) {
+    if (session?.user?.email) {
       fetch('/api/profile')
         .then((res) => res.json())
         .then((data) => {
@@ -37,7 +37,7 @@ export function AuthenticatedHeader() {
         })
         .catch((err) => console.error('Failed to fetch user image:', err));
     }
-  }, [session?.user?.id]);
+  }, [session?.user?.email]);
 
   return (
     <AppBar
@@ -83,7 +83,7 @@ export function AuthenticatedHeader() {
               }}
             >
               <Avatar
-                src={userImage || session?.user?.image || undefined}
+                src={userImage || session?.user?.image || ''}
                 alt={session?.user?.name || 'User'}
                 sx={{
                   width: 32,
