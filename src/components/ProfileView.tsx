@@ -152,11 +152,18 @@ export function ProfileView({ user, currentAddress }: ProfileViewProps) {
         body: formData,
       });
 
-      const result = await response.json();
-
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to validate image');
+        let errorMessage = 'Failed to validate image';
+        try {
+          const errorResult = await response.json();
+          errorMessage = errorResult.error || errorMessage;
+        } catch {
+          // If we can't parse the error response, use default message
+        }
+        throw new Error(errorMessage);
       }
+
+      const result = await response.json();
 
       if (!result.approved) {
         setImageValidationError(
