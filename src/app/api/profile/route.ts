@@ -244,12 +244,16 @@ export async function PUT(request: NextRequest) {
 
       const shareInterests = formData.get('shareInterests') as string;
       const borrowInterests = formData.get('borrowInterests') as string;
+      const parsedAddressData = formData.get('parsedAddress') as string;
 
       if (shareInterests) {
         data.shareInterests = JSON.parse(shareInterests);
       }
       if (borrowInterests) {
         data.borrowInterests = JSON.parse(borrowInterests);
+      }
+      if (parsedAddressData) {
+        data.parsedAddress = JSON.parse(parsedAddressData);
       }
 
       // Handle profile image upload
