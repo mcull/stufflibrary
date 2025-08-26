@@ -67,5 +67,21 @@ export default async function ProfilePage() {
     redirect('/profile/create');
   }
 
-  return <ProfileView user={user} />;
+  // Get current address if user has one
+  let currentAddress = null;
+  if (user?.currentAddressId) {
+    currentAddress = await db.address.findUnique({
+      where: { id: user.currentAddressId },
+      select: {
+        formattedAddress: true,
+        address1: true,
+        address2: true,
+        city: true,
+        state: true,
+        zip: true,
+      },
+    });
+  }
+
+  return <ProfileView user={user} currentAddress={currentAddress} />;
 }

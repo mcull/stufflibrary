@@ -19,18 +19,20 @@ const createProfileSchema = z.object({
     z.string().url().optional()
   ),
   // Optional parsed address components from Google Places
-  parsedAddress: z.object({
-    place_id: z.string().nullable().optional(),
-    formatted_address: z.string().nullable().optional(),
-    address1: z.string().nullable().optional(),
-    address2: z.string().nullable().optional(),
-    city: z.string().nullable().optional(),
-    state: z.string().nullable().optional(),
-    zip: z.string().nullable().optional(),
-    country: z.string().nullable().optional(),
-    latitude: z.number().nullable().optional(),
-    longitude: z.number().nullable().optional(),
-  }).optional(),
+  parsedAddress: z
+    .object({
+      place_id: z.string().nullable().optional(),
+      formatted_address: z.string().nullable().optional(),
+      address1: z.string().nullable().optional(),
+      address2: z.string().nullable().optional(),
+      city: z.string().nullable().optional(),
+      state: z.string().nullable().optional(),
+      zip: z.string().nullable().optional(),
+      country: z.string().nullable().optional(),
+      latitude: z.number().nullable().optional(),
+      longitude: z.number().nullable().optional(),
+    })
+    .optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -82,16 +84,17 @@ export async function POST(request: NextRequest) {
       let addressId = null;
 
       // Create address record if we have parsed address data
-      if (validatedData.parsedAddress && 
-          validatedData.parsedAddress.address1 && 
-          validatedData.parsedAddress.city && 
-          validatedData.parsedAddress.state && 
-          validatedData.parsedAddress.zip) {
-        
+      if (
+        validatedData.parsedAddress &&
+        validatedData.parsedAddress.address1 &&
+        validatedData.parsedAddress.city &&
+        validatedData.parsedAddress.state &&
+        validatedData.parsedAddress.zip
+      ) {
         // Deactivate any existing active addresses for this user
         await tx.address.updateMany({
           where: { userId: user.id, isActive: true },
-          data: { isActive: false }
+          data: { isActive: false },
         });
 
         // Create new active address
@@ -106,13 +109,14 @@ export async function POST(request: NextRequest) {
             country: validatedData.parsedAddress.country || 'US',
             latitude: validatedData.parsedAddress.latitude ?? null,
             longitude: validatedData.parsedAddress.longitude ?? null,
-            formattedAddress: validatedData.parsedAddress.formatted_address ?? null,
+            formattedAddress:
+              validatedData.parsedAddress.formatted_address ?? null,
             placeId: validatedData.parsedAddress.place_id ?? null,
             verificationMethod: 'google_places',
             isActive: true,
-          }
+          },
         });
-        
+
         addressId = newAddress.id;
       }
 
@@ -141,9 +145,9 @@ export async function POST(request: NextRequest) {
         addresses: {
           where: { isActive: true },
           orderBy: { createdAt: 'desc' },
-          take: 1
-        }
-      }
+          take: 1,
+        },
+      },
     });
 
     const currentAddress = userWithAddress?.addresses[0];
@@ -159,15 +163,17 @@ export async function POST(request: NextRequest) {
         shareInterests: result.shareInterests,
         borrowInterests: result.borrowInterests,
         profileCompleted: result.profileCompleted,
-        currentAddress: currentAddress ? {
-          id: currentAddress.id,
-          address1: currentAddress.address1,
-          address2: currentAddress.address2,
-          city: currentAddress.city,
-          state: currentAddress.state,
-          zip: currentAddress.zip,
-          formattedAddress: currentAddress.formattedAddress,
-        } : null,
+        currentAddress: currentAddress
+          ? {
+              id: currentAddress.id,
+              address1: currentAddress.address1,
+              address2: currentAddress.address2,
+              city: currentAddress.city,
+              state: currentAddress.state,
+              zip: currentAddress.zip,
+              formattedAddress: currentAddress.formattedAddress,
+            }
+          : null,
       },
     });
   } catch (error) {
@@ -225,26 +231,76 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const body = await request.json();
+    // Handle FormData for file uploads
+    const contentType = request.headers.get('content-type');
+    let data: any = {};
 
-    // Create update schema (similar to create but allows partial updates)
-    const updateSchema = createProfileSchema.partial().extend({
-      name: z.string().min(1, 'Name is required'), // Name is still required
-    });
+    if (contentType?.includes('multipart/form-data')) {
+      const formData = await request.formData();
 
-    const validatedData = updateSchema.parse(body);
+      data.name = formData.get('name') as string;
+      data.bio = formData.get('bio') as string;
+      data.address = formData.get('address') as string;
+
+      const shareInterests = formData.get('shareInterests') as string;
+      const borrowInterests = formData.get('borrowInterests') as string;
+
+      if (shareInterests) {
+        data.shareInterests = JSON.parse(shareInterests);
+      }
+      if (borrowInterests) {
+        data.borrowInterests = JSON.parse(borrowInterests);
+      }
+
+      // Handle profile image upload
+      const profileImage = formData.get('profileImage') as File;
+      if (profileImage && profileImage.size > 0) {
+        // TODO: Upload to storage service (Vercel Blob, S3, etc.)
+        // For now, we'll skip the actual file upload and just note that we would handle it here
+        console.log(
+          'Profile image received:',
+          profileImage.name,
+          profileImage.size
+        );
+        // data.image = uploadedImageUrl;
+      }
+    } else {
+      data = await request.json();
+    }
+
+    // Simple validation for required fields
+    if (!data.name || data.name.trim() === '') {
+      return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+    }
 
     // Update user with profile information
+    const updateData: any = {
+      name: data.name.trim(),
+    };
+
+    if (data.bio !== undefined) {
+      updateData.bio = data.bio.trim() || null;
+    }
+
+    if (data.shareInterests) {
+      updateData.shareInterests = Array.isArray(data.shareInterests)
+        ? data.shareInterests
+        : [];
+    }
+
+    if (data.borrowInterests) {
+      updateData.borrowInterests = Array.isArray(data.borrowInterests)
+        ? data.borrowInterests
+        : [];
+    }
+
+    if (data.image) {
+      updateData.image = data.image;
+    }
+
     const updatedUser = await db.user.update({
       where: { id: user.id },
-      data: {
-        ...(validatedData.name && { name: validatedData.name }),
-        ...(validatedData.bio !== undefined && { bio: validatedData.bio }),
-        ...(validatedData.shareInterests && { shareInterests: validatedData.shareInterests }),
-        ...(validatedData.borrowInterests && { borrowInterests: validatedData.borrowInterests }),
-        ...(validatedData.image && { image: validatedData.image }),
-        // Don't update profileCompleted or onboardingStep on edit
-      },
+      data: updateData,
     });
 
     return NextResponse.json({
@@ -262,16 +318,6 @@ export async function PUT(request: NextRequest) {
     });
   } catch (error) {
     console.error('Profile update error:', error);
-
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          error: 'Validation failed',
-          details: error.issues,
-        },
-        { status: 400 }
-      );
-    }
 
     return NextResponse.json(
       {

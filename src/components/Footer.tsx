@@ -9,8 +9,6 @@ import {
 
 import { brandColors, spacing } from '@/theme/brandTokens';
 
-import { Wordmark } from './Wordmark';
-
 const footerSections = [
   {
     title: 'Product',
@@ -61,9 +59,16 @@ export function Footer() {
           {/* Brand Column */}
           <Box>
             <Stack spacing={2}>
-              <Box sx={{ transform: 'rotate(1.8deg)' }}>
-                <Wordmark size="medium" color="primary" />
-              </Box>
+              <Typography
+                variant="h6"
+                sx={{
+                  color: brandColors.white,
+                  fontWeight: 600,
+                  fontSize: '1.1rem',
+                }}
+              >
+                StuffLibrary
+              </Typography>
 
               <Typography
                 variant="body1"
