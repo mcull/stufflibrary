@@ -48,14 +48,14 @@ REQUIREMENTS:
 5. No text/clothing with offensive language or inappropriate messages
 6. Should appear friendly and welcoming for a neighborhood community
 
-Respond with a JSON object:
+You MUST respond with ONLY a valid JSON object in this exact format:
 {
   "approved": boolean,
   "reason": "brief explanation if rejected",
   "confidence": "high|medium|low"
 }
 
-Be strict but fair. When in doubt, reject and ask for a different photo.`,
+Do not include any other text, explanations, or formatting. Only return the JSON object. Be strict but fair. When in doubt, reject and ask for a different photo.`,
         },
         {
           role: 'user',
@@ -79,7 +79,10 @@ Be strict but fair. When in doubt, reject and ask for a different photo.`,
 
     const result = response.choices[0]?.message?.content;
 
+    console.log('OpenAI API response:', result);
+
     if (!result) {
+      console.error('No content in OpenAI response:', response);
       return NextResponse.json(
         { error: 'Failed to analyze image' },
         { status: 500 }
@@ -89,25 +92,72 @@ Be strict but fair. When in doubt, reject and ask for a different photo.`,
     // Parse the JSON response from OpenAI
     let analysis;
     try {
-      analysis = JSON.parse(result);
-    } catch {
+      // Try to extract JSON from the response (sometimes OpenAI wraps it in markdown)
+      let jsonString = result.trim();
+      if (jsonString.startsWith('```json')) {
+        jsonString = jsonString
+          .replace(/```json\n?/, '')
+          .replace(/\n?```$/, '');
+      }
+      if (jsonString.startsWith('```')) {
+        jsonString = jsonString.replace(/```\n?/, '').replace(/\n?```$/, '');
+      }
+
+      analysis = JSON.parse(jsonString);
+      console.log('Parsed analysis:', analysis);
+
+      // Validate that the response has the expected structure
+      if (typeof analysis.approved !== 'boolean') {
+        throw new Error(
+          'Invalid response structure: missing or invalid approved field'
+        );
+      }
+    } catch (parseError) {
       console.error('Failed to parse OpenAI response:', result);
-      return NextResponse.json(
-        {
-          error: 'Unable to analyze image at this time',
-          details: 'Analysis service error',
-        },
-        { status: 500 }
-      );
+      console.error('Parse error:', parseError);
+
+      // Fallback: try to extract approval from text
+      const lowerResult = result.toLowerCase();
+      if (lowerResult.includes('approved') && lowerResult.includes('true')) {
+        console.log('Using fallback parsing - approved');
+        analysis = {
+          approved: true,
+          reason: 'Approved via fallback parsing',
+          confidence: 'low',
+        };
+      } else if (
+        lowerResult.includes('approved') &&
+        lowerResult.includes('false')
+      ) {
+        console.log('Using fallback parsing - rejected');
+        analysis = {
+          approved: false,
+          reason: 'Rejected via fallback parsing',
+          confidence: 'low',
+        };
+      } else {
+        return NextResponse.json(
+          {
+            error: 'Unable to analyze image at this time',
+            details: 'Analysis service error - invalid JSON response',
+          },
+          { status: 500 }
+        );
+      }
     }
 
     return NextResponse.json({
       approved: analysis.approved,
-      reason: analysis.reason,
-      confidence: analysis.confidence,
+      reason: analysis.reason || 'No reason provided',
+      confidence: analysis.confidence || 'unknown',
     });
   } catch (error) {
     console.error('Image verification error:', error);
+    console.error('Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
 
     // If OpenAI API is down, we could implement a fallback or temporary approval
     return NextResponse.json(

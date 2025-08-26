@@ -15,6 +15,7 @@ import {
   Chip,
   Autocomplete,
   CircularProgress,
+  Alert,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
@@ -23,6 +24,8 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { brandColors } from '@/theme/brandTokens';
+
+import { AddressAutocomplete } from './AddressAutocomplete';
 
 // Predefined interest options for autocomplete
 const INTEREST_OPTIONS = [
@@ -92,6 +95,11 @@ export function ProfileView({ user, currentAddress }: ProfileViewProps) {
   const [profileImagePreview, setProfileImagePreview] = useState<string | null>(
     user.image
   );
+  const [imageValidationError, setImageValidationError] = useState<
+    string | null
+  >(null);
+  const [isValidatingImage, setIsValidatingImage] = useState(false);
+  const [parsedAddress, setParsedAddress] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<ProfileFormData>({
@@ -121,41 +129,141 @@ export function ProfileView({ user, currentAddress }: ProfileViewProps) {
   const shareInterests = watch('shareInterests');
   const borrowInterests = watch('borrowInterests');
 
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
-    if (file) {
-      setProfileImage(file);
-      const previewUrl = URL.createObjectURL(file);
-      setProfileImagePreview(previewUrl);
+    if (!file) return;
+
+    setImageValidationError(null);
+    setIsValidatingImage(true);
+
+    // Create preview immediately
+    const previewUrl = URL.createObjectURL(file);
+    setProfileImagePreview(previewUrl);
+
+    try {
+      // Validate image with OpenAI
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await fetch('/api/verify-image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'Failed to validate image';
+        try {
+          const errorResult = await response.json();
+          console.error('Image validation API error:', errorResult);
+          errorMessage = errorResult.error || errorMessage;
+
+          // If it's a service unavailable error (OpenAI API key not configured),
+          // allow upload but show warning
+          if (
+            response.status === 503 ||
+            errorResult.details?.includes('API key not configured')
+          ) {
+            setImageValidationError(
+              'Image validation is temporarily unavailable. Your photo will be uploaded without validation.'
+            );
+            setProfileImage(file); // Allow the upload
+            return; // Don't throw error
+          }
+        } catch {
+          console.error(
+            'Failed to parse error response, status:',
+            response.status
+          );
+        }
+        throw new Error(errorMessage);
+      }
+
+      const result = await response.json();
+
+      if (!result.approved) {
+        setImageValidationError(
+          result.reason ||
+            'This image does not meet our community guidelines. Please choose a different photo.'
+        );
+        setProfileImagePreview(user.image); // Reset to original
+        setProfileImage(null);
+      } else {
+        setProfileImage(file);
+      }
+    } catch (error) {
+      console.error('Image validation error:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+
+      // If it's a service unavailability message, allow the upload
+      if (errorMessage.includes('temporarily unavailable')) {
+        setImageValidationError(errorMessage);
+        setProfileImage(file); // Allow the upload
+      } else {
+        setImageValidationError(
+          'Unable to validate image at this time. Please try again or choose a different photo.'
+        );
+        setProfileImagePreview(user.image); // Reset to original
+        setProfileImage(null);
+      }
+    } finally {
+      setIsValidatingImage(false);
     }
   };
 
   const onSubmit = async (data: ProfileFormData) => {
     setIsLoading(true);
     try {
-      // Create FormData for file upload
-      const formData = new FormData();
-      formData.append('name', data.name);
-      formData.append('bio', data.bio || '');
-      formData.append('shareInterests', JSON.stringify(data.shareInterests));
-      formData.append('borrowInterests', JSON.stringify(data.borrowInterests));
-      formData.append('address', data.address);
+      let response;
 
       if (profileImage) {
+        // Use FormData if we have an image to upload
+        const formData = new FormData();
+        formData.append('name', data.name);
+        formData.append('bio', data.bio || '');
+        formData.append('shareInterests', JSON.stringify(data.shareInterests));
+        formData.append(
+          'borrowInterests',
+          JSON.stringify(data.borrowInterests)
+        );
+        formData.append('address', data.address);
         formData.append('profileImage', profileImage);
-      }
+        if (parsedAddress) {
+          formData.append('parsedAddress', JSON.stringify(parsedAddress));
+        }
 
-      const response = await fetch('/api/profile', {
-        method: 'PUT',
-        body: formData,
-      });
+        response = await fetch('/api/profile', {
+          method: 'PUT',
+          body: formData,
+        });
+      } else {
+        // Use JSON if no image upload
+        const requestBody = {
+          name: data.name,
+          bio: data.bio || '',
+          shareInterests: data.shareInterests,
+          borrowInterests: data.borrowInterests,
+          address: data.address,
+          parsedAddress: parsedAddress,
+        };
+
+        response = await fetch('/api/profile', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        });
+      }
 
       if (!response.ok) {
         throw new Error('Failed to update profile');
       }
 
-      // Refresh the page to show updated data
-      router.refresh();
+      // Redirect to Stuff Central (lobby) after successful save
+      router.push('/lobby');
     } catch (error) {
       console.error('Error updating profile:', error);
       // TODO: Add proper error handling/toast notification
@@ -214,6 +322,7 @@ export function ProfileView({ user, currentAddress }: ProfileViewProps) {
                 />
                 <IconButton
                   onClick={() => fileInputRef.current?.click()}
+                  disabled={isValidatingImage}
                   sx={{
                     position: 'absolute',
                     bottom: -8,
@@ -225,9 +334,19 @@ export function ProfileView({ user, currentAddress }: ProfileViewProps) {
                     '&:hover': {
                       backgroundColor: brandColors.charcoal,
                     },
+                    '&.Mui-disabled': {
+                      backgroundColor: brandColors.softGray,
+                    },
                   }}
                 >
-                  <PhotoCamera fontSize="small" />
+                  {isValidatingImage ? (
+                    <CircularProgress
+                      size={16}
+                      sx={{ color: brandColors.white }}
+                    />
+                  ) : (
+                    <PhotoCamera fontSize="small" />
+                  )}
                 </IconButton>
               </Box>
               <Box>
@@ -237,6 +356,11 @@ export function ProfileView({ user, currentAddress }: ProfileViewProps) {
                 <Typography variant="body2" color="text.secondary">
                   Click the camera icon to update your photo
                 </Typography>
+                {imageValidationError && (
+                  <Alert severity="error" sx={{ mt: 1, fontSize: '0.875rem' }}>
+                    {imageValidationError}
+                  </Alert>
+                )}
               </Box>
               <input
                 type="file"
@@ -262,20 +386,17 @@ export function ProfileView({ user, currentAddress }: ProfileViewProps) {
             />
 
             {/* Address Field */}
-            <TextField
-              label="Address"
-              fullWidth
-              placeholder="Your current address"
-              {...register('address')}
+            <AddressAutocomplete
+              value={watch('address')}
+              onChange={(value, addressData) => {
+                setValue('address', value || '', { shouldDirty: true });
+                setParsedAddress(addressData);
+              }}
               error={!!errors.address}
               helperText={
                 errors.address?.message || 'This helps neighbors find you'
               }
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 2,
-                },
-              }}
+              placeholder="Your current address"
             />
 
             {/* Bio Field */}
