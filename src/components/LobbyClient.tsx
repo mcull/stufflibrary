@@ -1,12 +1,6 @@
 'use client';
 
-import {
-  Add as AddIcon,
-  Schedule as ScheduleIcon,
-  Person as PersonIcon,
-  Warning as WarningIcon,
-  AccessTime as TimeIcon,
-} from '@mui/icons-material';
+import { Add as AddIcon } from '@mui/icons-material';
 import {
   Box,
   Container,
@@ -14,12 +8,8 @@ import {
   Card,
   CardContent,
   Button,
-  Chip,
   Stack,
-  Avatar,
-  Divider,
   CircularProgress,
-  Alert,
 } from '@mui/material';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -29,8 +19,6 @@ import { useBranches } from '@/hooks/useBranches';
 import { brandColors } from '@/theme/brandTokens';
 
 import { BranchCreationModal } from './BranchCreationModal';
-import { InvitedBranchesSection } from './InvitedBranchesSection';
-import { LibraryCard } from './LibraryCard';
 
 interface User {
   id: string;
@@ -50,7 +38,7 @@ interface LobbyClientProps {
 }
 
 export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
-  const { branches, isLoading, error, refetch, createBranch } = useBranches();
+  const { branches, isLoading, createBranch } = useBranches();
   const {
     activeBorrows,
     sentRequests,
@@ -68,11 +56,10 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
       {showWelcome && (
         <Box sx={{ mb: 4, textAlign: 'center' }}>
           <Typography variant="h3" component="h1" gutterBottom>
-            Welcome to your Lobby, {user.name}!
+            Welcome to Stuff Central, {user.name}!
           </Typography>
           <Typography variant="h6" color="text.secondary" sx={{ mb: 3 }}>
-            Your profile has been successfully created. This is your personal
-            lobby.
+            This is your lending/borrowing hub.
           </Typography>
         </Box>
       )}
@@ -89,539 +76,344 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
         </Box>
       )}
 
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: { xs: 'column', md: 'row' },
-          gap: 4,
-        }}
-      >
-        {/* Left Column */}
-        <Box sx={{ flex: { md: 2 } }}>
-          {/* Invited Branches */}
-          <InvitedBranchesSection />
+      {/* Three Capsule Layout */}
+      <Stack spacing={4}>
+        {/* Your Stuff Capsule */}
+        <Card
+          sx={{
+            borderRadius: '24px',
+            border: `1px solid ${brandColors.softGray}`,
+            backgroundColor: brandColors.white,
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              boxShadow: '0 8px 25px -5px rgba(0, 0, 0, 0.1)',
+              transform: 'translateY(-2px)',
+            },
+          }}
+        >
+          <CardContent sx={{ p: 4 }}>
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: 700,
+                color: brandColors.charcoal,
+                mb: 2,
+                textAlign: 'center',
+              }}
+            >
+              Your Stuff
+            </Typography>
 
-          {/* My Branches */}
-          <Card sx={{ mb: 4 }}>
-            <CardContent>
+            <Box sx={{ textAlign: 'center', py: 4 }}>
               <Box
                 sx={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: '50%',
+                  backgroundColor: brandColors.inkBlue,
                   display: 'flex',
-                  justifyContent: 'space-between',
                   alignItems: 'center',
+                  justifyContent: 'center',
+                  mx: 'auto',
                   mb: 3,
                 }}
               >
-                <Typography variant="h5" component="h2">
-                  My Branches
+                <Typography variant="h4" sx={{ color: brandColors.white }}>
+                  📦
                 </Typography>
-                <Button variant="outlined" startIcon={<AddIcon />} size="small">
-                  Join Branch
-                </Button>
               </Box>
 
-              {error && (
-                <Alert severity="error" sx={{ mb: 2 }}>
-                  {error}
-                  <Button onClick={refetch} size="small" sx={{ ml: 1 }}>
-                    Retry
-                  </Button>
-                </Alert>
-              )}
-
-              {isLoading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                  <CircularProgress size={40} />
-                </Box>
-              ) : branches.length === 0 ? (
-                <Box sx={{ textAlign: 'center', py: 4 }}>
-                  <Typography
-                    variant="body1"
-                    color="text.secondary"
-                    gutterBottom
-                  >
-                    You haven&apos;t joined any branches yet
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ mb: 2 }}
-                  >
-                    Create your first branch or join an existing community
-                  </Typography>
-                  <Button
-                    variant="outlined"
-                    startIcon={<AddIcon />}
-                    onClick={() => setIsCreateModalOpen(true)}
-                  >
-                    Create Your First Branch
-                  </Button>
-                </Box>
-              ) : (
-                <Stack spacing={2}>
-                  {branches.map((branch) => (
-                    <Card key={branch.id} variant="outlined">
-                      <CardContent sx={{ py: 2 }}>
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                          }}
-                        >
-                          <Box>
-                            <Typography variant="h6" component="h3">
-                              {branch.name}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              {branch.memberCount} members
-                            </Typography>
-                            {branch.location && (
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                              >
-                                📍 {branch.location}
-                              </Typography>
-                            )}
-                          </Box>
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1,
-                            }}
-                          >
-                            <Chip
-                              label={branch.role}
-                              size="small"
-                              color={
-                                branch.role === 'owner' ? 'primary' : 'default'
-                              }
-                            />
-                            <Button
-                              size="small"
-                              variant="text"
-                              component={Link}
-                              href={`/branch/${branch.id}`}
-                            >
-                              View
-                            </Button>
-                          </Box>
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </Stack>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Open a Branch */}
-          <Card sx={{ mb: 4, bgcolor: brandColors.warmCream }}>
-            <CardContent sx={{ textAlign: 'center', py: 4 }}>
-              <Typography variant="h5" component="h2" gutterBottom>
-                Start Your Own Branch
-              </Typography>
               <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-                Create a sharing community in your neighborhood
+                Add items you&apos;re willing to share with your community
               </Typography>
+
               <Button
                 variant="contained"
-                size="large"
                 startIcon={<AddIcon />}
-                onClick={() => setIsCreateModalOpen(true)}
                 sx={{
-                  bgcolor: brandColors.inkBlue,
-                  '&:hover': { bgcolor: '#1a2f4f' },
+                  borderRadius: 3,
+                  px: 3,
+                  py: 1.5,
+                  textTransform: 'none',
+                  fontWeight: 600,
                 }}
               >
-                Open a Branch
+                Add Items
               </Button>
-            </CardContent>
-          </Card>
+            </Box>
+          </CardContent>
+        </Card>
 
-          {/* My Borrow Requests */}
-          <Card>
-            <CardContent>
-              <Typography variant="h5" component="h2" sx={{ mb: 3 }}>
-                My Borrow Requests
-              </Typography>
+        {/* Your Libraries Capsule */}
+        <Card
+          sx={{
+            borderRadius: '24px',
+            border: `1px solid ${brandColors.softGray}`,
+            backgroundColor: brandColors.white,
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              boxShadow: '0 8px 25px -5px rgba(0, 0, 0, 0.1)',
+              transform: 'translateY(-2px)',
+            },
+          }}
+        >
+          <CardContent sx={{ p: 4 }}>
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: 700,
+                color: brandColors.charcoal,
+                mb: 2,
+                textAlign: 'center',
+              }}
+            >
+              Your Libraries
+            </Typography>
 
-              {borrowsLoading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                  <CircularProgress size={40} />
-                </Box>
-              ) : activeBorrows.length === 0 && sentRequests.length === 0 ? (
-                <Box sx={{ textAlign: 'center', py: 4 }}>
-                  <Typography
-                    variant="body1"
-                    color="text.secondary"
-                    gutterBottom
-                  >
-                    No borrow requests yet
+            {isLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress size={40} />
+              </Box>
+            ) : branches.length === 0 ? (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Box
+                  sx={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: '50%',
+                    backgroundColor: brandColors.mustardYellow,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mx: 'auto',
+                    mb: 3,
+                  }}
+                >
+                  <Typography variant="h4" sx={{ color: brandColors.charcoal }}>
+                    🏠
                   </Typography>
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ mb: 2 }}
-                  >
-                    Browse your community branches to find items to borrow
-                  </Typography>
                 </Box>
-              ) : (
-                <Stack spacing={3}>
-                  {/* Active Borrows */}
-                  {activeBorrows.length > 0 && (
-                    <Box>
-                      <Typography
-                        variant="h6"
-                        sx={{ mb: 2, color: brandColors.inkBlue }}
+
+                <Typography
+                  variant="body1"
+                  color="text.secondary"
+                  sx={{ mb: 3 }}
+                >
+                  Join or create sharing communities in your neighborhood
+                </Typography>
+
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => setIsCreateModalOpen(true)}
+                  sx={{
+                    borderRadius: 3,
+                    px: 3,
+                    py: 1.5,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    backgroundColor: brandColors.mustardYellow,
+                    color: brandColors.charcoal,
+                    '&:hover': {
+                      backgroundColor: '#C19E04',
+                    },
+                  }}
+                >
+                  Create Library
+                </Button>
+              </Box>
+            ) : (
+              <Box>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ textAlign: 'center', mb: 2 }}
+                >
+                  {branches.length}{' '}
+                  {branches.length === 1 ? 'library' : 'libraries'}
+                </Typography>
+                <Stack spacing={2}>
+                  {branches.slice(0, 2).map((branch) => (
+                    <Box
+                      key={branch.id}
+                      sx={{
+                        p: 2,
+                        borderRadius: 2,
+                        backgroundColor: brandColors.warmCream,
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Box>
+                        <Typography
+                          variant="subtitle2"
+                          sx={{ fontWeight: 600 }}
+                        >
+                          {branch.name}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {branch.memberCount} members
+                        </Typography>
+                      </Box>
+                      <Button
+                        size="small"
+                        component={Link}
+                        href={`/branch/${branch.id}`}
+                        sx={{ textTransform: 'none' }}
                       >
-                        Currently Borrowed ({activeBorrows.length})
-                      </Typography>
-                      <Stack spacing={2}>
-                        {activeBorrows.map((request) => {
-                          const isOverdue =
-                            request.promisedReturnBy &&
-                            new Date() > new Date(request.promisedReturnBy);
-
-                          return (
-                            <Card
-                              key={request.id}
-                              variant="outlined"
-                              sx={{
-                                ...(isOverdue && {
-                                  border: `2px solid ${brandColors.tomatoRed}`,
-                                }),
-                              }}
-                            >
-                              <CardContent>
-                                <Box sx={{ display: 'flex', gap: 2 }}>
-                                  {/* Item Image */}
-                                  <Box
-                                    sx={{
-                                      width: 80,
-                                      height: 80,
-                                      bgcolor: 'grey.200',
-                                      borderRadius: 1,
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      backgroundImage: request.item.imageUrl
-                                        ? `url(${request.item.imageUrl})`
-                                        : 'none',
-                                      backgroundSize: 'cover',
-                                      backgroundPosition: 'center',
-                                    }}
-                                  >
-                                    {!request.item.imageUrl && (
-                                      <Typography
-                                        variant="caption"
-                                        color="text.secondary"
-                                      >
-                                        📦
-                                      </Typography>
-                                    )}
-                                  </Box>
-
-                                  {/* Item Details */}
-                                  <Box sx={{ flex: 1 }}>
-                                    <Box
-                                      sx={{
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        mb: 1,
-                                      }}
-                                    >
-                                      <Typography variant="h6" component="h3">
-                                        {request.item.name}
-                                      </Typography>
-                                      {isOverdue && (
-                                        <Chip
-                                          icon={<WarningIcon />}
-                                          label="Overdue"
-                                          color="error"
-                                          size="small"
-                                        />
-                                      )}
-                                    </Box>
-
-                                    <Box
-                                      sx={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 1,
-                                        mb: 2,
-                                      }}
-                                    >
-                                      <Avatar
-                                        sx={{ width: 24, height: 24 }}
-                                        {...(request.lender.image && {
-                                          src: request.lender.image,
-                                        })}
-                                      >
-                                        <PersonIcon />
-                                      </Avatar>
-                                      <Typography
-                                        variant="body2"
-                                        color="text.secondary"
-                                      >
-                                        from {request.lender.name}
-                                      </Typography>
-                                    </Box>
-
-                                    {request.promisedReturnBy && (
-                                      <Box
-                                        sx={{
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          gap: 1,
-                                          mb: 2,
-                                        }}
-                                      >
-                                        <TimeIcon
-                                          sx={{
-                                            width: 20,
-                                            height: 20,
-                                            color: isOverdue
-                                              ? 'error.main'
-                                              : 'text.secondary',
-                                          }}
-                                        />
-                                        <Typography
-                                          variant="body2"
-                                          color={
-                                            isOverdue
-                                              ? 'error'
-                                              : 'text.secondary'
-                                          }
-                                        >
-                                          Due:{' '}
-                                          {new Date(
-                                            request.promisedReturnBy
-                                          ).toLocaleDateString()}
-                                        </Typography>
-                                      </Box>
-                                    )}
-
-                                    {/* Actions */}
-                                    <Box sx={{ display: 'flex', gap: 1 }}>
-                                      <Button
-                                        size="small"
-                                        startIcon={<ScheduleIcon />}
-                                        variant="outlined"
-                                      >
-                                        Ask for More Time
-                                      </Button>
-                                      {isOverdue && (
-                                        <Button
-                                          size="small"
-                                          startIcon={<WarningIcon />}
-                                          variant="outlined"
-                                          color="error"
-                                        >
-                                          Return ASAP
-                                        </Button>
-                                      )}
-                                    </Box>
-                                  </Box>
-                                </Box>
-                              </CardContent>
-                            </Card>
-                          );
-                        })}
-                      </Stack>
+                        View
+                      </Button>
                     </Box>
-                  )}
-
-                  {/* Pending Requests */}
-                  {sentRequests.filter((req) => req.status === 'pending')
-                    .length > 0 && (
-                    <Box>
-                      <Typography
-                        variant="h6"
-                        sx={{ mb: 2, color: 'text.secondary' }}
-                      >
-                        Pending Requests (
-                        {
-                          sentRequests.filter((req) => req.status === 'pending')
-                            .length
-                        }
-                        )
-                      </Typography>
-                      <Stack spacing={2}>
-                        {sentRequests
-                          .filter((req) => req.status === 'pending')
-                          .map((request) => (
-                            <Card key={request.id} variant="outlined">
-                              <CardContent>
-                                <Box sx={{ display: 'flex', gap: 2 }}>
-                                  <Box
-                                    sx={{
-                                      width: 60,
-                                      height: 60,
-                                      bgcolor: 'grey.200',
-                                      borderRadius: 1,
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      backgroundImage: request.item.imageUrl
-                                        ? `url(${request.item.imageUrl})`
-                                        : 'none',
-                                      backgroundSize: 'cover',
-                                      backgroundPosition: 'center',
-                                    }}
-                                  >
-                                    {!request.item.imageUrl && '📦'}
-                                  </Box>
-                                  <Box sx={{ flex: 1 }}>
-                                    <Typography
-                                      variant="subtitle1"
-                                      sx={{ fontWeight: 600 }}
-                                    >
-                                      {request.item.name}
-                                    </Typography>
-                                    <Typography
-                                      variant="body2"
-                                      color="text.secondary"
-                                    >
-                                      Requested from {request.lender.name}
-                                    </Typography>
-                                    <Typography
-                                      variant="caption"
-                                      color="text.secondary"
-                                    >
-                                      {new Date(
-                                        request.requestedAt
-                                      ).toLocaleDateString()}{' '}
-                                      • Awaiting response
-                                    </Typography>
-                                  </Box>
-                                  <Chip
-                                    label="Pending"
-                                    size="small"
-                                    color="warning"
-                                    variant="outlined"
-                                  />
-                                </Box>
-                              </CardContent>
-                            </Card>
-                          ))}
-                      </Stack>
-                    </Box>
+                  ))}
+                  {branches.length > 2 && (
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ textAlign: 'center' }}
+                    >
+                      +{branches.length - 2} more
+                    </Typography>
                   )}
                 </Stack>
-              )}
-            </CardContent>
-          </Card>
-        </Box>
+              </Box>
+            )}
+          </CardContent>
+        </Card>
 
-        {/* Right Column - Library Card */}
-        <Box sx={{ flex: { md: 1 } }}>
-          <Card sx={{ position: 'sticky', top: 20 }}>
-            <CardContent>
-              <Typography
-                variant="h6"
-                component="h2"
-                gutterBottom
-                sx={{ textAlign: 'center' }}
-              >
-                Your Library Card
-              </Typography>
-              <Box sx={{ mb: 3 }}>
-                <LibraryCard
-                  user={{
-                    ...user,
-                    name: user.name || '',
-                    email: user.email || '',
-                    image: user.image ?? undefined,
-                    createdAt: user.createdAt.toISOString(),
+        {/* Activity Capsule */}
+        <Card
+          sx={{
+            borderRadius: '24px',
+            border: `1px solid ${brandColors.softGray}`,
+            backgroundColor: brandColors.white,
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              boxShadow: '0 8px 25px -5px rgba(0, 0, 0, 0.1)',
+              transform: 'translateY(-2px)',
+            },
+          }}
+        >
+          <CardContent sx={{ p: 4 }}>
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: 700,
+                color: brandColors.charcoal,
+                mb: 2,
+                textAlign: 'center',
+              }}
+            >
+              Activity
+            </Typography>
+
+            {borrowsLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress size={40} />
+              </Box>
+            ) : activeBorrows.length === 0 && sentRequests.length === 0 ? (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Box
+                  sx={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: '50%',
+                    backgroundColor: brandColors.tomatoRed,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mx: 'auto',
+                    mb: 3,
                   }}
-                />
-              </Box>
+                >
+                  <Typography variant="h4" sx={{ color: brandColors.white }}>
+                    ⚡
+                  </Typography>
+                </Box>
 
-              {/* User Info Summary */}
-              <Divider sx={{ my: 2 }} />
-              <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Member since {new Date(user.createdAt).toLocaleDateString()}
+                <Typography
+                  variant="body1"
+                  color="text.secondary"
+                  sx={{ mb: 1 }}
+                >
+                  No recent activity
                 </Typography>
-                {(user.shareInterests.length > 0 || user.borrowInterests.length > 0) && (
-                  <Box sx={{ mt: 2 }}>
-                    {user.shareInterests.length > 0 && (
-                      <Box sx={{ mb: 1 }}>
-                        <Typography variant="body2" sx={{ mb: 0.5 }}>
-                          Shares
-                        </Typography>
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            flexWrap: 'wrap',
-                            gap: 0.5,
-                            justifyContent: 'center',
-                          }}
-                        >
-                          {user.shareInterests.slice(0, 3).map((interest) => (
-                            <Chip
-                              key={interest}
-                              label={interest}
-                              size="small"
-                              color="primary"
-                              sx={{ fontSize: '0.7rem' }}
-                            />
-                          ))}
-                          {user.shareInterests.length > 3 && (
-                            <Chip
-                              label={`+${user.shareInterests.length - 3} more`}
-                              size="small"
-                              variant="outlined"
-                              sx={{ fontSize: '0.7rem' }}
-                            />
-                          )}
-                        </Box>
-                      </Box>
-                    )}
-                    {user.borrowInterests.length > 0 && (
-                      <Box>
-                        <Typography variant="body2" sx={{ mb: 0.5 }}>
-                          Looking for
-                        </Typography>
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            flexWrap: 'wrap',
-                            gap: 0.5,
-                            justifyContent: 'center',
-                          }}
-                        >
-                          {user.borrowInterests.slice(0, 3).map((interest) => (
-                            <Chip
-                              key={interest}
-                              label={interest}
-                              size="small"
-                              color="secondary"
-                              sx={{ fontSize: '0.7rem' }}
-                            />
-                          ))}
-                          {user.borrowInterests.length > 3 && (
-                            <Chip
-                              label={`+${user.borrowInterests.length - 3} more`}
-                              size="small"
-                              variant="outlined"
-                              sx={{ fontSize: '0.7rem' }}
-                            />
-                          )}
-                        </Box>
-                      </Box>
-                    )}
-                  </Box>
-                )}
+                <Typography variant="body2" color="text.secondary">
+                  Your borrowing and lending activity will appear here
+                </Typography>
               </Box>
-            </CardContent>
-          </Card>
-        </Box>
-      </Box>
+            ) : (
+              <Box>
+                <Stack spacing={2}>
+                  {/* Show active borrows first */}
+                  {activeBorrows.slice(0, 2).map((request) => (
+                    <Box
+                      key={request.id}
+                      sx={{
+                        p: 2,
+                        borderRadius: 2,
+                        backgroundColor: brandColors.warmCream,
+                        borderLeft: `4px solid ${brandColors.inkBlue}`,
+                      }}
+                    >
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                        {request.item.name}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Borrowed from {request.lender.name}
+                      </Typography>
+                    </Box>
+                  ))}
+
+                  {/* Show pending requests */}
+                  {sentRequests
+                    .filter((req) => req.status === 'pending')
+                    .slice(0, 2)
+                    .map((request) => (
+                      <Box
+                        key={request.id}
+                        sx={{
+                          p: 2,
+                          borderRadius: 2,
+                          backgroundColor: brandColors.warmCream,
+                          borderLeft: `4px solid ${brandColors.mustardYellow}`,
+                        }}
+                      >
+                        <Typography
+                          variant="subtitle2"
+                          sx={{ fontWeight: 600 }}
+                        >
+                          {request.item.name}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Requested from {request.lender.name}
+                        </Typography>
+                      </Box>
+                    ))}
+
+                  {activeBorrows.length +
+                    sentRequests.filter((req) => req.status === 'pending')
+                      .length >
+                    2 && (
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ textAlign: 'center', pt: 1 }}
+                    >
+                      +
+                      {activeBorrows.length +
+                        sentRequests.filter((req) => req.status === 'pending')
+                          .length -
+                        2}{' '}
+                      more
+                    </Typography>
+                  )}
+                </Stack>
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+      </Stack>
 
       {/* Branch Creation Modal */}
       <BranchCreationModal

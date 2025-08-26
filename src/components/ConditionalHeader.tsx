@@ -8,13 +8,18 @@ import { Header } from './Header';
 
 export function ConditionalHeader() {
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
 
   // Don't show header on auth pages or profile creation
   const isAuthPage = pathname.startsWith('/auth/');
   const isProfileCreation = pathname.startsWith('/profile/create');
 
   if (isAuthPage || isProfileCreation) {
+    return null;
+  }
+
+  // Don't render anything while loading to prevent flash
+  if (status === 'loading') {
     return null;
   }
 
