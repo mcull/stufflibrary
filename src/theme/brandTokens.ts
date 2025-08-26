@@ -50,17 +50,17 @@ export const typography = {
   // Font families
   fontFamily: {
     primary:
-      'Inter, "Avenir Next", "Helvetica Neue", Helvetica, Arial, sans-serif',
+      'var(--font-primary, "Special Elite"), "Courier New", Monaco, Consolas, "Liberation Mono", monospace',
     fallback: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
-    mono: 'Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+    mono: 'var(--font-primary, "Special Elite"), "Courier New", Monaco, Consolas, "Liberation Mono", monospace',
   },
 
   // Font weights
   fontWeight: {
-    light: 300,
+    light: 400,
     regular: 400,
-    medium: 500,
-    bold: 700,
+    medium: 400,
+    bold: 400,
   },
 
   // Line heights

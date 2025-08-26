@@ -16,6 +16,8 @@ import '@fontsource/space-grotesk/300.css';
 import '@fontsource/space-grotesk/400.css';
 import '@fontsource/space-grotesk/500.css';
 import '@fontsource/space-grotesk/700.css';
+import '@fontsource/syne-mono/400.css';
+import '@fontsource/special-elite/400.css';
 import '@/styles/vintage-fonts.css';
 import './globals.css';
 

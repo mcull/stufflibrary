@@ -142,7 +142,7 @@ export function ProfileWizard({
   >(null);
 
   const methods = useForm<ProfileFormData>({
-    resolver: zodResolver(profileSchema) as any,
+    resolver: zodResolver(profileSchema),
     defaultValues: {
       name: '',
       address: '',
@@ -377,7 +377,7 @@ export function ProfileWizard({
 
         {/* Form Content */}
         <FormProvider {...methods}>
-          <Box component="form" onSubmit={handleSubmit(handleComplete as any)}>
+          <Box component="form" onSubmit={handleSubmit(handleComplete)}>
             {CurrentStepComponent && (
               <CurrentStepComponent
                 onNext={handleNext}
