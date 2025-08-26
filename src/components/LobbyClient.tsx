@@ -226,7 +226,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                   color="text.secondary"
                   sx={{ mb: 3 }}
                 >
-                  Create private sharing communities with people you trust
+                  Collections of stuff shared among friends and neighbors.
                 </Typography>
 
                 <Button
