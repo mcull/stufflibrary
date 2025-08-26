@@ -1,10 +1,6 @@
 'use client';
 
-import {
-  Public as PublicIcon,
-  Lock as LockIcon,
-  Close as CloseIcon,
-} from '@mui/icons-material';
+import { Close as CloseIcon } from '@mui/icons-material';
 import {
   Dialog,
   DialogTitle,
@@ -13,12 +9,9 @@ import {
   Box,
   TextField,
   Button,
-  FormControlLabel,
-  Switch,
   Typography,
   IconButton,
   Alert,
-  Stack,
 } from '@mui/material';
 import { useState } from 'react';
 
@@ -46,14 +39,14 @@ export function BranchCreationModal({
     name: '',
     description: '',
     location: '',
-    isPublic: true,
+    isPublic: false, // Default to private for MVP
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleClose = () => {
     if (isSubmitting) return;
-    setFormData({ name: '', description: '', location: '', isPublic: true });
+    setFormData({ name: '', description: '', location: '', isPublic: false });
     setError(null);
     onClose();
   };
@@ -129,7 +122,7 @@ export function BranchCreationModal({
             component="h2"
             sx={{ fontWeight: 600, color: brandColors.inkBlue }}
           >
-            Start Your Own Branch
+            Create Your Library
           </Typography>
           <IconButton
             onClick={handleClose}
@@ -140,7 +133,7 @@ export function BranchCreationModal({
           </IconButton>
         </Box>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-          Create a sharing community in your neighborhood or with your friends
+          Start a private sharing community with people you trust
         </Typography>
       </DialogTitle>
 
@@ -152,11 +145,11 @@ export function BranchCreationModal({
             </Alert>
           )}
 
-          {/* Branch Name */}
+          {/* Library Name */}
           <TextField
             fullWidth
-            label="Branch Name"
-            placeholder="e.g., Mission Bay Neighbors, Downtown Tools"
+            label="Library Name"
+            placeholder="e.g., Family Sharing Circle, Neighbors Tool Library"
             value={formData.name}
             onChange={(e) => handleInputChange('name', e.target.value)}
             error={formData.name.length > 100}
@@ -177,91 +170,13 @@ export function BranchCreationModal({
             multiline
             rows={3}
             label="Description"
-            placeholder="Tell people what your branch is about, what kinds of items you share, or any special focus..."
+            placeholder="Tell people what your library is about, what kinds of items you share, or any special focus..."
             value={formData.description}
             onChange={(e) => handleInputChange('description', e.target.value)}
             disabled={isSubmitting}
-            sx={{ mb: 3 }}
             inputProps={{ maxLength: 500 }}
             helperText={`${formData.description.length}/500 characters`}
           />
-
-          {/* Location */}
-          <TextField
-            fullWidth
-            label="Location"
-            placeholder="e.g., Mission Bay, SF or Downtown Portland"
-            value={formData.location}
-            onChange={(e) => handleInputChange('location', e.target.value)}
-            disabled={isSubmitting}
-            sx={{ mb: 3 }}
-            helperText="Help people find your branch (optional)"
-          />
-
-          {/* Visibility Setting */}
-          <Box sx={{ p: 2, bgcolor: 'white', borderRadius: 1, mb: 2 }}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={formData.isPublic}
-                  onChange={(e) =>
-                    handleInputChange('isPublic', e.target.checked)
-                  }
-                  disabled={isSubmitting}
-                />
-              }
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  {formData.isPublic ? (
-                    <PublicIcon
-                      sx={{ color: brandColors.inkBlue, fontSize: 20 }}
-                    />
-                  ) : (
-                    <LockIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
-                  )}
-                  <Box>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>
-                      {formData.isPublic ? 'Public Branch' : 'Private Branch'}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {formData.isPublic
-                        ? 'Anyone can discover and join your branch'
-                        : 'People need an invitation to join'}
-                    </Typography>
-                  </Box>
-                </Box>
-              }
-              sx={{ ml: 0, alignItems: 'flex-start' }}
-            />
-          </Box>
-
-          {/* Tips */}
-          <Box
-            sx={{
-              p: 2,
-              bgcolor: 'rgba(227, 181, 5, 0.1)',
-              borderRadius: 1,
-              border: `1px solid ${brandColors.mustardYellow}`,
-            }}
-          >
-            <Typography
-              variant="subtitle2"
-              sx={{ fontWeight: 500, mb: 1, color: brandColors.inkBlue }}
-            >
-              Tips for Success
-            </Typography>
-            <Stack spacing={1}>
-              <Typography variant="body2" color="text.secondary">
-                • Choose a name that reflects your community or focus area
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                • Public branches grow faster and reach more neighbors
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                • Add a location to help people find local branches
-              </Typography>
-            </Stack>
-          </Box>
         </DialogContent>
 
         <DialogActions sx={{ p: 3, pt: 2 }}>
@@ -278,7 +193,7 @@ export function BranchCreationModal({
               '&:disabled': { bgcolor: 'grey.300' },
             }}
           >
-            {isSubmitting ? 'Creating...' : 'Create Branch'}
+            {isSubmitting ? 'Creating...' : 'Create Library'}
           </Button>
         </DialogActions>
       </form>

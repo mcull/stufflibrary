@@ -19,7 +19,6 @@ import { useBranches } from '@/hooks/useBranches';
 import { brandColors } from '@/theme/brandTokens';
 
 import { BranchCreationModal } from './BranchCreationModal';
-import { LibraryDiscoveryModal } from './LibraryDiscoveryModal';
 
 interface User {
   id: string;
@@ -39,14 +38,13 @@ interface LobbyClientProps {
 }
 
 export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
-  const { branches, isLoading, createBranch, joinBranch } = useBranches();
+  const { branches, isLoading, createBranch } = useBranches();
   const {
     activeBorrows,
     sentRequests,
     isLoading: borrowsLoading,
   } = useBorrowRequests();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isDiscoveryModalOpen, setIsDiscoveryModalOpen] = useState(false);
 
   const handleCreateBranch = (branch: unknown) => {
     console.log('Branch created:', branch);
@@ -228,50 +226,28 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                   color="text.secondary"
                   sx={{ mb: 3 }}
                 >
-                  Join or create sharing communities in your neighborhood
+                  Create private sharing communities with people you trust
                 </Typography>
 
-                <Stack direction="row" spacing={2} justifyContent="center">
-                  <Button
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={() => setIsCreateModalOpen(true)}
-                    sx={{
-                      borderRadius: 3,
-                      px: 3,
-                      py: 1.5,
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      backgroundColor: brandColors.mustardYellow,
-                      color: brandColors.charcoal,
-                      '&:hover': {
-                        backgroundColor: '#C19E04',
-                      },
-                    }}
-                  >
-                    Create Library
-                  </Button>
-
-                  <Button
-                    variant="outlined"
-                    onClick={() => setIsDiscoveryModalOpen(true)}
-                    sx={{
-                      borderRadius: 3,
-                      px: 3,
-                      py: 1.5,
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      borderColor: brandColors.inkBlue,
-                      color: brandColors.inkBlue,
-                      '&:hover': {
-                        backgroundColor: brandColors.inkBlue,
-                        color: brandColors.white,
-                      },
-                    }}
-                  >
-                    Discover Libraries
-                  </Button>
-                </Stack>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => setIsCreateModalOpen(true)}
+                  sx={{
+                    borderRadius: 3,
+                    px: 3,
+                    py: 1.5,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    backgroundColor: brandColors.mustardYellow,
+                    color: brandColors.charcoal,
+                    '&:hover': {
+                      backgroundColor: '#C19E04',
+                    },
+                  }}
+                >
+                  Create Library
+                </Button>
               </Box>
             ) : (
               <Box>
@@ -538,13 +514,6 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
         onClose={() => setIsCreateModalOpen(false)}
         onSuccess={handleCreateBranch}
         createBranch={createBranch}
-      />
-
-      {/* Library Discovery Modal */}
-      <LibraryDiscoveryModal
-        open={isDiscoveryModalOpen}
-        onClose={() => setIsDiscoveryModalOpen(false)}
-        onJoinBranch={joinBranch}
       />
     </Container>
   );
