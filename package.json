@@ -54,6 +54,8 @@
     "@fontsource/inter": "^5.2.6",
     "@fontsource/roboto": "^5.2.6",
     "@fontsource/space-grotesk": "^5.2.8",
+    "@fontsource/special-elite": "^5.2.6",
+    "@fontsource/syne-mono": "^5.2.6",
     "@googlemaps/google-maps-services-js": "^3.4.2",
     "@hookform/resolvers": "^5.2.1",
     "@mui/icons-material": "^7.3.1",

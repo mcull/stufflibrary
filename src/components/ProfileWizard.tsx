@@ -28,8 +28,8 @@ const profileSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   address: z.string().min(1, 'Address is required to find your neighbors'),
   bio: z.string().optional(),
-  shareInterests: z.array(z.string()).default([]),
-  borrowInterests: z.array(z.string()).default([]),
+  shareInterests: z.array(z.string()),
+  borrowInterests: z.array(z.string()),
   profilePicture: z
     .instanceof(File)
     .refine((file) => file instanceof File, 'Profile picture is required')
@@ -45,11 +45,11 @@ const profileSchema = z.object({
       'Profile picture must be a JPEG, PNG, or WebP image'
     ),
   profilePictureUrl: z.string().optional(),
-  agreedToHouseholdGoods: z.boolean().default(false),
-  agreedToTrustAndCare: z.boolean().default(false),
-  agreedToCommunityValues: z.boolean().default(false),
-  agreedToAgeRestrictions: z.boolean().default(false),
-  agreedToTerms: z.boolean().default(false),
+  agreedToHouseholdGoods: z.boolean(),
+  agreedToTrustAndCare: z.boolean(),
+  agreedToCommunityValues: z.boolean(),
+  agreedToAgeRestrictions: z.boolean(),
+  agreedToTerms: z.boolean(),
   // Store parsed address data from Google Places
   parsedAddress: z.any().optional(),
 });
@@ -112,7 +112,7 @@ function StepIcon(props: {
 
 const steps = [
   { label: 'Basic Info', component: ProfileStep1 },
-  { label: 'Profile & Interests', component: ProfileStep2 },
+  { label: 'A bit about you', component: ProfileStep2 },
   { label: 'Review & Complete', component: ProfileStep3 },
 ];
 
@@ -142,7 +142,7 @@ export function ProfileWizard({
   >(null);
 
   const methods = useForm<ProfileFormData>({
-    resolver: zodResolver(profileSchema) as any,
+    resolver: zodResolver(profileSchema),
     defaultValues: {
       name: '',
       address: '',
@@ -325,7 +325,7 @@ export function ProfileWizard({
               mb: 1,
             }}
           >
-            Complete Your Profile
+            Your Library Card
           </Typography>
           <Typography
             variant="body1"
@@ -334,7 +334,8 @@ export function ProfileWizard({
               opacity: 0.7,
             }}
           >
-            Help us create a personalized experience for you
+            Let&apos;s set up how you&apos;ll appear to your friends and
+            neighbors
           </Typography>
         </Box>
 
@@ -363,6 +364,8 @@ export function ProfileWizard({
                         ? brandColors.charcoal
                         : brandColors.softGray,
                     mt: 1,
+                    // Hide labels on mobile for cleaner UI
+                    display: { xs: 'none', sm: 'block' },
                   },
                 }}
               >
@@ -374,7 +377,12 @@ export function ProfileWizard({
 
         {/* Form Content */}
         <FormProvider {...methods}>
-          <Box component="form" onSubmit={handleSubmit(handleComplete as any)}>
+          <Box
+            component="form"
+            onSubmit={handleSubmit(
+              handleComplete as (data: ProfileFormData) => void
+            )}
+          >
             {CurrentStepComponent && (
               <CurrentStepComponent
                 onNext={handleNext}
