@@ -47,8 +47,7 @@ export function ProfileStep1({ onNext }: ProfileStep1Props) {
             mb: 4,
           }}
         >
-          Tell us a bit about yourself so other members can get to know you. We
-          need your address to help you find neighbors in your area.
+          Who you are and where your stuff is.
         </Typography>
 
         <Stack spacing={3}>

@@ -112,7 +112,7 @@ function StepIcon(props: {
 
 const steps = [
   { label: 'Basic Info', component: ProfileStep1 },
-  { label: 'Profile & Interests', component: ProfileStep2 },
+  { label: 'A bit about you', component: ProfileStep2 },
   { label: 'Review & Complete', component: ProfileStep3 },
 ];
 
@@ -325,7 +325,7 @@ export function ProfileWizard({
               mb: 1,
             }}
           >
-            Complete Your Profile
+            Your Library Card
           </Typography>
           <Typography
             variant="body1"
@@ -334,7 +334,8 @@ export function ProfileWizard({
               opacity: 0.7,
             }}
           >
-            Let your neighbors know who you are and where your stuff is
+            Let&apos;s set up how you&apos;ll appear to your friends and
+            neighbors
           </Typography>
         </Box>
 
