@@ -122,15 +122,18 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                 <CircularProgress size={40} />
               </Box>
             ) : (
-              <Stack spacing={3}>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' },
+                  gap: 3,
+                }}
+              >
                 {/* Ready to Lend */}
                 <Box
                   sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    p: 2,
-                    borderRadius: 2,
+                    p: 3,
+                    borderRadius: 3,
                     backgroundColor: brandColors.warmCream,
                     border: `1px solid ${brandColors.softGray}`,
                     transition: 'all 0.2s ease',
@@ -139,33 +142,41 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                       backgroundColor: '#F5F1E8',
                       transform: 'translateY(-1px)',
                     },
+                    textAlign: 'center',
                   }}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Typography variant="h6" sx={{ fontSize: '1.25rem' }}>
-                      📦
-                    </Typography>
-                    <Box>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                        Ready to Lend
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {readyToLendCount} items available
-                      </Typography>
-                    </Box>
-                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                    Ready to Lend
+                  </Typography>
+                  <Typography
+                    variant="h4"
+                    sx={{
+                      fontWeight: 700,
+                      color: brandColors.inkBlue,
+                      mb: 1,
+                    }}
+                  >
+                    {readyToLendCount}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 2 }}
+                  >
+                    {readyToLendCount === 1
+                      ? 'item available'
+                      : 'items available'}
+                  </Typography>
                   <Button
-                    variant="outlined"
+                    variant="contained"
                     size="small"
                     startIcon={<AddIcon />}
                     sx={{
                       textTransform: 'none',
                       borderRadius: 2,
-                      borderColor: brandColors.inkBlue,
-                      color: brandColors.inkBlue,
+                      backgroundColor: brandColors.inkBlue,
                       '&:hover': {
-                        backgroundColor: brandColors.inkBlue,
-                        color: brandColors.white,
+                        backgroundColor: '#1a2f4f',
                       },
                     }}
                   >
@@ -176,11 +187,8 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                 {/* On Loan */}
                 <Box
                   sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    p: 2,
-                    borderRadius: 2,
+                    p: 3,
+                    borderRadius: 3,
                     backgroundColor: brandColors.warmCream,
                     border: `1px solid ${brandColors.softGray}`,
                     transition: 'all 0.2s ease',
@@ -189,28 +197,42 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                       backgroundColor: '#F5F1E8',
                       transform: 'translateY(-1px)',
                     },
+                    textAlign: 'center',
                   }}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Typography variant="h6" sx={{ fontSize: '1.25rem' }}>
-                      📤
-                    </Typography>
-                    <Box>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                        On Loan
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {onLoanCount} items currently lent out
-                      </Typography>
-                    </Box>
-                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                    On Loan
+                  </Typography>
+                  <Typography
+                    variant="h4"
+                    sx={{
+                      fontWeight: 700,
+                      color: brandColors.mustardYellow,
+                      mb: 1,
+                    }}
+                  >
+                    {onLoanCount}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 2 }}
+                  >
+                    {onLoanCount === 1 ? 'item lent out' : 'items lent out'}
+                  </Typography>
                   <Button
-                    variant="text"
+                    variant="outlined"
                     size="small"
                     sx={{
                       textTransform: 'none',
+                      borderRadius: 2,
+                      borderColor: brandColors.charcoal,
                       color: brandColors.charcoal,
                       opacity: onLoanCount > 0 ? 1 : 0.5,
+                      '&:hover': {
+                        backgroundColor: brandColors.charcoal,
+                        color: brandColors.white,
+                      },
                     }}
                     disabled={onLoanCount === 0}
                   >
@@ -221,11 +243,8 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                 {/* Stuff I've Borrowed */}
                 <Box
                   sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    p: 2,
-                    borderRadius: 2,
+                    p: 3,
+                    borderRadius: 3,
                     backgroundColor: brandColors.warmCream,
                     border: `1px solid ${brandColors.softGray}`,
                     transition: 'all 0.2s ease',
@@ -234,35 +253,49 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                       backgroundColor: '#F5F1E8',
                       transform: 'translateY(-1px)',
                     },
+                    textAlign: 'center',
                   }}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Typography variant="h6" sx={{ fontSize: '1.25rem' }}>
-                      📥
-                    </Typography>
-                    <Box>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                        Stuff I&apos;ve Borrowed
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {borrowedCount} items currently borrowed
-                      </Typography>
-                    </Box>
-                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                    Stuff I&apos;ve Borrowed
+                  </Typography>
+                  <Typography
+                    variant="h4"
+                    sx={{
+                      fontWeight: 700,
+                      color: brandColors.tomatoRed,
+                      mb: 1,
+                    }}
+                  >
+                    {borrowedCount}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 2 }}
+                  >
+                    {borrowedCount === 1 ? 'item borrowed' : 'items borrowed'}
+                  </Typography>
                   <Button
-                    variant="text"
+                    variant="outlined"
                     size="small"
                     sx={{
                       textTransform: 'none',
-                      color: brandColors.charcoal,
+                      borderRadius: 2,
+                      borderColor: brandColors.tomatoRed,
+                      color: brandColors.tomatoRed,
                       opacity: borrowedCount > 0 ? 1 : 0.5,
+                      '&:hover': {
+                        backgroundColor: brandColors.tomatoRed,
+                        color: brandColors.white,
+                      },
                     }}
                     disabled={borrowedCount === 0}
                   >
                     View & Return
                   </Button>
                 </Box>
-              </Stack>
+              </Box>
             )}
           </CardContent>
         </Card>

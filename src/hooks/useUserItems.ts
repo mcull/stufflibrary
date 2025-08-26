@@ -78,39 +78,71 @@ export function useUserItems(): UseUserItemsResult {
       setIsLoading(true);
       setError(null);
 
-      // Fetch user's items and borrow requests in parallel
-      const [itemsResponse, borrowRequestsResponse] = await Promise.all([
-        fetch('/api/user/items'),
-        fetch('/api/borrow-requests'),
-      ]);
+      // TODO: Remove this dummy data and uncomment real API calls for production
+      // Dummy data for testing
+      await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate API delay
 
-      if (!itemsResponse.ok || !borrowRequestsResponse.ok) {
-        throw new Error('Failed to fetch user items');
-      }
+      // Mock data
+      const mockReadyToLend = Array.from({ length: 5 }, (_, i) => ({
+        id: `ready-${i}`,
+        name: `Available Item ${i + 1}`,
+        description: 'Mock item for testing',
+        isAvailable: true,
+        condition: 'good',
+        createdAt: new Date().toISOString(),
+        branch: { id: 'branch-1', name: 'My Branch' },
+      }));
 
-      const [itemsData, borrowRequestsData] = await Promise.all([
-        itemsResponse.json(),
-        borrowRequestsResponse.json(),
-      ]);
+      const mockOnLoan = Array.from({ length: 4 }, (_, i) => ({
+        id: `loan-${i}`,
+        status: 'active',
+        requestedAt: new Date().toISOString(),
+        borrower: { id: `borrower-${i}`, name: `Borrower ${i + 1}` },
+        item: { id: `item-${i}`, name: `Lent Item ${i + 1}` },
+      }));
 
-      // Set ready to lend items (available items I own)
-      setReadyToLendItems(
-        itemsData.items?.filter((item: UserItem) => item.isAvailable) || []
-      );
+      const mockBorrowed = Array.from({ length: 3 }, (_, i) => ({
+        id: `borrowed-${i}`,
+        status: 'active',
+        requestedAt: new Date().toISOString(),
+        item: { id: `borrowed-item-${i}`, name: `Borrowed Item ${i + 1}` },
+        lender: { id: `lender-${i}`, name: `Lender ${i + 1}` },
+      }));
 
-      // Set borrowed items (items I've borrowed that are active)
-      setBorrowedItems(
-        borrowRequestsData.activeBorrows?.filter(
-          (request: BorrowedItem) => request.status === 'active'
-        ) || []
-      );
+      setReadyToLendItems(mockReadyToLend);
+      setOnLoanItems(mockOnLoan);
+      setBorrowedItems(mockBorrowed);
 
-      // Set on loan items (my items that others have borrowed)
-      setOnLoanItems(
-        borrowRequestsData.receivedRequests?.filter(
-          (request: LentItem) => request.status === 'active'
-        ) || []
-      );
+      // Real API calls - commented out for testing
+      // const [itemsResponse, borrowRequestsResponse] = await Promise.all([
+      //   fetch('/api/user/items'),
+      //   fetch('/api/borrow-requests'),
+      // ]);
+
+      // if (!itemsResponse.ok || !borrowRequestsResponse.ok) {
+      //   throw new Error('Failed to fetch user items');
+      // }
+
+      // const [itemsData, borrowRequestsData] = await Promise.all([
+      //   itemsResponse.json(),
+      //   borrowRequestsResponse.json(),
+      // ]);
+
+      // setReadyToLendItems(
+      //   itemsData.items?.filter((item: UserItem) => item.isAvailable) || []
+      // );
+
+      // setBorrowedItems(
+      //   borrowRequestsData.activeBorrows?.filter(
+      //     (request: BorrowedItem) => request.status === 'active'
+      //   ) || []
+      // );
+
+      // setOnLoanItems(
+      //   borrowRequestsData.receivedRequests?.filter(
+      //     (request: LentItem) => request.status === 'active'
+      //   ) || []
+      // );
     } catch (err) {
       console.error('Error fetching user items:', err);
       setError(
