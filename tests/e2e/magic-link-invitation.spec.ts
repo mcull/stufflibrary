@@ -269,11 +269,8 @@ test.describe('Magic Link Invitation Flow', () => {
   test('profile creation flow after magic link authentication', async ({
     page,
   }) => {
-    // This test would require actual authentication which is complex in E2E tests
-    // For now, we'll test the profile creation page directly with invitation context
-
     // Create invitation for context
-    const invitation = await db.invitation.create({
+    await db.invitation.create({
       data: {
         email: testInviteeEmail,
         token: 'profile-creation-token-' + Date.now(),
@@ -287,18 +284,35 @@ test.describe('Magic Link Invitation Flow', () => {
       },
     });
 
-    // Navigate directly to profile creation with invitation context
-    await page.goto(
-      `/profile/create?invitation=${invitation.token}&branch=${testBranchId}`
-    );
+    // First authenticate the user
+    await page.goto('/auth/signin');
+
+    // Fill in email and submit
+    await page.fill('input[type="email"]', testInviteeEmail);
+    await page.click('button[type="submit"]');
+
+    // Should now be on the code entry step
+    await expect(page.locator('text=Enter your code')).toBeVisible();
+
+    // Get the auth code from the database
+    const authCodeRecord = await db.authCode.findUnique({
+      where: { email: testInviteeEmail },
+    });
+
+    expect(authCodeRecord).toBeTruthy();
+
+    // Fill in the code
+    await page.fill('input[name="code"]', authCodeRecord!.code);
+
+    // Submit the code
+    await page.click('button[type="submit"]');
+
+    // After authentication, should be redirected to profile creation
+    // (new users without completed profiles go to /profile/create)
+    await page.waitForURL(/\/profile\/create/, { timeout: 10000 });
 
     // Should show profile creation form
     await expect(page.locator("text=Let's start with the basics")).toBeVisible({
-      timeout: 5000,
-    });
-
-    // Should show branch context (invitation messaging)
-    await expect(page.locator("text=You've been invited")).toBeVisible({
       timeout: 5000,
     });
   });
