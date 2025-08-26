@@ -16,6 +16,7 @@ import { useState } from 'react';
 
 import { useBorrowRequests } from '@/hooks/useBorrowRequests';
 import { useBranches } from '@/hooks/useBranches';
+import { useUserItems } from '@/hooks/useUserItems';
 import { brandColors } from '@/theme/brandTokens';
 
 import { BranchCreationModal } from './BranchCreationModal';
@@ -44,6 +45,12 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
     sentRequests,
     isLoading: borrowsLoading,
   } = useBorrowRequests();
+  const {
+    readyToLendCount,
+    onLoanCount,
+    borrowedCount,
+    isLoading: itemsLoading,
+  } = useUserItems();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const handleCreateBranch = (branch: unknown) => {
@@ -64,18 +71,6 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
         </Box>
       )}
 
-      {/* Regular Header - for returning users */}
-      {!showWelcome && (
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" component="h1" gutterBottom>
-            Welcome back, {user.name}
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Your community sharing lobby
-          </Typography>
-        </Box>
-      )}
-
       {/* Three Capsule Layout */}
       <Stack spacing={4}>
         {/* Your Stuff Capsule */}
@@ -92,55 +87,183 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
           }}
         >
           <CardContent sx={{ p: 4 }}>
-            <Typography
-              variant="h5"
+            <Box
               sx={{
-                fontWeight: 700,
-                color: brandColors.charcoal,
-                mb: 2,
-                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                mb: 3,
               }}
             >
-              Your Stuff
-            </Typography>
-
-            <Box sx={{ textAlign: 'center', py: 4 }}>
-              <Box
+              <Typography
+                variant="h5"
                 sx={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: '50%',
-                  backgroundColor: brandColors.inkBlue,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  mx: 'auto',
-                  mb: 3,
+                  fontWeight: 700,
+                  color: brandColors.charcoal,
                 }}
               >
-                <Typography variant="h4" sx={{ color: brandColors.white }}>
-                  📦
-                </Typography>
-              </Box>
-
-              <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-                Add items you&apos;re willing to share with your community
+                Your Stuff
               </Typography>
-
               <Button
-                variant="contained"
-                startIcon={<AddIcon />}
+                variant="text"
+                size="small"
                 sx={{
-                  borderRadius: 3,
-                  px: 3,
-                  py: 1.5,
                   textTransform: 'none',
-                  fontWeight: 600,
+                  color: brandColors.inkBlue,
+                  fontSize: '0.875rem',
                 }}
               >
-                Add Items
+                View All →
               </Button>
             </Box>
+
+            {itemsLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress size={40} />
+              </Box>
+            ) : (
+              <Stack spacing={3}>
+                {/* Ready to Lend */}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    p: 2,
+                    borderRadius: 2,
+                    backgroundColor: brandColors.warmCream,
+                    border: `1px solid ${brandColors.softGray}`,
+                    transition: 'all 0.2s ease',
+                    cursor: 'pointer',
+                    '&:hover': {
+                      backgroundColor: '#F5F1E8',
+                      transform: 'translateY(-1px)',
+                    },
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Typography variant="h6" sx={{ fontSize: '1.25rem' }}>
+                      📦
+                    </Typography>
+                    <Box>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                        Ready to Lend
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {readyToLendCount} items available
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<AddIcon />}
+                    sx={{
+                      textTransform: 'none',
+                      borderRadius: 2,
+                      borderColor: brandColors.inkBlue,
+                      color: brandColors.inkBlue,
+                      '&:hover': {
+                        backgroundColor: brandColors.inkBlue,
+                        color: brandColors.white,
+                      },
+                    }}
+                  >
+                    Add Items
+                  </Button>
+                </Box>
+
+                {/* On Loan */}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    p: 2,
+                    borderRadius: 2,
+                    backgroundColor: brandColors.warmCream,
+                    border: `1px solid ${brandColors.softGray}`,
+                    transition: 'all 0.2s ease',
+                    cursor: 'pointer',
+                    '&:hover': {
+                      backgroundColor: '#F5F1E8',
+                      transform: 'translateY(-1px)',
+                    },
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Typography variant="h6" sx={{ fontSize: '1.25rem' }}>
+                      📤
+                    </Typography>
+                    <Box>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                        On Loan
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {onLoanCount} items currently lent out
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Button
+                    variant="text"
+                    size="small"
+                    sx={{
+                      textTransform: 'none',
+                      color: brandColors.charcoal,
+                      opacity: onLoanCount > 0 ? 1 : 0.5,
+                    }}
+                    disabled={onLoanCount === 0}
+                  >
+                    View Status
+                  </Button>
+                </Box>
+
+                {/* Stuff I've Borrowed */}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    p: 2,
+                    borderRadius: 2,
+                    backgroundColor: brandColors.warmCream,
+                    border: `1px solid ${brandColors.softGray}`,
+                    transition: 'all 0.2s ease',
+                    cursor: 'pointer',
+                    '&:hover': {
+                      backgroundColor: '#F5F1E8',
+                      transform: 'translateY(-1px)',
+                    },
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Typography variant="h6" sx={{ fontSize: '1.25rem' }}>
+                      📥
+                    </Typography>
+                    <Box>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                        Stuff I&apos;ve Borrowed
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {borrowedCount} items currently borrowed
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Button
+                    variant="text"
+                    size="small"
+                    sx={{
+                      textTransform: 'none',
+                      color: brandColors.charcoal,
+                      opacity: borrowedCount > 0 ? 1 : 0.5,
+                    }}
+                    disabled={borrowedCount === 0}
+                  >
+                    View & Return
+                  </Button>
+                </Box>
+              </Stack>
+            )}
           </CardContent>
         </Card>
 
