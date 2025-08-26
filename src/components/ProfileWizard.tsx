@@ -28,8 +28,8 @@ const profileSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   address: z.string().min(1, 'Address is required to find your neighbors'),
   bio: z.string().optional(),
-  shareInterests: z.array(z.string()).default([]),
-  borrowInterests: z.array(z.string()).default([]),
+  shareInterests: z.array(z.string()),
+  borrowInterests: z.array(z.string()),
   profilePicture: z
     .instanceof(File)
     .refine((file) => file instanceof File, 'Profile picture is required')
@@ -45,11 +45,11 @@ const profileSchema = z.object({
       'Profile picture must be a JPEG, PNG, or WebP image'
     ),
   profilePictureUrl: z.string().optional(),
-  agreedToHouseholdGoods: z.boolean().default(false),
-  agreedToTrustAndCare: z.boolean().default(false),
-  agreedToCommunityValues: z.boolean().default(false),
-  agreedToAgeRestrictions: z.boolean().default(false),
-  agreedToTerms: z.boolean().default(false),
+  agreedToHouseholdGoods: z.boolean(),
+  agreedToTrustAndCare: z.boolean(),
+  agreedToCommunityValues: z.boolean(),
+  agreedToAgeRestrictions: z.boolean(),
+  agreedToTerms: z.boolean(),
   // Store parsed address data from Google Places
   parsedAddress: z.any().optional(),
 });
@@ -377,7 +377,12 @@ export function ProfileWizard({
 
         {/* Form Content */}
         <FormProvider {...methods}>
-          <Box component="form" onSubmit={handleSubmit(handleComplete)}>
+          <Box
+            component="form"
+            onSubmit={handleSubmit(
+              handleComplete as (data: ProfileFormData) => void
+            )}
+          >
             {CurrentStepComponent && (
               <CurrentStepComponent
                 onNext={handleNext}

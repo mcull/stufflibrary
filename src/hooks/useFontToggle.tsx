@@ -29,9 +29,11 @@ export function useFontToggle() {
   const [currentFont, setCurrentFont] = useState<FontOption>('special-elite');
 
   useEffect(() => {
-    const savedFont = localStorage.getItem('font-preference') as FontOption;
-    if (savedFont && fontConfigs[savedFont]) {
-      setCurrentFont(savedFont);
+    const savedFont = localStorage.getItem(
+      'font-preference'
+    ) as FontOption | null;
+    if (savedFont && fontConfigs[savedFont as FontOption]) {
+      setCurrentFont(savedFont as FontOption);
     }
   }, []);
 
@@ -49,7 +51,10 @@ export function useFontToggle() {
     const fonts: FontOption[] = ['inter', 'syne-mono', 'special-elite'];
     const currentIndex = fonts.indexOf(currentFont);
     const nextIndex = (currentIndex + 1) % fonts.length;
-    setCurrentFont(fonts[nextIndex]);
+    const nextFont = fonts[nextIndex];
+    if (nextFont) {
+      setCurrentFont(nextFont);
+    }
   };
 
   const setFont = (font: FontOption) => {
