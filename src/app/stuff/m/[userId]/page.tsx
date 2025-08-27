@@ -313,12 +313,91 @@ export default function UserInventoryPage() {
         sx={{
           minHeight: '100vh',
           backgroundColor: brandColors.warmCream,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          py: spacing.xl / 16,
         }}
       >
-        <Typography color="error">Error loading inventory: {error}</Typography>
+        <Container maxWidth="sm">
+          <Box
+            sx={{
+              textAlign: 'center',
+              py: spacing.xl / 16,
+            }}
+          >
+            {/* Error illustration */}
+            <Box
+              sx={{
+                fontSize: '3rem',
+                mb: spacing.lg / 16,
+                opacity: 0.6,
+              }}
+            >
+              😅
+            </Box>
+
+            <Typography
+              variant="h4"
+              sx={{
+                color: brandColors.charcoal,
+                mb: spacing.md / 16,
+                fontWeight: 600,
+              }}
+            >
+              Oops! Something went wrong
+            </Typography>
+
+            <Typography
+              variant="body1"
+              sx={{
+                color: brandColors.charcoal,
+                opacity: 0.8,
+                mb: spacing.lg / 16,
+                lineHeight: 1.6,
+              }}
+            >
+              We&apos;re having trouble loading the inventory right now.
+              Don&apos;t worry, your items are safe!
+            </Typography>
+
+            <Stack spacing={spacing.md / 16} alignItems="center">
+              <Button
+                onClick={() => window.location.reload()}
+                variant="contained"
+                sx={{
+                  backgroundColor: brandColors.inkBlue,
+                  '&:hover': { backgroundColor: '#1a2f4f' },
+                  textTransform: 'none',
+                }}
+              >
+                Try Again
+              </Button>
+
+              <Button
+                component={Link}
+                href="/lobby"
+                variant="text"
+                sx={{
+                  color: brandColors.inkBlue,
+                  textTransform: 'none',
+                }}
+              >
+                Back to Lobby
+              </Button>
+            </Stack>
+
+            {/* Technical error details (smaller) */}
+            <Typography
+              variant="caption"
+              sx={{
+                color: brandColors.charcoal,
+                opacity: 0.4,
+                mt: spacing.lg / 16,
+                fontSize: '0.75rem',
+              }}
+            >
+              Error: {error}
+            </Typography>
+          </Box>
+        </Container>
       </Box>
     );
   }
@@ -521,31 +600,79 @@ export default function UserInventoryPage() {
           <Box
             sx={{
               textAlign: 'center',
-              py: spacing.xl / 16,
+              py: (spacing.xl * 2) / 16,
+              px: spacing.lg / 16,
+              maxWidth: '500px',
+              mx: 'auto',
             }}
           >
+            {/* Empty state illustration */}
+            <Box
+              sx={{
+                fontSize: '4rem',
+                mb: spacing.lg / 16,
+                opacity: 0.7,
+              }}
+            >
+              📦✨
+            </Box>
+
             <Typography
-              variant="h6"
+              variant="h4"
               sx={{
                 color: brandColors.charcoal,
                 mb: spacing.md / 16,
+                fontWeight: 600,
               }}
             >
-              No items yet
+              {isOwnInventory ? 'Your inventory is ready!' : 'No items to show'}
             </Typography>
+
+            <Typography
+              variant="body1"
+              sx={{
+                color: brandColors.charcoal,
+                opacity: 0.8,
+                mb: spacing.xl / 16,
+                lineHeight: 1.6,
+              }}
+            >
+              {isOwnInventory
+                ? 'This is where all your stuff will live once you start adding items. Share tools, books, kitchen gadgets, and anything else your neighbors might find useful!'
+                : 'This person hasn&apos;t added any items to their inventory yet. Check back later or explore other members&apos; inventories.'}
+            </Typography>
+
             {isOwnInventory && (
-              <Button
-                component={Link}
-                href="/add-item"
-                variant="contained"
-                sx={{
-                  backgroundColor: brandColors.inkBlue,
-                  '&:hover': { backgroundColor: '#1a2f4f' },
-                  textTransform: 'none',
-                }}
-              >
-                Add Your First Item
-              </Button>
+              <Stack spacing={spacing.md / 16} alignItems="center">
+                <Button
+                  component={Link}
+                  href="/add-item"
+                  variant="contained"
+                  size="large"
+                  sx={{
+                    backgroundColor: brandColors.inkBlue,
+                    '&:hover': { backgroundColor: '#1a2f4f' },
+                    textTransform: 'none',
+                    px: spacing.xl / 16,
+                    py: spacing.md / 16,
+                    fontSize: '1.1rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  📷 Add Your First Item
+                </Button>
+
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: brandColors.charcoal,
+                    opacity: 0.6,
+                    fontSize: '0.9rem',
+                  }}
+                >
+                  Just snap a photo and we&apos;ll help identify it!
+                </Typography>
+              </Stack>
             )}
           </Box>
         ) : activeFilter === 'all' ? (
