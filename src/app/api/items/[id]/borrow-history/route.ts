@@ -45,14 +45,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         id: userId,
         OR: [
           { id: item.ownerId }, // User is the owner
-          {
-            branchMemberships: {
-              some: {
-                branchId: item.branchId,
-                isActive: true,
-              },
-            },
-          }, // User is in the same branch
+          ...(item.branchId
+            ? [
+                {
+                  branchMemberships: {
+                    some: {
+                      branchId: item.branchId,
+                      isActive: true,
+                    },
+                  },
+                },
+              ]
+            : []), // User is in the same branch (if item has a branch)
         ],
       },
     });

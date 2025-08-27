@@ -27,21 +27,12 @@ export async function POST(request: NextRequest) {
     const image = formData.get('image') as File;
     const name = formData.get('name') as string;
     const category = (formData.get('category') as string) || 'other';
-    const branchId = formData.get('branchId') as string;
+    const branchId = (formData.get('branchId') as string) || null;
 
     if (!image || !name) {
       return NextResponse.json(
         {
           error: 'Image and name are required',
-        },
-        { status: 400 }
-      );
-    }
-
-    if (!branchId) {
-      return NextResponse.json(
-        {
-          error: 'Branch ID is required',
         },
         { status: 400 }
       );
@@ -124,6 +115,16 @@ export async function POST(request: NextRequest) {
             iconPath: true,
           },
         },
+        ...(branchId
+          ? {
+              branch: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            }
+          : {}),
       },
     });
 

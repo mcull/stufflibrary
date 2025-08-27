@@ -48,6 +48,7 @@ export async function GET(
       name: item.name,
       description: item.description,
       condition: item.condition,
+      location: item.location,
       imageUrl: item.imageUrl,
       isAvailable: item.isAvailable,
       createdAt: item.createdAt,
@@ -88,7 +89,7 @@ export async function PUT(
 
     const { id: itemId } = await params;
     const body = await request.json();
-    const { name, description, condition } = body;
+    const { name, description, condition, location } = body;
 
     // Check if user owns the item
     const item = await db.item.findUnique({
@@ -129,6 +130,13 @@ export async function PUT(
       );
     }
 
+    if (location && location.length > 100) {
+      return NextResponse.json(
+        { error: 'Location must be 100 characters or less' },
+        { status: 400 }
+      );
+    }
+
     const validConditions = ['excellent', 'good', 'fair', 'poor'];
     if (condition && !validConditions.includes(condition)) {
       return NextResponse.json(
@@ -146,6 +154,7 @@ export async function PUT(
           description: description?.trim() || null,
         }),
         ...(condition !== undefined && { condition }),
+        ...(location !== undefined && { location: location?.trim() || null }),
       },
       include: {
         owner: {
@@ -171,6 +180,7 @@ export async function PUT(
       name: updatedItem.name,
       description: updatedItem.description,
       condition: updatedItem.condition,
+      location: updatedItem.location,
       imageUrl: updatedItem.imageUrl,
       isAvailable: updatedItem.isAvailable,
       createdAt: updatedItem.createdAt,
@@ -211,7 +221,7 @@ export async function PATCH(
 
     const { id: itemId } = await params;
     const body = await request.json();
-    const { isAvailable } = body;
+    const { isAvailable, branchId } = body;
 
     // Check if user owns the item
     const item = await db.item.findUnique({
@@ -231,11 +241,37 @@ export async function PATCH(
     }
 
     // Validate input
-    if (typeof isAvailable !== 'boolean') {
+    if (isAvailable !== undefined && typeof isAvailable !== 'boolean') {
       return NextResponse.json(
         { error: 'isAvailable must be a boolean' },
         { status: 400 }
       );
+    }
+
+    if (branchId !== undefined && typeof branchId !== 'string') {
+      return NextResponse.json(
+        { error: 'branchId must be a string' },
+        { status: 400 }
+      );
+    }
+
+    // If branchId is being changed, validate user has access to the branch
+    if (branchId !== undefined) {
+      const branchMembership = await db.branchMember.findUnique({
+        where: {
+          userId_branchId: {
+            userId,
+            branchId,
+          },
+        },
+      });
+
+      if (!branchMembership) {
+        return NextResponse.json(
+          { error: 'You are not a member of the specified branch' },
+          { status: 403 }
+        );
+      }
     }
 
     // Check if item is currently borrowed
@@ -253,10 +289,19 @@ export async function PATCH(
       );
     }
 
-    // Update item availability
+    // Prepare update data
+    const updateData: any = {};
+    if (isAvailable !== undefined) {
+      updateData.isAvailable = isAvailable;
+    }
+    if (branchId !== undefined) {
+      updateData.branchId = branchId;
+    }
+
+    // Update item
     const updatedItem = await db.item.update({
       where: { id: itemId },
-      data: { isAvailable },
+      data: updateData,
       include: {
         owner: {
           select: {
@@ -281,6 +326,7 @@ export async function PATCH(
       name: updatedItem.name,
       description: updatedItem.description,
       condition: updatedItem.condition,
+      location: updatedItem.location,
       imageUrl: updatedItem.imageUrl,
       isAvailable: updatedItem.isAvailable,
       createdAt: updatedItem.createdAt,

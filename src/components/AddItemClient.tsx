@@ -21,18 +21,26 @@ import { useRef, useState, useCallback, useEffect } from 'react';
 
 import { brandColors } from '@/theme/brandTokens';
 
+import { LibrarySelectionModal } from './LibrarySelectionModal';
+
 type CaptureState =
   | 'permission'
   | 'streaming'
   | 'capturing'
   | 'analyzing'
   | 'recognized'
+  | 'uploaded'
   | 'error';
 
 interface RecognitionResult {
   name: string;
   confidence: number;
   category: string;
+}
+
+interface UploadedItem {
+  id: string;
+  name: string;
 }
 
 interface AddItemClientProps {
@@ -51,6 +59,8 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
     useState<RecognitionResult | null>(null);
   const [capturedImageUrl, setCapturedImageUrl] = useState<string | null>(null);
   const [shouldMirrorCamera, setShouldMirrorCamera] = useState(false);
+  const [uploadedItem, setUploadedItem] = useState<UploadedItem | null>(null);
+  const [showLibraryModal, setShowLibraryModal] = useState(false);
 
   // Request camera permission and start stream
   const startCamera = useCallback(async () => {
@@ -236,34 +246,16 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
 
           console.log('📦 Created blob for upload:', blob.size, 'bytes');
 
-          // If no branchId provided, try to find or create a default branch
-          let effectiveBranchId = branchId;
-          if (!effectiveBranchId) {
-            const branchResponse = await fetch('/api/branches');
-            if (branchResponse.ok) {
-              const { branches } = await branchResponse.json();
-              if (branches && branches.length > 0) {
-                // Use the first available branch
-                effectiveBranchId = branches[0].id;
-              }
-            }
-
-            // If still no branch, we need to create one
-            if (!effectiveBranchId) {
-              setError(
-                'No branch available. Please create a branch first from the lobby.'
-              );
-              setState('error');
-              return;
-            }
-          }
-
           console.log('📋 Creating form data...');
           const formData = new FormData();
           formData.append('image', blob, 'item.jpg');
           formData.append('name', recognitionResult.name);
           formData.append('category', recognitionResult.category);
-          formData.append('branchId', effectiveBranchId);
+
+          // Only add branchId if provided (from specific library context)
+          if (branchId) {
+            formData.append('branchId', branchId);
+          }
 
           console.log('🚀 Uploading to API...');
           const response = await fetch('/api/items', {
@@ -282,9 +274,16 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
 
           const responseData = await response.json();
           console.log('✅ Item created successfully:', responseData);
-          const { itemId } = responseData;
-          console.log('🔄 Navigating to item page:', itemId);
-          router.push(`/stuff/${itemId}?new=true`);
+          const { itemId, item } = responseData;
+
+          // Store uploaded item info
+          setUploadedItem({
+            id: itemId,
+            name: item.name,
+          });
+
+          setState('uploaded');
+          setShowLibraryModal(true);
         },
         'image/jpeg',
         0.8
@@ -294,7 +293,7 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
       setError('Failed to add item. Please try again.');
       setState('error');
     }
-  }, [recognitionResult, branchId, router]);
+  }, [recognitionResult, branchId]);
 
   // Retry capture
   const retryCapture = useCallback(() => {
@@ -302,6 +301,29 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
     setRecognitionResult(null);
     setState('streaming');
   }, []);
+
+  // Handle library selection completion
+  const handleLibrarySelectionComplete = useCallback(
+    (_selectedLibraryIds: string[]) => {
+      setShowLibraryModal(false);
+
+      if (uploadedItem) {
+        // Navigate to the item page
+        router.push(`/stuff/${uploadedItem.id}?new=true`);
+      }
+    },
+    [uploadedItem, router]
+  );
+
+  // Handle library modal close
+  const handleLibraryModalClose = useCallback(() => {
+    setShowLibraryModal(false);
+
+    if (uploadedItem) {
+      // Navigate to the item page even if user closed modal
+      router.push(`/stuff/${uploadedItem.id}?new=true`);
+    }
+  }, [uploadedItem, router]);
 
   // Check for auto-start on mount and clean up on unmount
   useEffect(() => {
@@ -645,6 +667,20 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
           </Box>
         );
 
+      case 'uploaded':
+        return (
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <CheckIcon sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />
+            <Typography variant="h6" gutterBottom>
+              Item Uploaded Successfully!
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+              Choose which libraries to add your item to...
+            </Typography>
+            <CircularProgress size={24} />
+          </Box>
+        );
+
       case 'error':
         return (
           <Box sx={{ textAlign: 'center', py: 4 }}>
@@ -706,6 +742,17 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
 
       {/* Hidden canvas for image processing */}
       <canvas ref={canvasRef} style={{ display: 'none' }} />
+
+      {/* Library Selection Modal */}
+      {uploadedItem && (
+        <LibrarySelectionModal
+          open={showLibraryModal}
+          itemName={uploadedItem.name}
+          itemId={uploadedItem.id}
+          onClose={handleLibraryModalClose}
+          onComplete={handleLibrarySelectionComplete}
+        />
+      )}
     </Container>
   );
 }

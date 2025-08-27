@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useSearchParams, useParams } from 'next/navigation';
+import { useSearchParams, useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
@@ -27,6 +27,15 @@ interface ItemCardProps {
 }
 
 function ItemCard({ item, status }: ItemCardProps) {
+  const router = useRouter();
+
+  const handleClick = () => {
+    const itemId = item.id || item.item?.id;
+    if (itemId) {
+      router.push(`/stuff/${itemId}`);
+    }
+  };
+
   const getStatusConfig = () => {
     switch (status) {
       case 'ready-to-lend':
@@ -93,6 +102,7 @@ function ItemCard({ item, status }: ItemCardProps) {
 
   return (
     <Card
+      onClick={handleClick}
       sx={{
         backgroundColor: config.backgroundColor,
         border: `1px solid ${config.borderColor}`,
