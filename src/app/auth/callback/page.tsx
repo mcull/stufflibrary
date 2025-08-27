@@ -2,11 +2,12 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { Suspense } from 'react';
 import { useEffect, useState } from 'react';
 
 import { brandColors } from '@/theme/brandTokens';
 
-export default function AuthCallbackPage() {
+function AuthCallbackContent() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const searchParams = useSearchParams();
@@ -118,5 +119,58 @@ export default function AuthCallbackPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <div
+          style={{
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: brandColors.warmCream,
+          }}
+        >
+          <div style={{ textAlign: 'center' }}>
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                border: `3px solid ${brandColors.inkBlue}`,
+                borderTop: '3px solid transparent',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+                margin: '0 auto 16px',
+              }}
+            />
+            <p
+              style={{
+                color: brandColors.charcoal,
+                fontSize: '16px',
+                margin: 0,
+              }}
+            >
+              Loading...
+            </p>
+          </div>
+          <style jsx>{`
+            @keyframes spin {
+              0% {
+                transform: rotate(0deg);
+              }
+              100% {
+                transform: rotate(360deg);
+              }
+            }
+          `}</style>
+        </div>
+      }
+    >
+      <AuthCallbackContent />
+    </Suspense>
   );
 }
