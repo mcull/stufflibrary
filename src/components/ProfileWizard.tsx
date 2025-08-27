@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Check } from '@mui/icons-material';
+import { Check, Logout as LogoutIcon } from '@mui/icons-material';
 import {
   Box,
   Container,
@@ -11,8 +11,11 @@ import {
   StepLabel,
   Stepper,
   Typography,
+  IconButton,
+  Tooltip,
   styled,
 } from '@mui/material';
+import { signOut } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { z } from 'zod';
@@ -311,32 +314,56 @@ export function ProfileWizard({
         }}
       >
         {/* Header */}
-        <Box sx={{ mb: 4, textAlign: 'center' }}>
-          <Box sx={{ mb: 3 }}>
-            <Box sx={{ transform: 'rotate(-1.2deg)' }}>
-              <Wordmark size="medium" color="primary" />
-            </Box>
+        <Box sx={{ mb: 4 }}>
+          {/* Top row with logout button */}
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+            <Tooltip title="Sign out" arrow>
+              <IconButton
+                onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+                size="small"
+                sx={{
+                  color: brandColors.charcoal,
+                  opacity: 0.7,
+                  '&:hover': {
+                    opacity: 1,
+                    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                  },
+                }}
+                aria-label="Sign out"
+              >
+                <LogoutIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
           </Box>
-          <Typography
-            variant="h4"
-            sx={{
-              fontWeight: 700,
-              color: brandColors.charcoal,
-              mb: 1,
-            }}
-          >
-            Your Library Card
-          </Typography>
-          <Typography
-            variant="body1"
-            sx={{
-              color: brandColors.charcoal,
-              opacity: 0.7,
-            }}
-          >
-            Let&apos;s set up how you&apos;ll appear to your friends and
-            neighbors
-          </Typography>
+
+          {/* Centered header content */}
+          <Box sx={{ textAlign: 'center' }}>
+            <Box sx={{ mb: 3 }}>
+              <Box sx={{ transform: 'rotate(-1.2deg)' }}>
+                <Wordmark size="medium" color="primary" />
+              </Box>
+            </Box>
+            <Typography
+              variant="h4"
+              sx={{
+                fontWeight: 700,
+                color: brandColors.charcoal,
+                mb: 1,
+              }}
+            >
+              Your Library Card
+            </Typography>
+            <Typography
+              variant="body1"
+              sx={{
+                color: brandColors.charcoal,
+                opacity: 0.7,
+              }}
+            >
+              Let&apos;s set up how you&apos;ll appear to your friends and
+              neighbors
+            </Typography>
+          </Box>
         </Box>
 
         {/* Progress Stepper */}
