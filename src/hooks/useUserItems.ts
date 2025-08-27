@@ -7,7 +7,7 @@ interface UserItem {
   imageUrl?: string;
   isAvailable: boolean;
   condition: string;
-  location?: string;
+  location?: string | undefined;
   createdAt: string;
   stuffType?: {
     displayName: string;
@@ -98,7 +98,7 @@ export function useUserItems(): UseUserItemsResult {
           description: 'Mock item for testing',
           isAvailable: true,
           condition: 'good',
-          location: locations[i],
+          location: locations[i] || undefined,
           createdAt: new Date().toISOString(),
           branch: { id: 'branch-1', name: 'My Branch' },
         };

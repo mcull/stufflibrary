@@ -22,17 +22,7 @@ import { useUserItems } from '@/hooks/useUserItems';
 import { brandColors, spacing } from '@/theme/brandTokens';
 
 interface ItemCardProps {
-  item: {
-    id: string;
-    name?: string;
-    imageUrl?: string;
-    location?: string;
-    borrower?: { name: string };
-    lender?: { name: string };
-    requestedAt?: string;
-    promisedReturnBy?: string;
-    item?: { name: string };
-  };
+  item: any;
   status: 'ready-to-lend' | 'on-loan' | 'borrowed';
 }
 
@@ -198,7 +188,7 @@ function ItemCard({ item, status }: ItemCardProps) {
 
 interface SectionProps {
   title: string;
-  items: ItemCardProps['item'][];
+  items: any[];
   color: {
     background: string;
     text: string;
@@ -433,15 +423,21 @@ export default function UserInventoryPage() {
           >
             <Chip
               label={`All ${allItems.length}`}
-              {...getChipProps('all', allItems.length, '')}
+              onClick={() => setActiveFilter('all')}
               sx={{
-                ...getChipProps('all', allItems.length, '').sx,
                 backgroundColor:
                   activeFilter === 'all' ? brandColors.inkBlue : '#F0F0F0',
                 color:
                   activeFilter === 'all'
                     ? brandColors.white
                     : brandColors.charcoal,
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  backgroundColor: brandColors.inkBlue,
+                  color: brandColors.white,
+                },
               }}
             />
             <Chip
@@ -548,7 +544,6 @@ export default function UserInventoryPage() {
             <Section
               title="Ready to Lend"
               items={readyToLendSection}
-              emptyMessage="No items available to lend"
               color={{ background: '#E8F5E8', text: '#2E7D32' }}
             />
 
@@ -557,14 +552,12 @@ export default function UserInventoryPage() {
                 <Section
                   title="On Loan"
                   items={onLoanSection}
-                  emptyMessage="No items currently lent out"
                   color={{ background: '#FFF3E0', text: '#F57C00' }}
                 />
 
                 <Section
                   title="Borrowed"
                   items={borrowedSection}
-                  emptyMessage="No items currently borrowed"
                   color={{ background: '#FFEBEE', text: '#C62828' }}
                 />
               </>
@@ -588,7 +581,9 @@ export default function UserInventoryPage() {
                   }}
                 >
                   No{' '}
-                  {activeFilter === 'all' ? '' : activeFilter.replace('-', ' ')}{' '}
+                  {(activeFilter as string) !== 'all'
+                    ? (activeFilter as string).replace('-', ' ') + ' '
+                    : ''}
                   items
                 </Typography>
                 <Button
