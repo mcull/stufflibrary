@@ -13,10 +13,10 @@ interface UserItem {
     displayName: string;
     category: string;
   };
-  branch: {
+  branch?: {
     id: string;
     name: string;
-  };
+  } | null;
 }
 
 interface BorrowedItem {
