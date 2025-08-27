@@ -4,6 +4,9 @@ import {
   ArrowBack as ArrowBackIcon,
   Save as SaveIcon,
   PersonAdd as PersonAddIcon,
+  History as HistoryIcon,
+  Info as InfoIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 import {
   Box,
@@ -20,12 +23,19 @@ import {
   Select,
   CircularProgress,
   Paper,
+  Checkbox,
+  FormControlLabel,
+  FormGroup,
+  Snackbar,
+  IconButton,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
 import { useBorrowHistory } from '@/hooks/useBorrowHistory';
+import { useBorrowRequests } from '@/hooks/useBorrowRequests';
+import { useBranches } from '@/hooks/useBranches';
 
 import { VintageCheckoutCard } from './VintageCheckoutCard';
 
@@ -34,6 +44,7 @@ interface ItemData {
   name: string;
   description?: string;
   condition: string;
+  location?: string;
   imageUrl?: string;
   isAvailable: boolean;
   createdAt: string;
@@ -69,9 +80,32 @@ export function ItemDetailClient({
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [condition, setCondition] = useState('good');
+  const [location, setLocation] = useState('');
+  const [editMode, setEditMode] = useState(false);
+  const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [toast, setToast] = useState<{ open: boolean; message: string }>({
+    open: false,
+    message: '',
+  });
 
-  // Borrow history
+  // Store original values for cancel functionality
+  const [originalValues, setOriginalValues] = useState({
+    name: '',
+    description: '',
+    condition: 'good',
+    location: '',
+  });
+
+  // Hooks
   const { data: borrowHistory } = useBorrowHistory(itemId);
+  const { receivedRequests } = useBorrowRequests();
+  const { branches } = useBranches();
+
+  // Filter pending requests for this specific item
+  const pendingRequests = receivedRequests.filter(
+    (req) => req.item.id === itemId && req.status === 'pending'
+  );
 
   const conditions = [
     { value: 'excellent', label: 'Excellent - Like new' },
@@ -110,9 +144,18 @@ export function ItemDetailClient({
         setItem(data.item);
 
         // Initialize form fields
-        setName(data.item.name || '');
-        setDescription(data.item.description || '');
-        setCondition(data.item.condition || 'good');
+        const itemData = {
+          name: data.item.name || '',
+          description: data.item.description || '',
+          condition: data.item.condition || 'good',
+          location: data.item.location || '',
+        };
+
+        setName(itemData.name);
+        setDescription(itemData.description);
+        setCondition(itemData.condition);
+        setLocation(itemData.location);
+        setOriginalValues(itemData);
       } catch (err) {
         console.error('Error fetching item:', err);
         setError('Failed to load item details');
@@ -125,7 +168,7 @@ export function ItemDetailClient({
   }, [itemId]);
 
   // Save item updates
-  const handleSave = async () => {
+  const handleSave = async (field?: string, silent = false) => {
     if (!item) return;
 
     setSaving(true);
@@ -140,6 +183,7 @@ export function ItemDetailClient({
           name: name.trim(),
           description: description.trim() || null,
           condition,
+          location: location.trim() || null,
         }),
       });
 
@@ -150,6 +194,24 @@ export function ItemDetailClient({
       const data = await response.json();
       setItem(data.item);
 
+      // Update original values and exit edit mode
+      const newOriginalValues = {
+        name: data.item.name || '',
+        description: data.item.description || '',
+        condition: data.item.condition || 'good',
+        location: data.item.location || '',
+      };
+      setOriginalValues(newOriginalValues);
+      setEditMode(false);
+
+      // Show toast if not silent
+      if (!silent) {
+        setToast({
+          open: true,
+          message: field ? `${field} updated` : 'Item updated successfully',
+        });
+      }
+
       // Navigate to lobby after saving new item
       if (isNewItem) {
         router.push('/lobby');
@@ -159,6 +221,21 @@ export function ItemDetailClient({
       setError('Failed to save changes');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Auto-save on blur for individual fields
+  const handleFieldBlur = async (
+    field: string,
+    value: string,
+    originalValue: string
+  ) => {
+    if (
+      value.trim() !== originalValue &&
+      !isNewItem &&
+      item?.owner.id === currentUserId
+    ) {
+      await handleSave(field, false);
     }
   };
 
@@ -234,178 +311,617 @@ export function ItemDetailClient({
             </Box>
           )}
 
-          {/* Details Form */}
+          {/* Flippable Details Card */}
           <Box sx={{ flex: 1 }}>
-            <Card>
-              <CardContent sx={{ p: 3 }}>
-                {isNewItem && (
-                  <Alert severity="info" sx={{ mb: 3 }}>
-                    Great! We&apos;ve identified your item. Please review and
-                    complete the details below.
-                  </Alert>
-                )}
-
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                  {/* Item Name */}
-                  <TextField
-                    fullWidth
-                    label="Item Name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    disabled={!isNewItem}
-                    variant="outlined"
-                    required
-                  />
-
-                  {/* Description */}
-                  <TextField
-                    fullWidth
-                    label="Description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    disabled={!isNewItem}
-                    variant="outlined"
-                    multiline
-                    rows={4}
-                    placeholder="Add any additional details, brand, model, or special features..."
-                  />
-
-                  {/* Condition */}
-                  <FormControl fullWidth disabled={!isNewItem}>
-                    <InputLabel>Condition</InputLabel>
-                    <Select
-                      value={condition}
-                      label="Condition"
-                      onChange={(e) => setCondition(e.target.value)}
-                    >
-                      {conditions.map((cond) => (
-                        <MenuItem key={cond.value} value={cond.value}>
-                          {cond.label}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-
-                  {/* Category Display */}
-                  {item.stuffType && (
-                    <Box>
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        gutterBottom
-                      >
-                        Category
-                      </Typography>
-                      <Typography
-                        variant="body1"
-                        sx={{ textTransform: 'capitalize' }}
-                      >
-                        {item.stuffType.category}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {/* Owner Info (if not new item) */}
-                  {!isNewItem && item.owner && (
-                    <Box>
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        gutterBottom
-                      >
-                        Owner
-                      </Typography>
-                      <Typography variant="body1">
-                        {item.owner.name || 'Unknown'}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {/* Save Button (only for new items) */}
-                  {isNewItem && (
-                    <Box sx={{ pt: 2 }}>
-                      <Button
-                        variant="contained"
-                        size="large"
-                        startIcon={
-                          saving ? <CircularProgress size={20} /> : <SaveIcon />
-                        }
-                        onClick={handleSave}
-                        disabled={saving || !name.trim()}
-                        sx={{ borderRadius: 2 }}
-                      >
-                        {saving ? 'Saving...' : 'Add to Library'}
-                      </Button>
-                    </Box>
-                  )}
-
-                  {/* Borrow Request Button */}
-                  {canBorrow && (
-                    <Box sx={{ pt: 2 }}>
-                      <Button
-                        variant="contained"
-                        size="large"
-                        startIcon={<PersonAddIcon />}
-                        onClick={handleBorrowRequest}
-                        sx={{
-                          borderRadius: 2,
-                          bgcolor: 'primary.main',
-                          '&:hover': { bgcolor: 'primary.dark' },
-                        }}
-                      >
-                        Request to Borrow
-                      </Button>
-                    </Box>
-                  )}
-
-                  {/* Owner info for items you can't borrow */}
-                  {!isNewItem &&
-                    !canBorrow &&
-                    item?.owner.id === currentUserId && (
-                      <Alert severity="info" sx={{ mt: 2 }}>
-                        You own this item. You can manage it from your branch
-                        dashboard.
-                      </Alert>
-                    )}
-
-                  {!isNewItem &&
-                    !canBorrow &&
-                    item?.owner.id !== currentUserId &&
-                    !item?.isAvailable && (
-                      <Alert severity="warning" sx={{ mt: 2 }}>
-                        This item is currently not available for borrowing.
-                      </Alert>
-                    )}
-                </Box>
-              </CardContent>
-            </Card>
-          </Box>
-
-          {/* Vintage Checkout Card - only show for existing items with history */}
-          {!isNewItem &&
-            borrowHistory &&
-            borrowHistory.borrowHistory.length > 0 && (
-              <Box sx={{ mt: 4 }}>
-                <Typography
-                  variant="h5"
+            <Box
+              sx={{
+                position: 'relative',
+                perspective: '1000px',
+                minHeight: '500px',
+              }}
+            >
+              {/* Card Container with 3D Transform */}
+              <Box
+                sx={{
+                  position: 'relative',
+                  width: '100%',
+                  height: '100%',
+                  transformStyle: 'preserve-3d',
+                  transition: 'transform 0.6s ease-in-out',
+                  transform: showHistory ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                }}
+              >
+                {/* Front Side - Item Details */}
+                <Card
                   sx={{
-                    fontWeight: 600,
-                    mb: 3,
-                    textAlign: 'center',
-                    color: 'text.primary',
+                    position: 'absolute',
+                    width: '100%',
+                    height: '500px',
+                    backfaceVisibility: 'hidden',
                   }}
                 >
-                  Checkout History
-                </Typography>
-                <VintageCheckoutCard
-                  itemName={borrowHistory.itemName}
-                  borrowHistory={borrowHistory.borrowHistory}
-                  compact={false}
-                />
+                  <CardContent sx={{ p: 3, position: 'relative' }}>
+                    {/* Flip Button */}
+                    {!isNewItem && item?.owner.id === currentUserId && (
+                      <IconButton
+                        onClick={() => setShowHistory(true)}
+                        sx={{
+                          position: 'absolute',
+                          top: 8,
+                          right: 8,
+                          backgroundColor: 'rgba(0,0,0,0.05)',
+                          '&:hover': { backgroundColor: 'rgba(0,0,0,0.1)' },
+                        }}
+                      >
+                        <HistoryIcon />
+                      </IconButton>
+                    )}
+
+                    {isNewItem && (
+                      <Alert severity="info" sx={{ mb: 3 }}>
+                        Great! We&apos;ve identified your item. Please review
+                        and complete the details below.
+                      </Alert>
+                    )}
+
+                    <Box
+                      sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}
+                    >
+                      {/* Item Name */}
+                      <TextField
+                        fullWidth
+                        label="Item Name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        onBlur={() =>
+                          handleFieldBlur('Name', name, originalValues.name)
+                        }
+                        disabled={
+                          isNewItem ? false : item?.owner.id !== currentUserId
+                        }
+                        variant="outlined"
+                        required
+                      />
+
+                      {/* Description */}
+                      <TextField
+                        fullWidth
+                        label="Description"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        onBlur={() =>
+                          handleFieldBlur(
+                            'Description',
+                            description,
+                            originalValues.description
+                          )
+                        }
+                        disabled={
+                          isNewItem ? false : item?.owner.id !== currentUserId
+                        }
+                        variant="outlined"
+                        multiline
+                        rows={4}
+                        placeholder="Add any additional details, brand, model, or special features..."
+                      />
+
+                      {/* Condition */}
+                      <FormControl
+                        fullWidth
+                        disabled={
+                          isNewItem ? false : item?.owner.id !== currentUserId
+                        }
+                      >
+                        <InputLabel>Condition</InputLabel>
+                        <Select
+                          value={condition}
+                          label="Condition"
+                          onChange={(e) => {
+                            setCondition(e.target.value);
+                            if (
+                              !isNewItem &&
+                              item?.owner.id === currentUserId
+                            ) {
+                              setTimeout(
+                                () =>
+                                  handleFieldBlur(
+                                    'Condition',
+                                    e.target.value,
+                                    originalValues.condition
+                                  ),
+                                100
+                              );
+                            }
+                          }}
+                        >
+                          {conditions.map((cond) => (
+                            <MenuItem key={cond.value} value={cond.value}>
+                              {cond.label}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+
+                      {/* Location */}
+                      <TextField
+                        fullWidth
+                        label="Location"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        onBlur={() =>
+                          handleFieldBlur(
+                            'Location',
+                            location,
+                            originalValues.location
+                          )
+                        }
+                        disabled={
+                          isNewItem ? false : item?.owner.id !== currentUserId
+                        }
+                        variant="outlined"
+                        placeholder="e.g., garage, kitchen, basement"
+                        helperText="Where is this item stored?"
+                      />
+
+                      {/* Category and Owner Row */}
+                      <Box
+                        sx={{
+                          display: 'grid',
+                          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+                          gap: 3,
+                        }}
+                      >
+                        {/* Category Display */}
+                        {item.stuffType && (
+                          <Box>
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              gutterBottom
+                            >
+                              Category
+                            </Typography>
+                            <Typography
+                              variant="body1"
+                              sx={{ textTransform: 'capitalize' }}
+                            >
+                              {item.stuffType.category}
+                            </Typography>
+                          </Box>
+                        )}
+
+                        {/* Owner Info (if not new item) */}
+                        {!isNewItem && item.owner && (
+                          <Box>
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              gutterBottom
+                            >
+                              Owner
+                            </Typography>
+                            <Typography variant="body1">
+                              {item.owner.name || 'Unknown'}
+                            </Typography>
+                          </Box>
+                        )}
+                      </Box>
+
+                      {/* Pending Requests (if user owns item and there are pending requests) */}
+                      {!isNewItem &&
+                        item?.owner.id === currentUserId &&
+                        pendingRequests.length > 0 && (
+                          <Box>
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              gutterBottom
+                            >
+                              Pending Requests
+                            </Typography>
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 1,
+                              }}
+                            >
+                              {pendingRequests.map((request) => (
+                                <Alert
+                                  key={request.id}
+                                  severity="info"
+                                  sx={{ py: 1 }}
+                                >
+                                  <Typography variant="body2">
+                                    <strong>
+                                      {request.borrower?.name || 'Someone'}
+                                    </strong>{' '}
+                                    wants to borrow this item
+                                    {request.promisedReturnBy && (
+                                      <span>
+                                        {' '}
+                                        - promised return:{' '}
+                                        {new Date(
+                                          request.promisedReturnBy
+                                        ).toLocaleDateString()}
+                                      </span>
+                                    )}
+                                  </Typography>
+                                  {request.promiseText && (
+                                    <Typography
+                                      variant="caption"
+                                      sx={{
+                                        display: 'block',
+                                        mt: 0.5,
+                                        fontStyle: 'italic',
+                                      }}
+                                    >
+                                      &ldquo;{request.promiseText}&rdquo;
+                                    </Typography>
+                                  )}
+                                </Alert>
+                              ))}
+                            </Box>
+                          </Box>
+                        )}
+
+                      {/* Library Selection (if user owns item) */}
+                      {!isNewItem &&
+                        item?.owner.id === currentUserId &&
+                        branches.length > 0 && (
+                          <Box>
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              gutterBottom
+                            >
+                              Available in Libraries
+                            </Typography>
+                            <FormGroup>
+                              {branches.map((branch) => (
+                                <FormControlLabel
+                                  key={branch.id}
+                                  control={
+                                    <Checkbox
+                                      checked={selectedBranches.includes(
+                                        branch.id
+                                      )}
+                                      onChange={(e) => {
+                                        if (e.target.checked) {
+                                          setSelectedBranches([
+                                            ...selectedBranches,
+                                            branch.id,
+                                          ]);
+                                        } else {
+                                          setSelectedBranches(
+                                            selectedBranches.filter(
+                                              (id) => id !== branch.id
+                                            )
+                                          );
+                                        }
+                                      }}
+                                      disabled={!editMode}
+                                    />
+                                  }
+                                  label={
+                                    <Box>
+                                      <Typography
+                                        variant="body2"
+                                        fontWeight={500}
+                                      >
+                                        {branch.name}
+                                      </Typography>
+                                      {branch.location && (
+                                        <Typography
+                                          variant="caption"
+                                          color="text.secondary"
+                                        >
+                                          📍 {branch.location}
+                                        </Typography>
+                                      )}
+                                    </Box>
+                                  }
+                                />
+                              ))}
+                            </FormGroup>
+                          </Box>
+                        )}
+
+                      {/* Save Button (only for new items) */}
+                      {isNewItem && (
+                        <Box sx={{ pt: 2 }}>
+                          <Button
+                            variant="contained"
+                            size="large"
+                            startIcon={
+                              saving ? (
+                                <CircularProgress size={20} />
+                              ) : (
+                                <SaveIcon />
+                              )
+                            }
+                            onClick={() => handleSave()}
+                            disabled={saving || !name.trim()}
+                            sx={{ borderRadius: 2 }}
+                          >
+                            {saving ? 'Saving...' : 'Add to Library'}
+                          </Button>
+                        </Box>
+                      )}
+
+                      {/* Borrow Request Button */}
+                      {canBorrow && (
+                        <Box sx={{ pt: 2 }}>
+                          <Button
+                            variant="contained"
+                            size="large"
+                            startIcon={<PersonAddIcon />}
+                            onClick={handleBorrowRequest}
+                            sx={{
+                              borderRadius: 2,
+                              bgcolor: 'primary.main',
+                              '&:hover': { bgcolor: 'primary.dark' },
+                            }}
+                          >
+                            Request to Borrow
+                          </Button>
+                        </Box>
+                      )}
+
+                      {/* Availability warning for non-owners */}
+                      {!isNewItem &&
+                        !canBorrow &&
+                        item?.owner.id !== currentUserId &&
+                        !item?.isAvailable && (
+                          <Alert severity="warning" sx={{ mt: 2 }}>
+                            This item is currently not available for borrowing.
+                          </Alert>
+                        )}
+                    </Box>
+                  </CardContent>
+                </Card>
+
+                {/* Back Side - Vintage Library Card */}
+                <Card
+                  sx={{
+                    position: 'absolute',
+                    width: '100%',
+                    height: '500px',
+                    backfaceVisibility: 'hidden',
+                    transform: 'rotateY(180deg)',
+                    backgroundColor: '#f9f7f4',
+                    border: '1px solid rgba(139,69,19,0.2)',
+                    '&::before': {
+                      content: '""',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      background: `
+                        radial-gradient(circle at 20% 30%, rgba(139,69,19,0.05) 1px, transparent 1px),
+                        radial-gradient(circle at 80% 70%, rgba(160,82,45,0.03) 1px, transparent 1px),
+                        radial-gradient(circle at 40% 80%, rgba(101,67,33,0.04) 1px, transparent 1px),
+                        linear-gradient(to bottom, transparent 0%, rgba(139,69,19,0.02) 100%)
+                      `,
+                      pointerEvents: 'none',
+                    },
+                  }}
+                >
+                  <CardContent
+                    sx={{
+                      p: 3,
+                      position: 'relative',
+                      height: '100%',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {/* Flip Back Button */}
+                    <IconButton
+                      onClick={() => setShowHistory(false)}
+                      sx={{
+                        position: 'absolute',
+                        top: 8,
+                        right: 8,
+                        backgroundColor: 'rgba(0,0,0,0.05)',
+                        '&:hover': { backgroundColor: 'rgba(0,0,0,0.1)' },
+                        zIndex: 10,
+                      }}
+                    >
+                      <InfoIcon />
+                    </IconButton>
+
+                    {/* Library Card Header */}
+                    <Box sx={{ textAlign: 'center', mb: 3 }}>
+                      <Typography
+                        className="vintage-impact-label"
+                        sx={{
+                          fontSize: '1.1rem',
+                          fontWeight: 'bold',
+                          letterSpacing: '2px',
+                          color: '#2c1810',
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        ★ LIBRARY CHECKOUT CARD ★
+                      </Typography>
+                      <Box
+                        sx={{
+                          width: '100%',
+                          height: '2px',
+                          bgcolor: '#8b4513',
+                          mt: 1,
+                          opacity: 0.6,
+                        }}
+                      />
+                    </Box>
+
+                    {/* Book Title Area */}
+                    <Box sx={{ textAlign: 'center', mb: 4 }}>
+                      <Typography
+                        className="vintage-stamp-press"
+                        sx={{
+                          fontSize: '1.2rem',
+                          fontWeight: 'bold',
+                          color: '#1a1a1a',
+                          letterSpacing: '1px',
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        {item?.name || 'ITEM NAME'}
+                      </Typography>
+                      <Box
+                        sx={{
+                          width: '200px',
+                          height: '1px',
+                          bgcolor: '#8b4513',
+                          mx: 'auto',
+                          mt: 2,
+                          opacity: 0.4,
+                        }}
+                      />
+                      <Typography
+                        className="vintage-stampette"
+                        sx={{
+                          fontSize: '0.8rem',
+                          color: '#666',
+                          mt: 1,
+                          letterSpacing: '1px',
+                        }}
+                      >
+                        AUTHOR
+                      </Typography>
+                    </Box>
+
+                    {/* Checkout Grid */}
+                    <Box sx={{ mt: 3 }}>
+                      {/* Header Row */}
+                      <Box
+                        sx={{
+                          display: 'grid',
+                          gridTemplateColumns: '120px 1fr 120px',
+                          gap: 1,
+                          mb: 2,
+                          pb: 1,
+                          borderBottom: '2px solid #8b4513',
+                          opacity: 0.8,
+                        }}
+                      >
+                        <Typography
+                          className="vintage-stampette"
+                          sx={{
+                            fontSize: '0.75rem',
+                            fontWeight: 'bold',
+                            color: '#2c1810',
+                            textAlign: 'center',
+                          }}
+                        >
+                          DATE DUE
+                        </Typography>
+                        <Typography
+                          className="vintage-stampette"
+                          sx={{
+                            fontSize: '0.75rem',
+                            fontWeight: 'bold',
+                            color: '#2c1810',
+                            textAlign: 'center',
+                          }}
+                        >
+                          BORROWER&apos;S NAME
+                        </Typography>
+                        <Typography
+                          className="vintage-stampette"
+                          sx={{
+                            fontSize: '0.75rem',
+                            fontWeight: 'bold',
+                            color: '#2c1810',
+                            textAlign: 'center',
+                          }}
+                        >
+                          DATE DUE
+                        </Typography>
+                      </Box>
+
+                      {/* Actual History or Empty Rows */}
+                      {borrowHistory &&
+                      borrowHistory.borrowHistory.length > 0 ? (
+                        <VintageCheckoutCard
+                          itemName={borrowHistory.itemName}
+                          borrowHistory={borrowHistory.borrowHistory}
+                          compact={true}
+                          showTitle={false}
+                        />
+                      ) : (
+                        // Empty checkout rows like the inspiration image
+                        <>
+                          {Array.from({ length: 12 }).map((_, index) => (
+                            <Box
+                              key={index}
+                              sx={{
+                                display: 'grid',
+                                gridTemplateColumns: '120px 1fr 120px',
+                                gap: 1,
+                                mb: 1.5,
+                                height: '24px',
+                                borderBottom: '1px solid #8b4513',
+                                opacity: 0.3,
+                              }}
+                            >
+                              <Box />
+                              <Box />
+                              <Box />
+                            </Box>
+                          ))}
+                        </>
+                      )}
+                    </Box>
+
+                    {/* Bottom Library Mark */}
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        bottom: 16,
+                        right: 24,
+                        textAlign: 'center',
+                        opacity: 0.5,
+                        transform: 'rotate(-2deg)',
+                      }}
+                    >
+                      <Typography
+                        className="vintage-impact-label"
+                        sx={{
+                          fontSize: '0.7rem',
+                          color: '#8b4513',
+                          letterSpacing: '1px',
+                        }}
+                      >
+                        for•MARK
+                      </Typography>
+                    </Box>
+                  </CardContent>
+                </Card>
               </Box>
-            )}
+            </Box>
+          </Box>
         </Box>
       )}
+
+      {/* Toast Notification */}
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={3000}
+        onClose={() => setToast({ open: false, message: '' })}
+        message={toast.message}
+        action={
+          <IconButton
+            size="small"
+            color="inherit"
+            onClick={() => setToast({ open: false, message: '' })}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        }
+      />
     </Container>
   );
 }

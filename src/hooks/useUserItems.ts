@@ -79,90 +79,35 @@ export function useUserItems(): UseUserItemsResult {
       setIsLoading(true);
       setError(null);
 
-      // TODO: Remove this dummy data and uncomment real API calls for production
-      // Dummy data for testing
-      await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate API delay
+      const [itemsResponse, borrowRequestsResponse] = await Promise.all([
+        fetch('/api/user/items'),
+        fetch('/api/borrow-requests'),
+      ]);
 
-      // Mock data
-      const mockReadyToLend = Array.from({ length: 5 }, (_, i) => {
-        const locations = [
-          'garage',
-          'kitchen',
-          'bedroom',
-          'basement',
-          'office',
-        ];
-        return {
-          id: `ready-${i}`,
-          name: `Available Item ${i + 1}`,
-          description: 'Mock item for testing',
-          isAvailable: true,
-          condition: 'good',
-          location: locations[i] || undefined,
-          createdAt: new Date().toISOString(),
-          branch: { id: 'branch-1', name: 'My Branch' },
-        };
-      });
+      if (!itemsResponse.ok || !borrowRequestsResponse.ok) {
+        throw new Error('Failed to fetch user items');
+      }
 
-      const mockOnLoan = Array.from({ length: 4 }, (_, i) => {
-        const lentDate = new Date();
-        lentDate.setDate(lentDate.getDate() - (i + 1) * 3); // Items lent 3, 6, 9, 12 days ago
-        return {
-          id: `loan-${i}`,
-          status: 'active',
-          requestedAt: lentDate.toISOString(),
-          borrower: { id: `borrower-${i}`, name: `Borrower ${i + 1}` },
-          item: { id: `item-${i}`, name: `Lent Item ${i + 1}` },
-        };
-      });
+      const [itemsData, borrowRequestsData] = await Promise.all([
+        itemsResponse.json(),
+        borrowRequestsResponse.json(),
+      ]);
 
-      const mockBorrowed = Array.from({ length: 3 }, (_, i) => {
-        const dueDate = new Date();
-        dueDate.setDate(dueDate.getDate() + (i + 1) * 5); // Items due in 5, 10, 15 days
-        return {
-          id: `borrowed-${i}`,
-          status: 'active',
-          requestedAt: new Date().toISOString(),
-          promisedReturnBy: dueDate.toISOString(),
-          item: { id: `borrowed-item-${i}`, name: `Borrowed Item ${i + 1}` },
-          lender: { id: `lender-${i}`, name: `Lender ${i + 1}` },
-        };
-      });
+      setReadyToLendItems(
+        itemsData.items?.filter((item: UserItem) => item.isAvailable) || []
+      );
 
-      setReadyToLendItems(mockReadyToLend);
-      setOnLoanItems(mockOnLoan);
-      setBorrowedItems(mockBorrowed);
+      setBorrowedItems(
+        borrowRequestsData.activeBorrows?.filter(
+          (request: BorrowedItem) => request.status === 'active'
+        ) || []
+      );
 
-      // Real API calls - commented out for testing
-      // const [itemsResponse, borrowRequestsResponse] = await Promise.all([
-      //   fetch('/api/user/items'),
-      //   fetch('/api/borrow-requests'),
-      // ]);
-
-      // if (!itemsResponse.ok || !borrowRequestsResponse.ok) {
-      //   throw new Error('Failed to fetch user items');
-      // }
-
-      // const [itemsData, borrowRequestsData] = await Promise.all([
-      //   itemsResponse.json(),
-      //   borrowRequestsResponse.json(),
-      // ]);
-
-      // setReadyToLendItems(
-      //   itemsData.items?.filter((item: UserItem) => item.isAvailable) || []
-      // );
-
-      // setBorrowedItems(
-      //   borrowRequestsData.activeBorrows?.filter(
-      //     (request: BorrowedItem) => request.status === 'active'
-      //   ) || []
-      // );
-
-      // setOnLoanItems(
-      //   borrowRequestsData.receivedRequests?.filter(
-      //     (request: LentItem) => request.status === 'active'
-      //   ) || []
-      // );
+      setOnLoanItems(
+        borrowRequestsData.receivedRequests?.filter(
+          (request: LentItem) => request.status === 'active'
+        ) || []
+      );
     } catch (err) {
       console.error('Error fetching user items:', err);
       setError(

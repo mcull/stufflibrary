@@ -176,9 +176,9 @@ model Item {
   updatedAt      DateTime        @updatedAt
   stuffTypeId    String?
   ownerId        String
-  branchId       String
+  branchId       String?
   borrowRequests BorrowRequest[]
-  branch         Branch          @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  branch         Branch?         @relation(fields: [branchId], references: [id], onDelete: SetNull)
   owner          User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   stuffType      StuffType?      @relation(fields: [stuffTypeId], references: [id])
 

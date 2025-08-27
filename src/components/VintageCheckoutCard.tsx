@@ -87,8 +87,10 @@ export function VintageCheckoutCard({
     <Card
       sx={{
         bgcolor: '#f9f7f4',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        boxShadow:
+          '0 4px 12px rgba(0,0,0,0.15), inset 0 0 20px rgba(139,69,19,0.05)',
         position: 'relative',
+        border: '1px solid rgba(139,69,19,0.2)',
         '&::before': {
           content: '""',
           position: 'absolute',
@@ -99,7 +101,8 @@ export function VintageCheckoutCard({
           background: `
             radial-gradient(circle at 20% 30%, rgba(139,69,19,0.05) 1px, transparent 1px),
             radial-gradient(circle at 80% 70%, rgba(160,82,45,0.03) 1px, transparent 1px),
-            radial-gradient(circle at 40% 80%, rgba(101,67,33,0.04) 1px, transparent 1px)
+            radial-gradient(circle at 40% 80%, rgba(101,67,33,0.04) 1px, transparent 1px),
+            linear-gradient(to bottom, transparent 0%, rgba(139,69,19,0.02) 100%)
           `,
           pointerEvents: 'none',
         },
@@ -118,7 +121,7 @@ export function VintageCheckoutCard({
                 textTransform: 'uppercase',
               }}
             >
-              Library Checkout Card
+              ★ LIBRARY CHECKOUT CARD ★
             </Typography>
             <Box
               sx={{
@@ -326,7 +329,7 @@ export function VintageCheckoutCard({
               transform: 'rotate(-1deg)',
             }}
           >
-            ★ NEIGHBORHOOD LIBRARY ★
+            RETURN PROMPTLY • FINE 5¢ PER DAY
           </Typography>
         </Box>
       </CardContent>
