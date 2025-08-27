@@ -1,6 +1,6 @@
 'use client';
 
-import { Add as AddIcon } from '@mui/icons-material';
+import { Add as AddIcon, PhotoCamera as CameraIcon } from '@mui/icons-material';
 import {
   Box,
   Container,
@@ -105,15 +105,18 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                 Your Stuff
               </Typography>
               <Button
+                component={Link}
+                href="/add-item"
                 variant="text"
                 size="small"
+                startIcon={<CameraIcon />}
                 sx={{
                   textTransform: 'none',
                   color: brandColors.inkBlue,
                   fontSize: '0.875rem',
                 }}
               >
-                View All →
+                Add
               </Button>
             </Box>
 
@@ -168,9 +171,10 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                       : 'items available'}
                   </Typography>
                   <Button
+                    component={Link}
+                    href={`/stuff/m/${user.id}?filter=ready-to-lend`}
                     variant="contained"
                     size="small"
-                    startIcon={<AddIcon />}
                     sx={{
                       textTransform: 'none',
                       borderRadius: 2,
@@ -180,7 +184,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                       },
                     }}
                   >
-                    Add Items
+                    Manage
                   </Button>
                 </Box>
 
@@ -221,6 +225,8 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                     {onLoanCount === 1 ? 'item lent out' : 'items lent out'}
                   </Typography>
                   <Button
+                    component={Link}
+                    href={`/stuff/m/${user.id}?filter=on-loan`}
                     variant="outlined"
                     size="small"
                     sx={{
@@ -277,6 +283,8 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                     {borrowedCount === 1 ? 'item borrowed' : 'items borrowed'}
                   </Typography>
                   <Button
+                    component={Link}
+                    href={`/stuff/m/${user.id}?filter=borrowed`}
                     variant="outlined"
                     size="small"
                     sx={{

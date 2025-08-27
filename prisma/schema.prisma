@@ -169,6 +169,7 @@ model Item {
   description    String?
   category       String?
   condition      String          @default("good")
+  location       String?         // e.g., "garage", "kitchen", "basement"
   isAvailable    Boolean         @default(true)
   imageUrl       String?
   createdAt      DateTime        @default(now())

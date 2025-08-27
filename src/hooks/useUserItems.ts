@@ -7,6 +7,7 @@ interface UserItem {
   imageUrl?: string;
   isAvailable: boolean;
   condition: string;
+  location?: string;
   createdAt: string;
   stuffType?: {
     displayName: string;
@@ -83,31 +84,50 @@ export function useUserItems(): UseUserItemsResult {
       await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate API delay
 
       // Mock data
-      const mockReadyToLend = Array.from({ length: 5 }, (_, i) => ({
-        id: `ready-${i}`,
-        name: `Available Item ${i + 1}`,
-        description: 'Mock item for testing',
-        isAvailable: true,
-        condition: 'good',
-        createdAt: new Date().toISOString(),
-        branch: { id: 'branch-1', name: 'My Branch' },
-      }));
+      const mockReadyToLend = Array.from({ length: 5 }, (_, i) => {
+        const locations = [
+          'garage',
+          'kitchen',
+          'bedroom',
+          'basement',
+          'office',
+        ];
+        return {
+          id: `ready-${i}`,
+          name: `Available Item ${i + 1}`,
+          description: 'Mock item for testing',
+          isAvailable: true,
+          condition: 'good',
+          location: locations[i],
+          createdAt: new Date().toISOString(),
+          branch: { id: 'branch-1', name: 'My Branch' },
+        };
+      });
 
-      const mockOnLoan = Array.from({ length: 4 }, (_, i) => ({
-        id: `loan-${i}`,
-        status: 'active',
-        requestedAt: new Date().toISOString(),
-        borrower: { id: `borrower-${i}`, name: `Borrower ${i + 1}` },
-        item: { id: `item-${i}`, name: `Lent Item ${i + 1}` },
-      }));
+      const mockOnLoan = Array.from({ length: 4 }, (_, i) => {
+        const lentDate = new Date();
+        lentDate.setDate(lentDate.getDate() - (i + 1) * 3); // Items lent 3, 6, 9, 12 days ago
+        return {
+          id: `loan-${i}`,
+          status: 'active',
+          requestedAt: lentDate.toISOString(),
+          borrower: { id: `borrower-${i}`, name: `Borrower ${i + 1}` },
+          item: { id: `item-${i}`, name: `Lent Item ${i + 1}` },
+        };
+      });
 
-      const mockBorrowed = Array.from({ length: 3 }, (_, i) => ({
-        id: `borrowed-${i}`,
-        status: 'active',
-        requestedAt: new Date().toISOString(),
-        item: { id: `borrowed-item-${i}`, name: `Borrowed Item ${i + 1}` },
-        lender: { id: `lender-${i}`, name: `Lender ${i + 1}` },
-      }));
+      const mockBorrowed = Array.from({ length: 3 }, (_, i) => {
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + (i + 1) * 5); // Items due in 5, 10, 15 days
+        return {
+          id: `borrowed-${i}`,
+          status: 'active',
+          requestedAt: new Date().toISOString(),
+          promisedReturnBy: dueDate.toISOString(),
+          item: { id: `borrowed-item-${i}`, name: `Borrowed Item ${i + 1}` },
+          lender: { id: `lender-${i}`, name: `Lender ${i + 1}` },
+        };
+      });
 
       setReadyToLendItems(mockReadyToLend);
       setOnLoanItems(mockOnLoan);

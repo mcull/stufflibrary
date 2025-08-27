@@ -63,6 +63,7 @@ export async function GET(_request: NextRequest) {
       imageUrl: item.imageUrl,
       isAvailable: item.isAvailable && item._count.borrowRequests === 0,
       condition: item.condition,
+      location: item.location,
       createdAt: item.createdAt,
       stuffType: item.stuffType,
       branch: item.branch,
