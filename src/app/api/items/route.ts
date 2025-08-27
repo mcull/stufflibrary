@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
         imageUrl: imageUrl,
         isAvailable: true,
         ownerId: userId,
-        branchId: branchId,
+        ...(branchId && { branchId }),
         stuffTypeId: stuffType.id,
       },
       include: {

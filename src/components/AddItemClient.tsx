@@ -148,20 +148,53 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
 
     if (!ctx) return;
 
-    // Set canvas size to match video
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    // Calculate the viewfinder area (center 80% of video, matching the overlay)
+    const margin = 0.1; // 10% margin on all sides
+    const cropWidth = video.videoWidth * (1 - 2 * margin);
+    const cropHeight = video.videoHeight * (1 - 2 * margin);
+
+    // Make the crop area square by using the smaller dimension
+    const cropSize = Math.min(cropWidth, cropHeight);
+    const centerX = video.videoWidth / 2;
+    const centerY = video.videoHeight / 2;
+    const squareCropX = centerX - cropSize / 2;
+    const squareCropY = centerY - cropSize / 2;
+
+    // Set canvas size to square crop area
+    canvas.width = cropSize;
+    canvas.height = cropSize;
 
     console.log('📷 Canvas size:', canvas.width, 'x', canvas.height);
     console.log('📹 Video size:', video.videoWidth, 'x', video.videoHeight);
+    console.log('✂️ Crop area:', squareCropX, squareCropY, cropSize, cropSize);
 
-    // Draw video frame to canvas (flip horizontally if mirrored in preview)
+    // Draw cropped video frame to canvas (flip horizontally if mirrored in preview)
     if (shouldMirrorCamera) {
       ctx.scale(-1, 1);
-      ctx.drawImage(video, -canvas.width, 0);
+      ctx.drawImage(
+        video,
+        squareCropX,
+        squareCropY,
+        cropSize,
+        cropSize,
+        -cropSize,
+        0,
+        cropSize,
+        cropSize
+      );
       ctx.scale(-1, 1); // Reset the scale
     } else {
-      ctx.drawImage(video, 0, 0);
+      ctx.drawImage(
+        video,
+        squareCropX,
+        squareCropY,
+        cropSize,
+        cropSize,
+        0,
+        0,
+        cropSize,
+        cropSize
+      );
     }
 
     console.log('🎨 Canvas drawn, checking image data...');
