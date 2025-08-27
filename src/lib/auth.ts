@@ -15,12 +15,14 @@ export const authOptions: NextAuthOptions = {
     updateAge: 7 * 24 * 60 * 60, // Update session if older than 7 days
   },
   providers: [
-    ...(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET ? [
-      GitHubProvider({
-        clientId: process.env.GITHUB_CLIENT_ID,
-        clientSecret: process.env.GITHUB_CLIENT_SECRET,
-      })
-    ] : []),
+    ...(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET
+      ? [
+          GitHubProvider({
+            clientId: process.env.GITHUB_CLIENT_ID,
+            clientSecret: process.env.GITHUB_CLIENT_SECRET,
+          }),
+        ]
+      : []),
     CredentialsProvider({
       id: 'email-code',
       name: 'Email Code',
@@ -90,7 +92,8 @@ export const authOptions: NextAuthOptions = {
       return true;
     },
     async redirect({ url, baseUrl }) {
-      // Allow same-origin URLs through unchanged (e.g., /auth/callback)
+      // Allow same-origin URLs through unchanged (including /auth/callback)
+      // The callback page will handle the smart routing logic
       if (url.startsWith(baseUrl)) {
         return url;
       }
@@ -120,9 +123,9 @@ export const authOptions: NextAuthOptions = {
           try {
             const response = await fetch(`https://api.github.com/user`, {
               headers: {
-                'Authorization': `token ${account.access_token}`,
-                'User-Agent': 'StuffLibrary-Admin'
-              }
+                Authorization: `token ${account.access_token}`,
+                'User-Agent': 'StuffLibrary-Admin',
+              },
             });
             if (response.ok) {
               const githubUser = await response.json();

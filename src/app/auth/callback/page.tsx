@@ -1,72 +1,122 @@
-import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
+'use client';
 
-import { authOptions } from '@/lib/auth';
-import { db } from '@/lib/db';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { useEffect, useState } from 'react';
 
-interface AuthCallbackPageProps {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}
+import { brandColors } from '@/theme/brandTokens';
 
-export default async function AuthCallbackPage({
-  searchParams,
-}: AuthCallbackPageProps) {
-  const params = await searchParams;
-  const session = await getServerSession(authOptions);
-  const invitationToken = params.invitation as string;
+export default function AuthCallbackPage() {
+  const router = useRouter();
+  const { data: session, status } = useSession();
+  const searchParams = useSearchParams();
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
-  if (!session?.user) {
-    redirect('/auth/signin');
-  }
+  const invitationToken = searchParams.get('invitation');
+  const branchId = searchParams.get('branch');
 
-  // Normal callback flow - determine where to redirect authenticated users
-  const userId = (session.user as { id?: string }).id;
-  const userEmail = session.user?.email;
+  useEffect(() => {
+    if (status === 'loading' || isRedirecting) return;
 
-  let user = null as { id: string; profileCompleted: boolean } | null;
-  if (userId) {
-    user = await db.user.findUnique({
-      where: { id: userId },
-      select: { id: true, profileCompleted: true },
-    });
-  }
-  if (!user && userEmail) {
-    user = await db.user.findUnique({
-      where: { email: userEmail },
-      select: { id: true, profileCompleted: true },
-    });
-  }
-
-  // If there's an invitation token, handle the redirect to profile creation with branch info
-  if (invitationToken && user) {
-    const branchId = params.branch as string;
-
-    if (user.profileCompleted) {
-      // Get user's first name for welcome banner
-      const fullUser = await db.user.findUnique({
-        where: { id: user.id },
-        select: { name: true },
-      });
-      const firstName = fullUser?.name?.split(' ')[0] || '';
-      const welcomeUrl = new URL(
-        `/branch/${branchId}`,
-        'http://localhost:3000'
-      );
-      welcomeUrl.searchParams.set('message', 'joined_successfully');
-      if (firstName) {
-        welcomeUrl.searchParams.set('welcomeName', firstName);
-      }
-      redirect(welcomeUrl.toString().replace('http://localhost:3000', ''));
-    } else {
-      redirect(
-        `/profile/create?invitation=${invitationToken}&branch=${branchId}`
-      );
+    if (!session?.user) {
+      router.replace('/auth/signin');
+      return;
     }
-  }
 
-  // Normal redirect based on profile completion
-  if (user?.profileCompleted) {
-    redirect('/lobby');
-  }
-  redirect('/profile/create');
+    const handleRedirect = async () => {
+      setIsRedirecting(true);
+
+      try {
+        // Fetch user profile data
+        const response = await fetch('/api/profile');
+        if (!response.ok) {
+          throw new Error('Failed to fetch profile');
+        }
+
+        const data = await response.json();
+        const user = data.user;
+
+        // Handle invitation flow
+        if (invitationToken && branchId && user) {
+          if (user.profileCompleted) {
+            const firstName = user.name?.split(' ')[0] || '';
+            const welcomeUrl = new URL(
+              `/branch/${branchId}`,
+              window.location.origin
+            );
+            welcomeUrl.searchParams.set('message', 'joined_successfully');
+            if (firstName) {
+              welcomeUrl.searchParams.set('welcomeName', firstName);
+            }
+            router.replace(welcomeUrl.pathname + welcomeUrl.search);
+            return;
+          } else {
+            router.replace(
+              `/profile/create?invitation=${invitationToken}&branch=${branchId}`
+            );
+            return;
+          }
+        }
+
+        // Normal flow based on profile completion
+        if (user?.profileCompleted) {
+          router.replace('/lobby');
+        } else {
+          router.replace('/profile/create');
+        }
+      } catch (error) {
+        console.error('Callback redirect error:', error);
+        // Fallback to profile creation
+        router.replace('/profile/create');
+      }
+    };
+
+    handleRedirect();
+  }, [session, status, router, invitationToken, branchId, isRedirecting]);
+
+  // Minimal loading state - no white flash
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: brandColors.warmCream,
+      }}
+    >
+      <div style={{ textAlign: 'center' }}>
+        <div
+          style={{
+            width: '32px',
+            height: '32px',
+            border: `3px solid ${brandColors.inkBlue}`,
+            borderTop: '3px solid transparent',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 16px',
+          }}
+        />
+        <p
+          style={{
+            color: brandColors.charcoal,
+            fontSize: '16px',
+            margin: 0,
+          }}
+        >
+          Signing you in...
+        </p>
+      </div>
+      <style jsx>{`
+        @keyframes spin {
+          0% {
+            transform: rotate(0deg);
+          }
+          100% {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
+    </div>
+  );
 }
