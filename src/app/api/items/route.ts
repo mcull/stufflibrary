@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const image = formData.get('image') as File;
     const name = formData.get('name') as string;
+    const description = (formData.get('description') as string) || null;
     const category = (formData.get('category') as string) || 'other';
     const branchId = (formData.get('branchId') as string) || null;
 
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
     const item = await db.item.create({
       data: {
         name: name,
-        description: `Added via camera capture`,
+        description: description || `Added via camera capture`,
         condition: 'good', // Default condition
         imageUrl: imageUrl,
         isAvailable: true,

@@ -1,18 +1,34 @@
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+import { SessionProvider } from 'next-auth/react';
+import { describe, it, expect, vi } from 'vitest';
 
 import Home from './page';
 
+// Mock next/navigation
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    replace: vi.fn(),
+  }),
+}));
+
 describe('Home Page', () => {
   it('renders the main heading', () => {
-    render(<Home />);
+    render(
+      <SessionProvider session={null}>
+        <Home />
+      </SessionProvider>
+    );
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
       /share more.*buy less/i
     );
   });
 
   it('renders the main subheading', () => {
-    render(<Home />);
+    render(
+      <SessionProvider session={null}>
+        <Home />
+      </SessionProvider>
+    );
     expect(
       screen.getByText(/A neighborhood platform for safely sharing stuff/)
     ).toBeInTheDocument();

@@ -7,6 +7,7 @@ import {
   History as HistoryIcon,
   Info as InfoIcon,
   Close as CloseIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import {
   Box,
@@ -73,6 +74,7 @@ export function ItemDetailClient({
   const { data: session } = useSession();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [item, setItem] = useState<ItemData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -120,6 +122,46 @@ export function ItemDetailClient({
   // Handle borrow request
   const handleBorrowRequest = () => {
     router.push(`/borrow-request?item=${itemId}`);
+  };
+
+  // Handle delete item
+  const handleDelete = async () => {
+    if (
+      !item ||
+      !window.confirm(
+        `Are you sure you want to delete "${item.name}"? This action cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    setDeleting(true);
+
+    try {
+      const response = await fetch(`/api/items/${itemId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete item');
+      }
+
+      setToast({
+        open: true,
+        message: `"${item.name}" has been deleted`,
+      });
+
+      // Navigate back to inventory after deletion
+      setTimeout(() => {
+        router.push(`/stuff/m/${currentUserId}`);
+      }, 1500);
+    } catch (err) {
+      console.error('Error deleting item:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete item');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   // Check if user can borrow this item
@@ -256,7 +298,14 @@ export function ItemDetailClient({
   }
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
+    <Container
+      maxWidth="md"
+      sx={{
+        py: 4,
+        pb: { xs: 8, sm: 4 }, // Extra bottom padding on mobile for viewport
+        minHeight: '100vh',
+      }}
+    >
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
         <Button
@@ -463,6 +512,28 @@ export function ItemDetailClient({
                         helperText="Where is this item stored?"
                       />
 
+                      {/* Save Button for Mobile */}
+                      <Box sx={{ mt: 3, mb: 3, textAlign: 'center' }}>
+                        <Button
+                          variant="contained"
+                          startIcon={<SaveIcon />}
+                          onClick={() =>
+                            router.push(`/stuff/m/${currentUserId}`)
+                          }
+                          sx={{
+                            backgroundColor: '#4CAF50',
+                            '&:hover': { backgroundColor: '#45a049' },
+                            textTransform: 'none',
+                            px: 4,
+                            py: 1.5,
+                            fontSize: '1rem',
+                            fontWeight: 600,
+                          }}
+                        >
+                          Add Item & Go to Inventory
+                        </Button>
+                      </Box>
+
                       {/* Category and Owner Row */}
                       <Box
                         sx={{
@@ -668,6 +739,39 @@ export function ItemDetailClient({
                         </Box>
                       )}
 
+                      {/* Delete Button - only for owners of lendable items */}
+                      {!isNewItem &&
+                        item?.owner.id === currentUserId &&
+                        item?.isAvailable && (
+                          <Box sx={{ pt: 2 }}>
+                            <Button
+                              variant="outlined"
+                              color="error"
+                              size="large"
+                              startIcon={
+                                deleting ? (
+                                  <CircularProgress size={20} />
+                                ) : (
+                                  <DeleteIcon />
+                                )
+                              }
+                              onClick={handleDelete}
+                              disabled={deleting}
+                              sx={{
+                                borderRadius: 2,
+                                borderColor: 'error.main',
+                                color: 'error.main',
+                                '&:hover': {
+                                  bgcolor: 'error.main',
+                                  color: 'white',
+                                },
+                              }}
+                            >
+                              {deleting ? 'Deleting...' : 'Delete Item'}
+                            </Button>
+                          </Box>
+                        )}
+
                       {/* Availability warning for non-owners */}
                       {!isNewItem &&
                         !canBorrow &&
@@ -732,7 +836,7 @@ export function ItemDetailClient({
                     </IconButton>
 
                     {/* Library Card Header */}
-                    <Box sx={{ textAlign: 'center', mb: 3 }}>
+                    <Box sx={{ textAlign: 'center', mb: 4 }}>
                       <Typography
                         className="vintage-impact-label"
                         sx={{
@@ -756,50 +860,13 @@ export function ItemDetailClient({
                       />
                     </Box>
 
-                    {/* Book Title Area */}
-                    <Box sx={{ textAlign: 'center', mb: 4 }}>
-                      <Typography
-                        className="vintage-stamp-press"
-                        sx={{
-                          fontSize: '1.2rem',
-                          fontWeight: 'bold',
-                          color: '#1a1a1a',
-                          letterSpacing: '1px',
-                          textTransform: 'uppercase',
-                        }}
-                      >
-                        {item?.name || 'ITEM NAME'}
-                      </Typography>
-                      <Box
-                        sx={{
-                          width: '200px',
-                          height: '1px',
-                          bgcolor: '#8b4513',
-                          mx: 'auto',
-                          mt: 2,
-                          opacity: 0.4,
-                        }}
-                      />
-                      <Typography
-                        className="vintage-stampette"
-                        sx={{
-                          fontSize: '0.8rem',
-                          color: '#666',
-                          mt: 1,
-                          letterSpacing: '1px',
-                        }}
-                      >
-                        AUTHOR
-                      </Typography>
-                    </Box>
-
                     {/* Checkout Grid */}
-                    <Box sx={{ mt: 3 }}>
+                    <Box sx={{ mt: 2 }}>
                       {/* Header Row */}
                       <Box
                         sx={{
                           display: 'grid',
-                          gridTemplateColumns: '120px 1fr 120px',
+                          gridTemplateColumns: '1fr 100px 100px',
                           gap: 1,
                           mb: 2,
                           pb: 1,
@@ -807,17 +874,6 @@ export function ItemDetailClient({
                           opacity: 0.8,
                         }}
                       >
-                        <Typography
-                          className="vintage-stampette"
-                          sx={{
-                            fontSize: '0.75rem',
-                            fontWeight: 'bold',
-                            color: '#2c1810',
-                            textAlign: 'center',
-                          }}
-                        >
-                          DATE DUE
-                        </Typography>
                         <Typography
                           className="vintage-stampette"
                           sx={{
@@ -838,7 +894,18 @@ export function ItemDetailClient({
                             textAlign: 'center',
                           }}
                         >
-                          DATE DUE
+                          DUE DATE
+                        </Typography>
+                        <Typography
+                          className="vintage-stampette"
+                          sx={{
+                            fontSize: '0.75rem',
+                            fontWeight: 'bold',
+                            color: '#2c1810',
+                            textAlign: 'center',
+                          }}
+                        >
+                          RETURNED
                         </Typography>
                       </Box>
 
@@ -852,17 +919,17 @@ export function ItemDetailClient({
                           showTitle={false}
                         />
                       ) : (
-                        // Empty checkout rows like the inspiration image
+                        // Empty checkout rows
                         <>
-                          {Array.from({ length: 12 }).map((_, index) => (
+                          {Array.from({ length: 14 }).map((_, index) => (
                             <Box
                               key={index}
                               sx={{
                                 display: 'grid',
-                                gridTemplateColumns: '120px 1fr 120px',
+                                gridTemplateColumns: '1fr 100px 100px',
                                 gap: 1,
                                 mb: 1.5,
-                                height: '24px',
+                                height: '20px',
                                 borderBottom: '1px solid #8b4513',
                                 opacity: 0.3,
                               }}
@@ -895,7 +962,7 @@ export function ItemDetailClient({
                           letterSpacing: '1px',
                         }}
                       >
-                        for•MARK
+                        stuffLIBRARY
                       </Typography>
                     </Box>
                   </CardContent>

@@ -34,6 +34,7 @@ type CaptureState =
 
 interface RecognitionResult {
   name: string;
+  description: string;
   confidence: number;
   category: string;
 }
@@ -241,10 +242,17 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
           if (result.recognized && result.name) {
             setRecognitionResult({
               name: result.name,
+              description: result.description || '',
               confidence: result.confidence || 0,
               category: result.category || 'other',
             });
             setState('recognized');
+          } else if (result.prohibited) {
+            setError(
+              result.error ||
+                'This item is not permitted in our community sharing library. Please try a different household item.'
+            );
+            setState('error');
           } else {
             setError(
               "We couldn't identify this object. Please try again with better lighting or a clearer view of the item."
@@ -283,6 +291,7 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
           const formData = new FormData();
           formData.append('image', blob, 'item.jpg');
           formData.append('name', recognitionResult.name);
+          formData.append('description', recognitionResult.description);
           formData.append('category', recognitionResult.category);
 
           // Only add branchId if provided (from specific library context)
