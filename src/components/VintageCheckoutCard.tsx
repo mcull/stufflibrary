@@ -180,7 +180,7 @@ export function VintageCheckoutCard({
                 textAlign: 'center',
               }}
             >
-              OUT
+              DUE DATE
             </Typography>
             <Typography
               className="vintage-stampette"
@@ -191,7 +191,7 @@ export function VintageCheckoutCard({
                 textAlign: 'center',
               }}
             >
-              RETURN
+              RETURNED
             </Typography>
           </Box>
 
@@ -227,7 +227,7 @@ export function VintageCheckoutCard({
                   </Typography>
                 </Box>
 
-                {/* Checkout date */}
+                {/* Due date */}
                 <Typography
                   className="vintage-stampette"
                   sx={{
@@ -237,7 +237,7 @@ export function VintageCheckoutCard({
                     fontFamily: 'monospace',
                   }}
                 >
-                  {formatDate(record.borrowedAt || record.approvedAt)}
+                  {formatDate(record.promisedReturnBy)}
                 </Typography>
 
                 {/* Return date */}

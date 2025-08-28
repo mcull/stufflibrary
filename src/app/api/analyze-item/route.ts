@@ -64,18 +64,32 @@ export async function POST(request: NextRequest) {
           content: [
             {
               type: 'text',
-              text: `Analyze this image and identify the main object. Respond with a JSON object containing:
+              text: `Analyze this image and identify the main object. This is for a community sharing library that only accepts normal household goods.
+
+              IMPORTANT CONTENT RESTRICTIONS:
+              - REJECT items that are: illegal, unsafe, inappropriate, nudity, weapons, firearms, alcohol, tobacco, drugs, age-restricted items, or anything requiring ID verification
+              - REJECT items that appear dangerous, hazardous, or could cause harm
+              - REJECT items showing people in inappropriate situations or nudity
+              - ONLY ACCEPT normal household goods that are safe to share in a community
+
+              Respond with a JSON object containing:
               - "name": a concise, descriptive name for the object (2-4 words max)
-              - "recognized": true if you can clearly identify a specific object, false if unclear/multiple objects/too blurry
+              - "description": a helpful 1-2 sentence description that mentions key features, condition, or notable details visible in the image
+              - "recognized": true if you can clearly identify a specific object AND it's an acceptable household item, false if unclear/multiple objects/too blurry/prohibited item
               - "confidence": a number between 0 and 1 representing how confident you are in the identification
               - "category": one of: "tools", "sports", "kitchen", "books", "electronics", "clothing", "furniture", "outdoor", "toys", "other"
+              - "prohibited": true if the item falls under content restrictions, false if acceptable
+              - "prohibitionReason": string explaining why the item is prohibited (only include if prohibited is true)
 
-              Only set "recognized" to true if there is ONE clear, identifiable object that takes up most of the frame. If the image is blurry, has multiple objects, or you're unsure what it is, set "recognized" to false.
+              If the item is prohibited, set "recognized" to false and "prohibited" to true.
 
-              Examples of good responses:
-              - {"name": "Hammer", "recognized": true, "confidence": 0.95, "category": "tools"}
-              - {"name": "Tennis Racket", "recognized": true, "confidence": 0.88, "category": "sports"}
-              - {"name": "Coffee Mug", "recognized": true, "confidence": 0.92, "category": "kitchen"}
+              Examples of acceptable responses:
+              - {"name": "Hammer", "description": "A wooden-handled claw hammer with some wear marks on the metal head, appears to be in good working condition.", "recognized": true, "confidence": 0.95, "category": "tools", "prohibited": false}
+              - {"name": "Tennis Racket", "description": "A black and yellow tennis racket with a graphite frame, strings appear to be in good condition with some minor scuffs on the handle.", "recognized": true, "confidence": 0.88, "category": "sports", "prohibited": false}
+
+              Examples of prohibited responses:
+              - {"name": "Beer Bottle", "description": "A glass beer bottle", "recognized": false, "confidence": 0.9, "category": "other", "prohibited": true, "prohibitionReason": "Alcohol is not permitted in our community sharing library"}
+              - {"name": "Knife", "description": "A large kitchen knife", "recognized": false, "confidence": 0.95, "category": "tools", "prohibited": true, "prohibitionReason": "Sharp weapons and dangerous items are not permitted for safety reasons"}
 
               Respond only with the JSON object, no other text.`,
             },
@@ -110,9 +124,22 @@ export async function POST(request: NextRequest) {
       if (
         typeof result.recognized !== 'boolean' ||
         typeof result.name !== 'string' ||
-        typeof result.confidence !== 'number'
+        typeof result.description !== 'string' ||
+        typeof result.confidence !== 'number' ||
+        typeof result.prohibited !== 'boolean'
       ) {
         throw new Error('Invalid response format');
+      }
+
+      // Check for prohibited items
+      if (result.prohibited) {
+        return NextResponse.json({
+          recognized: false,
+          prohibited: true,
+          error:
+            result.prohibitionReason ||
+            'This item is not permitted in our community sharing library',
+        });
       }
 
       return NextResponse.json(result);
