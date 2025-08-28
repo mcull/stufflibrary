@@ -136,15 +136,17 @@ export function VideoPlayer({ videoUrl, autoMuted = true }: VideoPlayerProps) {
     if (!video || newValue === null || newValue === undefined) return;
 
     const volumeValue = Array.isArray(newValue) ? newValue[0] : newValue;
-    video.volume = volumeValue;
-    setVolume(volumeValue);
-    
-    if (volumeValue === 0) {
-      setIsMuted(true);
-      video.muted = true;
-    } else if (isMuted) {
-      setIsMuted(false);
-      video.muted = false;
+    if (typeof volumeValue === 'number') {
+      video.volume = volumeValue;
+      setVolume(volumeValue);
+      
+      if (volumeValue === 0) {
+        setIsMuted(true);
+        video.muted = true;
+      } else if (isMuted) {
+        setIsMuted(false);
+        video.muted = false;
+      }
     }
   };
 
@@ -153,8 +155,10 @@ export function VideoPlayer({ videoUrl, autoMuted = true }: VideoPlayerProps) {
     if (!video || newValue === null || newValue === undefined) return;
 
     const timeValue = Array.isArray(newValue) ? newValue[0] : newValue;
-    video.currentTime = timeValue;
-    setCurrentTime(timeValue);
+    if (typeof timeValue === 'number') {
+      video.currentTime = timeValue;
+      setCurrentTime(timeValue);
+    }
   };
 
   const toggleFullscreen = async () => {

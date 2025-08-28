@@ -14,7 +14,6 @@ import {
   Avatar,
   Chip,
   Divider,
-  Grid,
   Alert,
   CircularProgress,
   Dialog,
@@ -255,9 +254,9 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
         />
       </Box>
 
-      <Grid container spacing={4}>
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 4 }}>
         {/* Main Content */}
-        <Grid item xs={12} lg={8}>
+        <Box sx={{ flex: { lg: 2 } }}>
           {/* Borrower Video */}
           {request.videoUrl && (
             <Card sx={{ mb: 3 }}>
@@ -278,8 +277,8 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
                 Item Details
               </Typography>
               
-              <Grid container spacing={3}>
-                <Grid item xs={12} sm={4}>
+              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 3 }}>
+                <Box sx={{ flex: { sm: 1 } }}>
                   {request.item.imageUrl && (
                     <Box
                       component="img"
@@ -293,8 +292,8 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
                       }}
                     />
                   )}
-                </Grid>
-                <Grid item xs={12} sm={8}>
+                </Box>
+                <Box sx={{ flex: { sm: 2 } }}>
                   <Typography variant="h6" gutterBottom>
                     {request.item.name}
                   </Typography>
@@ -308,8 +307,8 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
                       <strong>Condition:</strong> {request.item.condition}
                     </Typography>
                   </Box>
-                </Grid>
-              </Grid>
+                </Box>
+              </Box>
             </CardContent>
           </Card>
 
@@ -341,10 +340,10 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
               </CardContent>
             </Card>
           )}
-        </Grid>
+        </Box>
 
         {/* Sidebar */}
-        <Grid item xs={12} lg={4}>
+        <Box sx={{ flex: { lg: 1 } }}>
           {/* Borrower Profile */}
           <Card sx={{ mb: 3 }}>
             <CardContent>
@@ -434,8 +433,8 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
               </CardContent>
             </Card>
           )}
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
 
       {/* Response Dialog */}
       <Dialog 
