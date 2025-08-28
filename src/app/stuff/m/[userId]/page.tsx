@@ -29,70 +29,97 @@ function AddItemCard() {
   const router = useRouter();
 
   const handleClick = () => {
-    router.push('/stuff/new');
+    router.push('/add-item');
   };
 
   return (
     <Card
       onClick={handleClick}
       sx={{
-        aspectRatio: '1',
         cursor: 'pointer',
         position: 'relative',
         border: '2px dashed',
         borderColor: brandColors.mustardYellow,
         backgroundColor: 'rgba(244, 187, 68, 0.1)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        borderRadius: spacing.md / 16,
+        overflow: 'visible',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
         transition: 'all 0.3s ease',
         '&:hover': {
           borderColor: brandColors.charcoal,
           backgroundColor: 'rgba(244, 187, 68, 0.2)',
-          transform: 'translateY(-4px)',
-          boxShadow: '0 8px 25px rgba(0, 0, 0, 0.15)',
+          transform: 'translateY(-2px)',
+          boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
+        },
+        // Library pocket tab to match other cards
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: -8,
+          right: 20,
+          width: 60,
+          height: 16,
+          backgroundColor: brandColors.mustardYellow,
+          borderRadius: '8px 8px 0 0',
         },
       }}
     >
-      <CardContent
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          textAlign: 'center',
-          p: spacing.md / 16,
-        }}
-      >
-        <AddIcon
+      <CardContent sx={{ p: spacing.md / 16 }}>
+        {/* Square area matching item image dimensions */}
+        <Box
           sx={{
-            fontSize: 48,
-            color: brandColors.mustardYellow,
-            mb: 1,
+            position: 'relative',
+            width: '100%',
+            aspectRatio: '1/1', // Square aspect ratio like item images
+            backgroundColor: 'rgba(244, 187, 68, 0.1)',
+            borderRadius: spacing.sm / 16,
+            border: '2px dashed',
+            borderColor: brandColors.mustardYellow,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            mb: spacing.sm / 16,
+            overflow: 'hidden',
           }}
-        />
+        >
+          <AddIcon
+            sx={{
+              fontSize: 48,
+              color: brandColors.mustardYellow,
+            }}
+          />
+        </Box>
+
+        {/* Item Name */}
         <Typography
           variant="h6"
           sx={{
             fontWeight: 600,
             color: brandColors.charcoal,
+            mb: spacing.sm / 16,
             fontSize: '1rem',
             lineHeight: 1.3,
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            minHeight: '2.6rem', // Reserve space for 2 lines like other cards
           }}
         >
           Add Item
         </Typography>
-        <Typography
-          variant="body2"
+
+        {/* Info Chip */}
+        <Chip
+          label="Share something new"
+          size="small"
           sx={{
+            backgroundColor: brandColors.mustardYellow,
             color: brandColors.charcoal,
-            opacity: 0.7,
-            fontSize: '0.8rem',
-            mt: 0.5,
+            fontSize: '0.7rem',
+            alignSelf: 'flex-start',
           }}
-        >
-          Share something new
-        </Typography>
+        />
       </CardContent>
     </Card>
   );

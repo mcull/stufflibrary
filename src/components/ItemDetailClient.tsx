@@ -103,7 +103,7 @@ export function ItemDetailClient({
   });
 
   // Hooks
-  const { data: borrowHistory } = useBorrowHistory(itemId);
+  const { data: borrowHistory } = useBorrowHistory(isNewItem ? '' : itemId);
   const { receivedRequests } = useBorrowRequests();
   const { branches } = useBranches();
 
@@ -257,8 +257,14 @@ export function ItemDetailClient({
       }
     };
 
-    fetchItem();
-  }, [itemId]);
+    // Only fetch item data if it's not a new item
+    if (!isNewItem) {
+      fetchItem();
+    } else {
+      // For new items, just stop loading
+      setLoading(false);
+    }
+  }, [itemId, isNewItem]);
 
   // Save item updates
   const handleSave = async (field?: string, silent = false) => {
@@ -461,21 +467,25 @@ export function ItemDetailClient({
                   sx={{
                     position: 'absolute',
                     width: '100%',
-                    height: '625px',
+                    height: { xs: 'auto', md: '625px' },
+                    minHeight: { xs: '500px', md: '625px' },
                     backfaceVisibility: 'hidden',
                   }}
                 >
-                  <CardContent sx={{ p: 3, position: 'relative' }}>
+                  <CardContent
+                    sx={{ p: { xs: 2, md: 3 }, position: 'relative' }}
+                  >
                     {/* Flip Button */}
                     {!isNewItem && item?.owner.id === currentUserId && (
                       <IconButton
                         onClick={() => setShowHistory(true)}
                         sx={{
                           position: 'absolute',
-                          top: 8,
-                          right: 8,
+                          top: { xs: 4, md: 8 },
+                          right: { xs: 4, md: 8 },
                           backgroundColor: 'rgba(0,0,0,0.05)',
                           '&:hover': { backgroundColor: 'rgba(0,0,0,0.1)' },
+                          zIndex: 1,
                         }}
                       >
                         <HistoryIcon />
@@ -907,7 +917,8 @@ export function ItemDetailClient({
                   sx={{
                     position: 'absolute',
                     width: '100%',
-                    height: '625px',
+                    height: { xs: 'auto', md: '625px' },
+                    minHeight: { xs: '500px', md: '625px' },
                     backfaceVisibility: 'hidden',
                     transform: 'rotateY(180deg)',
                     backgroundColor: '#f9f7f4',
