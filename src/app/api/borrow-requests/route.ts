@@ -5,8 +5,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { sendBorrowRequestNotification } from '@/lib/twilio';
 import { sendBorrowRequestReceivedNotification } from '@/lib/enhanced-notification-service';
+import { sendBorrowRequestNotification } from '@/lib/twilio';
 
 // GET - Fetch borrow requests for the current user
 export async function GET(_request: NextRequest) {
@@ -247,8 +247,13 @@ export async function POST(request: NextRequest) {
     try {
       await sendBorrowRequestReceivedNotification({
         ...borrowRequest,
+        requestMessage: borrowRequest.requestMessage || '',
+        lenderMessage: borrowRequest.lenderMessage || '',
+        videoUrl: borrowRequest.videoUrl || '',
         borrower: {
-          ...borrowRequest.borrower,
+          id: borrowRequest.borrower.id,
+          name: borrowRequest.borrower.name || '',
+          image: borrowRequest.borrower.image || '',
           phone: borrower.phone || '',
           email: borrower.email || '',
         },
@@ -257,6 +262,10 @@ export async function POST(request: NextRequest) {
           name: item.owner.name || '',
           email: item.owner.email || '',
           phone: item.owner.phone || '',
+        },
+        item: {
+          ...borrowRequest.item,
+          imageUrl: borrowRequest.item.imageUrl || '',
         },
       }, approvalUrl);
       console.log('📱 In-app notification created successfully');

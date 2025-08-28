@@ -12,7 +12,6 @@ import {
   CardContent,
   CardActions,
   Button,
-  Grid,
   Chip,
   Avatar,
   CircularProgress,
@@ -204,9 +203,9 @@ export function LenderRequestsPage() {
           </Typography>
         </Box>
       ) : (
-        <Grid container spacing={3}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 3 }}>
           {filteredRequests.map((request) => (
-            <Grid item xs={12} md={6} lg={4} key={request.id}>
+            <Box key={request.id}>
               <Card 
                 sx={{ 
                   height: '100%', 
@@ -316,9 +315,9 @@ export function LenderRequestsPage() {
                   </Button>
                 </CardActions>
               </Card>
-            </Grid>
+            </Box>
           ))}
-        </Grid>
+        </Box>
       )}
     </Container>
   );
