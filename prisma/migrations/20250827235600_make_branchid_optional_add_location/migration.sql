@@ -1,4 +1,5 @@
--- AlterTable ALTER TABLE "public"."items" 
+-- AlterTable
+ALTER TABLE "public"."items" 
 ADD COLUMN IF NOT EXISTS "location" TEXT,
 ALTER COLUMN "branchId" DROP NOT NULL;
 
