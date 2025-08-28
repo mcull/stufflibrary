@@ -257,13 +257,8 @@ export function ItemDetailClient({
       }
     };
 
-    // Only fetch item data if it's not a new item
-    if (!isNewItem) {
-      fetchItem();
-    } else {
-      // For new items, just stop loading
-      setLoading(false);
-    }
+    // Fetch item data regardless - even "new" items exist in the database
+    fetchItem();
   }, [itemId, isNewItem]);
 
   // Save item updates
