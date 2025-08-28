@@ -1,9 +1,17 @@
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "bash scripts/vercel-build.sh",
   "framework": "nextjs",
   "functions": {
     "app/**/*.ts": {
       "maxDuration": 30
+    }
+  },
+  "env": {
+    "PRISMA_GENERATE_DATAPROXY": "true"
+  },
+  "build": {
+    "env": {
+      "ENABLE_EXPERIMENTAL_COREPACK": "1"
     }
   }
 }
