@@ -2,12 +2,15 @@ import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 
 import { AdminUserManagement } from '@/components/admin/AdminUserManagement';
+import { DashboardMetrics } from '@/components/admin/DashboardMetrics';
+import { RecentActivity } from '@/components/admin/RecentActivity';
+import { SystemHealth } from '@/components/admin/SystemHealth';
 import { isAdmin } from '@/lib/admin-auth';
 import { authOptions } from '@/lib/auth';
 
 export default async function AdminPage() {
   const session = await getServerSession(authOptions);
-  
+
   if (!session?.user || !isAdmin(session)) {
     redirect('/admin/login');
   }
@@ -15,21 +18,47 @@ export default async function AdminPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Admin Dashboard
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
           <p className="mt-1 text-sm text-gray-600">
-            Manage users and system settings
+            System overview and administrative tools
           </p>
         </div>
 
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">
-              User Management
-            </h2>
-            <AdminUserManagement />
+        {/* Dashboard Metrics */}
+        <div className="mb-8" id="metrics">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            Key Metrics
+          </h2>
+          <DashboardMetrics />
+        </div>
+
+        {/* System Health and Quick Actions */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            System Status
+          </h2>
+          <SystemHealth />
+        </div>
+
+        {/* Recent Activity */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            Recent Activity
+          </h2>
+          <RecentActivity limit={15} />
+        </div>
+
+        {/* User Management */}
+        <div id="users">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            User Management
+          </h2>
+          <div className="bg-white shadow rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <AdminUserManagement />
+            </div>
           </div>
         </div>
       </div>
