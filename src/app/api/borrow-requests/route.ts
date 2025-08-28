@@ -105,8 +105,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
     }
 
-    const body = await request.json();
-    const { itemId, requestedReturnDate } = body;
+    // Check if this is form data (Mux flow) or JSON (new schema flow)
+    let itemId: string;
+    let requestedReturnDate: string;
+    let requestMessage: string | undefined;
+    let isJsonRequest = false;
+
+    const contentType = request.headers.get('content-type');
+
+    if (contentType && contentType.includes('application/json')) {
+      // New schema flow
+      isJsonRequest = true;
+      const body = await request.json();
+      ({ itemId, requestedReturnDate, requestMessage } = body);
+    } else {
+      // Mux flow (existing BorrowRequestClient)
+      const formData = await request.formData();
+      itemId = formData.get('itemId') as string;
+      const promisedReturnBy = formData.get('promisedReturnBy') as string;
+      requestedReturnDate = promisedReturnBy; // Use the same field
+      requestMessage = formData.get('promiseText') as string;
+    }
 
     // Validate required fields
     if (!itemId || !requestedReturnDate) {
@@ -170,24 +189,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // For Mux flow, we create the borrow request first without video
-    // Video will be uploaded directly to Mux and connected via webhook
-    console.log('📹 Creating borrow request for Mux upload flow');
+    // Check if item is available using new schema logic
+    // Note: We'll assume isAvailable field still exists for backward compatibility
+    // and add currentBorrowRequestId check for new schema
+    const isAvailable = !item.currentBorrowRequestId;
+
+    if (!isAvailable) {
+      return NextResponse.json(
+        { error: 'Item is not available for borrowing' },
+        { status: 400 }
+      );
+    }
+
+    if (isJsonRequest) {
+      console.log('📝 Creating borrow request for new schema flow');
+    } else {
+      console.log('📹 Creating borrow request for Mux upload flow');
+    }
 
     // Generate secure token for approval page
     const responseToken = uuidv4();
 
-    // Create the borrow request
+    // Create the borrow request using new schema
     const borrowRequest = await db.borrowRequest.create({
       data: {
         borrowerId: userId,
         lenderId: item.ownerId,
         itemId: itemId,
-        videoUrl: null, // Will be set by webhook when video is processed
-        promiseText: promiseText,
-        promisedReturnBy: new Date(promisedReturnBy),
-        responseToken: responseToken,
-        status: 'pending',
+        requestMessage: requestMessage || null,
+        videoUrl: null, // Will be set by webhook when video is processed (Mux flow)
+        requestedReturnDate: new Date(requestedReturnDate),
+        status: 'PENDING',
       },
       include: {
         borrower: {

@@ -55,14 +55,14 @@ export async function GET(_request: NextRequest) {
           select: {
             borrowRequests: {
               where: {
-                status: 'active',
+                status: 'ACTIVE',
               },
             },
           },
         },
         borrowRequests: {
           where: {
-            status: 'active',
+            status: 'ACTIVE',
           },
           include: {
             borrower: {
@@ -87,15 +87,15 @@ export async function GET(_request: NextRequest) {
       name: item.name,
       description: item.description,
       imageUrl: item.imageUrl,
-      isAvailable: item.isAvailable, // Preserve original database value (true/false for online/offline)
-      canBeBorrowed: item.isAvailable && item._count.borrowRequests === 0, // Computed field for actual borrowability
+      isAvailable: !item.currentBorrowRequestId, // Computed from currentBorrowRequestId
+      canBeBorrowed: !item.currentBorrowRequestId, // Computed field for actual borrowability
       condition: item.condition,
       location: item.location,
       createdAt: item.createdAt,
-      stuffType: item.stuffType,
-      libraries: item.libraries.map((il) => il.library),
-      owner: item.owner,
-      isOnLoan: item._count.borrowRequests > 0,
+      stuffType: item.stuffType || null,
+      libraries: (item as any).libraries?.map((il: any) => il.library) || [],
+      owner: (item as any).owner || null,
+      isOnLoan: !!item.currentBorrowRequestId,
       activeBorrower: item.borrowRequests[0]?.borrower || null,
     }));
 

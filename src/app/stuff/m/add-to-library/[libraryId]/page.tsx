@@ -73,7 +73,7 @@ export default function AddToLibraryPage() {
 
   // Available items (those not currently in the library and available for sharing)
   const availableItems = [...readyToLendItems, ...offlineItems].filter(
-    (item) => item.isAvailable
+    (item) => !(item as any).currentBorrowRequestId
   );
 
   const handleItemToggle = (itemId: string) => {

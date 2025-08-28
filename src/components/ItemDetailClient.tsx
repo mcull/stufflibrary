@@ -50,6 +50,7 @@ interface ItemData {
   location?: string;
   imageUrl?: string;
   isAvailable: boolean;
+  currentBorrowRequestId?: string;
   createdAt: string;
   owner: {
     id: string;
@@ -222,7 +223,8 @@ export function ItemDetailClient({
     item &&
     currentUserId &&
     item.owner.id !== currentUserId &&
-    item.isAvailable;
+    item.isAvailable &&
+    !item.currentBorrowRequestId;
 
   // Ensure client-side hydration is complete
   useEffect(() => {

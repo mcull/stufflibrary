@@ -39,7 +39,7 @@ describe('Borrow Request Utils', () => {
       vi.mocked(db.item.findUnique).mockResolvedValue({
         currentBorrowRequestId: null,
         borrowRequests: [],
-      });
+      } as any);
 
       const result = await isItemAvailable(mockItemId);
 
@@ -62,7 +62,7 @@ describe('Borrow Request Utils', () => {
       vi.mocked(db.item.findUnique).mockResolvedValue({
         currentBorrowRequestId: 'borrow-123',
         borrowRequests: [],
-      });
+      } as any);
 
       const result = await isItemAvailable(mockItemId);
       expect(result).toBe(false);
@@ -72,7 +72,7 @@ describe('Borrow Request Utils', () => {
       vi.mocked(db.item.findUnique).mockResolvedValue({
         currentBorrowRequestId: null,
         borrowRequests: [{ id: 'request-123', status: 'PENDING' }],
-      });
+      } as any);
 
       const result = await isItemAvailable(mockItemId);
       expect(result).toBe(false);
@@ -162,7 +162,7 @@ describe('Borrow Request Utils', () => {
           email: 'owner@example.com',
           phone: '+1234567890',
         },
-      };
+      } as any;
 
       const mockBorrowRequest = {
         id: 'request-123',
@@ -182,14 +182,14 @@ describe('Borrow Request Utils', () => {
           email: 'owner@example.com',
         },
         item: { id: 'item-123', name: 'Test Item', imageUrl: null },
-      };
+      } as any;
 
       vi.mocked(db.item.findUnique)
         .mockResolvedValueOnce(mockItem)
         .mockResolvedValue({
           currentBorrowRequestId: null,
           borrowRequests: [],
-        });
+        } as any);
       vi.mocked(db.borrowRequest.create).mockResolvedValue(mockBorrowRequest);
 
       const result = await createBorrowRequest(mockRequestData);

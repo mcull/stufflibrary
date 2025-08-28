@@ -89,7 +89,7 @@ export async function GET(
             libraryId: libraryId,
           },
         },
-        isAvailable: true, // Only show available items in library views
+        currentBorrowRequestId: null, // Only show available items in library views
       },
       include: {
         owner: {
@@ -108,7 +108,7 @@ export async function GET(
         },
         borrowRequests: {
           where: {
-            status: { in: ['pending', 'approved', 'active'] },
+            status: { in: ['PENDING', 'APPROVED', 'ACTIVE'] },
           },
           include: {
             borrower: {
@@ -119,7 +119,7 @@ export async function GET(
               },
             },
           },
-          orderBy: { requestedAt: 'asc' },
+          orderBy: { createdAt: 'asc' },
         },
       },
       orderBy: [{ name: 'asc' }],
@@ -171,10 +171,10 @@ export async function GET(
       ],
       items: items.map((item) => {
         const activeBorrow = item.borrowRequests.find(
-          (req) => req.status === 'active'
+          (req) => req.status === 'ACTIVE'
         );
         const pendingRequests = item.borrowRequests.filter(
-          (req) => req.status === 'pending'
+          (req) => req.status === 'PENDING'
         );
 
         return {
@@ -183,7 +183,7 @@ export async function GET(
           description: item.description,
           condition: item.condition,
           imageUrl: item.imageUrl,
-          isAvailable: item.isAvailable,
+          isAvailable: !item.currentBorrowRequestId,
           createdAt: item.createdAt,
           category: item.stuffType?.category || 'other',
           stuffType: item.stuffType,
@@ -193,14 +193,14 @@ export async function GET(
             ? {
                 id: activeBorrow.id,
                 borrower: activeBorrow.borrower,
-                dueDate: activeBorrow.dueDate,
-                borrowedAt: activeBorrow.borrowedAt,
+                dueDate: activeBorrow.requestedReturnDate,
+                borrowedAt: activeBorrow.approvedAt,
               }
             : null,
           notificationQueue: pendingRequests.map((req) => ({
             id: req.id,
             user: req.borrower,
-            requestedAt: req.requestedAt,
+            requestedAt: req.createdAt,
           })),
           queueDepth: pendingRequests.length,
         };
@@ -213,10 +213,10 @@ export async function GET(
           }
 
           const activeBorrow = item.borrowRequests.find(
-            (req) => req.status === 'active'
+            (req) => req.status === 'ACTIVE'
           );
           const pendingRequests = item.borrowRequests.filter(
-            (req) => req.status === 'pending'
+            (req) => req.status === 'PENDING'
           );
 
           acc[category].push({
@@ -225,7 +225,7 @@ export async function GET(
             description: item.description,
             condition: item.condition,
             imageUrl: item.imageUrl,
-            isAvailable: item.isAvailable,
+            isAvailable: !item.currentBorrowRequestId,
             createdAt: item.createdAt,
             stuffType: item.stuffType,
             owner: item.owner,
@@ -234,14 +234,14 @@ export async function GET(
               ? {
                   id: activeBorrow.id,
                   borrower: activeBorrow.borrower,
-                  dueDate: activeBorrow.dueDate,
-                  borrowedAt: activeBorrow.borrowedAt,
+                  dueDate: activeBorrow.requestedReturnDate,
+                  borrowedAt: activeBorrow.approvedAt,
                 }
               : null,
             notificationQueue: pendingRequests.map((req) => ({
               id: req.id,
               user: req.borrower,
-              requestedAt: req.requestedAt,
+              requestedAt: req.createdAt,
             })),
             queueDepth: pendingRequests.length,
           });
@@ -353,7 +353,7 @@ export async function PUT(
             members: true,
             items: {
               where: {
-                item: { isAvailable: true },
+                item: { currentBorrowRequestId: null },
               },
             },
           },

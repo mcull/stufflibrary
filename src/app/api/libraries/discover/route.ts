@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
             members: true,
             items: {
               where: {
-                item: { isAvailable: true },
+                item: { currentBorrowRequestId: null },
               },
             },
           },
@@ -115,9 +115,9 @@ export async function GET(request: NextRequest) {
       name: library.name,
       description: library.description,
       location: library.location,
-      memberCount: library._count.members + 1, // +1 for owner
-      itemCount: library._count.items,
-      owner: library.owner,
+      memberCount: (library as any)._count?.members + 1 || 1, // +1 for owner
+      itemCount: (library as any)._count?.items || 0,
+      owner: (library as any).owner || null,
       createdAt: library.createdAt,
     }));
 

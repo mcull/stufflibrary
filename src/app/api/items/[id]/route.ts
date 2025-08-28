@@ -50,7 +50,7 @@ export async function GET(
       condition: item.condition,
       location: item.location,
       imageUrl: item.imageUrl,
-      isAvailable: item.isAvailable,
+      isAvailable: !item.currentBorrowRequestId,
       createdAt: item.createdAt,
       updatedAt: item.updatedAt,
       owner: item.owner,
@@ -182,7 +182,7 @@ export async function PUT(
       condition: updatedItem.condition,
       location: updatedItem.location,
       imageUrl: updatedItem.imageUrl,
-      isAvailable: updatedItem.isAvailable,
+      isAvailable: !updatedItem.currentBorrowRequestId,
       createdAt: updatedItem.createdAt,
       updatedAt: updatedItem.updatedAt,
       owner: updatedItem.owner,
@@ -226,7 +226,7 @@ export async function PATCH(
     // Check if user owns the item
     const item = await db.item.findUnique({
       where: { id: itemId },
-      select: { ownerId: true, isAvailable: true },
+      select: { ownerId: true, currentBorrowRequestId: true },
     });
 
     if (!item) {
@@ -248,27 +248,27 @@ export async function PATCH(
       );
     }
 
-
     // Check if item is currently borrowed
     const activeBorrow = await db.borrowRequest.findFirst({
       where: {
         itemId,
-        status: { in: ['approved', 'active'] },
+        status: { in: ['APPROVED', 'ACTIVE'] },
       },
     });
 
-    if (activeBorrow && !isAvailable) {
+    if (activeBorrow && isAvailable === false) {
       return NextResponse.json(
-        { error: 'Cannot mark item as in use while it is borrowed' },
+        { error: 'Cannot mark item as unavailable while it is borrowed' },
         { status: 400 }
       );
     }
 
-    // Prepare update data
+    // Prepare update data - Note: We no longer store isAvailable directly
+    // Instead, availability is computed from currentBorrowRequestId
     const updateData: any = {};
-    if (isAvailable !== undefined) {
-      updateData.isAvailable = isAvailable;
-    }
+
+    // For backward compatibility, if isAvailable is provided, we ignore it
+    // since availability is now managed through borrow request status
 
     // Update item
     const updatedItem = await db.item.update({
@@ -362,12 +362,12 @@ export async function PATCH(
         condition: itemWithLibraries!.condition,
         location: itemWithLibraries!.location,
         imageUrl: itemWithLibraries!.imageUrl,
-        isAvailable: itemWithLibraries!.isAvailable,
+        isAvailable: !itemWithLibraries!.currentBorrowRequestId,
         createdAt: itemWithLibraries!.createdAt,
         updatedAt: itemWithLibraries!.updatedAt,
         owner: itemWithLibraries!.owner,
         stuffType: itemWithLibraries!.stuffType,
-        libraries: itemWithLibraries!.libraries.map(il => il.library),
+        libraries: itemWithLibraries!.libraries.map((il) => il.library),
       };
 
       return NextResponse.json({
@@ -384,19 +384,17 @@ export async function PATCH(
       condition: updatedItem.condition,
       location: updatedItem.location,
       imageUrl: updatedItem.imageUrl,
-      isAvailable: updatedItem.isAvailable,
+      isAvailable: !updatedItem.currentBorrowRequestId,
       createdAt: updatedItem.createdAt,
       updatedAt: updatedItem.updatedAt,
       owner: updatedItem.owner,
       stuffType: updatedItem.stuffType,
-      libraries: updatedItem.libraries.map(il => il.library),
+      libraries: updatedItem.libraries.map((il) => il.library),
     };
 
     return NextResponse.json({
       item: formattedItem,
-      message: isAvailable
-        ? 'Item marked as available'
-        : 'Item marked as in use',
+      message: 'Item updated successfully',
     });
   } catch (error) {
     console.error('Error toggling item availability:', error);
@@ -453,7 +451,7 @@ export async function DELETE(
     const activeBorrow = await db.borrowRequest.findFirst({
       where: {
         itemId,
-        status: { in: ['approved', 'active'] },
+        status: { in: ['APPROVED', 'ACTIVE'] },
       },
     });
 
