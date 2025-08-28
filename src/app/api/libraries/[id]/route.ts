@@ -26,6 +26,18 @@ export async function GET(
             id: true,
             name: true,
             image: true,
+            addresses: {
+              where: { isActive: true },
+              select: {
+                address1: true,
+                city: true,
+                state: true,
+                latitude: true,
+                longitude: true,
+                formattedAddress: true,
+              },
+              take: 1,
+            },
           },
         },
         members: {
@@ -37,6 +49,18 @@ export async function GET(
                 name: true,
                 image: true,
                 email: true,
+                addresses: {
+                  where: { isActive: true },
+                  select: {
+                    address1: true,
+                    city: true,
+                    state: true,
+                    latitude: true,
+                    longitude: true,
+                    formattedAddress: true,
+                  },
+                  take: 1,
+                },
               },
             },
           },

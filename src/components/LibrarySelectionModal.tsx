@@ -79,9 +79,9 @@ export function LibrarySelectionModal({
   };
 
   const handleLibraryToggle = (libraryId: string) => {
-    setSelectedLibraryIds(prev => 
-      prev.includes(libraryId) 
-        ? prev.filter(id => id !== libraryId)
+    setSelectedLibraryIds((prev) =>
+      prev.includes(libraryId)
+        ? prev.filter((id) => id !== libraryId)
         : [...prev, libraryId]
     );
   };
@@ -179,36 +179,50 @@ export function LibrarySelectionModal({
             </Typography>
 
             <Box sx={{ maxHeight: 300, overflowY: 'auto' }}>
-                {libraries.map((library) => (
-                  <FormControlLabel
-                    key={library.id}
-                    control={
-                      <Checkbox
-                        checked={selectedLibraryIds.includes(library.id)}
-                        onChange={() => handleLibraryToggle(library.id)}
-                        sx={{
+              {libraries.map((library) => (
+                <FormControlLabel
+                  key={library.id}
+                  control={
+                    <Checkbox
+                      checked={selectedLibraryIds.includes(library.id)}
+                      onChange={() => handleLibraryToggle(library.id)}
+                      sx={{
+                        color: brandColors.inkBlue,
+                        '&.Mui-checked': {
                           color: brandColors.inkBlue,
-                          '&.Mui-checked': {
-                            color: brandColors.inkBlue,
-                          },
-                        }}
-                      />
-                    }
-                    label={
-                      <Box>
-                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                          {library.name}
+                        },
+                      }}
+                    />
+                  }
+                  label={
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                      <Typography
+                        variant="body1"
+                        sx={{ fontWeight: 500, wordWrap: 'break-word' }}
+                      >
+                        {library.name}
+                      </Typography>
+                      {library.description && (
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: 'block' }}
+                        >
+                          {library.description}
                         </Typography>
-                        {library.description && (
-                          <Typography variant="caption" color="text.secondary">
-                            {library.description}
-                          </Typography>
-                        )}
-                      </Box>
-                    }
-                    sx={{ display: 'block', mb: 1 }}
-                  />
-                ))}
+                      )}
+                    </Box>
+                  }
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    mb: 1,
+                    width: '100%',
+                    ml: 0,
+                    mr: 0,
+                  }}
+                />
+              ))}
             </Box>
           </Box>
         )}
