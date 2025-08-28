@@ -40,6 +40,13 @@ export async function GET(_request: NextRequest) {
             name: true,
           },
         },
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
         _count: {
           select: {
             borrowRequests: {
@@ -48,6 +55,21 @@ export async function GET(_request: NextRequest) {
               },
             },
           },
+        },
+        borrowRequests: {
+          where: {
+            status: 'active',
+          },
+          include: {
+            borrower: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+              },
+            },
+          },
+          take: 1,
         },
       },
       orderBy: {
@@ -67,7 +89,9 @@ export async function GET(_request: NextRequest) {
       createdAt: item.createdAt,
       stuffType: item.stuffType,
       branch: item.branch,
+      owner: item.owner,
       isOnLoan: item._count.borrowRequests > 0,
+      activeBorrower: item.borrowRequests[0]?.borrower || null,
     }));
 
     return NextResponse.json({ items: formattedItems });

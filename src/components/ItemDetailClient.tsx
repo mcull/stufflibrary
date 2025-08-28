@@ -8,6 +8,7 @@ import {
   Info as InfoIcon,
   Close as CloseIcon,
   Delete as DeleteIcon,
+  Check as CheckIcon,
 } from '@mui/icons-material';
 import {
   Box,
@@ -29,6 +30,7 @@ import {
   FormGroup,
   Snackbar,
   IconButton,
+  Avatar,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -75,6 +77,7 @@ export function ItemDetailClient({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [checkingOut, setCheckingOut] = useState(false);
   const [item, setItem] = useState<ItemData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -122,6 +125,54 @@ export function ItemDetailClient({
   // Handle borrow request
   const handleBorrowRequest = () => {
     router.push(`/borrow-request?item=${itemId}`);
+  };
+
+  // Handle take offline/online item
+  const handleToggleOffline = async () => {
+    if (!item) return;
+
+    const isTakingOnline = !item.isAvailable;
+    setCheckingOut(true);
+
+    try {
+      const response = await fetch(`/api/items/${itemId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          isAvailable: isTakingOnline ? true : false,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.error ||
+            `Failed to take item ${isTakingOnline ? 'online' : 'offline'}`
+        );
+      }
+
+      const data = await response.json();
+      setItem(data.item);
+
+      setToast({
+        open: true,
+        message: `"${item.name}" has been taken ${isTakingOnline ? 'online' : 'offline'}`,
+      });
+    } catch (err) {
+      console.error(
+        `Error taking item ${isTakingOnline ? 'online' : 'offline'}:`,
+        err
+      );
+      setError(
+        err instanceof Error
+          ? err.message
+          : `Failed to take item ${isTakingOnline ? 'online' : 'offline'}`
+      );
+    } finally {
+      setCheckingOut(false);
+    }
   };
 
   // Handle delete item
@@ -354,8 +405,33 @@ export function ItemDetailClient({
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
+                    filter: !item.isAvailable ? 'grayscale(100%)' : 'none',
+                    transition: 'filter 0.3s ease',
                   }}
                 />
+                {/* Owner Avatar Overlay for checked out items */}
+                {!item.isAvailable && (
+                  <Avatar
+                    {...(item.owner.image && { src: item.owner.image })}
+                    onClick={() => router.push(`/profile/${item.owner.id}`)}
+                    sx={{
+                      position: 'absolute',
+                      top: 8,
+                      right: 8,
+                      width: 40,
+                      height: 40,
+                      cursor: 'pointer',
+                      border: '2px solid white',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                      '&:hover': {
+                        transform: 'scale(1.1)',
+                        transition: 'transform 0.2s ease',
+                      },
+                    }}
+                  >
+                    {!item.owner.image && item.owner.name?.[0]}
+                  </Avatar>
+                )}
               </Paper>
             </Box>
           )}
@@ -366,7 +442,7 @@ export function ItemDetailClient({
               sx={{
                 position: 'relative',
                 perspective: '1000px',
-                minHeight: '500px',
+                minHeight: '625px',
               }}
             >
               {/* Card Container with 3D Transform */}
@@ -385,7 +461,7 @@ export function ItemDetailClient({
                   sx={{
                     position: 'absolute',
                     width: '100%',
-                    height: '500px',
+                    height: '625px',
                     backfaceVisibility: 'hidden',
                   }}
                 >
@@ -512,27 +588,29 @@ export function ItemDetailClient({
                         helperText="Where is this item stored?"
                       />
 
-                      {/* Save Button for Mobile */}
-                      <Box sx={{ mt: 3, mb: 3, textAlign: 'center' }}>
-                        <Button
-                          variant="contained"
-                          startIcon={<SaveIcon />}
-                          onClick={() =>
-                            router.push(`/stuff/m/${currentUserId}`)
-                          }
-                          sx={{
-                            backgroundColor: '#4CAF50',
-                            '&:hover': { backgroundColor: '#45a049' },
-                            textTransform: 'none',
-                            px: 4,
-                            py: 1.5,
-                            fontSize: '1rem',
-                            fontWeight: 600,
-                          }}
-                        >
-                          Add Item & Go to Inventory
-                        </Button>
-                      </Box>
+                      {/* Save Button for Mobile - only for new items */}
+                      {isNewItem && (
+                        <Box sx={{ mt: 3, mb: 3, textAlign: 'center' }}>
+                          <Button
+                            variant="contained"
+                            startIcon={<SaveIcon />}
+                            onClick={() =>
+                              router.push(`/stuff/m/${currentUserId}`)
+                            }
+                            sx={{
+                              backgroundColor: '#4CAF50',
+                              '&:hover': { backgroundColor: '#45a049' },
+                              textTransform: 'none',
+                              px: 4,
+                              py: 1.5,
+                              fontSize: '1rem',
+                              fontWeight: 600,
+                            }}
+                          >
+                            Add Item & Go to Inventory
+                          </Button>
+                        </Box>
+                      )}
 
                       {/* Category and Owner Row */}
                       <Box
@@ -739,11 +817,49 @@ export function ItemDetailClient({
                         </Box>
                       )}
 
-                      {/* Delete Button - only for owners of lendable items */}
-                      {!isNewItem &&
-                        item?.owner.id === currentUserId &&
-                        item?.isAvailable && (
-                          <Box sx={{ pt: 2 }}>
+                      {/* Action Buttons Row - only for owners */}
+                      {!isNewItem && item?.owner.id === currentUserId && (
+                        <Box
+                          sx={{
+                            pt: 2,
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            gap: 2,
+                          }}
+                        >
+                          {/* Take Offline/Online Button */}
+                          <Button
+                            variant={
+                              item?.isAvailable ? 'outlined' : 'contained'
+                            }
+                            color={item?.isAvailable ? 'warning' : 'success'}
+                            size="large"
+                            startIcon={
+                              checkingOut ? (
+                                <CircularProgress size={20} />
+                              ) : (
+                                <CheckIcon />
+                              )
+                            }
+                            onClick={handleToggleOffline}
+                            disabled={checkingOut}
+                            sx={{
+                              borderRadius: 2,
+                              textTransform: 'none',
+                            }}
+                          >
+                            {checkingOut
+                              ? item?.isAvailable
+                                ? 'Taking Offline...'
+                                : 'Taking Online...'
+                              : item?.isAvailable
+                                ? 'Take Offline'
+                                : 'Take Online'}
+                          </Button>
+
+                          {/* Delete Button - only for available items */}
+                          {item?.isAvailable && (
                             <Button
                               variant="outlined"
                               color="error"
@@ -769,8 +885,9 @@ export function ItemDetailClient({
                             >
                               {deleting ? 'Deleting...' : 'Delete Item'}
                             </Button>
-                          </Box>
-                        )}
+                          )}
+                        </Box>
+                      )}
 
                       {/* Availability warning for non-owners */}
                       {!isNewItem &&
@@ -790,7 +907,7 @@ export function ItemDetailClient({
                   sx={{
                     position: 'absolute',
                     width: '100%',
-                    height: '500px',
+                    height: '625px',
                     backfaceVisibility: 'hidden',
                     transform: 'rotateY(180deg)',
                     backgroundColor: '#f9f7f4',

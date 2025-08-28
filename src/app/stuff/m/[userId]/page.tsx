@@ -1,6 +1,9 @@
 'use client';
 
-import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
+import {
+  ArrowBack as ArrowBackIcon,
+  Add as AddIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Container,
@@ -11,6 +14,7 @@ import {
   Chip,
   Stack,
   CircularProgress,
+  Avatar,
 } from '@mui/material';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -21,9 +25,82 @@ import { useState, useEffect } from 'react';
 import { useUserItems } from '@/hooks/useUserItems';
 import { brandColors, spacing } from '@/theme/brandTokens';
 
+function AddItemCard() {
+  const router = useRouter();
+
+  const handleClick = () => {
+    router.push('/stuff/new');
+  };
+
+  return (
+    <Card
+      onClick={handleClick}
+      sx={{
+        aspectRatio: '1',
+        cursor: 'pointer',
+        position: 'relative',
+        border: '2px dashed',
+        borderColor: brandColors.mustardYellow,
+        backgroundColor: 'rgba(244, 187, 68, 0.1)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        transition: 'all 0.3s ease',
+        '&:hover': {
+          borderColor: brandColors.charcoal,
+          backgroundColor: 'rgba(244, 187, 68, 0.2)',
+          transform: 'translateY(-4px)',
+          boxShadow: '0 8px 25px rgba(0, 0, 0, 0.15)',
+        },
+      }}
+    >
+      <CardContent
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          textAlign: 'center',
+          p: spacing.md / 16,
+        }}
+      >
+        <AddIcon
+          sx={{
+            fontSize: 48,
+            color: brandColors.mustardYellow,
+            mb: 1,
+          }}
+        />
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 600,
+            color: brandColors.charcoal,
+            fontSize: '1rem',
+            lineHeight: 1.3,
+          }}
+        >
+          Add Item
+        </Typography>
+        <Typography
+          variant="body2"
+          sx={{
+            color: brandColors.charcoal,
+            opacity: 0.7,
+            fontSize: '0.8rem',
+            mt: 0.5,
+          }}
+        >
+          Share something new
+        </Typography>
+      </CardContent>
+    </Card>
+  );
+}
+
 interface ItemCardProps {
   item: any;
-  status: 'ready-to-lend' | 'on-loan' | 'borrowed';
+  status: 'ready-to-lend' | 'on-loan' | 'borrowed' | 'offline';
 }
 
 function ItemCard({ item, status }: ItemCardProps) {
@@ -63,6 +140,16 @@ function ItemCard({ item, status }: ItemCardProps) {
             textColor: '#C62828',
           },
         };
+      case 'offline':
+        return {
+          backgroundColor: '#F5F5F5',
+          borderColor: '#BDBDBD',
+          statusChip: {
+            label: 'Offline',
+            color: '#F5F5F5',
+            textColor: '#757575',
+          },
+        };
       default:
         return {
           backgroundColor: brandColors.warmCream,
@@ -95,6 +182,8 @@ function ItemCard({ item, status }: ItemCardProps) {
             })
           : '';
         return `From ${lender}${dueDate ? ` due ${dueDate}` : ''}`;
+      case 'offline':
+        return item.location || 'No location';
       default:
         return '';
     }
@@ -147,14 +236,51 @@ function ItemCard({ item, status }: ItemCardProps) {
           }}
         >
           {item.imageUrl ? (
-            <Image
-              src={item.imageUrl}
-              alt={item.name || 'Item'}
-              fill
-              style={{
-                objectFit: 'cover',
-              }}
-            />
+            <>
+              <Image
+                src={item.imageUrl}
+                alt={item.name || 'Item'}
+                fill
+                style={{
+                  objectFit: 'cover',
+                  filter: !item.isAvailable ? 'grayscale(100%)' : 'none',
+                  transition: 'filter 0.3s ease',
+                }}
+              />
+              {/* Avatar Overlay for offline items - show borrower or owner */}
+              {!item.isAvailable && (
+                <Avatar
+                  {...((item.activeBorrower?.image || item.owner?.image) && {
+                    src: item.activeBorrower?.image || item.owner?.image,
+                  })}
+                  onClick={(e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    const userId = item.activeBorrower?.id || item.owner?.id;
+                    if (userId) {
+                      router.push(`/profile/${userId}`);
+                    }
+                  }}
+                  sx={{
+                    position: 'absolute',
+                    top: 4,
+                    right: 4,
+                    width: 24,
+                    height: 24,
+                    cursor: 'pointer',
+                    border: '1px solid white',
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+                    fontSize: '0.7rem',
+                    '&:hover': {
+                      transform: 'scale(1.1)',
+                      transition: 'transform 0.2s ease',
+                    },
+                  }}
+                >
+                  {!(item.activeBorrower?.image || item.owner?.image) &&
+                    (item.activeBorrower?.name?.[0] || item.owner?.name?.[0])}
+                </Avatar>
+              )}
+            </>
           ) : (
             <Typography variant="h4" sx={{ opacity: 0.5 }}>
               📦
@@ -203,10 +329,11 @@ interface SectionProps {
     background: string;
     text: string;
   };
+  showAddItem?: boolean;
 }
 
-function Section({ title, items, color }: SectionProps) {
-  if (items.length === 0) {
+function Section({ title, items, color, showAddItem = false }: SectionProps) {
+  if (items.length === 0 && !showAddItem) {
     return null;
   }
 
@@ -249,6 +376,7 @@ function Section({ title, items, color }: SectionProps) {
           gap: spacing.md / 16,
         }}
       >
+        {showAddItem && <AddItemCard />}
         {items.map((item) => (
           <ItemCard
             key={`${item.status}-${item.id}`}
@@ -261,7 +389,7 @@ function Section({ title, items, color }: SectionProps) {
   );
 }
 
-type FilterType = 'all' | 'ready-to-lend' | 'on-loan' | 'borrowed';
+type FilterType = 'all' | 'ready-to-lend' | 'offline' | 'on-loan' | 'borrowed';
 
 export default function UserInventoryPage() {
   const params = useParams();
@@ -271,6 +399,7 @@ export default function UserInventoryPage() {
 
   const {
     readyToLendItems,
+    offlineItems,
     onLoanItems,
     borrowedItems,
     isLoading: itemsLoading,
@@ -285,7 +414,7 @@ export default function UserInventoryPage() {
     const filterParam = searchParams.get('filter') as FilterType;
     if (
       filterParam &&
-      ['ready-to-lend', 'on-loan', 'borrowed'].includes(filterParam)
+      ['ready-to-lend', 'offline', 'on-loan', 'borrowed'].includes(filterParam)
     ) {
       setActiveFilter(filterParam);
     }
@@ -407,6 +536,10 @@ export default function UserInventoryPage() {
       ...item,
       status: 'ready-to-lend' as const,
     })),
+    ...offlineItems.map((item) => ({
+      ...item,
+      status: 'offline' as const,
+    })),
     ...onLoanItems.map((item) => ({ ...item, status: 'on-loan' as const })),
     ...borrowedItems.map((item) => ({ ...item, status: 'borrowed' as const })),
   ];
@@ -444,6 +577,10 @@ export default function UserInventoryPage() {
   const readyToLendSection = readyToLendItems.map((item) => ({
     ...item,
     status: 'ready-to-lend' as const,
+  }));
+  const offlineSection = offlineItems.map((item) => ({
+    ...item,
+    status: 'offline' as const,
   }));
   const onLoanSection = onLoanItems.map((item) => ({
     ...item,
@@ -549,6 +686,16 @@ export default function UserInventoryPage() {
                   activeFilter === 'ready-to-lend'
                     ? brandColors.white
                     : '#2E7D32',
+              }}
+            />
+            <Chip
+              {...getChipProps('offline', offlineItems.length, 'Offline')}
+              sx={{
+                ...getChipProps('offline', offlineItems.length, 'Offline').sx,
+                backgroundColor:
+                  activeFilter === 'offline' ? brandColors.inkBlue : '#F5F5F5',
+                color:
+                  activeFilter === 'offline' ? brandColors.white : '#757575',
               }}
             />
             {isOwnInventory && (
@@ -682,6 +829,13 @@ export default function UserInventoryPage() {
               title="Ready to Lend"
               items={readyToLendSection}
               color={{ background: '#E8F5E8', text: '#2E7D32' }}
+              showAddItem={isOwnInventory || false}
+            />
+
+            <Section
+              title="Offline"
+              items={offlineSection}
+              color={{ background: '#F5F5F5', text: '#757575' }}
             />
 
             {isOwnInventory && (
@@ -750,6 +904,9 @@ export default function UserInventoryPage() {
                   gap: spacing.md / 16,
                 }}
               >
+                {activeFilter === 'ready-to-lend' && isOwnInventory && (
+                  <AddItemCard />
+                )}
                 {filteredItems.map((item) => (
                   <ItemCard
                     key={`${item.status}-${item.id}`}

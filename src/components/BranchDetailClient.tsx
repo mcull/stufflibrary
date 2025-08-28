@@ -615,19 +615,55 @@ export function BranchDetailClient({ branchId }: BranchDetailClientProps) {
                               borderRadius: 1,
                               mb: 2,
                               overflow: 'hidden',
+                              position: 'relative',
                             }}
                           >
                             {item.imageUrl ? (
-                              <img
-                                src={item.imageUrl}
-                                alt={item.name}
-                                style={{
-                                  width: '100%',
-                                  height: '100%',
-                                  objectFit: 'cover',
-                                  display: 'block',
-                                }}
-                              />
+                              <>
+                                <img
+                                  src={item.imageUrl}
+                                  alt={item.name}
+                                  style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover',
+                                    display: 'block',
+                                    filter: !item.isAvailable
+                                      ? 'grayscale(100%)'
+                                      : 'none',
+                                    transition: 'filter 0.3s ease',
+                                  }}
+                                />
+                                {/* Owner Avatar Overlay for checked out items */}
+                                {!item.isAvailable && (
+                                  <Avatar
+                                    {...(item.owner?.image && {
+                                      src: item.owner.image,
+                                    })}
+                                    onClick={() =>
+                                      router.push(`/profile/${item.owner?.id}`)
+                                    }
+                                    sx={{
+                                      position: 'absolute',
+                                      top: 4,
+                                      right: 4,
+                                      width: 24,
+                                      height: 24,
+                                      cursor: 'pointer',
+                                      border: '1px solid white',
+                                      boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+                                      fontSize: '0.7rem',
+                                      '&:hover': {
+                                        transform: 'scale(1.1)',
+                                        transition: 'transform 0.2s ease',
+                                      },
+                                    }}
+                                  >
+                                    {!item.owner?.image &&
+                                      item.owner?.name?.[0]}
+                                  </Avatar>
+                                )}
+                              </>
                             ) : (
                               <Box
                                 sx={{
