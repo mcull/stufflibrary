@@ -1,5 +1,6 @@
 import { BorrowRequestStatus } from '@prisma/client';
 
+import { logAuditEntry, logItemAvailabilityChange } from './audit-log';
 import { db } from './db';
 
 /**
@@ -34,8 +35,17 @@ export async function isItemAvailable(itemId: string): Promise<boolean> {
 export async function updateItemAvailability(
   itemId: string,
   borrowRequestId: string,
-  newStatus: BorrowRequestStatus
+  newStatus: BorrowRequestStatus,
+  userId?: string
 ): Promise<void> {
+  // Get current state for audit logging
+  const currentItem = await db.item.findUnique({
+    where: { id: itemId },
+    select: { currentBorrowRequestId: true },
+  });
+
+  const wasAvailable = !currentItem?.currentBorrowRequestId;
+
   // Set currentBorrowRequestId when request becomes ACTIVE
   // Clear it when request is RETURNED, CANCELLED, or DECLINED
   if (newStatus === 'ACTIVE') {
@@ -48,6 +58,24 @@ export async function updateItemAvailability(
       where: { id: itemId },
       data: { currentBorrowRequestId: null },
     });
+  }
+
+  // Log availability change if userId provided
+  if (userId) {
+    const isNowAvailable = ['RETURNED', 'CANCELLED', 'DECLINED'].includes(
+      newStatus
+    );
+
+    if (wasAvailable !== isNowAvailable) {
+      await logItemAvailabilityChange(
+        itemId,
+        userId,
+        borrowRequestId,
+        newStatus,
+        wasAvailable,
+        isNowAvailable
+      );
+    }
   }
 }
 
@@ -152,6 +180,22 @@ export async function createBorrowRequest({
       item: {
         select: { id: true, name: true, imageUrl: true },
       },
+    },
+  });
+
+  // Log the creation
+  await logAuditEntry({
+    action: 'BORROW_REQUEST_CREATED',
+    userId: borrowerId,
+    entityType: 'BORROW_REQUEST',
+    entityId: borrowRequest.id,
+    details: {
+      itemId,
+      itemName: item.name,
+      lenderId: item.ownerId,
+      requestedReturnDate: requestedReturnDate.toISOString(),
+      hasMessage: !!requestMessage,
+      hasVideo: !!videoUrl,
     },
   });
 

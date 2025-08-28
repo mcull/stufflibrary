@@ -291,3 +291,239 @@ export async function sendDueDateReminder({
     body: message,
   });
 }
+
+export async function sendReturnNotification({
+  ownerName,
+  ownerPhone,
+  ownerEmail,
+  borrowerName,
+  itemName,
+  returnDate,
+  borrowerNotes,
+}: {
+  ownerName: string;
+  ownerPhone?: string;
+  ownerEmail?: string;
+  borrowerName: string;
+  itemName: string;
+  returnDate: Date;
+  borrowerNotes?: string;
+}) {
+  const results: {
+    sms: { success: boolean; error: string; messageId?: string };
+    email: { success: boolean; error: string; messageId?: string };
+  } = {
+    sms: { success: false, error: 'SMS not attempted' },
+    email: { success: false, error: 'Email not attempted' },
+  };
+
+  const returnDateStr = returnDate.toLocaleDateString();
+
+  // Try SMS first if phone number is provided
+  if (ownerPhone) {
+    let smsMessage = `📱 Stuff Library: ${borrowerName} has returned your "${itemName}" on ${returnDateStr}.`;
+    if (borrowerNotes) {
+      smsMessage += ` Note: "${borrowerNotes}"`;
+    }
+
+    const smsResult = await sendSMS({
+      to: ownerPhone,
+      body: smsMessage,
+    });
+
+    results.sms = {
+      success: smsResult.success,
+      error: smsResult.error || '',
+      ...(smsResult.messageId && { messageId: smsResult.messageId }),
+    };
+  }
+
+  // Send email notification
+  if (ownerEmail) {
+    const emailSubject = `${borrowerName} has returned your "${itemName}"`;
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #2563eb; font-size: 28px; margin: 0;">StuffLibrary</h1>
+          <p style="color: #6b7280; font-size: 16px; margin: 5px 0 0 0;">Share more, buy less</p>
+        </div>
+        
+        <h2 style="color: #1f2937; font-size: 24px; margin-bottom: 20px;">
+          Item Returned! 📦
+        </h2>
+        
+        <p style="font-size: 16px; line-height: 1.5; color: #374151; margin-bottom: 20px;">
+          Hi ${ownerName},
+        </p>
+        
+        <p style="font-size: 16px; line-height: 1.5; color: #374151; margin-bottom: 20px;">
+          Great news! <strong>${borrowerName}</strong> has marked your <strong>"${itemName}"</strong> as returned on ${returnDateStr}.
+        </p>
+        
+        ${
+          borrowerNotes
+            ? `
+        <div style="background-color: #f3f4f6; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+          <p style="font-size: 14px; color: #374151; margin: 0;"><strong>Borrower's Note:</strong></p>
+          <p style="font-size: 16px; color: #374151; margin: 10px 0 0 0;">"${borrowerNotes}"</p>
+        </div>
+        `
+            : ''
+        }
+        
+        <p style="font-size: 16px; line-height: 1.5; color: #374151; margin-bottom: 20px;">
+          Your item is now available for future borrow requests. Thank you for being part of the sharing community!
+        </p>
+        
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 25px 0;">
+        
+        <p style="font-size: 12px; color: #9ca3af; text-align: center;">
+          StuffLibrary - Building sharing communities, one neighborhood at a time.
+        </p>
+      </div>
+    `;
+
+    const emailResult = await sendEmail({
+      to: ownerEmail,
+      subject: emailSubject,
+      html: emailHtml,
+    });
+
+    results.email = {
+      success: emailResult.success,
+      error: emailResult.error || '',
+      ...(emailResult.messageId && { messageId: emailResult.messageId }),
+    };
+  }
+
+  const overallSuccess = results.sms.success || results.email.success;
+  const primaryResult = results.sms.success ? results.sms : results.email;
+
+  return {
+    success: overallSuccess,
+    sms: results.sms,
+    email: results.email,
+    error: overallSuccess ? undefined : 'Both SMS and email failed',
+    messageId:
+      'messageId' in primaryResult ? primaryResult.messageId : undefined,
+  };
+}
+
+export async function sendCancellationNotification({
+  recipientName,
+  recipientPhone,
+  recipientEmail,
+  cancellerName,
+  itemName,
+  reason,
+  isOwnerCancelling,
+}: {
+  recipientName: string;
+  recipientPhone?: string;
+  recipientEmail?: string;
+  cancellerName: string;
+  itemName: string;
+  reason?: string;
+  isOwnerCancelling: boolean;
+}) {
+  const results: {
+    sms: { success: boolean; error: string; messageId?: string };
+    email: { success: boolean; error: string; messageId?: string };
+  } = {
+    sms: { success: false, error: 'SMS not attempted' },
+    email: { success: false, error: 'Email not attempted' },
+  };
+
+  const context = isOwnerCancelling
+    ? `${cancellerName} has cancelled their borrow request for your "${itemName}".`
+    : `${cancellerName} has cancelled the borrow request for "${itemName}".`;
+
+  // Try SMS first if phone number is provided
+  if (recipientPhone) {
+    let smsMessage = `📱 Stuff Library: ${context}`;
+    if (reason) {
+      smsMessage += ` Reason: "${reason}"`;
+    }
+
+    const smsResult = await sendSMS({
+      to: recipientPhone,
+      body: smsMessage,
+    });
+
+    results.sms = {
+      success: smsResult.success,
+      error: smsResult.error || '',
+      ...(smsResult.messageId && { messageId: smsResult.messageId }),
+    };
+  }
+
+  // Send email notification
+  if (recipientEmail) {
+    const emailSubject = `Borrow request cancelled: "${itemName}"`;
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #2563eb; font-size: 28px; margin: 0;">StuffLibrary</h1>
+          <p style="color: #6b7280; font-size: 16px; margin: 5px 0 0 0;">Share more, buy less</p>
+        </div>
+        
+        <h2 style="color: #1f2937; font-size: 24px; margin-bottom: 20px;">
+          Request Cancelled ❌
+        </h2>
+        
+        <p style="font-size: 16px; line-height: 1.5; color: #374151; margin-bottom: 20px;">
+          Hi ${recipientName},
+        </p>
+        
+        <p style="font-size: 16px; line-height: 1.5; color: #374151; margin-bottom: 20px;">
+          ${context}
+        </p>
+        
+        ${
+          reason
+            ? `
+        <div style="background-color: #f3f4f6; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+          <p style="font-size: 14px; color: #374151; margin: 0;"><strong>Reason:</strong></p>
+          <p style="font-size: 16px; color: #374151; margin: 10px 0 0 0;">"${reason}"</p>
+        </div>
+        `
+            : ''
+        }
+        
+        <p style="font-size: 16px; line-height: 1.5; color: #374151; margin-bottom: 20px;">
+          No further action is needed. Thank you for being part of the sharing community!
+        </p>
+        
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 25px 0;">
+        
+        <p style="font-size: 12px; color: #9ca3af; text-align: center;">
+          StuffLibrary - Building sharing communities, one neighborhood at a time.
+        </p>
+      </div>
+    `;
+
+    const emailResult = await sendEmail({
+      to: recipientEmail,
+      subject: emailSubject,
+      html: emailHtml,
+    });
+
+    results.email = {
+      success: emailResult.success,
+      error: emailResult.error || '',
+      ...(emailResult.messageId && { messageId: emailResult.messageId }),
+    };
+  }
+
+  const overallSuccess = results.sms.success || results.email.success;
+  const primaryResult = results.sms.success ? results.sms : results.email;
+
+  return {
+    success: overallSuccess,
+    sms: results.sms,
+    email: results.email,
+    error: overallSuccess ? undefined : 'Both SMS and email failed',
+    messageId:
+      'messageId' in primaryResult ? primaryResult.messageId : undefined,
+  };
+}
