@@ -50,7 +50,7 @@ export async function sendBorrowRequestReceivedNotification(borrowRequest: Borro
       type: 'BORROW_REQUEST_RECEIVED' as NotificationType,
       title: 'New Borrow Request',
       message: `${borrowRequest.borrower.name} wants to borrow your "${borrowRequest.item.name}"`,
-      actionUrl: approvalUrl,
+      actionUrl: `/lender/requests/${borrowRequest.id}`,
       relatedItemId: borrowRequest.itemId,
       relatedRequestId: borrowRequest.id,
       metadata: {
