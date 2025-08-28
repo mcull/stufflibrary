@@ -53,12 +53,14 @@ interface LentItem {
 interface UseUserItemsResult {
   // Items I own
   readyToLendItems: UserItem[];
+  offlineItems: UserItem[];
   onLoanItems: LentItem[];
   // Items I've borrowed
   borrowedItems: BorrowedItem[];
 
   // Summary counts
   readyToLendCount: number;
+  offlineCount: number;
   onLoanCount: number;
   borrowedCount: number;
 
@@ -69,6 +71,7 @@ interface UseUserItemsResult {
 
 export function useUserItems(): UseUserItemsResult {
   const [readyToLendItems, setReadyToLendItems] = useState<UserItem[]>([]);
+  const [offlineItems, setOfflineItems] = useState<UserItem[]>([]);
   const [onLoanItems, setOnLoanItems] = useState<LentItem[]>([]);
   const [borrowedItems, setBorrowedItems] = useState<BorrowedItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -95,6 +98,10 @@ export function useUserItems(): UseUserItemsResult {
 
       setReadyToLendItems(
         itemsData.items?.filter((item: UserItem) => item.isAvailable) || []
+      );
+
+      setOfflineItems(
+        itemsData.items?.filter((item: UserItem) => !item.isAvailable) || []
       );
 
       setBorrowedItems(
@@ -128,9 +135,11 @@ export function useUserItems(): UseUserItemsResult {
 
   return {
     readyToLendItems,
+    offlineItems,
     onLoanItems,
     borrowedItems,
     readyToLendCount: readyToLendItems.length,
+    offlineCount: offlineItems.length,
     onLoanCount: onLoanItems.length,
     borrowedCount: borrowedItems.length,
     isLoading,
