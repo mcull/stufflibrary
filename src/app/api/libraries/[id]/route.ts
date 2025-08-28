@@ -15,17 +15,29 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id: branchId } = await params;
+    const { id: libraryId } = await params;
 
-    // Get branch details
-    const branch = await db.branch.findUnique({
-      where: { id: branchId },
+    // Get library details
+    const library = await db.library.findUnique({
+      where: { id: libraryId },
       include: {
         owner: {
           select: {
             id: true,
             name: true,
             image: true,
+            addresses: {
+              where: { isActive: true },
+              select: {
+                address1: true,
+                city: true,
+                state: true,
+                latitude: true,
+                longitude: true,
+                formattedAddress: true,
+              },
+              take: 1,
+            },
           },
         },
         members: {
@@ -37,6 +49,18 @@ export async function GET(
                 name: true,
                 image: true,
                 email: true,
+                addresses: {
+                  where: { isActive: true },
+                  select: {
+                    address1: true,
+                    city: true,
+                    state: true,
+                    latitude: true,
+                    longitude: true,
+                    formattedAddress: true,
+                  },
+                  take: 1,
+                },
               },
             },
           },
@@ -45,98 +69,106 @@ export async function GET(
             { joinedAt: 'asc' }, // then by join date
           ],
         },
-        items: {
+        _count: {
+          select: {
+            members: true,
+          },
+        },
+      },
+    });
+
+    if (!library) {
+      return NextResponse.json({ error: 'Library not found' }, { status: 404 });
+    }
+
+    // Get library items
+    const items = await db.item.findMany({
+      where: {
+        libraries: {
+          some: {
+            libraryId: libraryId,
+          },
+        },
+      },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
+        stuffType: {
+          select: {
+            displayName: true,
+            iconPath: true,
+            category: true,
+          },
+        },
+        borrowRequests: {
+          where: {
+            status: { in: ['pending', 'approved', 'active'] },
+          },
           include: {
-            owner: {
+            borrower: {
               select: {
                 id: true,
                 name: true,
                 image: true,
               },
             },
-            stuffType: {
-              select: {
-                displayName: true,
-                iconPath: true,
-                category: true,
-              },
-            },
-            borrowRequests: {
-              where: {
-                status: { in: ['pending', 'approved', 'active'] },
-              },
-              include: {
-                borrower: {
-                  select: {
-                    id: true,
-                    name: true,
-                    image: true,
-                  },
-                },
-              },
-              orderBy: { requestedAt: 'asc' },
-            },
           },
-          orderBy: [{ stuffType: { category: 'asc' } }, { name: 'asc' }],
-        },
-        _count: {
-          select: {
-            members: true,
-            items: true,
-          },
+          orderBy: { requestedAt: 'asc' },
         },
       },
+      orderBy: [{ name: 'asc' }],
     });
 
-    if (!branch) {
-      return NextResponse.json({ error: 'Branch not found' }, { status: 404 });
-    }
-
-    // Check if user has access to this branch
+    // Check if user has access to this library
     const userId =
       (session.user as any).id ||
       (session as any).user?.id ||
       (session as any).userId;
 
-    const userRole = userId === branch.ownerId ? 'owner' : null;
-    const membership = branch.members.find(
+    const userRole = userId === library.ownerId ? 'owner' : null;
+    const membership = library.members.find(
       (member) => member.userId === userId
     );
 
-    if (!userRole && !membership && !branch.isPublic) {
+    if (!userRole && !membership && !library.isPublic) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
     // Format response
-    const formattedBranch = {
-      id: branch.id,
-      name: branch.name,
-      description: branch.description,
-      location: branch.location,
-      isPublic: branch.isPublic,
-      createdAt: branch.createdAt,
-      updatedAt: branch.updatedAt,
-      owner: branch.owner,
+    const formattedLibrary = {
+      id: library.id,
+      name: library.name,
+      description: library.description,
+      location: library.location,
+      isPublic: library.isPublic,
+      createdAt: library.createdAt,
+      updatedAt: library.updatedAt,
+      owner: library.owner,
       userRole: userRole || membership?.role || null,
-      memberCount: branch._count.members + 1, // +1 for owner
-      itemCount: branch._count.items,
+      memberCount: library._count.members + 1, // +1 for owner
+      itemCount: items.length,
       members: [
         // Include owner as first member
         {
-          id: 'owner-' + branch.owner.id,
+          id: 'owner-' + library.owner.id,
           role: 'owner',
-          joinedAt: branch.createdAt,
-          user: branch.owner,
+          joinedAt: library.createdAt,
+          user: library.owner,
         },
         // Then include other members
-        ...branch.members.map((member) => ({
+        ...library.members.map((member) => ({
           id: member.id,
           role: member.role,
           joinedAt: member.joinedAt,
           user: member.user,
         })),
       ],
-      items: branch.items.map((item) => {
+      items: items.map((item) => {
         const activeBorrow = item.borrowRequests.find(
           (req) => req.status === 'active'
         );
@@ -172,7 +204,7 @@ export async function GET(
           queueDepth: pendingRequests.length,
         };
       }),
-      itemsByCategory: branch.items.reduce(
+      itemsByCategory: items.reduce(
         (acc, item) => {
           const category = item.stuffType?.category || 'other';
           if (!acc[category]) {
@@ -219,11 +251,11 @@ export async function GET(
       ),
     };
 
-    return NextResponse.json({ branch: formattedBranch });
+    return NextResponse.json({ library: formattedLibrary });
   } catch (error) {
-    console.error('Error fetching branch:', error);
+    console.error('Error fetching library:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch branch' },
+      { error: 'Failed to fetch library' },
       { status: 500 }
     );
   }
@@ -249,13 +281,13 @@ export async function PUT(
       return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
     }
 
-    const { id: branchId } = await params;
+    const { id: libraryId } = await params;
     const body = await request.json();
     const { name, description, location, isPublic } = body;
 
     // Check if user is the owner or admin
-    const branch = await db.branch.findUnique({
-      where: { id: branchId },
+    const library = await db.library.findUnique({
+      where: { id: libraryId },
       include: {
         members: {
           where: {
@@ -267,16 +299,16 @@ export async function PUT(
       },
     });
 
-    if (!branch) {
-      return NextResponse.json({ error: 'Branch not found' }, { status: 404 });
+    if (!library) {
+      return NextResponse.json({ error: 'Library not found' }, { status: 404 });
     }
 
-    const isOwner = branch.ownerId === userId;
-    const isAdmin = branch.members.length > 0;
+    const isOwner = library.ownerId === userId;
+    const isAdmin = library.members.length > 0;
 
     if (!isOwner && !isAdmin) {
       return NextResponse.json(
-        { error: 'Only branch owners and admins can update branch details' },
+        { error: 'Only library owners and admins can update library details' },
         { status: 403 }
       );
     }
@@ -284,21 +316,21 @@ export async function PUT(
     // Validate input
     if (name && name.trim().length === 0) {
       return NextResponse.json(
-        { error: 'Branch name cannot be empty' },
+        { error: 'Library name cannot be empty' },
         { status: 400 }
       );
     }
 
     if (name && name.length > 100) {
       return NextResponse.json(
-        { error: 'Branch name must be 100 characters or less' },
+        { error: 'Library name must be 100 characters or less' },
         { status: 400 }
       );
     }
 
-    // Update branch
-    const updatedBranch = await db.branch.update({
-      where: { id: branchId },
+    // Update library
+    const updatedLibrary = await db.library.update({
+      where: { id: libraryId },
       data: {
         ...(name !== undefined && { name: name.trim() }),
         ...(description !== undefined && {
@@ -325,24 +357,24 @@ export async function PUT(
     });
 
     // Format response
-    const formattedBranch = {
-      id: updatedBranch.id,
-      name: updatedBranch.name,
-      description: updatedBranch.description,
-      location: updatedBranch.location,
-      isPublic: updatedBranch.isPublic,
-      createdAt: updatedBranch.createdAt,
-      updatedAt: updatedBranch.updatedAt,
-      owner: updatedBranch.owner,
-      memberCount: updatedBranch._count.members + 1,
-      itemCount: updatedBranch._count.items,
+    const formattedLibrary = {
+      id: updatedLibrary.id,
+      name: updatedLibrary.name,
+      description: updatedLibrary.description,
+      location: updatedLibrary.location,
+      isPublic: updatedLibrary.isPublic,
+      createdAt: updatedLibrary.createdAt,
+      updatedAt: updatedLibrary.updatedAt,
+      owner: updatedLibrary.owner,
+      memberCount: updatedLibrary._count.members + 1,
+      itemCount: updatedLibrary._count.items,
     };
 
-    return NextResponse.json({ branch: formattedBranch });
+    return NextResponse.json({ library: formattedLibrary });
   } catch (error) {
-    console.error('Error updating branch:', error);
+    console.error('Error updating library:', error);
     return NextResponse.json(
-      { error: 'Failed to update branch' },
+      { error: 'Failed to update library' },
       { status: 500 }
     );
   }
@@ -368,11 +400,11 @@ export async function DELETE(
       return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
     }
 
-    const { id: branchId } = await params;
+    const { id: libraryId } = await params;
 
     // Check if user is the owner
-    const branch = await db.branch.findUnique({
-      where: { id: branchId },
+    const library = await db.library.findUnique({
+      where: { id: libraryId },
       select: {
         ownerId: true,
         _count: {
@@ -384,38 +416,38 @@ export async function DELETE(
       },
     });
 
-    if (!branch) {
-      return NextResponse.json({ error: 'Branch not found' }, { status: 404 });
+    if (!library) {
+      return NextResponse.json({ error: 'Library not found' }, { status: 404 });
     }
 
-    if (branch.ownerId !== userId) {
+    if (library.ownerId !== userId) {
       return NextResponse.json(
-        { error: 'Only branch owners can delete branches' },
+        { error: 'Only library owners can delete libraries' },
         { status: 403 }
       );
     }
 
-    // Check if branch has items or members
-    if (branch._count.items > 0 || branch._count.members > 0) {
+    // Check if library has items or members
+    if (library._count.items > 0 || library._count.members > 0) {
       return NextResponse.json(
         {
           error:
-            'Cannot delete branch with items or members. Remove all items and members first.',
+            'Cannot delete library with items or members. Remove all items and members first.',
         },
         { status: 400 }
       );
     }
 
-    // Delete the branch
-    await db.branch.delete({
-      where: { id: branchId },
+    // Delete the library
+    await db.library.delete({
+      where: { id: libraryId },
     });
 
-    return NextResponse.json({ message: 'Branch deleted successfully' });
+    return NextResponse.json({ message: 'Library deleted successfully' });
   } catch (error) {
-    console.error('Error deleting branch:', error);
+    console.error('Error deleting library:', error);
     return NextResponse.json(
-      { error: 'Failed to delete branch' },
+      { error: 'Failed to delete library' },
       { status: 500 }
     );
   }

@@ -15,8 +15,8 @@ test.describe('Magic Link Invitation Flow', () => {
     return; // Exit early
   }
 
-  let testBranchId: string;
-  let branchOwnerId: string;
+  let testLibraryId: string;
+  let libraryOwnerId: string;
   const testInviteeEmail = 'e2e-test-invitee@example.com';
   let invitationToken: string;
 
@@ -26,43 +26,45 @@ test.describe('Magic Link Invitation Flow', () => {
       where: { email: testInviteeEmail },
     });
     await db.user.deleteMany({
-      where: { email: { in: [testInviteeEmail, 'branch-owner-e2e@test.com'] } },
+      where: {
+        email: { in: [testInviteeEmail, 'library-owner-e2e@test.com'] },
+      },
     });
 
-    // Create test branch owner
-    const branchOwner = await db.user.create({
+    // Create test library owner
+    const libraryOwner = await db.user.create({
       data: {
-        email: 'branch-owner-e2e@test.com',
-        name: 'E2E Branch Owner',
+        email: 'library-owner-e2e@test.com',
+        name: 'E2E Library Owner',
         profileCompleted: true,
       },
     });
-    branchOwnerId = branchOwner.id;
+    libraryOwnerId = libraryOwner.id;
 
-    // Create test branch
-    const testBranch = await db.branch.create({
+    // Create test library
+    const testLibrary = await db.library.create({
       data: {
-        name: 'E2E Test Branch',
-        description: 'Branch for E2E magic link testing',
-        ownerId: branchOwnerId,
+        name: 'E2E Test Library',
+        description: 'Library for E2E magic link testing',
+        ownerId: libraryOwnerId,
       },
     });
-    testBranchId = testBranch.id;
+    testLibraryId = testLibrary.id;
   });
 
   test.skip('complete magic link invitation flow - new user', async ({
     page,
   }) => {
-    // Step 1: Create an invitation (simulating branch owner action)
+    // Step 1: Create an invitation (simulating library owner action)
     const invitation = await db.invitation.create({
       data: {
         email: testInviteeEmail,
         token: 'test-magic-token-' + Date.now(),
-        type: 'branch',
+        type: 'library',
         status: 'SENT',
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-        senderId: branchOwnerId,
-        branchId: testBranchId,
+        senderId: libraryOwnerId,
+        libraryId: testLibraryId,
         sentAt: new Date(),
       },
     });
@@ -111,11 +113,11 @@ test.describe('Magic Link Invitation Flow', () => {
     });
     expect(createdUser).toBeTruthy();
 
-    // Step 7: Verify branch membership was created
-    const membership = await db.branchMember.findFirst({
+    // Step 7: Verify library membership was created
+    const membership = await db.libraryMember.findFirst({
       where: {
         userId: createdUser!.id,
-        branchId: testBranchId,
+        libraryId: testLibraryId,
         isActive: true,
       },
     });
@@ -139,11 +141,11 @@ test.describe('Magic Link Invitation Flow', () => {
       data: {
         email: testInviteeEmail,
         token: 'test-existing-token-' + Date.now(),
-        type: 'branch',
+        type: 'library',
         status: 'SENT',
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-        senderId: branchOwnerId,
-        branchId: testBranchId,
+        senderId: libraryOwnerId,
+        libraryId: testLibraryId,
         sentAt: new Date(),
       },
     });
@@ -157,11 +159,11 @@ test.describe('Magic Link Invitation Flow', () => {
     await expect(page).toHaveURL(/magic=true/);
     await expect(page).toHaveURL(/auto=true/);
 
-    // Step 5: Verify branch membership was created for existing user
-    const membership = await db.branchMember.findFirst({
+    // Step 5: Verify library membership was created for existing user
+    const membership = await db.libraryMember.findFirst({
       where: {
         userId: existingUser.id,
-        branchId: testBranchId,
+        libraryId: testLibraryId,
         isActive: true,
       },
     });
@@ -174,11 +176,11 @@ test.describe('Magic Link Invitation Flow', () => {
       data: {
         email: testInviteeEmail,
         token: 'expired-token-' + Date.now(),
-        type: 'branch',
+        type: 'library',
         status: 'SENT',
         expiresAt: new Date(Date.now() - 1000), // Expired 1 second ago
-        senderId: branchOwnerId,
-        branchId: testBranchId,
+        senderId: libraryOwnerId,
+        libraryId: testLibraryId,
         sentAt: new Date(),
       },
     });
@@ -204,7 +206,7 @@ test.describe('Magic Link Invitation Flow', () => {
     await expect(page).toHaveURL(/error=invitation_not_found/);
   });
 
-  test.skip('user already member redirects to branch', async ({ page }) => {
+  test.skip('user already member redirects to library', async ({ page }) => {
     // Create user
     const user = await db.user.create({
       data: {
@@ -215,10 +217,10 @@ test.describe('Magic Link Invitation Flow', () => {
     });
 
     // Create existing membership
-    await db.branchMember.create({
+    await db.libraryMember.create({
       data: {
         userId: user.id,
-        branchId: testBranchId,
+        libraryId: testLibraryId,
         role: 'member',
         isActive: true,
       },
@@ -229,11 +231,11 @@ test.describe('Magic Link Invitation Flow', () => {
       data: {
         email: testInviteeEmail,
         token: 'already-member-token-' + Date.now(),
-        type: 'branch',
+        type: 'library',
         status: 'SENT',
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-        senderId: branchOwnerId,
-        branchId: testBranchId,
+        senderId: libraryOwnerId,
+        libraryId: testLibraryId,
         sentAt: new Date(),
       },
     });
@@ -259,11 +261,11 @@ test.describe('Magic Link Invitation Flow', () => {
       data: {
         email: testInviteeEmail,
         token: 'accepted-token-' + Date.now(),
-        type: 'branch',
+        type: 'library',
         status: 'ACCEPTED',
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-        senderId: branchOwnerId,
-        branchId: testBranchId,
+        senderId: libraryOwnerId,
+        libraryId: testLibraryId,
         sentAt: new Date(),
         acceptedAt: new Date(),
       },
@@ -294,11 +296,11 @@ test.describe('Magic Link Invitation Flow', () => {
       data: {
         email: testInviteeEmail,
         token: 'profile-creation-token-' + Date.now(),
-        type: 'branch',
+        type: 'library',
         status: 'ACCEPTED',
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-        senderId: branchOwnerId,
-        branchId: testBranchId,
+        senderId: libraryOwnerId,
+        libraryId: testLibraryId,
         sentAt: new Date(),
         acceptedAt: new Date(),
       },

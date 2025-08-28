@@ -28,14 +28,14 @@ export async function GET(_request: NextRequest) {
     const invitations = await db.invitation.findMany({
       where: {
         email: user.email,
-        type: 'branch',
+        type: 'library',
         status: { in: ['PENDING', 'SENT'] },
         expiresAt: {
           gte: new Date(), // Only non-expired invitations
         },
       },
       include: {
-        branch: {
+        library: {
           select: {
             id: true,
             name: true,
@@ -69,34 +69,34 @@ export async function GET(_request: NextRequest) {
       },
     });
 
-    // Check which branches the user is already a member of
-    const userBranchIds = await db.branchMember
+    // Check which libraries the user is already a member of
+    const userLibraryIds = await db.libraryMember
       .findMany({
         where: {
           userId: (session.user as { id?: string }).id!,
           isActive: true,
         },
         select: {
-          branchId: true,
+          libraryId: true,
         },
       })
-      .then((memberships) => memberships.map((m) => m.branchId));
+      .then((memberships) => memberships.map((m) => m.libraryId));
 
-    // Filter out invitations for branches user is already in
+    // Filter out invitations for libraries user is already in
     const validInvitations = invitations.filter(
-      (invitation) => !userBranchIds.includes(invitation.branchId!)
+      (invitation) => !userLibraryIds.includes(invitation.libraryId!)
     );
 
     // Transform invitations for response
     const transformedInvitations = validInvitations.map((invitation) => ({
       id: invitation.id,
       token: invitation.token, // Include token for acceptance
-      branch: {
-        id: invitation.branch!.id,
-        name: invitation.branch!.name,
-        location: invitation.branch!.location,
-        owner: invitation.branch!.owner,
-        memberCount: invitation.branch!._count.members,
+      library: {
+        id: invitation.library!.id,
+        name: invitation.library!.name,
+        location: invitation.library!.location,
+        owner: invitation.library!.owner,
+        memberCount: invitation.library!._count.members,
       },
       invitedBy: invitation.sender,
       createdAt: invitation.createdAt,

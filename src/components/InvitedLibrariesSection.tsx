@@ -87,7 +87,7 @@ export function InvitedBranchesSection() {
 
         // Redirect to the branch page with welcome banner
         const redirectUrl = new URL(
-          `/branch/${data.branch.id}`,
+          `/library/${data.branch.id}`,
           window.location.origin
         );
         redirectUrl.searchParams.set('message', 'joined_successfully');

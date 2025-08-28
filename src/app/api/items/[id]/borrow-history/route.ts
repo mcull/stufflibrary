@@ -25,7 +25,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         id: true,
         name: true,
         ownerId: true,
-        branchId: true,
+        libraries: {
+          select: {
+            library: {
+              select: {
+                id: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -39,24 +47,24 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       (session as any).user?.id ||
       (session as any).userId;
 
-    // Check if user has access to this item (owner or same branch member)
+    // Check if user has access to this item (owner or same library member)
     const userHasAccess = await db.user.findFirst({
       where: {
         id: userId,
         OR: [
           { id: item.ownerId }, // User is the owner
-          ...(item.branchId
+          ...(item.libraries.length > 0
             ? [
                 {
-                  branchMemberships: {
+                  libraryMemberships: {
                     some: {
-                      branchId: item.branchId,
+                      libraryId: { in: item.libraries.map(il => il.library.id) },
                       isActive: true,
                     },
                   },
                 },
               ]
-            : []), // User is in the same branch (if item has a branch)
+            : []), // User is in the same library (if item has libraries)
         ],
       },
     });

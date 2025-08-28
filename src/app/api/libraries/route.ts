@@ -22,11 +22,11 @@ export async function GET() {
       return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
     }
 
-    // Get user's branches (both owned and member)
-    const userBranches = await db.user.findUnique({
+    // Get user's libraries (both owned and member)
+    const userLibraries = await db.user.findUnique({
       where: { id: userId },
       select: {
-        ownedBranches: {
+        ownedLibraries: {
           select: {
             id: true,
             name: true,
@@ -55,12 +55,12 @@ export async function GET() {
             },
           },
         },
-        branchMemberships: {
+        libraryMemberships: {
           where: { isActive: true },
           select: {
             role: true,
             joinedAt: true,
-            branch: {
+            library: {
               select: {
                 id: true,
                 name: true,
@@ -88,50 +88,50 @@ export async function GET() {
       },
     });
 
-    if (!userBranches) {
-      return NextResponse.json({ branches: [] });
+    if (!userLibraries) {
+      return NextResponse.json({ libraries: [] });
     }
 
     // Format the response
-    const branches = [
-      // Owned branches
-      ...userBranches.ownedBranches.map((branch) => ({
-        id: branch.id,
-        name: branch.name,
-        description: branch.description,
-        location: branch.location,
-        isPublic: branch.isPublic,
+    const libraries = [
+      // Owned libraries
+      ...userLibraries.ownedLibraries.map((library) => ({
+        id: library.id,
+        name: library.name,
+        description: library.description,
+        location: library.location,
+        isPublic: library.isPublic,
         role: 'owner',
-        memberCount: branch._count.members + 1, // +1 for owner
-        itemCount: branch._count.items,
-        joinedAt: branch.createdAt,
+        memberCount: library._count.members + 1, // +1 for owner
+        itemCount: library._count.items,
+        joinedAt: library.createdAt,
         owner: {
           id: userId,
           name: session.user?.name || null,
           image: session.user?.image || null,
         },
-        members: branch.members,
+        members: library.members,
       })),
-      // Member branches
-      ...userBranches.branchMemberships.map((membership) => ({
-        id: membership.branch.id,
-        name: membership.branch.name,
-        description: membership.branch.description,
-        location: membership.branch.location,
-        isPublic: membership.branch.isPublic,
+      // Member libraries
+      ...userLibraries.libraryMemberships.map((membership) => ({
+        id: membership.library.id,
+        name: membership.library.name,
+        description: membership.library.description,
+        location: membership.library.location,
+        isPublic: membership.library.isPublic,
         role: membership.role,
-        memberCount: membership.branch._count.members + 1, // +1 for owner
-        itemCount: membership.branch._count.items,
+        memberCount: membership.library._count.members + 1, // +1 for owner
+        itemCount: membership.library._count.items,
         joinedAt: membership.joinedAt,
-        owner: membership.branch.owner,
+        owner: membership.library.owner,
       })),
     ];
 
-    return NextResponse.json({ branches });
+    return NextResponse.json({ libraries });
   } catch (error) {
-    console.error('Error fetching branches:', error);
+    console.error('Error fetching libraries:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch branches' },
+      { error: 'Failed to fetch libraries' },
       { status: 500 }
     );
   }
@@ -161,20 +161,20 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     if (!name || name.trim().length === 0) {
       return NextResponse.json(
-        { error: 'Branch name is required' },
+        { error: 'Library name is required' },
         { status: 400 }
       );
     }
 
     if (name.length > 100) {
       return NextResponse.json(
-        { error: 'Branch name must be 100 characters or less' },
+        { error: 'Library name must be 100 characters or less' },
         { status: 400 }
       );
     }
 
-    // Create the branch
-    const branch = await db.branch.create({
+    // Create the library
+    const library = await db.library.create({
       data: {
         name: name.trim(),
         description: description?.trim() || null,
@@ -200,25 +200,25 @@ export async function POST(request: NextRequest) {
     });
 
     // Format response
-    const formattedBranch = {
-      id: branch.id,
-      name: branch.name,
-      description: branch.description,
-      location: branch.location,
-      isPublic: branch.isPublic,
+    const formattedLibrary = {
+      id: library.id,
+      name: library.name,
+      description: library.description,
+      location: library.location,
+      isPublic: library.isPublic,
       role: 'owner',
       memberCount: 1, // Just the owner
       itemCount: 0,
-      joinedAt: branch.createdAt,
-      owner: branch.owner,
-      createdAt: branch.createdAt,
+      joinedAt: library.createdAt,
+      owner: library.owner,
+      createdAt: library.createdAt,
     };
 
-    return NextResponse.json({ branch: formattedBranch }, { status: 201 });
+    return NextResponse.json({ library: formattedLibrary }, { status: 201 });
   } catch (error) {
-    console.error('Error creating branch:', error);
+    console.error('Error creating library:', error);
     return NextResponse.json(
-      { error: 'Failed to create branch' },
+      { error: 'Failed to create library' },
       { status: 500 }
     );
   }

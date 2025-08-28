@@ -23,12 +23,12 @@ export async function getUserCount() {
   }
 }
 
-export async function getBranchCount() {
+export async function getLibraryCount() {
   try {
-    const count = await db.branch.count();
+    const count = await db.library.count();
     return count;
   } catch (error) {
-    console.error('Error getting branch count:', error);
+    console.error('Error getting library count:', error);
     throw error;
   }
 }

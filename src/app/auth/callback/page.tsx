@@ -14,7 +14,7 @@ function AuthCallbackContent() {
   const [isRedirecting, setIsRedirecting] = useState(false);
 
   const invitationToken = searchParams.get('invitation');
-  const branchId = searchParams.get('branch');
+  const libraryId = searchParams.get('library');
 
   useEffect(() => {
     if (status === 'loading' || isRedirecting) return;
@@ -38,11 +38,11 @@ function AuthCallbackContent() {
         const user = data.user;
 
         // Handle invitation flow
-        if (invitationToken && branchId && user) {
+        if (invitationToken && libraryId && user) {
           if (user.profileCompleted) {
             const firstName = user.name?.split(' ')[0] || '';
             const welcomeUrl = new URL(
-              `/branch/${branchId}`,
+              `/library/${libraryId}`,
               window.location.origin
             );
             welcomeUrl.searchParams.set('message', 'joined_successfully');
@@ -53,7 +53,7 @@ function AuthCallbackContent() {
             return;
           } else {
             router.replace(
-              `/profile/create?invitation=${invitationToken}&branch=${branchId}`
+              `/profile/create?invitation=${invitationToken}&library=${libraryId}`
             );
             return;
           }
@@ -73,7 +73,7 @@ function AuthCallbackContent() {
     };
 
     handleRedirect();
-  }, [session, status, router, invitationToken, branchId, isRedirecting]);
+  }, [session, status, router, invitationToken, libraryId, isRedirecting]);
 
   // Minimal loading state - no white flash
   return (

@@ -24,11 +24,11 @@ export async function POST(
       return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
     }
 
-    const { id: branchId } = await params;
+    const { id: libraryId } = await params;
 
-    // Check if branch exists and is joinable
-    const branch = await db.branch.findUnique({
-      where: { id: branchId },
+    // Check if library exists and is joinable
+    const library = await db.library.findUnique({
+      where: { id: libraryId },
       select: {
         id: true,
         name: true,
@@ -37,33 +37,33 @@ export async function POST(
       },
     });
 
-    if (!branch) {
-      return NextResponse.json({ error: 'Branch not found' }, { status: 404 });
+    if (!library) {
+      return NextResponse.json({ error: 'Library not found' }, { status: 404 });
     }
 
     // Check if user is already the owner
-    if (branch.ownerId === userId) {
+    if (library.ownerId === userId) {
       return NextResponse.json(
-        { error: 'You are already the owner of this branch' },
+        { error: 'You are already the owner of this library' },
         { status: 400 }
       );
     }
 
-    // For now, only allow joining public branches
-    // TODO: Add invitation system for private branches
-    if (!branch.isPublic) {
+    // For now, only allow joining public libraries
+    // TODO: Add invitation system for private libraries
+    if (!library.isPublic) {
       return NextResponse.json(
-        { error: 'This branch is private and requires an invitation' },
+        { error: 'This library is private and requires an invitation' },
         { status: 403 }
       );
     }
 
     // Check if user is already a member
-    const existingMembership = await db.branchMember.findUnique({
+    const existingMembership = await db.libraryMember.findUnique({
       where: {
-        userId_branchId: {
+        userId_libraryId: {
           userId,
-          branchId,
+          libraryId,
         },
       },
     });
@@ -71,12 +71,12 @@ export async function POST(
     if (existingMembership) {
       if (existingMembership.isActive) {
         return NextResponse.json(
-          { error: 'You are already a member of this branch' },
+          { error: 'You are already a member of this library' },
           { status: 400 }
         );
       } else {
         // Reactivate membership
-        await db.branchMember.update({
+        await db.libraryMember.update({
           where: { id: existingMembership.id },
           data: {
             isActive: true,
@@ -86,19 +86,19 @@ export async function POST(
       }
     } else {
       // Create new membership
-      await db.branchMember.create({
+      await db.libraryMember.create({
         data: {
           userId,
-          branchId,
+          libraryId,
           role: 'member',
           isActive: true,
         },
       });
     }
 
-    // Get updated branch info
-    const updatedBranch = await db.branch.findUnique({
-      where: { id: branchId },
+    // Get updated library info
+    const updatedLibrary = await db.library.findUnique({
+      where: { id: libraryId },
       include: {
         owner: {
           select: {
@@ -116,30 +116,30 @@ export async function POST(
       },
     });
 
-    const formattedBranch = {
-      id: updatedBranch!.id,
-      name: updatedBranch!.name,
-      description: updatedBranch!.description,
-      location: updatedBranch!.location,
-      isPublic: updatedBranch!.isPublic,
+    const formattedLibrary = {
+      id: updatedLibrary!.id,
+      name: updatedLibrary!.name,
+      description: updatedLibrary!.description,
+      location: updatedLibrary!.location,
+      isPublic: updatedLibrary!.isPublic,
       role: 'member',
-      memberCount: updatedBranch!._count.members + 1, // +1 for owner
-      itemCount: updatedBranch!._count.items,
+      memberCount: updatedLibrary!._count.members + 1, // +1 for owner
+      itemCount: updatedLibrary!._count.items,
       joinedAt: new Date(),
-      owner: updatedBranch!.owner,
+      owner: updatedLibrary!.owner,
     };
 
     return NextResponse.json(
       {
-        message: 'Successfully joined branch',
-        branch: formattedBranch,
+        message: 'Successfully joined library',
+        library: formattedLibrary,
       },
       { status: 201 }
     );
   } catch (error) {
-    console.error('Error joining branch:', error);
+    console.error('Error joining library:', error);
     return NextResponse.json(
-      { error: 'Failed to join branch' },
+      { error: 'Failed to join library' },
       { status: 500 }
     );
   }
@@ -165,11 +165,11 @@ export async function DELETE(
       return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
     }
 
-    const { id: branchId } = await params;
+    const { id: libraryId } = await params;
 
-    // Check if branch exists
-    const branch = await db.branch.findUnique({
-      where: { id: branchId },
+    // Check if library exists
+    const library = await db.library.findUnique({
+      where: { id: libraryId },
       select: {
         id: true,
         ownerId: true,
@@ -177,64 +177,64 @@ export async function DELETE(
       },
     });
 
-    if (!branch) {
-      return NextResponse.json({ error: 'Branch not found' }, { status: 404 });
+    if (!library) {
+      return NextResponse.json({ error: 'Library not found' }, { status: 404 });
     }
 
-    // Owners cannot leave their own branch
-    if (branch.ownerId === userId) {
+    // Owners cannot leave their own library
+    if (library.ownerId === userId) {
       return NextResponse.json(
         {
           error:
-            'Branch owners cannot leave their own branch. Transfer ownership or delete the branch instead.',
+            'Library owners cannot leave their own library. Transfer ownership or delete the library instead.',
         },
         { status: 400 }
       );
     }
 
     // Find and deactivate membership
-    const membership = await db.branchMember.findUnique({
+    const membership = await db.libraryMember.findUnique({
       where: {
-        userId_branchId: {
+        userId_libraryId: {
           userId,
-          branchId,
+          libraryId,
         },
       },
     });
 
     if (!membership) {
       return NextResponse.json(
-        { error: 'You are not a member of this branch' },
+        { error: 'You are not a member of this library' },
         { status: 400 }
       );
     }
 
     if (!membership.isActive) {
       return NextResponse.json(
-        { error: 'You have already left this branch' },
+        { error: 'You have already left this library' },
         { status: 400 }
       );
     }
 
-    // TODO: Check if user has active borrows in this branch
+    // TODO: Check if user has active borrows in this library
     // For now, we'll allow leaving but in production you'd want to:
     // 1. Check for active borrow requests
     // 2. Check for items being borrowed from this user
     // 3. Require resolution before leaving
 
     // Deactivate membership
-    await db.branchMember.update({
+    await db.libraryMember.update({
       where: { id: membership.id },
       data: {
         isActive: false,
       },
     });
 
-    return NextResponse.json({ message: 'Successfully left branch' });
+    return NextResponse.json({ message: 'Successfully left library' });
   } catch (error) {
-    console.error('Error leaving branch:', error);
+    console.error('Error leaving library:', error);
     return NextResponse.json(
-      { error: 'Failed to leave branch' },
+      { error: 'Failed to leave library' },
       { status: 500 }
     );
   }

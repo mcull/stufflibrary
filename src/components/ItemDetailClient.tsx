@@ -38,7 +38,7 @@ import { useState, useEffect } from 'react';
 
 import { useBorrowHistory } from '@/hooks/useBorrowHistory';
 import { useBorrowRequests } from '@/hooks/useBorrowRequests';
-import { useBranches } from '@/hooks/useBranches';
+import { useLibraries } from '@/hooks/useLibraries';
 
 import { VintageCheckoutCard } from './VintageCheckoutCard';
 
@@ -86,8 +86,8 @@ export function ItemDetailClient({
   const [description, setDescription] = useState('');
   const [condition, setCondition] = useState('good');
   const [location, setLocation] = useState('');
-  const [editMode, setEditMode] = useState(false);
-  const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
+  const [_editMode, _setEditMode] = useState(false);
+  const [selectedLibraries, setSelectedLibraries] = useState<string[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [toast, setToast] = useState<{ open: boolean; message: string }>({
     open: false,
@@ -105,7 +105,7 @@ export function ItemDetailClient({
   // Hooks
   const { data: borrowHistory } = useBorrowHistory(isNewItem ? '' : itemId);
   const { receivedRequests } = useBorrowRequests();
-  const { branches } = useBranches();
+  const { libraries } = useLibraries();
 
   // Filter pending requests for this specific item
   const pendingRequests = receivedRequests.filter(
@@ -257,13 +257,8 @@ export function ItemDetailClient({
       }
     };
 
-    // Only fetch item data if it's not a new item
-    if (!isNewItem) {
-      fetchItem();
-    } else {
-      // For new items, just stop loading
-      setLoading(false);
-    }
+    // Fetch item data regardless - even "new" items exist in the database
+    fetchItem();
   }, [itemId, isNewItem]);
 
   // Save item updates
@@ -301,7 +296,7 @@ export function ItemDetailClient({
         location: data.item.location || '',
       };
       setOriginalValues(newOriginalValues);
-      setEditMode(false);
+      _setEditMode(false);
 
       // Show toast if not silent
       if (!silent) {
@@ -320,6 +315,38 @@ export function ItemDetailClient({
       setError('Failed to save changes');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Handle library membership updates
+  const handleLibraryMembershipUpdate = async (libraryIds: string[]) => {
+    if (!item) return;
+
+    try {
+      const response = await fetch(`/api/items/${itemId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          libraryIds: libraryIds,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update library membership');
+      }
+
+      setToast({
+        open: true,
+        message: 'Library membership updated successfully',
+      });
+    } catch (err) {
+      console.error('Error updating library membership:', err);
+      setToast({
+        open: true,
+        message: 'Failed to update library membership',
+      });
     }
   };
 
@@ -724,68 +751,6 @@ export function ItemDetailClient({
                           </Box>
                         )}
 
-                      {/* Library Selection (if user owns item) */}
-                      {!isNewItem &&
-                        item?.owner.id === currentUserId &&
-                        branches.length > 0 && (
-                          <Box>
-                            <Typography
-                              variant="body2"
-                              color="text.secondary"
-                              gutterBottom
-                            >
-                              Available in Libraries
-                            </Typography>
-                            <FormGroup>
-                              {branches.map((branch) => (
-                                <FormControlLabel
-                                  key={branch.id}
-                                  control={
-                                    <Checkbox
-                                      checked={selectedBranches.includes(
-                                        branch.id
-                                      )}
-                                      onChange={(e) => {
-                                        if (e.target.checked) {
-                                          setSelectedBranches([
-                                            ...selectedBranches,
-                                            branch.id,
-                                          ]);
-                                        } else {
-                                          setSelectedBranches(
-                                            selectedBranches.filter(
-                                              (id) => id !== branch.id
-                                            )
-                                          );
-                                        }
-                                      }}
-                                      disabled={!editMode}
-                                    />
-                                  }
-                                  label={
-                                    <Box>
-                                      <Typography
-                                        variant="body2"
-                                        fontWeight={500}
-                                      >
-                                        {branch.name}
-                                      </Typography>
-                                      {branch.location && (
-                                        <Typography
-                                          variant="caption"
-                                          color="text.secondary"
-                                        >
-                                          📍 {branch.location}
-                                        </Typography>
-                                      )}
-                                    </Box>
-                                  }
-                                />
-                              ))}
-                            </FormGroup>
-                          </Box>
-                        )}
-
                       {/* Save Button (only for new items) */}
                       {isNewItem && (
                         <Box sx={{ pt: 2 }}>
@@ -1097,6 +1062,111 @@ export function ItemDetailClient({
                 </Card>
               </Box>
             </Box>
+
+            {/* Library Membership (heading aligned left, checkboxes aligned right on desktop) */}
+            {!isNewItem &&
+              item?.owner.id === currentUserId &&
+              libraries.length > 0 && (
+                <Box sx={{ mt: { xs: 8, md: 3 } }}>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      mb: 2,
+                      fontSize: '1.1rem',
+                      fontWeight: 600,
+                      color: 'text.primary',
+                    }}
+                  >
+                    Visible in following libraries:
+                  </Typography>
+
+                  <Box
+                    sx={{
+                      display: 'flex',
+                    }}
+                  >
+                    <Box>
+                      {/* Availability warning if item is not available */}
+                      {!item?.isAvailable && (
+                        <Alert severity="info" sx={{ mb: 2 }}>
+                          Library membership can only be edited when the item is
+                          available.
+                        </Alert>
+                      )}
+
+                      <FormGroup sx={{ ml: 1 }}>
+                        {libraries.map((library) => (
+                          <FormControlLabel
+                            key={library.id}
+                            control={
+                              <Checkbox
+                                checked={selectedLibraries.includes(library.id)}
+                                onChange={(e) => {
+                                  const newSelectedLibraries = e.target.checked
+                                    ? [...selectedLibraries, library.id]
+                                    : selectedLibraries.filter(
+                                        (id) => id !== library.id
+                                      );
+
+                                  setSelectedLibraries(newSelectedLibraries);
+                                  handleLibraryMembershipUpdate(
+                                    newSelectedLibraries
+                                  );
+                                }}
+                                disabled={!item?.isAvailable}
+                                sx={{
+                                  color: 'primary.main',
+                                  '&.Mui-checked': {
+                                    color: 'primary.main',
+                                  },
+                                }}
+                              />
+                            }
+                            label={
+                              <Box>
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    fontWeight: 500,
+                                    color: !item?.isAvailable
+                                      ? 'text.disabled'
+                                      : 'text.primary',
+                                  }}
+                                >
+                                  {library.name}
+                                </Typography>
+                                {library.location && (
+                                  <Typography
+                                    variant="caption"
+                                    sx={{
+                                      color: !item?.isAvailable
+                                        ? 'text.disabled'
+                                        : 'text.secondary',
+                                    }}
+                                  >
+                                    📍 {library.location}
+                                  </Typography>
+                                )}
+                              </Box>
+                            }
+                            sx={{ mb: 0.5 }}
+                          />
+                        ))}
+                      </FormGroup>
+
+                      {selectedLibraries.length === 0 && (
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ fontStyle: 'italic', mt: 1, ml: 1 }}
+                        >
+                          Not visible in any libraries yet
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
+                </Box>
+              )}
           </Box>
         </Box>
       )}
