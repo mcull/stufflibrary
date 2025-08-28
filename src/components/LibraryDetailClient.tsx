@@ -6,7 +6,7 @@ import {
   Close as CloseIcon,
   PhotoCamera as PhotoCameraIcon,
   Inventory as InventoryIcon,
-  ExpandMore as ExpandMoreIcon,
+  PersonAdd as PersonAddIcon,
 } from '@mui/icons-material';
 import {
   Box,
@@ -30,7 +30,6 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 
 import { brandColors, spacing } from '@/theme/brandTokens';
 
-import { InviteButton } from './InviteButton';
 import { InviteFriendsModal } from './InviteFriendsModal';
 import { LibraryItemCard } from './LibraryItemCard';
 import { LibraryMap } from './LibraryMap';
@@ -339,19 +338,62 @@ export function LibraryDetailClient({ libraryId }: LibraryDetailClientProps) {
 
       {/* Header */}
       <Box sx={{ mb: spacing.xl / 16 }}>
-        <Button
-          onClick={() => router.push('/lobby')}
-          startIcon={<ArrowBackIcon />}
+        {/* Top Navigation Row */}
+        <Box
           sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
             mb: spacing.md / 16,
-            color: brandColors.inkBlue,
-            textTransform: 'none',
           }}
         >
-          Back to Lobby
-        </Button>
+          <Button
+            onClick={() => router.push('/lobby')}
+            startIcon={<ArrowBackIcon />}
+            sx={{
+              color: brandColors.inkBlue,
+              textTransform: 'none',
+            }}
+          >
+            Back to Lobby
+          </Button>
 
-        {/* Owner/Private Chips above title */}
+          {/* Action Icons Row */}
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            {library.userRole && (
+              <IconButton
+                onClick={handleAddMenuClick}
+                sx={{
+                  bgcolor: 'rgba(25, 118, 210, 0.08)',
+                  color: brandColors.inkBlue,
+                  '&:hover': {
+                    bgcolor: 'rgba(25, 118, 210, 0.12)',
+                  },
+                }}
+                title="Add Items"
+              >
+                <AddIcon />
+              </IconButton>
+            )}
+            {(library.userRole === 'owner' || library.userRole === 'admin') && (
+              <IconButton
+                onClick={() => setInviteModalOpen(true)}
+                sx={{
+                  bgcolor: 'rgba(25, 118, 210, 0.08)',
+                  color: brandColors.inkBlue,
+                  '&:hover': {
+                    bgcolor: 'rgba(25, 118, 210, 0.12)',
+                  },
+                }}
+                title="Invite Friends"
+              >
+                <PersonAddIcon />
+              </IconButton>
+            )}
+          </Box>
+        </Box>
+
+        {/* Owner/Private Chips */}
         <Box
           sx={{
             display: 'flex',
@@ -370,54 +412,18 @@ export function LibraryDetailClient({ libraryId }: LibraryDetailClientProps) {
           )}
         </Box>
 
-        <Box
+        {/* Library Title */}
+        <Typography
+          variant="h2"
           sx={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
+            fontSize: { xs: '2rem', md: '2.5rem' },
+            fontWeight: 700,
+            color: brandColors.charcoal,
             mb: spacing.sm / 16,
           }}
         >
-          <Typography
-            variant="h2"
-            sx={{
-              fontSize: { xs: '2rem', md: '2.5rem' },
-              fontWeight: 700,
-              color: brandColors.charcoal,
-            }}
-          >
-            {library.name}
-          </Typography>
-
-          {/* Library Actions - consolidated add button and invite */}
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-            {library.userRole && (
-              <Button
-                onClick={handleAddMenuClick}
-                startIcon={<AddIcon />}
-                endIcon={<ExpandMoreIcon />}
-                variant="outlined"
-                size="small"
-                sx={{
-                  borderColor: brandColors.inkBlue,
-                  color: brandColors.inkBlue,
-                  '&:hover': {
-                    borderColor: brandColors.inkBlue,
-                    bgcolor: 'rgba(25, 118, 210, 0.08)',
-                  },
-                }}
-              >
-                Add Items
-              </Button>
-            )}
-            {(library.userRole === 'owner' || library.userRole === 'admin') && (
-              <InviteButton
-                onClick={() => setInviteModalOpen(true)}
-                size="small"
-              />
-            )}
-          </Box>
-        </Box>
+          {library.name}
+        </Typography>
 
         <Typography
           variant="body1"

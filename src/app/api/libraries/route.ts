@@ -50,7 +50,11 @@ export async function GET() {
             _count: {
               select: {
                 members: true,
-                items: true,
+                items: {
+                  where: {
+                    item: { isAvailable: true },
+                  },
+                },
               },
             },
           },
@@ -78,7 +82,11 @@ export async function GET() {
                 _count: {
                   select: {
                     members: true,
-                    items: true,
+                    items: {
+                      where: {
+                        item: { isAvailable: true },
+                      },
+                    },
                   },
                 },
               },

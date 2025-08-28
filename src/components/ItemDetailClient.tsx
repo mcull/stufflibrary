@@ -89,6 +89,7 @@ export function ItemDetailClient({
   const [_editMode, _setEditMode] = useState(false);
   const [selectedLibraries, setSelectedLibraries] = useState<string[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const [toast, setToast] = useState<{ open: boolean; message: string }>({
     open: false,
     message: '',
@@ -222,6 +223,11 @@ export function ItemDetailClient({
     currentUserId &&
     item.owner.id !== currentUserId &&
     item.isAvailable;
+
+  // Ensure client-side hydration is complete
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Fetch item data
   useEffect(() => {
@@ -485,8 +491,14 @@ export function ItemDetailClient({
                   width: '100%',
                   height: '100%',
                   transformStyle: 'preserve-3d',
+                  WebkitTransformStyle: 'preserve-3d', // Safari-specific
                   transition: 'transform 0.6s ease-in-out',
-                  transform: showHistory ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                  WebkitTransition: 'transform 0.6s ease-in-out', // Safari-specific
+                  transform: isClient
+                    ? showHistory
+                      ? 'rotateY(180deg)'
+                      : 'rotateY(0deg)'
+                    : 'rotateY(0deg)', // Always start front-facing during SSR/hydration
                 }}
               >
                 {/* Front Side - Item Details */}
@@ -497,6 +509,10 @@ export function ItemDetailClient({
                     height: { xs: 'auto', md: '625px' },
                     minHeight: { xs: '500px', md: '625px' },
                     backfaceVisibility: 'hidden',
+                    WebkitBackfaceVisibility: 'hidden', // Safari-specific
+                    opacity: !isClient || !showHistory ? 1 : 0, // Fallback visibility control
+                    zIndex: !isClient || !showHistory ? 2 : 1, // Ensure front is on top when not flipped
+                    transition: 'opacity 0.3s ease-in-out',
                   }}
                 >
                   <CardContent
@@ -885,7 +901,11 @@ export function ItemDetailClient({
                     height: { xs: 'auto', md: '625px' },
                     minHeight: { xs: '500px', md: '625px' },
                     backfaceVisibility: 'hidden',
+                    WebkitBackfaceVisibility: 'hidden', // Safari-specific
                     transform: 'rotateY(180deg)',
+                    opacity: isClient && showHistory ? 1 : 0, // Fallback visibility control
+                    zIndex: isClient && showHistory ? 2 : 1, // Ensure back is on top when flipped
+                    transition: 'opacity 0.3s ease-in-out',
                     backgroundColor: '#f9f7f4',
                     border: '1px solid rgba(139,69,19,0.2)',
                     '&::before': {
