@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if already responded to
-    if (borrowRequest.status !== 'pending') {
+    if (borrowRequest.status !== 'PENDING') {
       return NextResponse.json(
         { error: 'This request has already been responded to' },
         { status: 400 }
@@ -81,9 +81,9 @@ export async function POST(request: NextRequest) {
     const updatedBorrowRequest = await db.borrowRequest.update({
       where: { id: borrowRequestId },
       data: {
-        status: decision === 'approve' ? 'approved' : 'declined',
-        lenderResponse: response,
-        respondedAt: new Date(),
+        status: decision === 'approve' ? 'APPROVED' : 'DECLINED',
+        lenderMessage: response,
+        approvedAt: decision === 'approve' ? new Date() : null,
       },
     });
 

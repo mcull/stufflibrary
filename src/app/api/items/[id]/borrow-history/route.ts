@@ -58,7 +58,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                 {
                   libraryMemberships: {
                     some: {
-                      libraryId: { in: item.libraries.map(il => il.library.id) },
+                      libraryId: {
+                        in: item.libraries.map((il) => il.library.id),
+                      },
                       isActive: true,
                     },
                   },
@@ -77,7 +79,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const borrowHistory = await db.borrowRequest.findMany({
       where: {
         itemId: itemId,
-        status: { in: ['approved', 'active', 'returned'] }, // Only show meaningful borrows
+        status: { in: ['APPROVED', 'ACTIVE', 'RETURNED'] }, // Only show meaningful borrows
       },
       include: {
         borrower: {
@@ -88,7 +90,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         },
       },
       orderBy: {
-        requestedAt: 'desc',
+        createdAt: 'desc',
       },
     });
 
@@ -98,13 +100,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         id: record.id,
         status: record.status,
         borrower: record.borrower,
-        signature: record.signature,
-        promiseText: record.promiseText,
-        promisedReturnBy: record.promisedReturnBy,
-        borrowedAt: record.borrowedAt,
+        requestMessage: record.requestMessage,
+        requestedReturnDate: record.requestedReturnDate,
+        actualReturnDate: record.actualReturnDate,
         returnedAt: record.returnedAt,
         approvedAt: record.approvedAt,
-        requestedAt: record.requestedAt,
+        createdAt: record.createdAt,
       })),
     });
   } catch (error) {
