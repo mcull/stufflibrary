@@ -81,7 +81,7 @@ export async function GET(
       return NextResponse.json({ error: 'Library not found' }, { status: 404 });
     }
 
-    // Get library items
+    // Get library items (only available items)
     const items = await db.item.findMany({
       where: {
         libraries: {
@@ -89,6 +89,7 @@ export async function GET(
             libraryId: libraryId,
           },
         },
+        isAvailable: true, // Only show available items in library views
       },
       include: {
         owner: {
@@ -350,7 +351,11 @@ export async function PUT(
         _count: {
           select: {
             members: true,
-            items: true,
+            items: {
+              where: {
+                item: { isAvailable: true },
+              },
+            },
           },
         },
       },

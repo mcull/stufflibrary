@@ -87,12 +87,13 @@ export async function GET(_request: NextRequest) {
       name: item.name,
       description: item.description,
       imageUrl: item.imageUrl,
-      isAvailable: item.isAvailable && item._count.borrowRequests === 0,
+      isAvailable: item.isAvailable, // Preserve original database value (true/false for online/offline)
+      canBeBorrowed: item.isAvailable && item._count.borrowRequests === 0, // Computed field for actual borrowability
       condition: item.condition,
       location: item.location,
       createdAt: item.createdAt,
       stuffType: item.stuffType,
-      libraries: item.libraries.map(il => il.library),
+      libraries: item.libraries.map((il) => il.library),
       owner: item.owner,
       isOnLoan: item._count.borrowRequests > 0,
       activeBorrower: item.borrowRequests[0]?.borrower || null,

@@ -95,7 +95,11 @@ export async function GET(request: NextRequest) {
         _count: {
           select: {
             members: true,
-            items: true,
+            items: {
+              where: {
+                item: { isAvailable: true },
+              },
+            },
           },
         },
       },
