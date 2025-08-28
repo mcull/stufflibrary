@@ -412,7 +412,7 @@ export function ItemDetailClient({
                 {/* Owner Avatar Overlay for checked out items */}
                 {!item.isAvailable && (
                   <Avatar
-                    src={item.owner.image ?? undefined}
+                    {...(item.owner.image && { src: item.owner.image })}
                     onClick={() => router.push(`/profile/${item.owner.id}`)}
                     sx={{
                       position: 'absolute',

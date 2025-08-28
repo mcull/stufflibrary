@@ -250,11 +250,10 @@ function ItemCard({ item, status }: ItemCardProps) {
               {/* Avatar Overlay for offline items - show borrower or owner */}
               {!item.isAvailable && (
                 <Avatar
-                  src={
-                    (item.activeBorrower?.image || item.owner?.image) ??
-                    undefined
-                  }
-                  onClick={(e) => {
+                  {...((item.activeBorrower?.image || item.owner?.image) && {
+                    src: item.activeBorrower?.image || item.owner?.image,
+                  })}
+                  onClick={(e: React.MouseEvent) => {
                     e.stopPropagation();
                     const userId = item.activeBorrower?.id || item.owner?.id;
                     if (userId) {
