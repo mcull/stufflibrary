@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
         description: description || `Added via camera capture`,
         condition: 'good', // Default condition
         imageUrl: imageUrl,
-        isAvailable: true,
+        currentBorrowRequestId: null,
         ownerId: userId,
         stuffTypeId: stuffType.id,
       },
@@ -189,11 +189,11 @@ export async function POST(request: NextRequest) {
         description: itemWithLibraries!.description,
         condition: itemWithLibraries!.condition,
         imageUrl: itemWithLibraries!.imageUrl,
-        isAvailable: itemWithLibraries!.isAvailable,
+        isAvailable: !itemWithLibraries!.currentBorrowRequestId,
         createdAt: itemWithLibraries!.createdAt,
         owner: itemWithLibraries!.owner,
         stuffType: itemWithLibraries!.stuffType,
-        libraries: itemWithLibraries!.libraries.map(il => il.library),
+        libraries: itemWithLibraries!.libraries.map((il) => il.library),
       },
     });
   } catch (error) {
