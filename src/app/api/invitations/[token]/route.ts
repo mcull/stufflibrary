@@ -20,11 +20,11 @@ export async function GET(
     const invitation = await db.invitation.findFirst({
       where: {
         token,
-        type: 'branch',
+        type: 'library',
         status: { in: ['PENDING', 'SENT', 'ACCEPTED'] },
       },
       include: {
-        branch: {
+        library: {
           select: {
             id: true,
             name: true,
@@ -57,27 +57,27 @@ export async function GET(
       );
     }
 
-    // Check if user already exists and is already a member of THIS SPECIFIC branch
+    // Check if user already exists and is already a member of THIS SPECIFIC library
     const existingUser = await db.user.findFirst({
       where: { email: invitation.email },
       include: {
-        branchMemberships: {
+        libraryMemberships: {
           where: {
-            branchId: invitation.branchId!,
+            libraryId: invitation.libraryId!,
             isActive: true,
           },
         },
       },
     });
 
-    // Only redirect if they're already a member of THIS specific branch
+    // Only redirect if they're already a member of THIS specific library
     if (
-      existingUser?.branchMemberships &&
-      existingUser.branchMemberships.length > 0
+      existingUser?.libraryMemberships &&
+      existingUser.libraryMemberships.length > 0
     ) {
       return NextResponse.redirect(
         new URL(
-          `/branch/${invitation.branchId}?message=already_member`,
+          `/library/${invitation.libraryId}?message=already_member`,
           request.url
         )
       );

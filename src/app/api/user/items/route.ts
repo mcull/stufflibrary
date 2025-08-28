@@ -34,10 +34,14 @@ export async function GET(_request: NextRequest) {
             category: true,
           },
         },
-        branch: {
-          select: {
-            id: true,
-            name: true,
+        libraries: {
+          include: {
+            library: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         },
         owner: {
@@ -88,7 +92,7 @@ export async function GET(_request: NextRequest) {
       location: item.location,
       createdAt: item.createdAt,
       stuffType: item.stuffType,
-      branch: item.branch,
+      libraries: item.libraries.map(il => il.library),
       owner: item.owner,
       isOnLoan: item._count.borrowRequests > 0,
       activeBorrower: item.borrowRequests[0]?.borrower || null,

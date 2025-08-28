@@ -17,11 +17,11 @@ import { useState } from 'react';
 
 import { brandColors } from '@/theme/brandTokens';
 
-interface BranchCreationModalProps {
+interface LibraryCreationModalProps {
   open: boolean;
   onClose: () => void;
-  onSuccess: (branch: unknown) => void;
-  createBranch?: (branchData: {
+  onSuccess: (library: unknown) => void;
+  createLibrary?: (libraryData: {
     name: string;
     description?: string;
     location?: string;
@@ -29,12 +29,12 @@ interface BranchCreationModalProps {
   }) => Promise<unknown>;
 }
 
-export function BranchCreationModal({
+export function LibraryCreationModal({
   open,
   onClose,
   onSuccess,
-  createBranch,
-}: BranchCreationModalProps) {
+  createLibrary,
+}: LibraryCreationModalProps) {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -57,12 +57,12 @@ export function BranchCreationModal({
     setIsSubmitting(true);
 
     try {
-      if (createBranch) {
-        // Use the provided createBranch function
-        const branch = await createBranch(formData);
+      if (createLibrary) {
+        // Use the provided createLibrary function
+        const branch = await createLibrary(formData);
         onSuccess(branch);
       } else {
-        // Fallback to direct API call if createBranch not provided
+        // Fallback to direct API call if createLibrary not provided
         const response = await fetch('/api/branches', {
           method: 'POST',
           headers: {

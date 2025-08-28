@@ -45,10 +45,10 @@ interface UploadedItem {
 }
 
 interface AddItemClientProps {
-  branchId?: string;
+  libraryId?: string;
 }
 
-export function AddItemClient({ branchId }: AddItemClientProps) {
+export function AddItemClient({ libraryId }: AddItemClientProps) {
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -294,9 +294,9 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
           formData.append('description', recognitionResult.description);
           formData.append('category', recognitionResult.category);
 
-          // Only add branchId if provided (from specific library context)
-          if (branchId) {
-            formData.append('branchId', branchId);
+          // Only add libraryIds if provided (from specific library context)
+          if (libraryId) {
+            formData.append('libraryIds', JSON.stringify([libraryId]));
           }
 
           console.log('🚀 Uploading to API...');
@@ -335,7 +335,7 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
       setError('Failed to add item. Please try again.');
       setState('error');
     }
-  }, [recognitionResult, branchId]);
+  }, [recognitionResult, libraryId]);
 
   // Retry capture
   const retryCapture = useCallback(() => {

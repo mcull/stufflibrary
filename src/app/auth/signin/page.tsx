@@ -26,7 +26,7 @@ function SignInForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [invitationContext, setInvitationContext] = useState<{
-    branchName: string;
+    libraryName: string;
     inviterName: string;
   } | null>(null);
   const searchParams = useSearchParams();
@@ -42,14 +42,14 @@ function SignInForm() {
   );
 
   // Default to server-side callback that decides destination post-auth
-  const branchId = searchParams.get('branch');
+  const libraryId = searchParams.get('library');
   const callbackUrl =
     searchParams.get('callbackUrl') ||
     (() => {
       if (invitationToken) {
         const params = new URLSearchParams();
         params.set('invitation', invitationToken);
-        if (branchId) params.set('branch', branchId);
+        if (libraryId) params.set('library', libraryId);
         return `/auth/callback?${params.toString()}`;
       }
       return '/auth/callback';
@@ -115,7 +115,7 @@ function SignInForm() {
         .then((data) => {
           if (data.success && data.invitation) {
             setInvitationContext({
-              branchName: data.invitation.branch?.name || 'Unknown Branch',
+              libraryName: data.invitation.library?.name || 'Unknown Library',
               inviterName: data.invitation.sender?.name || 'Someone',
             });
             // Pre-fill email if invitation has one (but don't override magic link email)
@@ -529,7 +529,7 @@ function SignInForm() {
                     fontWeight: 600,
                   }}
                 >
-                  {invitationContext.branchName}
+                  {invitationContext.libraryName}
                 </Typography>
                 <Typography
                   variant="body2"

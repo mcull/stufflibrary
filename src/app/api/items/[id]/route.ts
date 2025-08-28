@@ -221,7 +221,7 @@ export async function PATCH(
 
     const { id: itemId } = await params;
     const body = await request.json();
-    const { isAvailable, branchId } = body;
+    const { isAvailable, libraryIds } = body;
 
     // Check if user owns the item
     const item = await db.item.findUnique({
@@ -248,31 +248,6 @@ export async function PATCH(
       );
     }
 
-    if (branchId !== undefined && typeof branchId !== 'string') {
-      return NextResponse.json(
-        { error: 'branchId must be a string' },
-        { status: 400 }
-      );
-    }
-
-    // If branchId is being changed, validate user has access to the branch
-    if (branchId !== undefined) {
-      const branchMembership = await db.branchMember.findUnique({
-        where: {
-          userId_branchId: {
-            userId,
-            branchId,
-          },
-        },
-      });
-
-      if (!branchMembership) {
-        return NextResponse.json(
-          { error: 'You are not a member of the specified branch' },
-          { status: 403 }
-        );
-      }
-    }
 
     // Check if item is currently borrowed
     const activeBorrow = await db.borrowRequest.findFirst({
@@ -294,9 +269,6 @@ export async function PATCH(
     if (isAvailable !== undefined) {
       updateData.isAvailable = isAvailable;
     }
-    if (branchId !== undefined) {
-      updateData.branchId = branchId;
-    }
 
     // Update item
     const updatedItem = await db.item.update({
@@ -317,8 +289,92 @@ export async function PATCH(
             iconPath: true,
           },
         },
+        libraries: {
+          include: {
+            library: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
+
+    // Handle library assignments if provided
+    if (libraryIds && Array.isArray(libraryIds)) {
+      // Delete existing library relationships
+      await db.itemLibrary.deleteMany({
+        where: { itemId },
+      });
+
+      // Create new library relationships
+      if (libraryIds.length > 0) {
+        await db.$transaction(
+          libraryIds.map((libraryId: string) =>
+            db.itemLibrary.create({
+              data: {
+                itemId,
+                libraryId,
+              },
+            })
+          )
+        );
+      }
+
+      // Refetch item with updated library relationships
+      const itemWithLibraries = await db.item.findUnique({
+        where: { id: itemId },
+        include: {
+          owner: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+            },
+          },
+          stuffType: {
+            select: {
+              displayName: true,
+              category: true,
+              iconPath: true,
+            },
+          },
+          libraries: {
+            include: {
+              library: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      // Format response with libraries
+      const formattedItemWithLibraries = {
+        id: itemWithLibraries!.id,
+        name: itemWithLibraries!.name,
+        description: itemWithLibraries!.description,
+        condition: itemWithLibraries!.condition,
+        location: itemWithLibraries!.location,
+        imageUrl: itemWithLibraries!.imageUrl,
+        isAvailable: itemWithLibraries!.isAvailable,
+        createdAt: itemWithLibraries!.createdAt,
+        updatedAt: itemWithLibraries!.updatedAt,
+        owner: itemWithLibraries!.owner,
+        stuffType: itemWithLibraries!.stuffType,
+        libraries: itemWithLibraries!.libraries.map(il => il.library),
+      };
+
+      return NextResponse.json({
+        item: formattedItemWithLibraries,
+        message: `Item added to ${libraryIds.length} ${libraryIds.length === 1 ? 'library' : 'libraries'}`,
+      });
+    }
 
     // Format response
     const formattedItem = {
@@ -333,6 +389,7 @@ export async function PATCH(
       updatedAt: updatedItem.updatedAt,
       owner: updatedItem.owner,
       stuffType: updatedItem.stuffType,
+      libraries: updatedItem.libraries.map(il => il.library),
     };
 
     return NextResponse.json({
@@ -378,7 +435,6 @@ export async function DELETE(
       select: {
         ownerId: true,
         name: true,
-        branchId: true,
       },
     });
 
@@ -414,8 +470,7 @@ export async function DELETE(
     });
 
     return NextResponse.json({
-      message: `"${item.name}" has been removed from your branch`,
-      branchId: item.branchId,
+      message: `"${item.name}" has been removed`,
     });
   } catch (error) {
     console.error('Error removing item:', error);

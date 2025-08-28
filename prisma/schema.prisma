@@ -59,8 +59,8 @@ model User {
   addresses           Address[]
   borrowRequests      BorrowRequest[]
   lentItems           BorrowRequest[] @relation("Lender")
-  branchMemberships   BranchMember[]
-  ownedBranches       Branch[]        @relation("BranchOwner")
+  libraryMemberships  LibraryMember[]
+  ownedLibraries      Library[]       @relation("LibraryOwner")
   receivedInvitations Invitation[]    @relation("InvitationReceiver")
   sentInvitations     Invitation[]    @relation("InvitationSender")
   items               Item[]
@@ -79,7 +79,7 @@ model Invitation {
   qrCode         String?
   postcardSentAt DateTime?
   addressId      String?
-  branchId       String?
+  libraryId      String?
   senderId       String?
   receiverId     String?
   createdAt      DateTime         @default(now())
@@ -87,14 +87,14 @@ model Invitation {
   acceptedAt     DateTime?
   expiresAt      DateTime
   address        Address?         @relation(fields: [addressId], references: [id])
-  branch         Branch?          @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  library        Library?         @relation(fields: [libraryId], references: [id], onDelete: Cascade)
   receiver       User?            @relation("InvitationReceiver", fields: [receiverId], references: [id])
   sender         User?            @relation("InvitationSender", fields: [senderId], references: [id])
 
-  @@unique([email, senderId, branchId])
+  @@unique([email, senderId, libraryId])
   @@index([token])
   @@index([email])
-  @@index([branchId])
+  @@index([libraryId])
   @@map("invitations")
 }
 
@@ -118,36 +118,36 @@ model SignupApplication {
   @@map("signup_applications")
 }
 
-model Branch {
-  id          String         @id @default(cuid())
+model Library {
+  id          String          @id @default(cuid())
   name        String
   description String?
   location    String?
   rules       Json?
-  isPublic    Boolean        @default(false)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  isPublic    Boolean         @default(false)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
   ownerId     String
-  members     BranchMember[]
-  owner       User           @relation("BranchOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members     LibraryMember[]
+  owner       User            @relation("LibraryOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   invitations Invitation[]
-  items       Item[]
+  items       ItemLibrary[]
 
-  @@map("branches")
+  @@map("libraries")
 }
 
-model BranchMember {
-  id       String   @id @default(cuid())
-  joinedAt DateTime @default(now())
-  role     String   @default("member")
-  isActive Boolean  @default(true)
-  userId   String
-  branchId String
-  branch   Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+model LibraryMember {
+  id        String  @id @default(cuid())
+  joinedAt  DateTime @default(now())
+  role      String   @default("member")
+  isActive  Boolean  @default(true)
+  userId    String
+  libraryId String
+  library   Library  @relation(fields: [libraryId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, branchId])
-  @@map("branch_members")
+  @@unique([userId, libraryId])
+  @@map("library_members")
 }
 
 model StuffType {
@@ -176,11 +176,10 @@ model Item {
   updatedAt      DateTime        @updatedAt
   stuffTypeId    String?
   ownerId        String
-  branchId       String?
   borrowRequests BorrowRequest[]
-  branch         Branch?         @relation(fields: [branchId], references: [id], onDelete: SetNull)
   owner          User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   stuffType      StuffType?      @relation(fields: [stuffTypeId], references: [id])
+  libraries      ItemLibrary[]
 
   @@map("items")
 }
@@ -272,6 +271,18 @@ model AuthCode {
   createdAt DateTime @default(now())
 
   @@map("auth_codes")
+}
+
+model ItemLibrary {
+  id        String   @id @default(cuid())
+  itemId    String
+  libraryId String
+  addedAt   DateTime @default(now())
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  library   Library  @relation(fields: [libraryId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, libraryId])
+  @@map("item_libraries")
 }
 
 enum InvitationStatus {

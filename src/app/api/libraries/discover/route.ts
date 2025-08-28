@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
       }>;
     } = {
       isPublic: true,
-      // Exclude branches the user is already a member of
+      // Exclude libraries the user is already a member of
       AND: [
         {
           ownerId: {
@@ -81,8 +81,8 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    // Get public branches that the user isn't already a member of
-    const publicBranches = await db.branch.findMany({
+    // Get public libraries that the user isn't already a member of
+    const publicLibraries = await db.library.findMany({
       where: whereClause,
       include: {
         owner: {
@@ -106,20 +106,20 @@ export async function GET(request: NextRequest) {
     });
 
     // Format the response
-    const branches = publicBranches.map((branch) => ({
-      id: branch.id,
-      name: branch.name,
-      description: branch.description,
-      location: branch.location,
-      memberCount: branch._count.members + 1, // +1 for owner
-      itemCount: branch._count.items,
-      owner: branch.owner,
-      createdAt: branch.createdAt,
+    const libraries = publicLibraries.map((library) => ({
+      id: library.id,
+      name: library.name,
+      description: library.description,
+      location: library.location,
+      memberCount: library._count.members + 1, // +1 for owner
+      itemCount: library._count.items,
+      owner: library.owner,
+      createdAt: library.createdAt,
     }));
 
-    return NextResponse.json({ branches });
+    return NextResponse.json({ libraries });
   } catch (error) {
-    console.error('Error fetching public branches:', error);
+    console.error('Error fetching public libraries:', error);
     return NextResponse.json(
       { error: 'Failed to fetch public libraries' },
       { status: 500 }

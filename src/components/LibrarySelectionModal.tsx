@@ -6,8 +6,7 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  Radio,
-  RadioGroup,
+  Checkbox,
   FormControlLabel,
   Box,
   Typography,
@@ -41,7 +40,7 @@ export function LibrarySelectionModal({
   onComplete,
 }: LibrarySelectionModalProps) {
   const [libraries, setLibraries] = useState<Library[]>([]);
-  const [selectedLibraryId, setSelectedLibraryId] = useState<string>('');
+  const [selectedLibraryIds, setSelectedLibraryIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,18 +57,18 @@ export function LibrarySelectionModal({
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch('/api/branches');
+      const response = await fetch('/api/libraries');
       if (!response.ok) {
         throw new Error('Failed to fetch libraries');
       }
 
       const data = await response.json();
-      const userLibraries = data.branches || [];
+      const userLibraries = data.libraries || [];
 
       setLibraries(userLibraries);
-      // Select first library by default if available
+      // Pre-select all libraries by default
       if (userLibraries.length > 0) {
-        setSelectedLibraryId(userLibraries[0].id);
+        setSelectedLibraryIds(userLibraries.map((lib: Library) => lib.id));
       }
     } catch (err) {
       console.error('Error fetching libraries:', err);
@@ -79,12 +78,16 @@ export function LibrarySelectionModal({
     }
   };
 
-  const handleLibrarySelect = (libraryId: string) => {
-    setSelectedLibraryId(libraryId);
+  const handleLibraryToggle = (libraryId: string) => {
+    setSelectedLibraryIds(prev => 
+      prev.includes(libraryId) 
+        ? prev.filter(id => id !== libraryId)
+        : [...prev, libraryId]
+    );
   };
 
   const handleSave = async () => {
-    if (!selectedLibraryId) {
+    if (selectedLibraryIds.length === 0) {
       onComplete([]);
       return;
     }
@@ -93,20 +96,20 @@ export function LibrarySelectionModal({
     setError(null);
 
     try {
-      // Add item to selected library
+      // Add item to selected libraries
       const response = await fetch(`/api/items/${itemId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ branchId: selectedLibraryId }),
+        body: JSON.stringify({ libraryIds: selectedLibraryIds }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to add item to library');
+        throw new Error('Failed to add item to libraries');
       }
 
-      onComplete([selectedLibraryId]);
+      onComplete(selectedLibraryIds);
     } catch (err) {
       console.error('Error saving to library:', err);
       setError('Failed to add item to library');
@@ -172,20 +175,17 @@ export function LibrarySelectionModal({
               sx={{ mb: 3, color: brandColors.charcoal }}
             >
               Great! Your item was uploaded successfully. Choose which libraries
-              to add it to:
+              to add it to (you can select multiple):
             </Typography>
 
             <Box sx={{ maxHeight: 300, overflowY: 'auto' }}>
-              <RadioGroup
-                value={selectedLibraryId}
-                onChange={(e) => handleLibrarySelect(e.target.value)}
-              >
                 {libraries.map((library) => (
                   <FormControlLabel
                     key={library.id}
-                    value={library.id}
                     control={
-                      <Radio
+                      <Checkbox
+                        checked={selectedLibraryIds.includes(library.id)}
+                        onChange={() => handleLibraryToggle(library.id)}
                         sx={{
                           color: brandColors.inkBlue,
                           '&.Mui-checked': {
@@ -209,32 +209,6 @@ export function LibrarySelectionModal({
                     sx={{ display: 'block', mb: 1 }}
                   />
                 ))}
-
-                <FormControlLabel
-                  value=""
-                  control={
-                    <Radio
-                      sx={{
-                        color: brandColors.inkBlue,
-                        '&.Mui-checked': {
-                          color: brandColors.inkBlue,
-                        },
-                      }}
-                    />
-                  }
-                  label={
-                    <Box>
-                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                        Keep private for now
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        You can add it to a library later
-                      </Typography>
-                    </Box>
-                  }
-                  sx={{ display: 'block', mt: 2 }}
-                />
-              </RadioGroup>
             </Box>
           </Box>
         )}
@@ -262,7 +236,7 @@ export function LibrarySelectionModal({
             <Button
               onClick={handleSave}
               variant="contained"
-              disabled={isSaving}
+              disabled={isSaving || selectedLibraryIds.length === 0}
               sx={{
                 backgroundColor: brandColors.inkBlue,
                 '&:hover': {
@@ -275,10 +249,10 @@ export function LibrarySelectionModal({
                   <CircularProgress size={16} sx={{ mr: 1 }} />
                   Adding...
                 </>
-              ) : selectedLibraryId ? (
-                `Add to Library`
+              ) : selectedLibraryIds.length > 0 ? (
+                `Add to ${selectedLibraryIds.length} ${selectedLibraryIds.length === 1 ? 'Library' : 'Libraries'}`
               ) : (
-                'Keep Private'
+                'Select Libraries'
               )}
             </Button>
           </>

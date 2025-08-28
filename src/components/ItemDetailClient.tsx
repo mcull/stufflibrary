@@ -38,7 +38,7 @@ import { useState, useEffect } from 'react';
 
 import { useBorrowHistory } from '@/hooks/useBorrowHistory';
 import { useBorrowRequests } from '@/hooks/useBorrowRequests';
-import { useBranches } from '@/hooks/useBranches';
+import { useLibraries } from '@/hooks/useLibraries';
 
 import { VintageCheckoutCard } from './VintageCheckoutCard';
 
@@ -87,7 +87,7 @@ export function ItemDetailClient({
   const [condition, setCondition] = useState('good');
   const [location, setLocation] = useState('');
   const [editMode, setEditMode] = useState(false);
-  const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
+  const [selectedLibraries, setSelectedLibraries] = useState<string[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [toast, setToast] = useState<{ open: boolean; message: string }>({
     open: false,
@@ -105,7 +105,7 @@ export function ItemDetailClient({
   // Hooks
   const { data: borrowHistory } = useBorrowHistory(isNewItem ? '' : itemId);
   const { receivedRequests } = useBorrowRequests();
-  const { branches } = useBranches();
+  const { libraries } = useLibraries();
 
   // Filter pending requests for this specific item
   const pendingRequests = receivedRequests.filter(
@@ -727,7 +727,7 @@ export function ItemDetailClient({
                       {/* Library Selection (if user owns item) */}
                       {!isNewItem &&
                         item?.owner.id === currentUserId &&
-                        branches.length > 0 && (
+                        libraries.length > 0 && (
                           <Box>
                             <Typography
                               variant="body2"
@@ -737,24 +737,24 @@ export function ItemDetailClient({
                               Available in Libraries
                             </Typography>
                             <FormGroup>
-                              {branches.map((branch) => (
+                              {libraries.map((library) => (
                                 <FormControlLabel
-                                  key={branch.id}
+                                  key={library.id}
                                   control={
                                     <Checkbox
-                                      checked={selectedBranches.includes(
-                                        branch.id
+                                      checked={selectedLibraries.includes(
+                                        library.id
                                       )}
                                       onChange={(e) => {
                                         if (e.target.checked) {
-                                          setSelectedBranches([
-                                            ...selectedBranches,
-                                            branch.id,
+                                          setSelectedLibraries([
+                                            ...selectedLibraries,
+                                            library.id,
                                           ]);
                                         } else {
-                                          setSelectedBranches(
-                                            selectedBranches.filter(
-                                              (id) => id !== branch.id
+                                          setSelectedLibraries(
+                                            selectedLibraries.filter(
+                                              (id) => id !== library.id
                                             )
                                           );
                                         }
@@ -768,14 +768,14 @@ export function ItemDetailClient({
                                         variant="body2"
                                         fontWeight={500}
                                       >
-                                        {branch.name}
+                                        {library.name}
                                       </Typography>
-                                      {branch.location && (
+                                      {library.location && (
                                         <Typography
                                           variant="caption"
                                           color="text.secondary"
                                         >
-                                          📍 {branch.location}
+                                          📍 {library.location}
                                         </Typography>
                                       )}
                                     </Box>

@@ -17,12 +17,12 @@ export async function GET(
     }
 
     const userId = (session.user as { id?: string }).id!;
-    const branchId = id;
+    const libraryId = id;
 
-    // Check if user is branch owner or admin
-    const branch = await db.branch.findFirst({
+    // Check if user is library owner or admin
+    const library = await db.library.findFirst({
       where: {
-        id: branchId,
+        id: libraryId,
         OR: [
           { ownerId: userId }, // Owner
           {
@@ -38,18 +38,18 @@ export async function GET(
       },
     });
 
-    if (!branch) {
+    if (!library) {
       return NextResponse.json(
-        { error: 'Branch not found or insufficient permissions' },
+        { error: 'Library not found or insufficient permissions' },
         { status: 403 }
       );
     }
 
-    // Get all invitations for this branch
+    // Get all invitations for this library
     const invitations = await db.invitation.findMany({
       where: {
-        branchId,
-        type: 'branch',
+        libraryId,
+        type: 'library',
       },
       include: {
         sender: {
@@ -88,7 +88,7 @@ export async function GET(
       invitations: transformedInvitations,
     });
   } catch (error) {
-    console.error('Error fetching branch invitations:', error);
+    console.error('Error fetching library invitations:', error);
     return NextResponse.json(
       { error: 'Failed to fetch invitations' },
       { status: 500 }

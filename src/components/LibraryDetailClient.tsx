@@ -98,8 +98,8 @@ interface BranchData {
   itemsByCategory: Record<string, BranchItem[]>;
 }
 
-interface BranchDetailClientProps {
-  branchId: string;
+interface LibraryDetailClientProps {
+  libraryId: string;
 }
 
 // Category display names and icons
@@ -116,7 +116,7 @@ const CATEGORY_CONFIG = {
   other: { name: 'Other', icon: '📦' },
 };
 
-export function BranchDetailClient({ branchId }: BranchDetailClientProps) {
+export function LibraryDetailClient({ libraryId }: LibraryDetailClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [branch, setBranch] = useState<BranchData | null>(null);
@@ -135,7 +135,7 @@ export function BranchDetailClient({ branchId }: BranchDetailClientProps) {
         setIsLoading(true);
         setError(null);
 
-        const response = await fetch(`/api/branches/${branchId}`);
+        const response = await fetch(`/api/libraries/${libraryId}`);
         if (!response.ok) {
           throw new Error('Failed to load branch');
         }
@@ -150,7 +150,7 @@ export function BranchDetailClient({ branchId }: BranchDetailClientProps) {
     };
 
     fetchBranch();
-  }, [branchId]);
+  }, [libraryId]);
 
   // Handle welcome banner for new members
   useEffect(() => {
@@ -217,7 +217,7 @@ export function BranchDetailClient({ branchId }: BranchDetailClientProps) {
       const { message } = await response.json();
 
       // Refresh branch data to show updated status
-      const refreshResponse = await fetch(`/api/branches/${branchId}`);
+      const refreshResponse = await fetch(`/api/libraries/${libraryId}`);
       if (refreshResponse.ok) {
         const refreshData = await refreshResponse.json();
         setBranch(refreshData.branch);
@@ -257,7 +257,7 @@ export function BranchDetailClient({ branchId }: BranchDetailClientProps) {
       const { message } = await response.json();
 
       // Refresh branch data to remove the item from the list
-      const refreshResponse = await fetch(`/api/branches/${branchId}`);
+      const refreshResponse = await fetch(`/api/libraries/${libraryId}`);
       if (refreshResponse.ok) {
         const refreshData = await refreshResponse.json();
         setBranch(refreshData.branch);
@@ -274,7 +274,7 @@ export function BranchDetailClient({ branchId }: BranchDetailClientProps) {
   const handleAddItem = (category?: string) => {
     // Navigate to camera-based add item flow
     const params = new URLSearchParams({
-      branch: branchId,
+      branch: libraryId,
       ...(category && { category }),
     });
     router.push(`/add-item?${params.toString()}`);
@@ -937,8 +937,8 @@ export function BranchDetailClient({ branchId }: BranchDetailClientProps) {
 
       {/* Invite Friends Modal */}
       <InviteFriendsModal
-        branchId={branchId}
-        branchName={branch?.name || ''}
+        libraryId={libraryId}
+        libraryName={branch?.name || ''}
         open={inviteModalOpen}
         onClose={() => setInviteModalOpen(false)}
       />

@@ -15,11 +15,11 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 import { useBorrowRequests } from '@/hooks/useBorrowRequests';
-import { useBranches } from '@/hooks/useBranches';
+import { useLibraries } from '@/hooks/useLibraries';
 import { useUserItems } from '@/hooks/useUserItems';
 import { brandColors } from '@/theme/brandTokens';
 
-import { BranchCreationModal } from './BranchCreationModal';
+import { LibraryCreationModal } from './LibraryCreationModal';
 
 interface User {
   id: string;
@@ -39,7 +39,7 @@ interface LobbyClientProps {
 }
 
 export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
-  const { branches, isLoading, createBranch } = useBranches();
+  const { libraries, isLoading, createLibrary } = useLibraries();
   const {
     activeBorrows,
     sentRequests,
@@ -53,8 +53,8 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
   } = useUserItems();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  const handleCreateBranch = (branch: unknown) => {
-    console.log('Branch created:', branch);
+  const handleCreateLibrary = (library: unknown) => {
+    console.log('Library created:', library);
   };
 
   return (
@@ -339,7 +339,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
               >
                 Your Libraries
               </Typography>
-              {branches.length > 0 && (
+              {libraries.length > 0 && (
                 <Button
                   variant="outlined"
                   size="small"
@@ -365,7 +365,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
                 <CircularProgress size={40} />
               </Box>
-            ) : branches.length === 0 ? (
+            ) : libraries.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 4 }}>
                 <Box
                   sx={{
@@ -420,13 +420,13 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                   color="text.secondary"
                   sx={{ textAlign: 'center', mb: 3 }}
                 >
-                  You&apos;re a member of {branches.length}{' '}
-                  {branches.length === 1 ? 'library' : 'libraries'}
+                  You&apos;re a member of {libraries.length}{' '}
+                  {libraries.length === 1 ? 'library' : 'libraries'}
                 </Typography>
                 <Stack spacing={3}>
-                  {branches.slice(0, 3).map((branch) => (
+                  {libraries.slice(0, 3).map((library) => (
                     <Box
-                      key={branch.id}
+                      key={library.id}
                       sx={{
                         p: 3,
                         borderRadius: 3,
@@ -452,17 +452,17 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                             variant="subtitle1"
                             sx={{ fontWeight: 600, mb: 0.5 }}
                           >
-                            {branch.name}
+                            {library.name}
                           </Typography>
-                          {branch.description && (
+                          {library.description && (
                             <Typography
                               variant="body2"
                               color="text.secondary"
                               sx={{ mb: 1 }}
                             >
-                              {branch.description.length > 80
-                                ? `${branch.description.substring(0, 80)}...`
-                                : branch.description}
+                              {library.description.length > 80
+                                ? `${library.description.substring(0, 80)}...`
+                                : library.description}
                             </Typography>
                           )}
                           <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
@@ -470,34 +470,34 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                               variant="caption"
                               color="text.secondary"
                             >
-                              {branch.memberCount} members
+                              {library.memberCount} members
                             </Typography>
                             <Typography
                               variant="caption"
                               color="text.secondary"
                             >
-                              {branch.itemCount} items
+                              {library.itemCount} items
                             </Typography>
                             <Typography
                               variant="caption"
                               sx={{
                                 color:
-                                  branch.role === 'owner'
+                                  library.role === 'owner'
                                     ? brandColors.inkBlue
                                     : 'text.secondary',
-                                fontWeight: branch.role === 'owner' ? 600 : 400,
+                                fontWeight: library.role === 'owner' ? 600 : 400,
                               }}
                             >
-                              {branch.role === 'owner'
+                              {library.role === 'owner'
                                 ? '👑 Owner'
-                                : `${branch.role}`}
+                                : `${library.role}`}
                             </Typography>
                           </Stack>
                         </Box>
                         <Button
                           size="small"
                           component={Link}
-                          href={`/branch/${branch.id}`}
+                          href={`/library/${library.id}`}
                           sx={{
                             textTransform: 'none',
                             borderRadius: 2,
@@ -512,14 +512,14 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                           View
                         </Button>
                       </Box>
-                      {branch.location && (
+                      {library.location && (
                         <Typography variant="caption" color="text.secondary">
-                          📍 {branch.location}
+                          📍 {library.location}
                         </Typography>
                       )}
                     </Box>
                   ))}
-                  {branches.length > 3 && (
+                  {libraries.length > 3 && (
                     <Button
                       variant="text"
                       size="small"
@@ -529,7 +529,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                         fontSize: '0.875rem',
                       }}
                     >
-                      View all {branches.length} libraries →
+                      View all {libraries.length} libraries →
                     </Button>
                   )}
                 </Stack>
@@ -672,12 +672,12 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
         </Card>
       </Stack>
 
-      {/* Branch Creation Modal */}
-      <BranchCreationModal
+      {/* Library Creation Modal */}
+      <LibraryCreationModal
         open={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onSuccess={handleCreateBranch}
-        createBranch={createBranch}
+        onSuccess={handleCreateLibrary}
+        createLibrary={createLibrary}
       />
     </Container>
   );

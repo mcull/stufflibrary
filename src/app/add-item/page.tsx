@@ -16,7 +16,7 @@ export default async function AddItemPage({ searchParams }: AddItemPageProps) {
   }
 
   const resolvedSearchParams = await searchParams;
-  const branchId = resolvedSearchParams?.branch as string;
+  const libraryId = resolvedSearchParams?.library as string;
 
-  return <AddItemClient branchId={branchId} />;
+  return <AddItemClient libraryId={libraryId} />;
 }

@@ -18,11 +18,11 @@ export async function GET(request: NextRequest) {
     const invitation = await db.invitation.findFirst({
       where: {
         token: invitationToken,
-        type: 'branch',
+        type: 'library',
         status: { in: ['PENDING', 'SENT'] },
       },
       include: {
-        branch: { select: { id: true, name: true } },
+        library: { select: { id: true, name: true } },
       },
     });
 
@@ -57,21 +57,21 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Create branch membership if needed
-    const existingMembership = await db.branchMember.findFirst({
+    // Create library membership if needed
+    const existingMembership = await db.libraryMember.findFirst({
       where: {
         userId: user.id,
-        branchId: invitation.branchId!,
+        libraryId: invitation.libraryId!,
         isActive: true,
       },
     });
 
     if (!existingMembership) {
       await db.$transaction([
-        db.branchMember.create({
+        db.libraryMember.create({
           data: {
             userId: user.id,
-            branchId: invitation.branchId!,
+            libraryId: invitation.libraryId!,
             role: 'member',
             isActive: true,
           },
@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
     redirectUrl.searchParams.set('code', tempCode);
     if (invitationToken) {
       redirectUrl.searchParams.set('invitation', invitationToken);
-      redirectUrl.searchParams.set('branch', invitation.branchId!);
+      redirectUrl.searchParams.set('library', invitation.libraryId!);
     }
     redirectUrl.searchParams.set('magic', 'true');
     redirectUrl.searchParams.set('auto', 'true'); // Signal for auto-completion

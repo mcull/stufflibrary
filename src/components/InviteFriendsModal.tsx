@@ -29,8 +29,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { brandColors } from '@/theme/brandTokens';
 
 interface InviteFriendsModalProps {
-  branchId: string;
-  branchName: string;
+  libraryId: string;
+  libraryName: string;
   open: boolean;
   onClose: () => void;
 }
@@ -45,8 +45,8 @@ interface Invitation {
 }
 
 export function InviteFriendsModal({
-  branchId,
-  branchName,
+  libraryId,
+  libraryName,
   open,
   onClose,
 }: InviteFriendsModalProps) {
@@ -60,7 +60,7 @@ export function InviteFriendsModal({
   const loadInvitations = useCallback(async () => {
     setLoadingInvitations(true);
     try {
-      const response = await fetch(`/api/branches/${branchId}/invitations`);
+      const response = await fetch(`/api/libraries/${libraryId}/invitations`);
       if (response.ok) {
         const data = await response.json();
         setInvitations(data.invitations || []);
@@ -70,14 +70,14 @@ export function InviteFriendsModal({
     } finally {
       setLoadingInvitations(false);
     }
-  }, [branchId]);
+  }, [libraryId]);
 
   // Load existing invitations when modal opens
   useEffect(() => {
     if (open) {
       loadInvitations();
     }
-  }, [open, branchId, loadInvitations]);
+  }, [open, libraryId, loadInvitations]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,7 +86,7 @@ export function InviteFriendsModal({
     setSuccess(null);
 
     try {
-      const response = await fetch(`/api/branches/${branchId}/invite`, {
+      const response = await fetch(`/api/libraries/${libraryId}/invite`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -172,7 +172,7 @@ export function InviteFriendsModal({
             component="h2"
             sx={{ fontWeight: 600, color: brandColors.inkBlue }}
           >
-            Invite Friends to {branchName}
+            Invite Friends to {libraryName}
           </Typography>
           <IconButton onClick={handleClose} disabled={isLoading} size="small">
             <CloseIcon />

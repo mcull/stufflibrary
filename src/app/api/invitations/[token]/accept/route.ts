@@ -30,11 +30,11 @@ export async function POST(
     const invitation = await db.invitation.findFirst({
       where: {
         token,
-        type: 'branch',
+        type: 'library',
         status: { in: ['PENDING', 'SENT'] },
       },
       include: {
-        branch: {
+        library: {
           select: {
             id: true,
             name: true,
@@ -83,10 +83,10 @@ export async function POST(
     }
 
     // Check if user is already a member
-    const existingMembership = await db.branchMember.findFirst({
+    const existingMembership = await db.libraryMember.findFirst({
       where: {
         userId,
-        branchId: invitation.branchId!,
+        libraryId: invitation.libraryId!,
         isActive: true,
       },
     });
@@ -104,21 +104,21 @@ export async function POST(
 
       return NextResponse.json({
         success: true,
-        message: 'You are already a member of this branch',
-        branch: {
-          id: invitation.branch!.id,
-          name: invitation.branch!.name,
+        message: 'You are already a member of this library',
+        library: {
+          id: invitation.library!.id,
+          name: invitation.library!.name,
           role: existingMembership.role,
         },
       });
     }
 
-    // Create branch membership and mark invitation as accepted
-    const [branchMember] = await db.$transaction([
-      db.branchMember.create({
+    // Create library membership and mark invitation as accepted
+    const [libraryMember] = await db.$transaction([
+      db.libraryMember.create({
         data: {
           userId,
-          branchId: invitation.branchId!,
+          libraryId: invitation.libraryId!,
           role: 'member',
           isActive: true,
         },
@@ -142,11 +142,11 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      branch: {
-        id: invitation.branch!.id,
-        name: invitation.branch!.name,
-        location: invitation.branch!.location,
-        role: branchMember.role,
+      library: {
+        id: invitation.library!.id,
+        name: invitation.library!.name,
+        location: invitation.library!.location,
+        role: libraryMember.role,
       },
       user: {
         firstName,

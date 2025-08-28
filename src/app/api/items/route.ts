@@ -28,7 +28,15 @@ export async function POST(request: NextRequest) {
     const name = formData.get('name') as string;
     const description = (formData.get('description') as string) || null;
     const category = (formData.get('category') as string) || 'other';
-    const branchId = (formData.get('branchId') as string) || null;
+    const libraryIdsString = formData.get('libraryIds') as string;
+    let libraryIds: string[] = [];
+    if (libraryIdsString) {
+      try {
+        libraryIds = JSON.parse(libraryIdsString);
+      } catch {
+        libraryIds = [libraryIdsString]; // fallback for single ID
+      }
+    }
 
     if (!image || !name) {
       return NextResponse.json(
@@ -98,7 +106,6 @@ export async function POST(request: NextRequest) {
         imageUrl: imageUrl,
         isAvailable: true,
         ownerId: userId,
-        ...(branchId && { branchId }),
         stuffTypeId: stuffType.id,
       },
       include: {
@@ -116,31 +123,77 @@ export async function POST(request: NextRequest) {
             iconPath: true,
           },
         },
-        ...(branchId
-          ? {
-              branch: {
-                select: {
-                  id: true,
-                  name: true,
-                },
+        libraries: {
+          include: {
+            library: {
+              select: {
+                id: true,
+                name: true,
               },
-            }
-          : {}),
+            },
+          },
+        },
+      },
+    });
+
+    // Create item-library relationships if libraryIds provided
+    if (libraryIds.length > 0) {
+      await db.$transaction(
+        libraryIds.map((libraryId) =>
+          db.itemLibrary.create({
+            data: {
+              itemId: item.id,
+              libraryId: libraryId,
+            },
+          })
+        )
+      );
+    }
+
+    // Fetch item with libraries for response
+    const itemWithLibraries = await db.item.findUnique({
+      where: { id: item.id },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
+        stuffType: {
+          select: {
+            displayName: true,
+            category: true,
+            iconPath: true,
+          },
+        },
+        libraries: {
+          include: {
+            library: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
 
     return NextResponse.json({
-      itemId: item.id,
+      itemId: itemWithLibraries!.id,
       item: {
-        id: item.id,
-        name: item.name,
-        description: item.description,
-        condition: item.condition,
-        imageUrl: item.imageUrl,
-        isAvailable: item.isAvailable,
-        createdAt: item.createdAt,
-        owner: item.owner,
-        stuffType: item.stuffType,
+        id: itemWithLibraries!.id,
+        name: itemWithLibraries!.name,
+        description: itemWithLibraries!.description,
+        condition: itemWithLibraries!.condition,
+        imageUrl: itemWithLibraries!.imageUrl,
+        isAvailable: itemWithLibraries!.isAvailable,
+        createdAt: itemWithLibraries!.createdAt,
+        owner: itemWithLibraries!.owner,
+        stuffType: itemWithLibraries!.stuffType,
+        libraries: itemWithLibraries!.libraries.map(il => il.library),
       },
     });
   } catch (error) {
