@@ -336,7 +336,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
               ownerName: borrowRequest.lender.name || 'Owner',
               borrowerName: borrowRequest.borrower.name || 'Borrower',
               itemName: borrowRequest.item.name,
-              returnDate: updateData.returnedAt,
+              returnDate: updateData.returnedAt as Date,
             };
 
           if (borrowRequest.lender.phone) {
