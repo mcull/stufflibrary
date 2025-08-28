@@ -16,6 +16,24 @@ function getOpenAIClient() {
   });
 }
 
+function cleanJsonResponse(content: string): string {
+  // Remove markdown code blocks if present
+  let cleaned = content.trim();
+
+  // Remove ```json at start and ``` at end
+  if (cleaned.startsWith('```json')) {
+    cleaned = cleaned.replace(/^```json\s*/, '');
+  }
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```\s*/, '');
+  }
+  if (cleaned.endsWith('```')) {
+    cleaned = cleaned.replace(/\s*```$/, '');
+  }
+
+  return cleaned.trim();
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -85,7 +103,8 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const result = JSON.parse(content);
+      const cleanedContent = cleanJsonResponse(content);
+      const result = JSON.parse(cleanedContent);
 
       // Validate the response structure
       if (
@@ -100,6 +119,7 @@ export async function POST(request: NextRequest) {
     } catch (parseError) {
       console.error('Error parsing AI response:', parseError);
       console.error('Raw response:', content);
+      console.error('Cleaned response:', cleanJsonResponse(content));
 
       return NextResponse.json({
         recognized: false,

@@ -247,7 +247,7 @@ export function AddItemClient({ branchId }: AddItemClientProps) {
             setState('recognized');
           } else {
             setError(
-              'We couldn&apos;t identify this object. Please try again with better lighting or a clearer view of the item.'
+              "We couldn't identify this object. Please try again with better lighting or a clearer view of the item."
             );
             setState('error');
           }
