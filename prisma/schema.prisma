@@ -164,52 +164,49 @@ model StuffType {
 }
 
 model Item {
-  id             String          @id @default(cuid())
-  name           String
-  description    String?
-  category       String?
-  condition      String          @default("good")
-  location       String?         // e.g., "garage", "kitchen", "basement"
-  isAvailable    Boolean         @default(true)
-  imageUrl       String?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  stuffTypeId    String?
-  ownerId        String
-  borrowRequests BorrowRequest[]
-  owner          User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  stuffType      StuffType?      @relation(fields: [stuffTypeId], references: [id])
-  libraries      ItemLibrary[]
+  id                     String          @id @default(cuid())
+  name                   String
+  description            String?
+  category               String?
+  condition              String          @default("good")
+  location               String?         // e.g., "garage", "kitchen", "basement"
+  imageUrl               String?
+  currentBorrowRequestId String?
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+  stuffTypeId            String?
+  ownerId                String
+  borrowRequests         BorrowRequest[]
+  owner                  User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  stuffType              StuffType?      @relation(fields: [stuffTypeId], references: [id])
+  libraries              ItemLibrary[]
 
   @@map("items")
 }
 
 model BorrowRequest {
-  id               String    @id @default(cuid())
-  status           String    @default("pending")
-  requestedAt      DateTime  @default(now())
-  approvedAt       DateTime?
-  borrowedAt       DateTime?
-  returnedAt       DateTime?
-  dueDate          DateTime?
-  notes            String?
-  videoUrl         String?
-  signature        String?
-  promiseText      String?
-  promisedReturnBy DateTime?
-  lenderResponse   String?
-  responseToken    String?
-  respondedAt      DateTime?
-  pickedUpAt       DateTime?
-  remindersSent    Int       @default(0)
-  lastReminderAt   DateTime?
-  borrowerId       String
-  lenderId         String
-  itemId           String
-  borrower         User      @relation(fields: [borrowerId], references: [id], onDelete: Cascade)
-  item             Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  lender           User      @relation("Lender", fields: [lenderId], references: [id], onDelete: Cascade)
+  id                   String              @id @default(cuid())
+  status               BorrowRequestStatus @default(PENDING)
+  requestMessage       String?
+  lenderMessage        String?
+  videoUrl             String?
+  requestedReturnDate  DateTime
+  actualReturnDate     DateTime?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  approvedAt           DateTime?
+  returnedAt           DateTime?
+  borrowerId           String
+  lenderId             String
+  itemId               String
+  borrower             User                @relation(fields: [borrowerId], references: [id], onDelete: Cascade)
+  item                 Item                @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  lender               User                @relation("Lender", fields: [lenderId], references: [id], onDelete: Cascade)
 
+  @@index([borrowerId])
+  @@index([lenderId])
+  @@index([itemId])
+  @@index([status])
   @@map("borrow_requests")
 }
 
@@ -291,5 +288,14 @@ enum InvitationStatus {
   ACCEPTED
   EXPIRED
   DECLINED
+  CANCELLED
+}
+
+enum BorrowRequestStatus {
+  PENDING
+  APPROVED
+  DECLINED
+  ACTIVE
+  RETURNED
   CANCELLED
 }

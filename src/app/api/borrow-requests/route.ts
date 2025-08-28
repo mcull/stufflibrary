@@ -57,7 +57,7 @@ export async function GET(_request: NextRequest) {
         },
       },
       orderBy: {
-        requestedAt: 'desc',
+        createdAt: 'desc',
       },
     });
 
@@ -69,7 +69,7 @@ export async function GET(_request: NextRequest) {
       (req) => req.lenderId === userId
     );
     const activeBorrows = borrowRequests.filter(
-      (req) => req.status === 'active'
+      (req) => req.status === 'ACTIVE'
     );
 
     return NextResponse.json({
@@ -105,25 +105,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
     }
 
-    const formData = await request.formData();
-    const useMux = formData.get('useMux') as string;
-    const itemId = formData.get('itemId') as string;
-    const promisedReturnBy = formData.get('promisedReturnBy') as string;
-    const promiseText = formData.get('promiseText') as string;
+    const body = await request.json();
+    const { itemId, requestedReturnDate } = body;
 
-    // Validate required fields for Mux flow
-    if (!useMux || !itemId || !promisedReturnBy || !promiseText) {
+    // Validate required fields
+    if (!itemId || !requestedReturnDate) {
       return NextResponse.json(
         {
-          error: 'Item ID, promised return date, and promise text are required',
+          error: 'Item ID and requested return date are required',
         },
-        { status: 400 }
-      );
-    }
-
-    if (useMux !== 'true') {
-      return NextResponse.json(
-        { error: 'Only Mux flow is supported' },
         { status: 400 }
       );
     }
