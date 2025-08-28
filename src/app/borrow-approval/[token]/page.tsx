@@ -13,8 +13,8 @@ export default async function BorrowApprovalPage({
   // Find the borrow request by token
   const borrowRequest = await db.borrowRequest.findFirst({
     where: {
-      responseToken: token,
-      status: 'pending', // Only allow responding to pending requests
+      id: token,
+      status: 'PENDING', // Only allow responding to pending requests
     },
     include: {
       borrower: {
@@ -57,5 +57,5 @@ export default async function BorrowApprovalPage({
     );
   }
 
-  return <BorrowApprovalClient borrowRequest={borrowRequest} />;
+  return <BorrowApprovalClient borrowRequest={borrowRequest as any} />;
 }

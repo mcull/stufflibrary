@@ -193,14 +193,14 @@ export async function GET(
             ? {
                 id: activeBorrow.id,
                 borrower: activeBorrow.borrower,
-                dueDate: activeBorrow.dueDate,
-                borrowedAt: activeBorrow.borrowedAt,
+                dueDate: activeBorrow.requestedReturnDate,
+                borrowedAt: activeBorrow.approvedAt,
               }
             : null,
           notificationQueue: pendingRequests.map((req) => ({
             id: req.id,
             user: req.borrower,
-            requestedAt: req.requestedAt,
+            requestedAt: req.createdAt,
           })),
           queueDepth: pendingRequests.length,
         };
@@ -234,14 +234,14 @@ export async function GET(
               ? {
                   id: activeBorrow.id,
                   borrower: activeBorrow.borrower,
-                  dueDate: activeBorrow.dueDate,
-                  borrowedAt: activeBorrow.borrowedAt,
+                  dueDate: activeBorrow.requestedReturnDate,
+                  borrowedAt: activeBorrow.approvedAt,
                 }
               : null,
             notificationQueue: pendingRequests.map((req) => ({
               id: req.id,
               user: req.borrower,
-              requestedAt: req.requestedAt,
+              requestedAt: req.createdAt,
             })),
             queueDepth: pendingRequests.length,
           });
@@ -353,7 +353,7 @@ export async function PUT(
             members: true,
             items: {
               where: {
-                item: { isAvailable: true },
+                item: { currentBorrowRequestId: null },
               },
             },
           },

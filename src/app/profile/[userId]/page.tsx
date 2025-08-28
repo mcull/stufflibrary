@@ -24,7 +24,7 @@ export default async function PublicProfilePage({
       createdAt: true,
       items: {
         where: {
-          isAvailable: true, // Only show available items on public profile
+          currentBorrowRequestId: null, // Only show available items on public profile
         },
         select: {
           id: true,
@@ -57,5 +57,5 @@ export default async function PublicProfilePage({
     notFound();
   }
 
-  return <PublicProfileView user={user} />;
+  return <PublicProfileView user={user as any} />;
 }

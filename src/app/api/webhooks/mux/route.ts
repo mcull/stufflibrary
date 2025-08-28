@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
         });
 
         if (owner?.phone || owner?.email) {
-          const approvalUrl = `${process.env.NEXTAUTH_URL}/borrow-approval/${borrowRequest.responseToken}`;
+          const approvalUrl = `${process.env.NEXTAUTH_URL}/borrow-approval/${borrowRequest.id}`;
           const notificationResult = await sendBorrowRequestNotification({
             ownerName: owner.name || 'Owner',
             ...(owner.phone && { ownerPhone: owner.phone }),

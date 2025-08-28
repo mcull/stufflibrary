@@ -52,7 +52,7 @@ export async function GET() {
                 members: true,
                 items: {
                   where: {
-                    item: { isAvailable: true },
+                    item: { currentBorrowRequestId: null },
                   },
                 },
               },
@@ -84,7 +84,7 @@ export async function GET() {
                     members: true,
                     items: {
                       where: {
-                        item: { isAvailable: true },
+                        item: { currentBorrowRequestId: null },
                       },
                     },
                   },
@@ -103,7 +103,7 @@ export async function GET() {
     // Format the response
     const libraries = [
       // Owned libraries
-      ...userLibraries.ownedLibraries.map((library) => ({
+      ...userLibraries.ownedLibraries.map((library: any) => ({
         id: library.id,
         name: library.name,
         description: library.description,
@@ -121,7 +121,7 @@ export async function GET() {
         members: library.members,
       })),
       // Member libraries
-      ...userLibraries.libraryMemberships.map((membership) => ({
+      ...userLibraries.libraryMemberships.map((membership: any) => ({
         id: membership.library.id,
         name: membership.library.name,
         description: membership.library.description,
