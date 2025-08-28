@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "prisma generate && next build",
+    "build": "next build",
     "postinstall": "prisma generate",
     "start": "next start",
     "lint": "next lint",
@@ -28,6 +28,9 @@
     "db:local:reset": "tsx scripts/db-safety-check.ts 'migrate reset' && prisma migrate reset --force",
     "db:production:deploy": "DATABASE_ENV=production tsx scripts/db-safety-check.ts 'migrate deploy' --allow-production && DATABASE_ENV=production prisma migrate deploy",
     "db:production:status": "DATABASE_ENV=production prisma migrate status",
+    "vercel:build": "bash scripts/vercel-build.sh",
+    "vercel:migration-status": "curl \"$VERCEL_URL/api/admin/migration-status?admin_key=$ADMIN_API_KEY\"",
+    "vercel:migrate": "curl -X POST \"$VERCEL_URL/api/admin/migrate\" -H \"Authorization: Bearer $ADMIN_API_KEY\" -H \"Content-Type: application/json\" -d '{}'",
     "db:production:studio": "DATABASE_ENV=production prisma studio --browser none",
     "db:safety-check": "tsx scripts/db-safety-check.ts",
     "db:backup:monitor": "tsx scripts/backup-monitor.ts monitor",
