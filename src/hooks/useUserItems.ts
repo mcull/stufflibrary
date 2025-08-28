@@ -5,7 +5,7 @@ interface UserItem {
   name: string;
   description?: string;
   imageUrl?: string;
-  isAvailable: boolean;
+  currentBorrowRequestId?: string;
   condition: string;
   location?: string | undefined;
   createdAt: string;
@@ -13,17 +13,20 @@ interface UserItem {
     displayName: string;
     category: string;
   };
-  branch?: {
-    id: string;
-    name: string;
-  } | null;
+  libraries?: {
+    library: {
+      id: string;
+      name: string;
+    };
+  }[];
 }
 
 interface BorrowedItem {
   id: string;
   status: string;
-  requestedAt: string;
-  promisedReturnBy?: string;
+  createdAt: string;
+  requestedReturnDate: string;
+  actualReturnDate?: string;
   item: {
     id: string;
     name: string;
@@ -38,7 +41,9 @@ interface BorrowedItem {
 interface LentItem {
   id: string;
   status: string;
-  requestedAt: string;
+  createdAt: string;
+  requestedReturnDate: string;
+  actualReturnDate?: string;
   borrower: {
     id: string;
     name: string;
@@ -97,22 +102,26 @@ export function useUserItems(): UseUserItemsResult {
       ]);
 
       setReadyToLendItems(
-        itemsData.items?.filter((item: UserItem) => item.isAvailable) || []
+        itemsData.items?.filter(
+          (item: UserItem) => !item.currentBorrowRequestId
+        ) || []
       );
 
       setOfflineItems(
-        itemsData.items?.filter((item: UserItem) => !item.isAvailable) || []
+        itemsData.items?.filter(
+          (item: UserItem) => item.currentBorrowRequestId
+        ) || []
       );
 
       setBorrowedItems(
         borrowRequestsData.activeBorrows?.filter(
-          (request: BorrowedItem) => request.status === 'active'
+          (request: BorrowedItem) => request.status === 'ACTIVE'
         ) || []
       );
 
       setOnLoanItems(
         borrowRequestsData.receivedRequests?.filter(
-          (request: LentItem) => request.status === 'active'
+          (request: LentItem) => request.status === 'ACTIVE'
         ) || []
       );
     } catch (err) {
