@@ -65,6 +65,7 @@ model User {
   sentInvitations     Invitation[]    @relation("InvitationSender")
   items               Item[]
   sessions            Session[]
+  notifications       Notification[]
 
   @@map("users")
 }
@@ -282,6 +283,30 @@ model ItemLibrary {
   @@map("item_libraries")
 }
 
+model Notification {
+  id              String             @id @default(cuid())
+  type            NotificationType
+  title           String
+  message         String
+  actionUrl       String?
+  isRead          Boolean            @default(false)
+  emailSent       Boolean            @default(false)
+  emailSentAt     DateTime?
+  relatedItemId   String?
+  relatedRequestId String?
+  metadata        Json?              // Store additional context data
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  userId          String
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
 enum InvitationStatus {
   PENDING
   SENT
@@ -298,4 +323,17 @@ enum BorrowRequestStatus {
   ACTIVE
   RETURNED
   CANCELLED
+}
+
+enum NotificationType {
+  BORROW_REQUEST_RECEIVED    // New request received by lender
+  BORROW_REQUEST_APPROVED    // Request approved by lender
+  BORROW_REQUEST_DECLINED    // Request declined by lender  
+  BORROW_REQUEST_CANCELLED   // Request cancelled by borrower/lender
+  ITEM_DUE_TOMORROW         // Return reminder 24h before
+  ITEM_OVERDUE              // Item past due date
+  ITEM_RETURNED             // Borrower marked as returned
+  RETURN_CONFIRMED          // Lender confirmed return
+  LIBRARY_INVITATION        // Invited to join library
+  SYSTEM_ANNOUNCEMENT       // General system messages
 }
