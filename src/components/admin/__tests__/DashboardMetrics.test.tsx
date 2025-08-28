@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import { vi } from 'vitest';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 import { DashboardMetrics } from '../DashboardMetrics';
 
@@ -27,7 +27,9 @@ describe('DashboardMetrics', () => {
 
     render(<DashboardMetrics />);
 
-    expect(screen.getByText(/loading/i)).toBeInTheDocument();
+    // Check for skeleton loading elements
+    const skeletonElements = document.querySelectorAll('.animate-pulse');
+    expect(skeletonElements.length).toBeGreaterThan(0);
   });
 
   it('renders metrics data when fetch succeeds', async () => {
