@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { sendBorrowRequestNotification } from '@/lib/twilio';
+import { sendBorrowRequestReceivedNotification } from '@/lib/enhanced-notification-service';
 
 // GET - Fetch borrow requests for the current user
 export async function GET(_request: NextRequest) {
@@ -241,6 +242,28 @@ export async function POST(request: NextRequest) {
 
     // Create approval URL
     const approvalUrl = `${process.env.NEXTAUTH_URL}/borrow-approval/${responseToken}`;
+
+    // Send in-app notification using enhanced notification service
+    try {
+      await sendBorrowRequestReceivedNotification({
+        ...borrowRequest,
+        borrower: {
+          ...borrowRequest.borrower,
+          phone: borrower.phone || '',
+          email: borrower.email || '',
+        },
+        lender: {
+          id: item.owner.id,
+          name: item.owner.name || '',
+          email: item.owner.email || '',
+          phone: item.owner.phone || '',
+        },
+      }, approvalUrl);
+      console.log('📱 In-app notification created successfully');
+    } catch (notificationError) {
+      console.error('❌ Failed to create in-app notification:', notificationError);
+      // Don't fail the request if notification fails
+    }
 
     // Send SMS and email notification to owner
     try {
