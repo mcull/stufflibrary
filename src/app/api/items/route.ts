@@ -88,18 +88,35 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Create the item
+    // Debug logging
+    console.log('Creating item with data:', {
+      name,
+      branchId,
+      userId,
+      hasStuffType: !!stuffType,
+    });
+
+    // Create the item - handle migration not running in production
+    const itemData: any = {
+      name: name,
+      description: `Added via camera capture`,
+      condition: 'good', // Default condition
+      imageUrl: imageUrl,
+      isAvailable: true,
+      ownerId: userId,
+      stuffTypeId: stuffType.id,
+    };
+
+    // Only include branchId if it's provided (for post-migration compatibility)
+    // If migration hasn't run yet, this will still fail, but we'll get better debug info
+    if (branchId) {
+      itemData.branchId = branchId;
+    }
+
+    console.log('Final item data being sent to Prisma:', itemData);
+
     const item = await db.item.create({
-      data: {
-        name: name,
-        description: `Added via camera capture`,
-        condition: 'good', // Default condition
-        imageUrl: imageUrl,
-        isAvailable: true,
-        ownerId: userId,
-        ...(branchId && { branchId }),
-        stuffTypeId: stuffType.id,
-      },
+      data: itemData,
       include: {
         owner: {
           select: {
