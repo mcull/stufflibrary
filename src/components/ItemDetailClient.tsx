@@ -296,7 +296,7 @@ export function ItemDetailClient({
         location: data.item.location || '',
       };
       setOriginalValues(newOriginalValues);
-      setEditMode(false);
+      _setEditMode(false);
 
       // Show toast if not silent
       if (!silent) {
