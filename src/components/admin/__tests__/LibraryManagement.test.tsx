@@ -75,7 +75,7 @@ describe('LibraryManagement', () => {
     await waitFor(() => {
       expect(screen.getByText('Test Library')).toBeInTheDocument();
       expect(screen.getByText('Jane Doe')).toBeInTheDocument();
-      expect(screen.getByText('Public')).toBeInTheDocument();
+      expect(screen.getAllByText('Public')).toHaveLength(2); // One in dropdown, one in status badge
       expect(screen.getByText('Members: 2 (2 active)')).toBeInTheDocument();
     });
   });
@@ -266,10 +266,21 @@ describe('LibraryManagement', () => {
     );
     fireEvent.change(searchInput, { target: { value: 'test' } });
 
+    // Wait for the filter change to complete
+    await waitFor(() => {
+      expect(screen.getByText('Reset Filters')).toBeInTheDocument();
+    });
+
     // Click reset
     const resetButton = screen.getByText('Reset Filters');
     fireEvent.click(resetButton);
 
-    expect(searchInput).toHaveValue('');
+    // Wait for the input to be reset by getting a fresh reference
+    await waitFor(() => {
+      const freshSearchInput = screen.getByPlaceholderText(
+        'Search libraries, owners...'
+      );
+      expect(freshSearchInput).toHaveValue('');
+    });
   });
 });
