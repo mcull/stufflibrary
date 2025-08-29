@@ -1,9 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-
+import {
+  AccessTime,
+  CheckCircle,
+  Cancel,
+  PlayArrow,
+  Person,
+} from '@mui/icons-material';
 import {
   Container,
   Typography,
@@ -20,19 +23,21 @@ import {
   Tab,
   Badge,
 } from '@mui/material';
-import {
-  AccessTime,
-  CheckCircle,
-  Cancel,
-  PlayArrow,
-  Person,
-} from '@mui/icons-material';
 import { formatDistanceToNow } from 'date-fns';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { useState, useEffect } from 'react';
 
 interface BorrowRequest {
   id: string;
-  status: 'PENDING' | 'APPROVED' | 'DECLINED' | 'ACTIVE' | 'RETURNED' | 'CANCELLED';
+  status:
+    | 'PENDING'
+    | 'APPROVED'
+    | 'DECLINED'
+    | 'ACTIVE'
+    | 'RETURNED'
+    | 'CANCELLED';
   requestMessage?: string;
   lenderMessage?: string;
   videoUrl?: string;
@@ -71,7 +76,7 @@ const statusIcons = {
 };
 
 export function LenderRequestsPage() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
   const [requests, setRequests] = useState<BorrowRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,7 +100,7 @@ export function LenderRequestsPage() {
       if (!response.ok) {
         throw new Error('Failed to fetch requests');
       }
-      
+
       const data = await response.json();
       // Filter to show only requests received by this user (as lender)
       setRequests(data.receivedRequests || []);
@@ -113,11 +118,15 @@ export function LenderRequestsPage() {
   const filterRequestsByTab = (requests: BorrowRequest[], tab: TabValue) => {
     switch (tab) {
       case 'pending':
-        return requests.filter(req => req.status === 'PENDING');
+        return requests.filter((req) => req.status === 'PENDING');
       case 'active':
-        return requests.filter(req => ['APPROVED', 'ACTIVE'].includes(req.status));
+        return requests.filter((req) =>
+          ['APPROVED', 'ACTIVE'].includes(req.status)
+        );
       case 'completed':
-        return requests.filter(req => ['DECLINED', 'RETURNED', 'CANCELLED'].includes(req.status));
+        return requests.filter((req) =>
+          ['DECLINED', 'RETURNED', 'CANCELLED'].includes(req.status)
+        );
       default:
         return requests;
     }
@@ -126,7 +135,12 @@ export function LenderRequestsPage() {
   if (status === 'loading' || loading) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
+        <Box
+          display="flex"
+          justifyContent="center"
+          alignItems="center"
+          minHeight="50vh"
+        >
           <CircularProgress />
         </Box>
       </Container>
@@ -142,9 +156,15 @@ export function LenderRequestsPage() {
   }
 
   const filteredRequests = filterRequestsByTab(requests, tabValue);
-  const pendingCount = requests.filter(req => req.status === 'PENDING').length;
-  const activeCount = requests.filter(req => ['APPROVED', 'ACTIVE'].includes(req.status)).length;
-  const completedCount = requests.filter(req => ['DECLINED', 'RETURNED', 'CANCELLED'].includes(req.status)).length;
+  const pendingCount = requests.filter(
+    (req) => req.status === 'PENDING'
+  ).length;
+  const activeCount = requests.filter((req) =>
+    ['APPROVED', 'ACTIVE'].includes(req.status)
+  ).length;
+  const completedCount = requests.filter((req) =>
+    ['DECLINED', 'RETURNED', 'CANCELLED'].includes(req.status)
+  ).length;
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -160,7 +180,11 @@ export function LenderRequestsPage() {
 
       {/* Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-        <Tabs value={tabValue} onChange={handleTabChange} aria-label="request tabs">
+        <Tabs
+          value={tabValue}
+          onChange={handleTabChange}
+          aria-label="request tabs"
+        >
           <Tab
             label={
               <Badge badgeContent={pendingCount} color="error" max={99}>
@@ -197,19 +221,31 @@ export function LenderRequestsPage() {
             {tabValue === 'completed' && 'No completed requests'}
           </Typography>
           <Typography variant="body2" color="textSecondary">
-            {tabValue === 'pending' && 'New borrowing requests will appear here'}
-            {tabValue === 'active' && 'Approved and active borrowing will appear here'}
+            {tabValue === 'pending' &&
+              'New borrowing requests will appear here'}
+            {tabValue === 'active' &&
+              'Approved and active borrowing will appear here'}
             {tabValue === 'completed' && 'Completed requests will appear here'}
           </Typography>
         </Box>
       ) : (
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 3 }}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: '1fr',
+              md: 'repeat(2, 1fr)',
+              lg: 'repeat(3, 1fr)',
+            },
+            gap: 3,
+          }}
+        >
           {filteredRequests.map((request) => (
             <Box key={request.id}>
-              <Card 
-                sx={{ 
-                  height: '100%', 
-                  display: 'flex', 
+              <Card
+                sx={{
+                  height: '100%',
+                  display: 'flex',
                   flexDirection: 'column',
                   transition: 'transform 0.2s, box-shadow 0.2s',
                   '&:hover': {
@@ -251,7 +287,9 @@ export function LenderRequestsPage() {
                   {/* Borrower Info */}
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                     <Avatar
-                      {...(request.borrower.image && { src: request.borrower.image })}
+                      {...(request.borrower.image && {
+                        src: request.borrower.image,
+                      })}
                       alt={request.borrower.name}
                       sx={{ width: 32, height: 32, mr: 1 }}
                     >
@@ -262,13 +300,19 @@ export function LenderRequestsPage() {
                         {request.borrower.name}
                       </Typography>
                       <Typography variant="caption" color="textSecondary">
-                        {formatDistanceToNow(new Date(request.createdAt), { addSuffix: true })}
+                        {formatDistanceToNow(new Date(request.createdAt), {
+                          addSuffix: true,
+                        })}
                       </Typography>
                     </Box>
                   </Box>
 
                   {/* Return Date */}
-                  <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                  <Typography
+                    variant="body2"
+                    color="textSecondary"
+                    sx={{ mb: 1 }}
+                  >
                     <strong>Requested return:</strong>{' '}
                     {new Date(request.requestedReturnDate).toLocaleDateString()}
                   </Typography>
@@ -286,7 +330,7 @@ export function LenderRequestsPage() {
                         WebkitBoxOrient: 'vertical',
                       }}
                     >
-                      "{request.requestMessage}"
+                      &quot;{request.requestMessage}&quot;
                     </Typography>
                   )}
 
@@ -307,11 +351,15 @@ export function LenderRequestsPage() {
                   <Button
                     component={Link}
                     href={`/lender/requests/${request.id}`}
-                    variant={request.status === 'PENDING' ? 'contained' : 'outlined'}
+                    variant={
+                      request.status === 'PENDING' ? 'contained' : 'outlined'
+                    }
                     fullWidth
                     color={request.status === 'PENDING' ? 'primary' : 'inherit'}
                   >
-                    {request.status === 'PENDING' ? 'Review & Respond' : 'View Details'}
+                    {request.status === 'PENDING'
+                      ? 'Review & Respond'
+                      : 'View Details'}
                   </Button>
                 </CardActions>
               </Card>
