@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { db } from '@/lib/db';
-import { sendBorrowResponseNotification } from '@/lib/twilio';
+import {
+  sendBorrowRequestApprovedNotification,
+  sendBorrowRequestDeclinedNotification,
+} from '@/lib/enhanced-notification-service';
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,12 +46,14 @@ export async function POST(request: NextRequest) {
             id: true,
             name: true,
             phone: true,
+            email: true,
           },
         },
         item: {
           select: {
             id: true,
             name: true,
+            imageUrl: true,
           },
         },
       },
@@ -69,13 +74,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate that borrower has phone for notifications
-    if (!borrowRequest.borrower.phone) {
-      return NextResponse.json(
-        { error: 'Borrower phone number required for notifications' },
-        { status: 400 }
-      );
-    }
+    // Note: Phone numbers are no longer required - email notifications will be used instead
 
     // Update the borrow request
     const updatedBorrowRequest = await db.borrowRequest.update({
@@ -87,21 +86,49 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Send SMS notification to borrower
+    // Send comprehensive notification to borrower (in-app + email)
     try {
-      await sendBorrowResponseNotification({
-        _borrowerName: borrowRequest.borrower.name || 'Borrower',
-        borrowerPhone: borrowRequest.borrower.phone,
-        ownerName: borrowRequest.lender.name || 'Owner',
-        itemName: borrowRequest.item.name,
-        approved: decision === 'approve',
-        message: response,
-      });
+      const borrowRequestData = {
+        ...borrowRequest,
+        itemId: borrowRequest.itemId,
+        borrowerId: borrowRequest.borrowerId,
+        lenderId: borrowRequest.lenderId,
+        requestMessage: borrowRequest.requestMessage || '',
+        lenderMessage: response,
+        videoUrl: borrowRequest.videoUrl || '',
+        requestedReturnDate: borrowRequest.requestedReturnDate,
+        borrower: {
+          ...borrowRequest.borrower,
+          name: borrowRequest.borrower.name || '',
+          email: borrowRequest.borrower.email || '',
+          phone: borrowRequest.borrower.phone || '',
+          image: '',
+        },
+        lender: {
+          ...borrowRequest.lender,
+          name: borrowRequest.lender.name || '',
+          email: borrowRequest.lender.email || '',
+          phone: borrowRequest.lender.phone || '',
+        },
+        item: {
+          ...borrowRequest.item,
+          imageUrl: borrowRequest.item.imageUrl || '',
+        },
+      };
 
-      console.log('📱 SMS response notification sent to borrower');
-    } catch (smsError) {
-      console.error('❌ Failed to send SMS response notification:', smsError);
-      // Don't fail the request if SMS fails, but log it
+      if (decision === 'approve') {
+        await sendBorrowRequestApprovedNotification(borrowRequestData);
+        console.log('📱 Approval notification sent to borrower');
+      } else {
+        await sendBorrowRequestDeclinedNotification(borrowRequestData);
+        console.log('📱 Decline notification sent to borrower');
+      }
+    } catch (notificationError) {
+      console.error(
+        '❌ Failed to send response notification:',
+        notificationError
+      );
+      // Don't fail the request if notification fails, but log it
     }
 
     return NextResponse.json({

@@ -176,19 +176,14 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    if (!borrower || !borrower.phone) {
+    if (!borrower) {
       return NextResponse.json(
-        { error: 'Borrower phone number required for notifications' },
+        { error: 'Borrower not found' },
         { status: 400 }
       );
     }
 
-    if (!item.owner.phone) {
-      return NextResponse.json(
-        { error: 'Item owner phone number required for notifications' },
-        { status: 400 }
-      );
-    }
+    // Note: Phone numbers are no longer required - email notifications will be used instead
 
     // Check if item is available using new schema logic
     // Note: We'll assume isAvailable field still exists for backward compatibility
@@ -245,32 +240,38 @@ export async function POST(request: NextRequest) {
 
     // Send in-app notification using enhanced notification service
     try {
-      await sendBorrowRequestReceivedNotification({
-        ...borrowRequest,
-        requestMessage: borrowRequest.requestMessage || '',
-        lenderMessage: borrowRequest.lenderMessage || '',
-        videoUrl: borrowRequest.videoUrl || '',
-        borrower: {
-          id: borrowRequest.borrower.id,
-          name: borrowRequest.borrower.name || '',
-          image: borrowRequest.borrower.image || '',
-          phone: borrower.phone || '',
-          email: borrower.email || '',
+      await sendBorrowRequestReceivedNotification(
+        {
+          ...borrowRequest,
+          requestMessage: borrowRequest.requestMessage || '',
+          lenderMessage: borrowRequest.lenderMessage || '',
+          videoUrl: borrowRequest.videoUrl || '',
+          borrower: {
+            id: borrowRequest.borrower.id,
+            name: borrowRequest.borrower.name || '',
+            image: borrowRequest.borrower.image || '',
+            phone: borrower.phone || '',
+            email: borrower.email || '',
+          },
+          lender: {
+            id: item.owner.id,
+            name: item.owner.name || '',
+            email: item.owner.email || '',
+            phone: item.owner.phone || '',
+          },
+          item: {
+            ...borrowRequest.item,
+            imageUrl: borrowRequest.item.imageUrl || '',
+          },
         },
-        lender: {
-          id: item.owner.id,
-          name: item.owner.name || '',
-          email: item.owner.email || '',
-          phone: item.owner.phone || '',
-        },
-        item: {
-          ...borrowRequest.item,
-          imageUrl: borrowRequest.item.imageUrl || '',
-        },
-      }, approvalUrl);
+        approvalUrl
+      );
       console.log('📱 In-app notification created successfully');
     } catch (notificationError) {
-      console.error('❌ Failed to create in-app notification:', notificationError);
+      console.error(
+        '❌ Failed to create in-app notification:',
+        notificationError
+      );
       // Don't fail the request if notification fails
     }
 
