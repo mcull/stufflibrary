@@ -79,6 +79,11 @@ model User {
   disputesAsPartyB    Dispute[]       @relation("DisputePartyB")
   adminActionsPerformed AdminAction[] @relation("AdminUser")
   adminActionsReceived  AdminAction[] @relation("TargetUser")
+  securityEvents        SecurityEvent[]
+  blockedIPs            BlockedIP[]
+  auditLogs             AuditLog[]
+  complianceReports     ComplianceReport[]
+  complianceAdmin       ComplianceReport[] @relation("ComplianceAdmin")
 
   @@map("users")
 }
@@ -479,4 +484,137 @@ enum NotificationType {
   RETURN_CONFIRMED          // Lender confirmed return
   LIBRARY_INVITATION        // Invited to join library
   SYSTEM_ANNOUNCEMENT       // General system messages
+}
+
+model SecurityEvent {
+  id          String            @id @default(cuid())
+  type        SecurityEventType
+  severity    SecuritySeverity  @default(INFO)
+  message     String
+  details     Json?
+  ipAddress   String?
+  userAgent   String?
+  userId      String?
+  endpoint    String?
+  method      String?
+  statusCode  Int?
+  createdAt   DateTime          @default(now())
+  resolvedAt  DateTime?
+  user        User?             @relation(fields: [userId], references: [id])
+
+  @@index([type])
+  @@index([severity])
+  @@index([ipAddress])
+  @@index([createdAt])
+  @@index([userId])
+  @@map("security_events")
+}
+
+model BlockedIP {
+  id          String           @id @default(cuid())
+  ipAddress   String           @unique
+  reason      BlockedIPReason
+  description String?
+  blockedAt   DateTime         @default(now())
+  expiresAt   DateTime?
+  isActive    Boolean          @default(true)
+  blockedBy   String?
+  admin       User?            @relation(fields: [blockedBy], references: [id])
+
+  @@index([ipAddress])
+  @@index([isActive])
+  @@index([expiresAt])
+  @@map("blocked_ips")
+}
+
+model AuditLog {
+  id           String    @id @default(cuid())
+  action       String
+  entityType   String
+  entityId     String
+  userId       String?
+  details      Json?
+  metadata     Json?
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime  @default(now())
+  user         User?     @relation(fields: [userId], references: [id])
+
+  @@index([action])
+  @@index([entityType])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model ComplianceReport {
+  id          String             @id @default(cuid())
+  type        ComplianceType
+  status      ComplianceStatus   @default(PENDING)
+  requestedBy String?
+  userId      String?
+  startDate   DateTime
+  endDate     DateTime
+  data        Json?
+  generatedAt DateTime           @default(now())
+  completedAt DateTime?
+  user        User?              @relation(fields: [userId], references: [id])
+  admin       User?              @relation("ComplianceAdmin", fields: [requestedBy], references: [id])
+
+  @@index([type])
+  @@index([status])
+  @@index([userId])
+  @@index([generatedAt])
+  @@map("compliance_reports")
+}
+
+enum SecurityEventType {
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  LOGIN_BLOCKED
+  PASSWORD_RESET
+  ACCOUNT_LOCKED
+  SUSPICIOUS_ACTIVITY
+  API_ABUSE
+  RATE_LIMIT_EXCEEDED
+  IP_BLOCKED
+  UNAUTHORIZED_ACCESS
+  DATA_BREACH_ATTEMPT
+  ADMIN_ACTION
+  BULK_OPERATION
+  EXPORT_DATA
+  DELETE_ACCOUNT
+}
+
+enum SecuritySeverity {
+  INFO
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum BlockedIPReason {
+  FAILED_LOGINS
+  API_ABUSE
+  SUSPICIOUS_ACTIVITY
+  MANUAL_BLOCK
+  AUTOMATED_THREAT
+  SPAM
+  BOT_TRAFFIC
+}
+
+enum ComplianceType {
+  GDPR_DATA_REQUEST
+  ACCOUNT_DELETION
+  DATA_EXPORT
+  PRIVACY_AUDIT
+  RETENTION_CLEANUP
+}
+
+enum ComplianceStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
 }
