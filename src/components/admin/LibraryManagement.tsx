@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 interface Library {
   id: string;
@@ -304,8 +304,8 @@ export function LibraryManagement() {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {libraries.map((library) => (
-              <>
-                <tr key={library.id} className="hover:bg-gray-50">
+              <React.Fragment key={library.id}>
+                <tr className="hover:bg-gray-50">
                   <td className="px-6 py-4">
                     <input
                       type="checkbox"
@@ -431,7 +431,7 @@ export function LibraryManagement() {
                     </td>
                   </tr>
                 )}
-              </>
+              </React.Fragment>
             ))}
           </tbody>
         </table>

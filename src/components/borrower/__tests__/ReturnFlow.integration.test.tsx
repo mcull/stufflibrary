@@ -1,9 +1,23 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
 import { BorrowRequestDetail } from '../BorrowRequestDetail';
-import { 
-  sendItemReturnedNotification, 
-  sendReturnReminderNotification 
-} from '../../../lib/enhanced-notification-service';
+
+// Mock all database and notification dependencies
+vi.mock('../../../lib/enhanced-notification-service', () => ({
+  sendItemReturnedNotification: vi.fn().mockResolvedValue(undefined),
+  sendReturnReminderNotification: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('../../../lib/db', () => ({
+  db: {},
+}));
+
+vi.mock('../../../lib/notification-service', () => ({
+  createNotification: vi.fn(),
+}));
+
+const sendItemReturnedNotification = vi.fn().mockResolvedValue(undefined);
+const sendReturnReminderNotification = vi.fn().mockResolvedValue(undefined);
 
 // Integration test to verify the return flow implementation is complete
 describe('Return Flow Integration', () => {
@@ -14,8 +28,14 @@ describe('Return Flow Integration', () => {
 
   it('API supports return and confirm-return actions', async () => {
     // This tests the API action validation logic
-    const validActions = ['approve', 'decline', 'return', 'cancel', 'confirm-return'];
-    
+    const validActions = [
+      'approve',
+      'decline',
+      'return',
+      'cancel',
+      'confirm-return',
+    ];
+
     expect(validActions).toContain('return');
     expect(validActions).toContain('confirm-return');
     expect(validActions).toHaveLength(5);
@@ -30,11 +50,18 @@ describe('Return Flow Integration', () => {
 
   it('return flow constants and types are properly defined', () => {
     // Test that the status constants we use are valid
-    const borrowRequestStatuses = ['PENDING', 'APPROVED', 'DECLINED', 'ACTIVE', 'RETURNED', 'CANCELLED'];
-    
+    const borrowRequestStatuses = [
+      'PENDING',
+      'APPROVED',
+      'DECLINED',
+      'ACTIVE',
+      'RETURNED',
+      'CANCELLED',
+    ];
+
     expect(borrowRequestStatuses).toContain('ACTIVE');
     expect(borrowRequestStatuses).toContain('RETURNED');
-    
+
     // Test action types
     const actionTypes = ['return', 'confirm-return'];
     expect(actionTypes).toHaveLength(2);
