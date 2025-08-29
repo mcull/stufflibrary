@@ -53,6 +53,13 @@ model User {
   currentAddressId    String?
   movedInDate         DateTime?
   status              String          @default("active")
+  trustScore          Float           @default(1000.0)
+  warningCount        Int             @default(0)
+  suspensionCount     Int             @default(0)
+  lastWarningAt       DateTime?
+  lastSuspensionAt    DateTime?
+  isSuspended         Boolean         @default(false)
+  suspensionEndsAt    DateTime?
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
   accounts            Account[]
@@ -66,6 +73,12 @@ model User {
   items               Item[]
   sessions            Session[]
   notifications       Notification[]
+  reportedByUser      UserReport[]    @relation("ReportedUser")
+  reportsCreated      UserReport[]    @relation("ReporterUser")
+  disputesAsPartyA    Dispute[]       @relation("DisputePartyA")
+  disputesAsPartyB    Dispute[]       @relation("DisputePartyB")
+  adminActionsPerformed AdminAction[] @relation("AdminUser")
+  adminActionsReceived  AdminAction[] @relation("TargetUser")
 
   @@map("users")
 }
@@ -133,6 +146,7 @@ model Library {
   owner       User            @relation("LibraryOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   invitations Invitation[]
   items       ItemLibrary[]
+  reports     UserReport[]
 
   @@map("libraries")
 }
@@ -181,6 +195,8 @@ model Item {
   owner                  User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   stuffType              StuffType?      @relation(fields: [stuffTypeId], references: [id])
   libraries              ItemLibrary[]
+  reports                UserReport[]
+  disputes               Dispute[]
 
   @@map("items")
 }
@@ -203,6 +219,7 @@ model BorrowRequest {
   borrower             User                @relation(fields: [borrowerId], references: [id], onDelete: Cascade)
   item                 Item                @relation(fields: [itemId], references: [id], onDelete: Cascade)
   lender               User                @relation("Lender", fields: [lenderId], references: [id], onDelete: Cascade)
+  disputes             Dispute[]
 
   @@index([borrowerId])
   @@index([lenderId])
@@ -323,6 +340,132 @@ enum BorrowRequestStatus {
   ACTIVE
   RETURNED
   CANCELLED
+}
+
+model UserReport {
+  id          String           @id @default(cuid())
+  reason      UserReportReason
+  description String?
+  status      ReportStatus     @default(PENDING)
+  priority    ReportPriority   @default(LOW)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  reviewedAt  DateTime?
+  reporterId  String
+  reportedId  String
+  reviewerId  String?
+  itemId      String?
+  libraryId   String?
+  notes       String?
+  evidence    Json?
+  reporter    User             @relation("ReporterUser", fields: [reporterId], references: [id])
+  reported    User             @relation("ReportedUser", fields: [reportedId], references: [id])
+  item        Item?            @relation(fields: [itemId], references: [id])
+  library     Library?         @relation(fields: [libraryId], references: [id])
+
+  @@index([status])
+  @@index([priority])
+  @@index([createdAt])
+  @@map("user_reports")
+}
+
+model Dispute {
+  id           String        @id @default(cuid())
+  type         DisputeType
+  status       DisputeStatus @default(OPEN)
+  priority     ReportPriority @default(MEDIUM)
+  title        String
+  description  String
+  resolution   String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  resolvedAt   DateTime?
+  partyAId     String
+  partyBId     String
+  itemId       String?
+  borrowRequestId String?
+  assignedTo   String?
+  partyA       User          @relation("DisputePartyA", fields: [partyAId], references: [id])
+  partyB       User          @relation("DisputePartyB", fields: [partyBId], references: [id])
+  item         Item?         @relation(fields: [itemId], references: [id])
+  borrowRequest BorrowRequest? @relation(fields: [borrowRequestId], references: [id])
+
+  @@index([status])
+  @@index([type])
+  @@index([priority])
+  @@index([createdAt])
+  @@map("disputes")
+}
+
+model AdminAction {
+  id           String         @id @default(cuid())
+  type         AdminActionType
+  description  String
+  reason       String?
+  metadata     Json?
+  createdAt    DateTime       @default(now())
+  adminId      String
+  targetUserId String
+  admin        User           @relation("AdminUser", fields: [adminId], references: [id])
+  targetUser   User           @relation("TargetUser", fields: [targetUserId], references: [id])
+
+  @@index([type])
+  @@index([createdAt])
+  @@index([targetUserId])
+  @@map("admin_actions")
+}
+
+enum UserReportReason {
+  INAPPROPRIATE_CONTENT
+  SPAM
+  FRAUD
+  HARASSMENT
+  COPYRIGHT_VIOLATION
+  SAFETY_CONCERN
+  TERMS_VIOLATION
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  UNDER_REVIEW
+  RESOLVED
+  DISMISSED
+  ESCALATED
+}
+
+enum ReportPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum DisputeType {
+  ITEM_NOT_RETURNED
+  ITEM_DAMAGED
+  ITEM_NOT_AS_DESCRIBED
+  PAYMENT_DISPUTE
+  HARASSMENT
+  OTHER
+}
+
+enum DisputeStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum AdminActionType {
+  USER_WARNING
+  USER_SUSPENSION
+  USER_UNSUSPENSION
+  TRUST_SCORE_ADJUSTMENT
+  ITEM_REMOVAL
+  LIBRARY_SUSPENSION
+  DISPUTE_RESOLUTION
+  MANUAL_INTERVENTION
 }
 
 enum NotificationType {
