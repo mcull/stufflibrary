@@ -134,6 +134,13 @@ function ItemCard({ item, status }: ItemCardProps) {
   const router = useRouter();
 
   const handleClick = () => {
+    // For borrowed items, go to the borrow request detail page
+    if (status === 'borrowed' && item.borrowRequestId) {
+      router.push(`/borrow-requests/${item.borrowRequestId}`);
+      return;
+    }
+    
+    // For other items, go to the item detail page
     const itemId = item.id || item.item?.id;
     if (itemId) {
       router.push(`/stuff/${itemId}`);

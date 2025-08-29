@@ -53,7 +53,10 @@ interface BorrowRequest {
   videoUrl?: string;
   requestedReturnDate: string;
   createdAt: string;
+  updatedAt: string;
   approvedAt?: string;
+  returnedAt?: string;
+  borrowerNotes?: string;
   borrower: {
     id: string;
     name: string;
@@ -108,6 +111,8 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
   const [responseMessage, setResponseMessage] = useState('');
   const [modifyReturnDate, setModifyReturnDate] = useState(false);
   const [newReturnDate, setNewReturnDate] = useState('');
+  const [confirmingReturn, setConfirmingReturn] = useState(false);
+  const [confirmReturnDialog, setConfirmReturnDialog] = useState(false);
 
   const fetchRequest = async () => {
     try {
@@ -142,7 +147,8 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
     if (status === 'authenticated') {
       fetchRequest();
     }
-  }, [status, requestId, router]);
+  }, [status, requestId, router, fetchRequest]);
+
 
   const handleResponse = async (decision: 'approve' | 'decline') => {
     if (!request) return;
@@ -181,6 +187,39 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
       );
     } finally {
       setResponding(false);
+    }
+  };
+
+  const handleConfirmReturn = async () => {
+    if (!request) return;
+
+    setConfirmingReturn(true);
+
+    try {
+      const response = await fetch(`/api/borrow-requests/${request.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'confirm-return',
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to confirm return');
+      }
+
+      // Refresh the request data
+      await fetchRequest();
+      setConfirmReturnDialog(false);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to confirm return'
+      );
+    } finally {
+      setConfirmingReturn(false);
     }
   };
 
@@ -236,7 +275,9 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
   }
 
   const isPending = request.status === 'PENDING';
+  const isReturned = request.status === 'RETURNED';
   const canRespond = isPending;
+  const canConfirmReturn = isReturned;
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -368,6 +409,34 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
               </CardContent>
             </Card>
           )}
+
+          {/* Return Information */}
+          {isReturned && (
+            <Card sx={{ mb: 3, bgcolor: 'success.light' }}>
+              <CardContent>
+                <Typography 
+                  variant="h6" 
+                  gutterBottom 
+                  sx={{ display: 'flex', alignItems: 'center', color: 'success.contrastText' }}
+                >
+                  <CheckCircle sx={{ mr: 1 }} />
+                  Item Returned by Borrower
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'success.contrastText', mb: 2 }}>
+                  {request.borrower.name} marked this item as returned on{' '}
+                  {new Date(request.returnedAt || request.updatedAt).toLocaleDateString()}.
+                </Typography>
+                {request.borrowerNotes && (
+                  <Box sx={{ mt: 2, p: 2, bgcolor: 'rgba(255,255,255,0.2)', borderRadius: 1 }}>
+                    <Typography variant="body2" sx={{ color: 'success.contrastText', fontStyle: 'italic' }}>
+                      &ldquo;{request.borrowerNotes}&rdquo;
+                    </Typography>
+                  </Box>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        
         </Box>
 
         {/* Sidebar */}
@@ -475,6 +544,33 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
               </CardContent>
             </Card>
           )}
+
+          {/* Return Confirmation */}
+          {canConfirmReturn && (
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Confirm Return
+                </Typography>
+                <Typography variant="body2" color="textSecondary" paragraph>
+                  {request.borrower.name} has marked this item as returned. 
+                  Please confirm that you have received it back in good condition.
+                </Typography>
+
+                <Button
+                  variant="contained"
+                  color="success"
+                  size="large"
+                  fullWidth
+                  startIcon={<CheckCircle />}
+                  onClick={() => setConfirmReturnDialog(true)}
+                >
+                  Confirm Return Received
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
         </Box>
       </Box>
 
@@ -585,6 +681,55 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
               : responseDialog === 'approve'
                 ? 'Approve'
                 : 'Decline'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Return Confirmation Dialog */}
+      <Dialog
+        open={confirmReturnDialog}
+        onClose={() => setConfirmReturnDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Confirm Return of &quot;{request.item.name}&quot;
+        </DialogTitle>
+
+        <DialogContent>
+          <Typography variant="body2" color="textSecondary" paragraph>
+            {request.borrower.name} has marked this item as returned. Please confirm 
+            that you have received it back and that it&apos;s in acceptable condition.
+          </Typography>
+
+          {request.borrowerNotes && (
+            <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+                Borrower&apos;s return notes:
+              </Typography>
+              <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
+                &ldquo;{request.borrowerNotes}&rdquo;
+              </Typography>
+            </Box>
+          )}
+
+          <Box sx={{ mt: 2, p: 2, bgcolor: 'success.light', borderRadius: 1 }}>
+            <Typography variant="caption" sx={{ color: 'success.contrastText' }}>
+              ✓ Confirming will mark this transaction as complete and make your item available for lending again
+            </Typography>
+          </Box>
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={() => setConfirmReturnDialog(false)}>Cancel</Button>
+          <Button
+            onClick={handleConfirmReturn}
+            variant="contained"
+            color="success"
+            disabled={confirmingReturn}
+            startIcon={confirmingReturn ? <CircularProgress size={20} /> : <CheckCircle />}
+          >
+            {confirmingReturn ? 'Confirming...' : 'Confirm Return'}
           </Button>
         </DialogActions>
       </Dialog>
