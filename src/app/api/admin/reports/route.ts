@@ -111,7 +111,9 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching reports:', error);
+    if (process.env.NODE_ENV !== 'test') {
+      console.error('Error fetching reports:', error);
+    }
     return Response.json({ error: 'Failed to fetch reports' }, { status: 500 });
   }
 }
@@ -183,7 +185,9 @@ export async function PATCH(request: NextRequest) {
 
     return Response.json({ success: true });
   } catch (error) {
-    console.error('Error updating reports:', error);
+    if (process.env.NODE_ENV !== 'test') {
+      console.error('Error updating reports:', error);
+    }
     return Response.json(
       { error: 'Failed to update reports' },
       { status: 500 }

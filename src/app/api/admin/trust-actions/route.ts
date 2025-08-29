@@ -85,7 +85,9 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching admin actions:', error);
+    if (process.env.NODE_ENV !== 'test') {
+      console.error('Error fetching admin actions:', error);
+    }
     return Response.json(
       { error: 'Failed to fetch admin actions' },
       { status: 500 }
@@ -175,7 +177,9 @@ export async function POST(request: NextRequest) {
 
     return Response.json(result, { status: 201 });
   } catch (error) {
-    console.error('Error creating admin action:', error);
+    if (process.env.NODE_ENV !== 'test') {
+      console.error('Error creating admin action:', error);
+    }
     return Response.json(
       { error: 'Failed to create admin action' },
       { status: 500 }

@@ -117,7 +117,9 @@ export function TrustSafetyDashboard() {
 
       await fetchStats();
     } catch (error) {
-      console.error('Error creating trust action:', error);
+      if (process.env.NODE_ENV !== 'test') {
+        console.error('Error creating trust action:', error);
+      }
       setError(
         error instanceof Error ? error.message : 'Failed to create trust action'
       );

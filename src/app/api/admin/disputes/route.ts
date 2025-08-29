@@ -112,7 +112,9 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching disputes:', error);
+    if (process.env.NODE_ENV !== 'test') {
+      console.error('Error fetching disputes:', error);
+    }
     return Response.json(
       { error: 'Failed to fetch disputes' },
       { status: 500 }
@@ -206,7 +208,9 @@ export async function PATCH(request: NextRequest) {
 
     return Response.json({ success: true });
   } catch (error) {
-    console.error('Error updating disputes:', error);
+    if (process.env.NODE_ENV !== 'test') {
+      console.error('Error updating disputes:', error);
+    }
     return Response.json(
       { error: 'Failed to update disputes' },
       { status: 500 }
