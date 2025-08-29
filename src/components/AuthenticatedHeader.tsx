@@ -16,6 +16,7 @@ import { useState, useEffect } from 'react';
 import { useProfileDraftCleanup } from '@/hooks/useProfileDraftCleanup';
 import { brandColors } from '@/theme/brandTokens';
 
+import { NotificationBell } from './notifications/NotificationBell';
 import { Wordmark } from './Wordmark';
 
 export function AuthenticatedHeader() {
@@ -69,8 +70,11 @@ export function AuthenticatedHeader() {
             </Link>
           </Box>
 
-          {/* Right Side - User Photo */}
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          {/* Right Side - Notifications & User Photo */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {/* Notification Bell */}
+            <NotificationBell />
+
             {/* User Photo - Links to Profile */}
             <IconButton
               component={Link}

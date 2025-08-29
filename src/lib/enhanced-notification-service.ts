@@ -6,8 +6,8 @@
 import { NotificationType } from '@prisma/client';
 
 import { EmailTemplates } from './email-templates';
-import { createNotification, CreateNotificationData } from './notification-service';
-import { sendBorrowRequestNotification, sendBorrowResponseNotification, sendReturnNotification, sendCancellationNotification } from './twilio';
+import { createNotification } from './notification-service';
+import { sendBorrowRequestNotification, sendBorrowResponseNotification, sendReturnNotification } from './twilio';
 
 interface BorrowRequest {
   id: string;
@@ -50,7 +50,7 @@ export async function sendBorrowRequestReceivedNotification(borrowRequest: Borro
       type: 'BORROW_REQUEST_RECEIVED' as NotificationType,
       title: 'New Borrow Request',
       message: `${borrowRequest.borrower.name} wants to borrow your "${borrowRequest.item.name}"`,
-      actionUrl: approvalUrl,
+      actionUrl: `/lender/requests/${borrowRequest.id}`,
       relatedItemId: borrowRequest.itemId,
       relatedRequestId: borrowRequest.id,
       metadata: {
