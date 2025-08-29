@@ -87,6 +87,9 @@ export function LibraryManagement() {
       setLibraries(data.libraries);
       setPagination(data.pagination);
     } catch (err: any) {
+      if (process.env.NODE_ENV !== 'test') {
+        console.error('Error fetching libraries:', err);
+      }
       setError(err.message);
     } finally {
       setLoading(false);
@@ -136,6 +139,9 @@ export function LibraryManagement() {
       setBulkAction('');
       await fetchLibraries();
     } catch (error) {
+      if (process.env.NODE_ENV !== 'test') {
+        console.error('Bulk action error:', error);
+      }
       alert(error instanceof Error ? error.message : 'Bulk action failed');
     }
   };

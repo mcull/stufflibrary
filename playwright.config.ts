@@ -1,5 +1,14 @@
 import { defineConfig, devices } from '@playwright/test';
 
+// Set up test environment variables
+process.env.NODE_ENV = 'test';
+process.env.DATABASE_URL =
+  process.env.DATABASE_URL || 'postgresql://test:test@localhost:5432/test';
+process.env.NEXTAUTH_SECRET =
+  process.env.NEXTAUTH_SECRET || 'test-secret-key-for-testing-only';
+process.env.NEXTAUTH_URL = process.env.NEXTAUTH_URL || 'http://localhost:3001';
+process.env.DATABASE_ENV = 'test';
+
 /**
  * @see https://playwright.dev/docs/test-configuration
  */
@@ -59,5 +68,12 @@ export default defineConfig({
     url: 'http://localhost:3001',
     reuseExistingServer: !process.env.CI,
     timeout: 30000,
+    env: {
+      NODE_ENV: 'test',
+      DATABASE_URL: 'postgresql://test:test@localhost:5432/test',
+      NEXTAUTH_SECRET: 'test-secret-key-for-testing-only',
+      NEXTAUTH_URL: 'http://localhost:3001',
+      DATABASE_ENV: 'test',
+    },
   },
 });

@@ -1,5 +1,5 @@
-import { z } from 'zod';
 import { config } from 'dotenv';
+import { z } from 'zod';
 
 // Load environment variables from .env file
 config();
@@ -8,17 +8,19 @@ const envSchema = z.object({
   // Database (Supabase)
   DATABASE_URL: z.string().url(),
   DIRECT_URL: z.string().url().optional(),
-  
+
   // Staging Database
   STAGING_DATABASE_URL: z.string().url().optional(),
   STAGING_DIRECT_URL: z.string().url().optional(),
-  
+
   // Test Database
   TEST_DATABASE_URL: z.string().url().optional(),
   TEST_DIRECT_URL: z.string().url().optional(),
-  
+
   // Database Environment Override
-  DATABASE_ENV: z.enum(['development', 'staging', 'production', 'test']).optional(),
+  DATABASE_ENV: z
+    .enum(['development', 'staging', 'production', 'test'])
+    .optional(),
 
   // Cache (Upstash Redis)
   KV_URL: z.string().optional(),
@@ -77,15 +79,24 @@ function validateEnv(): Env {
   try {
     return envSchema.parse(process.env);
   } catch (error) {
-    // During build time, return defaults if validation fails
-    if (process.env.NEXT_PHASE === 'phase-production-build') {
-      console.warn('⚠️ Using default environment values during build');
+    // During build time or test environment, return defaults if validation fails
+    if (
+      process.env.NEXT_PHASE === 'phase-production-build' ||
+      process.env.NODE_ENV === 'test'
+    ) {
+      console.warn('⚠️ Using default environment values during build/test');
       return {
         NODE_ENV:
           (process.env.NODE_ENV as 'development' | 'production' | 'test') ||
-          'production',
+          'test',
         NEXT_PUBLIC_APP_URL:
           process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+        DATABASE_URL:
+          process.env.DATABASE_URL ||
+          'postgresql://test:test@localhost:5432/test',
+        NEXTAUTH_SECRET:
+          process.env.NEXTAUTH_SECRET || 'test-secret-key-for-testing-only',
+        NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
         DEBUG: false,
         LOG_LEVEL: 'info',
       } as Env;
