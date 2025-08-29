@@ -6,10 +6,11 @@ import { authOptions } from '@/lib/auth';
 import { updateItemAvailability } from '@/lib/borrow-request-utils';
 import { db } from '@/lib/db';
 import {
-  sendBorrowResponseNotification,
-  sendReturnNotification,
-  sendCancellationNotification,
-} from '@/lib/twilio';
+  sendBorrowRequestApprovedNotification,
+  sendBorrowRequestDeclinedNotification,
+  sendItemReturnedNotification,
+} from '@/lib/enhanced-notification-service';
+import { sendCancellationNotification } from '@/lib/twilio';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -129,9 +130,16 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const { action, message, actualReturnDate } = body;
 
     // Validate action
-    if (!['approve', 'decline', 'return', 'cancel', 'confirm-return'].includes(action)) {
+    if (
+      !['approve', 'decline', 'return', 'cancel', 'confirm-return'].includes(
+        action
+      )
+    ) {
       return NextResponse.json(
-        { error: 'Action must be one of: approve, decline, return, cancel, confirm-return' },
+        {
+          error:
+            'Action must be one of: approve, decline, return, cancel, confirm-return',
+        },
         { status: 400 }
       );
     }
@@ -161,6 +169,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
             id: true,
             name: true,
             ownerId: true,
+            imageUrl: true,
           },
         },
       },
@@ -284,7 +293,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         // Can only confirm return of returned items
         if (borrowRequest.status !== 'RETURNED') {
           return NextResponse.json(
-            { error: 'Can only confirm items that have been marked as returned' },
+            {
+              error: 'Can only confirm items that have been marked as returned',
+            },
             { status: 400 }
           );
         }
@@ -295,7 +306,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           status: newStatus,
           // Mark the return as confirmed by updating the lender message
           lenderMessage: message || 'Return confirmed by lender',
-          // Update timestamp to indicate confirmation  
+          // Update timestamp to indicate confirmation
           updatedAt: new Date(),
         };
         break;
@@ -344,42 +355,73 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       let notificationSent = false;
 
       if (action === 'approve' || action === 'decline') {
-        // Notify borrower of lender's decision
-        if (borrowRequest.borrower.phone) {
-          await sendBorrowResponseNotification({
-            _borrowerName: borrowRequest.borrower.name || 'Borrower',
-            borrowerPhone: borrowRequest.borrower.phone,
-            ownerName: borrowRequest.lender.name || 'Owner',
-            itemName: borrowRequest.item.name,
-            approved: action === 'approve',
-            message: message || `Request ${action}d`,
-          });
-          notificationSent = true;
+        // Notify borrower of lender's decision using enhanced notification service
+        const borrowRequestData = {
+          ...borrowRequest,
+          itemId: borrowRequest.itemId,
+          borrowerId: borrowRequest.borrowerId,
+          lenderId: borrowRequest.lenderId,
+          requestMessage: borrowRequest.requestMessage || '',
+          lenderMessage: message || `Request ${action}d`,
+          videoUrl: borrowRequest.videoUrl || '',
+          requestedReturnDate: borrowRequest.requestedReturnDate,
+          borrower: {
+            ...borrowRequest.borrower,
+            name: borrowRequest.borrower.name || '',
+            email: borrowRequest.borrower.email || '',
+            phone: borrowRequest.borrower.phone || '',
+            image: '',
+          },
+          lender: {
+            ...borrowRequest.lender,
+            name: borrowRequest.lender.name || '',
+            email: borrowRequest.lender.email || '',
+            phone: borrowRequest.lender.phone || '',
+          },
+          item: {
+            ...borrowRequest.item,
+            imageUrl: borrowRequest.item.imageUrl || '',
+          },
+        };
+
+        if (action === 'approve') {
+          await sendBorrowRequestApprovedNotification(borrowRequestData);
+        } else {
+          await sendBorrowRequestDeclinedNotification(borrowRequestData);
         }
+        notificationSent = true;
       } else if (action === 'return') {
-        // Notify lender that item has been returned
-        if (borrowRequest.lender.phone || borrowRequest.lender.email) {
-          const notificationData: Parameters<typeof sendReturnNotification>[0] =
-            {
-              ownerName: borrowRequest.lender.name || 'Owner',
-              borrowerName: borrowRequest.borrower.name || 'Borrower',
-              itemName: borrowRequest.item.name,
-              returnDate: updateData.returnedAt as Date,
-            };
+        // Notify lender that item has been returned using enhanced notification service
+        const borrowRequestData = {
+          ...borrowRequest,
+          itemId: borrowRequest.itemId,
+          borrowerId: borrowRequest.borrowerId,
+          lenderId: borrowRequest.lenderId,
+          requestMessage: borrowRequest.requestMessage || '',
+          lenderMessage: borrowRequest.lenderMessage || '',
+          videoUrl: borrowRequest.videoUrl || '',
+          requestedReturnDate: borrowRequest.requestedReturnDate,
+          borrower: {
+            ...borrowRequest.borrower,
+            name: borrowRequest.borrower.name || '',
+            email: borrowRequest.borrower.email || '',
+            phone: borrowRequest.borrower.phone || '',
+            image: '',
+          },
+          lender: {
+            ...borrowRequest.lender,
+            name: borrowRequest.lender.name || '',
+            email: borrowRequest.lender.email || '',
+            phone: borrowRequest.lender.phone || '',
+          },
+          item: {
+            ...borrowRequest.item,
+            imageUrl: borrowRequest.item.imageUrl || '',
+          },
+        };
 
-          if (borrowRequest.lender.phone) {
-            notificationData.ownerPhone = borrowRequest.lender.phone;
-          }
-          if (borrowRequest.lender.email) {
-            notificationData.ownerEmail = borrowRequest.lender.email;
-          }
-          if (message) {
-            notificationData.borrowerNotes = message;
-          }
-
-          await sendReturnNotification(notificationData);
-          notificationSent = true;
-        }
+        await sendItemReturnedNotification(borrowRequestData, message);
+        notificationSent = true;
       } else if (action === 'cancel') {
         // Notify the other party of cancellation
         const recipientIsLender = borrowRequest.borrowerId === userId;

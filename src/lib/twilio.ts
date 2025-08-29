@@ -1,29 +1,4 @@
 import { Resend } from 'resend';
-import twilio from 'twilio';
-
-function getTwilioClient() {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-
-  if (!accountSid || !authToken) {
-    throw new Error(
-      'Twilio credentials not found. Please set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN environment variables.'
-    );
-  }
-
-  // Validate Account SID format - must start with 'AC'
-  if (!accountSid.startsWith('AC')) {
-    console.error('Invalid Twilio Account SID format:', {
-      accountSid: accountSid.substring(0, 5) + '***', // Log first 5 chars only for security
-      expectedFormat: 'AC...',
-    });
-    throw new Error(
-      `Invalid TWILIO_ACCOUNT_SID format. Account SID must start with 'AC' but got '${accountSid.substring(0, 2)}***'. Please check your Twilio console for the correct Account SID.`
-    );
-  }
-
-  return twilio(accountSid, authToken);
-}
 
 export interface SMSMessage {
   to: string;
@@ -31,69 +6,14 @@ export interface SMSMessage {
 }
 
 export async function sendSMS({ to, body }: SMSMessage) {
-  try {
-    const client = getTwilioClient();
-    const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
+  // SMS functionality is stubbed out - only email notifications are used
+  console.log(`📞 SMS stubbed out - would have sent to ${to}: "${body}"`);
 
-    if (!twilioPhoneNumber) {
-      throw new Error('TWILIO_PHONE_NUMBER environment variable is required');
-    }
-
-    if (!to || to.trim() === '') {
-      throw new Error('Phone number is required but was empty or null');
-    }
-
-    // Ensure phone number is in E.164 format
-    let formattedTo = to;
-
-    // Remove all non-digit characters except + at the beginning
-    const cleanNumber = to.replace(/[^\d+]/g, '');
-
-    if (cleanNumber.startsWith('+')) {
-      // Already has + prefix, use as-is
-      formattedTo = cleanNumber;
-    } else if (cleanNumber.length === 11 && cleanNumber.startsWith('1')) {
-      // US number with country code but no + (e.g., 15105551234)
-      formattedTo = `+${cleanNumber}`;
-    } else if (cleanNumber.length === 10) {
-      // US number without country code (e.g., 5105551234)
-      formattedTo = `+1${cleanNumber}`;
-    } else {
-      // For other formats, just add + if missing
-      formattedTo = cleanNumber.startsWith('+')
-        ? cleanNumber
-        : `+${cleanNumber}`;
-    }
-
-    console.log(`📞 Phone number formatting: "${to}" → "${formattedTo}"`);
-
-    // Validate the formatted number meets E.164 requirements
-    if (!formattedTo.match(/^\+[1-9]\d{1,14}$/)) {
-      throw new Error(
-        `Invalid phone number format after formatting: "${formattedTo}". Expected E.164 format (+1234567890).`
-      );
-    }
-
-    const message = await client.messages.create({
-      body,
-      from: twilioPhoneNumber,
-      to: formattedTo,
-    });
-
-    console.log(`SMS sent successfully: ${message.sid}`);
-    return {
-      success: true,
-      messageId: message.sid,
-      status: message.status,
-    };
-  } catch (error) {
-    console.error('Failed to send SMS:', error);
-
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
-  }
+  return {
+    success: true,
+    messageId: 'stubbed-sms-' + Date.now(),
+    status: 'sent',
+  };
 }
 
 export async function sendEmail({
@@ -167,7 +87,10 @@ export async function sendBorrowRequestNotification({
 
     results.sms = {
       success: smsResult.success,
-      error: smsResult.error || '',
+      error:
+        !smsResult.success && 'error' in smsResult
+          ? String(smsResult.error)
+          : '',
       ...(smsResult.messageId && { messageId: smsResult.messageId }),
     };
 
@@ -225,7 +148,10 @@ export async function sendBorrowRequestNotification({
 
     results.email = {
       success: emailResult.success,
-      error: emailResult.error || '',
+      error:
+        !emailResult.success && 'error' in emailResult
+          ? String(emailResult.error)
+          : '',
       ...(emailResult.messageId && { messageId: emailResult.messageId }),
     };
 
@@ -333,7 +259,10 @@ export async function sendReturnNotification({
 
     results.sms = {
       success: smsResult.success,
-      error: smsResult.error || '',
+      error:
+        !smsResult.success && 'error' in smsResult
+          ? String(smsResult.error)
+          : '',
       ...(smsResult.messageId && { messageId: smsResult.messageId }),
     };
   }
@@ -391,7 +320,10 @@ export async function sendReturnNotification({
 
     results.email = {
       success: emailResult.success,
-      error: emailResult.error || '',
+      error:
+        !emailResult.success && 'error' in emailResult
+          ? String(emailResult.error)
+          : '',
       ...(emailResult.messageId && { messageId: emailResult.messageId }),
     };
   }
@@ -452,7 +384,10 @@ export async function sendCancellationNotification({
 
     results.sms = {
       success: smsResult.success,
-      error: smsResult.error || '',
+      error:
+        !smsResult.success && 'error' in smsResult
+          ? String(smsResult.error)
+          : '',
       ...(smsResult.messageId && { messageId: smsResult.messageId }),
     };
   }
@@ -510,7 +445,10 @@ export async function sendCancellationNotification({
 
     results.email = {
       success: emailResult.success,
-      error: emailResult.error || '',
+      error:
+        !emailResult.success && 'error' in emailResult
+          ? String(emailResult.error)
+          : '',
       ...(emailResult.messageId && { messageId: emailResult.messageId }),
     };
   }
