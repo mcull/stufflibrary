@@ -149,6 +149,7 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
     }
   }, [status, requestId, router, fetchRequest]);
 
+
   const handleResponse = async (decision: 'approve' | 'decline') => {
     if (!request) return;
 
@@ -435,6 +436,7 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
               </CardContent>
             </Card>
           )}
+        
         </Box>
 
         {/* Sidebar */}
@@ -568,6 +570,7 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
               </CardContent>
             </Card>
           )}
+
         </Box>
       </Box>
 
