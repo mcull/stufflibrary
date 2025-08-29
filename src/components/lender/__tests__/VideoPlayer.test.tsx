@@ -65,33 +65,33 @@ describe('VideoPlayer', () => {
   it('renders video player with controls', () => {
     render(<VideoPlayer videoUrl={mockVideoUrl} />);
 
-    const video = screen.getByRole('application') || document.querySelector('video');
+    const video = document.querySelector('video');
     expect(video).toBeInTheDocument();
     expect(video).toHaveAttribute('src', mockVideoUrl);
-    expect(video).toHaveAttribute('muted');
+    expect(video).toHaveProperty('muted', true);
   });
 
   it('starts with auto-muted enabled by default', () => {
     render(<VideoPlayer videoUrl={mockVideoUrl} />);
-    
+
     const video = document.querySelector('video');
-    expect(video).toHaveAttribute('muted');
+    expect(video).toHaveProperty('muted', true);
   });
 
   it('allows disabling auto-muted', () => {
     render(<VideoPlayer videoUrl={mockVideoUrl} autoMuted={false} />);
-    
+
     const video = document.querySelector('video');
-    expect(video).not.toHaveAttribute('muted');
+    expect(video).toHaveProperty('muted', false);
   });
 
   it('toggles play/pause when video is clicked', () => {
     render(<VideoPlayer videoUrl={mockVideoUrl} />);
-    
+
     const video = document.querySelector('video');
     const playMock = vi.fn().mockImplementation(() => Promise.resolve());
     const pauseMock = vi.fn();
-    
+
     if (video) {
       video.play = playMock;
       video.pause = pauseMock;
@@ -104,13 +104,13 @@ describe('VideoPlayer', () => {
 
   it('shows loading spinner initially', () => {
     render(<VideoPlayer videoUrl={mockVideoUrl} />);
-    
+
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
   it('displays error message when video fails to load', () => {
     render(<VideoPlayer videoUrl="invalid-url" />);
-    
+
     const video = document.querySelector('video');
     if (video) {
       // Simulate error event
@@ -121,13 +121,13 @@ describe('VideoPlayer', () => {
 
   it('formats time correctly', () => {
     render(<VideoPlayer videoUrl={mockVideoUrl} />);
-    
+
     const video = document.querySelector('video');
     if (video) {
       // Simulate loaded metadata
       Object.defineProperty(video, 'duration', { value: 125 });
       Object.defineProperty(video, 'currentTime', { value: 65 });
-      
+
       fireEvent.loadedMetadata(video);
       fireEvent.timeUpdate(video);
 
@@ -138,8 +138,12 @@ describe('VideoPlayer', () => {
   });
 
   it('handles fullscreen toggle', async () => {
-    const mockRequestFullscreen = vi.fn().mockImplementation(() => Promise.resolve());
-    const mockExitFullscreen = vi.fn().mockImplementation(() => Promise.resolve());
+    const mockRequestFullscreen = vi
+      .fn()
+      .mockImplementation(() => Promise.resolve());
+    const mockExitFullscreen = vi
+      .fn()
+      .mockImplementation(() => Promise.resolve());
 
     // Mock the container element's requestFullscreen
     HTMLElement.prototype.requestFullscreen = mockRequestFullscreen;
@@ -153,10 +157,9 @@ describe('VideoPlayer', () => {
       fireEvent.loadedMetadata(video);
     }
 
-    // Find fullscreen button (may need to adjust selector based on actual implementation)
-    const fullscreenButton = document.querySelector('[data-testid="fullscreen-button"]') || 
-                             screen.getByRole('button', { name: /fullscreen/i });
-    
+    // Find fullscreen button by its SVG icon test id
+    const fullscreenButton = screen.getByTestId('FullscreenIcon').parentElement;
+
     if (fullscreenButton) {
       fireEvent.click(fullscreenButton);
       expect(mockRequestFullscreen).toHaveBeenCalledTimes(1);

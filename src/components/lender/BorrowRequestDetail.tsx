@@ -1,9 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-
+import {
+  ArrowBack,
+  Person,
+  AccessTime,
+  CheckCircle,
+  Cancel,
+  PlayArrow,
+  CalendarToday,
+  Message,
+} from '@mui/icons-material';
 import {
   Container,
   Typography,
@@ -24,29 +30,24 @@ import {
   FormControlLabel,
   Switch,
   Stack,
-  Paper,
 } from '@mui/material';
-import {
-  ArrowBack,
-  Person,
-  AccessTime,
-  CheckCircle,
-  Cancel,
-  PlayArrow,
-  VolumeOff,
-  VolumeUp,
-  Fullscreen,
-  CalendarToday,
-  Message,
-} from '@mui/icons-material';
 import { formatDistanceToNow } from 'date-fns';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { useState, useEffect } from 'react';
 
 import { VideoPlayer } from './VideoPlayer';
 
 interface BorrowRequest {
   id: string;
-  status: 'PENDING' | 'APPROVED' | 'DECLINED' | 'ACTIVE' | 'RETURNED' | 'CANCELLED';
+  status:
+    | 'PENDING'
+    | 'APPROVED'
+    | 'DECLINED'
+    | 'ACTIVE'
+    | 'RETURNED'
+    | 'CANCELLED';
   requestMessage?: string;
   lenderMessage?: string;
   videoUrl?: string;
@@ -89,15 +90,15 @@ const statusColors = {
 } as const;
 
 const suggestedDeclineReasons = [
-  "I need the item during that time period",
-  "The item needs maintenance before lending", 
+  'I need the item during that time period',
+  'The item needs maintenance before lending',
   "I'm not comfortable lending this particular item",
-  "The requested time period is too long",
-  "I have other plans for the item",
+  'The requested time period is too long',
+  'I have other plans for the item',
 ];
 
 export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
   const [request, setRequest] = useState<BorrowRequest | null>(null);
   const [loading, setLoading] = useState(true);
@@ -107,17 +108,6 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
   const [responseMessage, setResponseMessage] = useState('');
   const [modifyReturnDate, setModifyReturnDate] = useState(false);
   const [newReturnDate, setNewReturnDate] = useState('');
-
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/auth/signin');
-      return;
-    }
-
-    if (status === 'authenticated') {
-      fetchRequest();
-    }
-  }, [status, requestId, router]);
 
   const fetchRequest = async () => {
     try {
@@ -132,7 +122,7 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
         }
         return;
       }
-      
+
       const data = await response.json();
       setRequest(data.borrowRequest);
       setNewReturnDate(data.borrowRequest.requestedReturnDate.split('T')[0]);
@@ -143,11 +133,22 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
     }
   };
 
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth/signin');
+      return;
+    }
+
+    if (status === 'authenticated') {
+      fetchRequest();
+    }
+  }, [status, requestId, router]);
+
   const handleResponse = async (decision: 'approve' | 'decline') => {
     if (!request) return;
-    
+
     setResponding(true);
-    
+
     try {
       const response = await fetch(`/api/borrow-requests/${request.id}`, {
         method: 'PATCH',
@@ -157,9 +158,10 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
         body: JSON.stringify({
           action: decision,
           message: responseMessage || undefined,
-          ...(decision === 'approve' && modifyReturnDate && {
-            modifiedReturnDate: newReturnDate,
-          }),
+          ...(decision === 'approve' &&
+            modifyReturnDate && {
+              modifiedReturnDate: newReturnDate,
+            }),
         }),
       });
 
@@ -173,9 +175,10 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
       setResponseDialog(null);
       setResponseMessage('');
       setModifyReturnDate(false);
-      
     } catch (err) {
-      setError(err instanceof Error ? err.message : `Failed to ${decision} request`);
+      setError(
+        err instanceof Error ? err.message : `Failed to ${decision} request`
+      );
     } finally {
       setResponding(false);
     }
@@ -196,7 +199,12 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
   if (status === 'loading' || loading) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
+        <Box
+          display="flex"
+          justifyContent="center"
+          alignItems="center"
+          minHeight="50vh"
+        >
           <CircularProgress />
         </Box>
       </Container>
@@ -254,14 +262,24 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
         />
       </Box>
 
-      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 4 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', lg: 'row' },
+          gap: 4,
+        }}
+      >
         {/* Main Content */}
         <Box sx={{ flex: { lg: 2 } }}>
           {/* Borrower Video */}
           {request.videoUrl && (
             <Card sx={{ mb: 3 }}>
               <CardContent>
-                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                <Typography
+                  variant="h6"
+                  gutterBottom
+                  sx={{ display: 'flex', alignItems: 'center' }}
+                >
                   <PlayArrow sx={{ mr: 1 }} />
                   Borrower&apos;s Video Message
                 </Typography>
@@ -276,8 +294,14 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
               <Typography variant="h6" gutterBottom>
                 Item Details
               </Typography>
-              
-              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 3 }}>
+
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  gap: 3,
+                }}
+              >
                 <Box sx={{ flex: { sm: 1 } }}>
                   {request.item.imageUrl && (
                     <Box
@@ -316,12 +340,16 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
           {request.requestMessage && (
             <Card sx={{ mb: 3 }}>
               <CardContent>
-                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                <Typography
+                  variant="h6"
+                  gutterBottom
+                  sx={{ display: 'flex', alignItems: 'center' }}
+                >
                   <Message sx={{ mr: 1 }} />
                   Request Message
                 </Typography>
                 <Typography variant="body1">
-                  "{request.requestMessage}"
+                  &quot;{request.requestMessage}&quot;
                 </Typography>
               </CardContent>
             </Card>
@@ -335,7 +363,7 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
                   Your Response
                 </Typography>
                 <Typography variant="body1">
-                  "{request.lenderMessage}"
+                  &quot;{request.lenderMessage}&quot;
                 </Typography>
               </CardContent>
             </Card>
@@ -350,19 +378,19 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
               <Typography variant="h6" gutterBottom>
                 Borrower Profile
               </Typography>
-              
+
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                 <Avatar
-                  {...(request.borrower.image && { src: request.borrower.image })}
+                  {...(request.borrower.image && {
+                    src: request.borrower.image,
+                  })}
                   alt={request.borrower.name}
                   sx={{ width: 56, height: 56, mr: 2 }}
                 >
                   <Person />
                 </Avatar>
                 <Box>
-                  <Typography variant="h6">
-                    {request.borrower.name}
-                  </Typography>
+                  <Typography variant="h6">{request.borrower.name}</Typography>
                   <Typography variant="body2" color="textSecondary">
                     Member since 2024
                   </Typography>
@@ -373,23 +401,36 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
 
               <Box sx={{ mb: 1 }}>
                 <Typography variant="body2" color="textSecondary">
-                  <CalendarToday sx={{ fontSize: 16, mr: 1, verticalAlign: 'middle' }} />
-                  Requested: {formatDistanceToNow(new Date(request.createdAt), { addSuffix: true })}
+                  <CalendarToday
+                    sx={{ fontSize: 16, mr: 1, verticalAlign: 'middle' }}
+                  />
+                  Requested:{' '}
+                  {formatDistanceToNow(new Date(request.createdAt), {
+                    addSuffix: true,
+                  })}
                 </Typography>
               </Box>
 
               <Box sx={{ mb: 1 }}>
                 <Typography variant="body2" color="textSecondary">
-                  <AccessTime sx={{ fontSize: 16, mr: 1, verticalAlign: 'middle' }} />
-                  Return by: {new Date(request.requestedReturnDate).toLocaleDateString()}
+                  <AccessTime
+                    sx={{ fontSize: 16, mr: 1, verticalAlign: 'middle' }}
+                  />
+                  Return by:{' '}
+                  {new Date(request.requestedReturnDate).toLocaleDateString()}
                 </Typography>
               </Box>
 
               {request.approvedAt && (
                 <Box sx={{ mb: 1 }}>
                   <Typography variant="body2" color="textSecondary">
-                    <CheckCircle sx={{ fontSize: 16, mr: 1, verticalAlign: 'middle' }} />
-                    Approved: {formatDistanceToNow(new Date(request.approvedAt), { addSuffix: true })}
+                    <CheckCircle
+                      sx={{ fontSize: 16, mr: 1, verticalAlign: 'middle' }}
+                    />
+                    Approved:{' '}
+                    {formatDistanceToNow(new Date(request.approvedAt), {
+                      addSuffix: true,
+                    })}
                   </Typography>
                 </Box>
               )}
@@ -404,7 +445,8 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
                   Respond to Request
                 </Typography>
                 <Typography variant="body2" color="textSecondary" paragraph>
-                  Review the borrower&apos;s request and video message, then approve or decline.
+                  Review the borrower&apos;s request and video message, then
+                  approve or decline.
                 </Typography>
 
                 <Stack spacing={2}>
@@ -418,7 +460,7 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
                   >
                     Approve Request
                   </Button>
-                  
+
                   <Button
                     variant="outlined"
                     color="error"
@@ -437,8 +479,8 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
       </Box>
 
       {/* Response Dialog */}
-      <Dialog 
-        open={responseDialog !== null} 
+      <Dialog
+        open={responseDialog !== null}
         onClose={closeResponseDialog}
         maxWidth="sm"
         fullWidth
@@ -446,23 +488,27 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
         <DialogTitle>
           {responseDialog === 'approve' ? 'Approve Request' : 'Decline Request'}
         </DialogTitle>
-        
+
         <DialogContent>
           <Typography variant="body2" color="textSecondary" paragraph>
-            {responseDialog === 'approve' 
-              ? 'Let the borrower know you\'re happy to lend your item.'
-              : 'Let the borrower know you can\'t lend your item right now.'
-            }
+            {responseDialog === 'approve'
+              ? "Let the borrower know you're happy to lend your item."
+              : "Let the borrower know you can't lend your item right now."}
           </Typography>
 
           <TextField
             fullWidth
             multiline
             rows={3}
-            label={responseDialog === 'approve' ? 'Approval message (optional)' : 'Decline message (optional)'}
-            placeholder={responseDialog === 'approve' 
-              ? 'Sure! Just bring it back in good condition by Tuesday evening.'
-              : 'Sorry, I need this item during that time period.'
+            label={
+              responseDialog === 'approve'
+                ? 'Approval message (optional)'
+                : 'Decline message (optional)'
+            }
+            placeholder={
+              responseDialog === 'approve'
+                ? 'Sure! Just bring it back in good condition by Tuesday evening.'
+                : 'Sorry, I need this item during that time period.'
             }
             value={responseMessage}
             onChange={(e) => setResponseMessage(e.target.value)}
@@ -483,7 +529,7 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
                     sx={{ justifyContent: 'flex-start', textTransform: 'none' }}
                     onClick={() => setResponseMessage(reason)}
                   >
-                    "{reason}"
+                    &quot;{reason}&quot;
                   </Button>
                 ))}
               </Stack>
@@ -501,7 +547,7 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
                 }
                 label="Modify return date"
               />
-              
+
               {modifyReturnDate && (
                 <TextField
                   fullWidth
@@ -518,18 +564,15 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
 
           <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
             <Typography variant="caption" color="textSecondary">
-              {responseDialog === 'approve' 
+              {responseDialog === 'approve'
                 ? '✓ The borrower will receive a notification that you approved their request'
-                : '✓ The borrower will receive a polite notification that the item isn\'t available'
-              }
+                : "✓ The borrower will receive a polite notification that the item isn't available"}
             </Typography>
           </Box>
         </DialogContent>
 
         <DialogActions>
-          <Button onClick={closeResponseDialog}>
-            Cancel
-          </Button>
+          <Button onClick={closeResponseDialog}>Cancel</Button>
           <Button
             onClick={() => handleResponse(responseDialog!)}
             variant="contained"
@@ -537,7 +580,11 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
             disabled={responding}
             startIcon={responding ? <CircularProgress size={20} /> : null}
           >
-            {responding ? 'Sending...' : (responseDialog === 'approve' ? 'Approve' : 'Decline')}
+            {responding
+              ? 'Sending...'
+              : responseDialog === 'approve'
+                ? 'Approve'
+                : 'Decline'}
           </Button>
         </DialogActions>
       </Dialog>
