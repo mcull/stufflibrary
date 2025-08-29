@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock database and external services
 const mockDb = {
@@ -35,7 +35,8 @@ const mockLogBorrowRequestStatusChange = vi.fn();
 
 vi.doMock('@/lib/db', () => ({ db: mockDb }));
 vi.doMock('@/lib/enhanced-notification-service', () => ({
-  sendBorrowRequestReceivedNotification: mockSendBorrowRequestReceivedNotification,
+  sendBorrowRequestReceivedNotification:
+    mockSendBorrowRequestReceivedNotification,
 }));
 vi.doMock('@/lib/twilio', () => ({
   sendBorrowRequestNotification: vi.fn(),
@@ -51,7 +52,10 @@ vi.doMock('@/lib/audit-log', () => ({
 }));
 
 // Import the functions we're testing
-import { createBorrowRequest, updateItemAvailability } from '@/lib/borrow-request-utils';
+import {
+  createBorrowRequest,
+  updateItemAvailability,
+} from '@/lib/borrow-request-utils';
 
 // Test data
 const testUsers = {
@@ -63,7 +67,7 @@ const testUsers = {
     image: null,
   },
   lender: {
-    id: 'lender-123',  
+    id: 'lender-123',
     name: 'Jane Lender',
     email: 'lender@example.com',
     phone: '+1987654321',
@@ -102,11 +106,13 @@ const testBorrowRequest = {
 describe('Borrowing Flow Integration Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Setup default mock implementations
     mockDb.user.findUnique.mockImplementation((params) => {
-      if (params.where.id === 'borrower-123') return Promise.resolve(testUsers.borrower);
-      if (params.where.id === 'lender-123') return Promise.resolve(testUsers.lender);
+      if (params.where.id === 'borrower-123')
+        return Promise.resolve(testUsers.borrower);
+      if (params.where.id === 'lender-123')
+        return Promise.resolve(testUsers.lender);
       return Promise.resolve(null);
     });
 
@@ -114,7 +120,7 @@ describe('Borrowing Flow Integration Tests', () => {
     mockDb.borrowRequest.create.mockResolvedValue(testBorrowRequest);
     mockDb.borrowRequest.findUnique.mockResolvedValue(testBorrowRequest);
     mockDb.borrowRequest.update.mockResolvedValue(testBorrowRequest);
-    
+
     mockSendBorrowRequestReceivedNotification.mockResolvedValue(undefined);
     mockSendBorrowResponseNotification.mockResolvedValue(undefined);
     mockSendReturnNotification.mockResolvedValue(undefined);
@@ -133,8 +139,8 @@ describe('Borrowing Flow Integration Tests', () => {
         requestMessage: 'I need this camera for a wedding shoot',
       };
 
-      const borrowRequest = await createBorrowRequest(requestData);
-      
+      await createBorrowRequest(requestData);
+
       expect(mockDb.borrowRequest.create).toHaveBeenCalledWith({
         data: {
           borrowerId: 'borrower-123',
@@ -149,8 +155,13 @@ describe('Borrowing Flow Integration Tests', () => {
       });
 
       // Step 2: Item availability should be updated for pending request
-      await updateItemAvailability('item-123', 'request-123', 'PENDING', 'borrower-123');
-      
+      await updateItemAvailability(
+        'item-123',
+        'request-123',
+        'PENDING',
+        'borrower-123'
+      );
+
       expect(mockDb.item.update).not.toHaveBeenCalled(); // PENDING doesn't change availability
 
       // Step 3: Lender approves the request
@@ -161,8 +172,13 @@ describe('Borrowing Flow Integration Tests', () => {
         approvedAt: new Date(),
       });
 
-      await updateItemAvailability('item-123', 'request-123', 'APPROVED', 'lender-123');
-      
+      await updateItemAvailability(
+        'item-123',
+        'request-123',
+        'APPROVED',
+        'lender-123'
+      );
+
       // Item should now be marked as unavailable
       expect(mockDb.item.update).toHaveBeenCalledWith({
         where: { id: 'item-123' },
@@ -175,8 +191,13 @@ describe('Borrowing Flow Integration Tests', () => {
         status: 'ACTIVE',
       });
 
-      await updateItemAvailability('item-123', 'request-123', 'ACTIVE', 'system');
-      
+      await updateItemAvailability(
+        'item-123',
+        'request-123',
+        'ACTIVE',
+        'system'
+      );
+
       // Item should remain unavailable
       expect(mockDb.item.update).toHaveBeenLastCalledWith({
         where: { id: 'item-123' },
@@ -191,8 +212,13 @@ describe('Borrowing Flow Integration Tests', () => {
         borrowerNotes: 'Camera returned in perfect condition',
       });
 
-      await updateItemAvailability('item-123', 'request-123', 'RETURNED', 'borrower-123');
-      
+      await updateItemAvailability(
+        'item-123',
+        'request-123',
+        'RETURNED',
+        'borrower-123'
+      );
+
       // Item should become available again
       expect(mockDb.item.update).toHaveBeenLastCalledWith({
         where: { id: 'item-123' },
@@ -220,8 +246,13 @@ describe('Borrowing Flow Integration Tests', () => {
         declinedAt: new Date(),
       });
 
-      await updateItemAvailability('item-123', 'request-123', 'DECLINED', 'lender-123');
-      
+      await updateItemAvailability(
+        'item-123',
+        'request-123',
+        'DECLINED',
+        'lender-123'
+      );
+
       // Item should remain available (no current borrow request)
       expect(mockDb.item.update).toHaveBeenCalledWith({
         where: { id: 'item-123' },
@@ -246,7 +277,12 @@ describe('Borrowing Flow Integration Tests', () => {
       });
 
       // Mark as approved first
-      await updateItemAvailability('item-123', 'request-123', 'APPROVED', 'lender-123');
+      await updateItemAvailability(
+        'item-123',
+        'request-123',
+        'APPROVED',
+        'lender-123'
+      );
 
       // Then borrower cancels
       mockDb.borrowRequest.update.mockResolvedValueOnce({
@@ -257,8 +293,13 @@ describe('Borrowing Flow Integration Tests', () => {
         cancellationReason: 'No longer needed',
       });
 
-      await updateItemAvailability('item-123', 'request-123', 'CANCELLED', 'borrower-123');
-      
+      await updateItemAvailability(
+        'item-123',
+        'request-123',
+        'CANCELLED',
+        'borrower-123'
+      );
+
       // Item should become available again
       expect(mockDb.item.update).toHaveBeenLastCalledWith({
         where: { id: 'item-123' },
@@ -277,14 +318,19 @@ describe('Borrowing Flow Integration Tests', () => {
   describe('Concurrent Request Handling', () => {
     it('should prevent multiple concurrent requests for the same item', async () => {
       // First request succeeds
-      const firstRequest = createBorrowRequest({
+      createBorrowRequest({
         borrowerId: 'borrower-123',
         itemId: 'item-123',
         requestedReturnDate: new Date('2024-12-31'),
       });
 
       // Approve first request
-      await updateItemAvailability('item-123', 'request-123', 'APPROVED', 'lender-123');
+      await updateItemAvailability(
+        'item-123',
+        'request-123',
+        'APPROVED',
+        'lender-123'
+      );
 
       // Second request should fail due to item being unavailable
       mockDb.item.findUnique.mockResolvedValueOnce({
@@ -299,13 +345,17 @@ describe('Borrowing Flow Integration Tests', () => {
       };
 
       // This should throw or return an error indicating item is not available
-      await expect(createBorrowRequest(secondRequestData)).rejects.toThrow('not available');
+      await expect(createBorrowRequest(secondRequestData)).rejects.toThrow(
+        'not available'
+      );
     });
   });
 
   describe('Error Handling and Edge Cases', () => {
     it('should handle database transaction failures', async () => {
-      mockDb.borrowRequest.create.mockRejectedValue(new Error('Database connection failed'));
+      mockDb.borrowRequest.create.mockRejectedValue(
+        new Error('Database connection failed')
+      );
 
       await expect(
         createBorrowRequest({
@@ -374,7 +424,9 @@ describe('Borrowing Flow Integration Tests', () => {
       });
 
       expect(overdueRequests).toHaveLength(1);
-      expect(overdueRequests[0].requestedReturnDate.getTime()).toBeLessThan(Date.now());
+      expect(overdueRequests[0].requestedReturnDate.getTime()).toBeLessThan(
+        Date.now()
+      );
     });
   });
 
@@ -436,7 +488,12 @@ describe('Borrowing Flow Integration Tests', () => {
     it('should allow valid status transitions', async () => {
       // PENDING -> APPROVED is valid
       await expect(
-        updateItemAvailability('item-123', 'request-123', 'APPROVED', 'lender-123')
+        updateItemAvailability(
+          'item-123',
+          'request-123',
+          'APPROVED',
+          'lender-123'
+        )
       ).resolves.not.toThrow();
 
       // APPROVED -> ACTIVE is valid
@@ -446,7 +503,12 @@ describe('Borrowing Flow Integration Tests', () => {
 
       // ACTIVE -> RETURNED is valid
       await expect(
-        updateItemAvailability('item-123', 'request-123', 'RETURNED', 'borrower-123')
+        updateItemAvailability(
+          'item-123',
+          'request-123',
+          'RETURNED',
+          'borrower-123'
+        )
       ).resolves.not.toThrow();
     });
   });
@@ -459,12 +521,27 @@ describe('Borrowing Flow Integration Tests', () => {
         requestedReturnDate: new Date('2024-12-31'),
       });
 
-      await updateItemAvailability('item-123', 'request-123', 'APPROVED', 'lender-123');
-      await updateItemAvailability('item-123', 'request-123', 'ACTIVE', 'system');
-      await updateItemAvailability('item-123', 'request-123', 'RETURNED', 'borrower-123');
+      await updateItemAvailability(
+        'item-123',
+        'request-123',
+        'APPROVED',
+        'lender-123'
+      );
+      await updateItemAvailability(
+        'item-123',
+        'request-123',
+        'ACTIVE',
+        'system'
+      );
+      await updateItemAvailability(
+        'item-123',
+        'request-123',
+        'RETURNED',
+        'borrower-123'
+      );
 
       expect(mockLogBorrowRequestStatusChange).toHaveBeenCalledTimes(3);
-      
+
       // Verify specific log entries
       expect(mockLogBorrowRequestStatusChange).toHaveBeenCalledWith(
         'request-123',
@@ -476,7 +553,12 @@ describe('Borrowing Flow Integration Tests', () => {
     });
 
     it('should include relevant context in audit logs', async () => {
-      await updateItemAvailability('item-123', 'request-123', 'APPROVED', 'lender-123');
+      await updateItemAvailability(
+        'item-123',
+        'request-123',
+        'APPROVED',
+        'lender-123'
+      );
 
       expect(mockLogBorrowRequestStatusChange).toHaveBeenCalledWith(
         'request-123',

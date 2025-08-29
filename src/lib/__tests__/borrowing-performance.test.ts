@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { performance } from 'perf_hooks';
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock dependencies
 const mockDb = {
@@ -30,10 +31,15 @@ vi.doMock('@/lib/notification-service', () => ({
 }));
 
 // Import functions to test
-import { createBorrowRequest, isItemAvailable } from '@/lib/borrow-request-utils';
+import {
+  createBorrowRequest,
+  isItemAvailable,
+} from '@/lib/borrow-request-utils';
 
 // Performance test utilities
-function measureExecutionTime(fn: () => Promise<any>): Promise<{ result: any; duration: number }> {
+function measureExecutionTime(
+  fn: () => Promise<any>
+): Promise<{ result: any; duration: number }> {
   return new Promise(async (resolve) => {
     const start = performance.now();
     try {
@@ -60,7 +66,7 @@ async function generateTestData(count: number) {
 describe('Borrowing Performance Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Setup default mocks
     mockDb.user.findUnique.mockResolvedValue({
       id: 'user-123',
@@ -118,12 +124,12 @@ describe('Borrowing Performance Tests', () => {
 
     it('should handle batch availability checks efficiently', async () => {
       const itemIds = Array.from({ length: 100 }, (_, i) => `item-${i}`);
-      
+
       mockDb.item.findMany.mockResolvedValue(await generateTestData(100));
 
       const { duration } = await measureExecutionTime(async () => {
         // Simulate batch checking multiple items
-        return Promise.all(itemIds.map(id => isItemAvailable(id)));
+        return Promise.all(itemIds.map((id) => isItemAvailable(id)));
       });
 
       // Should handle 100 items in under 2 seconds
@@ -146,10 +152,7 @@ describe('Borrowing Performance Tests', () => {
       const { duration } = await measureExecutionTime(async () => {
         return mockDb.borrowRequest.findMany({
           where: {
-            OR: [
-              { borrowerId: 'user-123' },
-              { lenderId: 'user-123' },
-            ],
+            OR: [{ borrowerId: 'user-123' }, { lenderId: 'user-123' }],
           },
           include: {
             item: { select: { id: true, name: true, imageUrl: true } },
@@ -179,9 +182,21 @@ describe('Borrowing Performance Tests', () => {
         return mockDb.borrowRequest.findUnique({
           where: { id: 'request-123' },
           include: {
-            borrower: { select: { id: true, name: true, phone: true, email: true } },
-            lender: { select: { id: true, name: true, phone: true, email: true } },
-            item: { select: { id: true, name: true, description: true, imageUrl: true, condition: true } },
+            borrower: {
+              select: { id: true, name: true, phone: true, email: true },
+            },
+            lender: {
+              select: { id: true, name: true, phone: true, email: true },
+            },
+            item: {
+              select: {
+                id: true,
+                name: true,
+                description: true,
+                imageUrl: true,
+                condition: true,
+              },
+            },
           },
         });
       });
@@ -206,15 +221,15 @@ describe('Borrowing Performance Tests', () => {
 
       // Even with notifications, should complete quickly
       expect(duration).toBeLessThan(1000); // 1 second threshold
-      
+
       // Verify notifications were called
       expect(mockSendNotification).toHaveBeenCalledTimes(1);
     });
 
     it('should not be blocked by slow notification services', async () => {
       // Simulate slow notification service
-      mockSendNotification.mockImplementation(() => 
-        new Promise(resolve => setTimeout(resolve, 2000)) // 2 second delay
+      mockSendNotification.mockImplementation(
+        () => new Promise((resolve) => setTimeout(resolve, 2000)) // 2 second delay
       );
 
       const { result, duration } = await measureExecutionTime(async () => {
@@ -292,9 +307,7 @@ describe('Borrowing Performance Tests', () => {
       });
 
       const { result, duration } = await measureExecutionTime(async () => {
-        return Promise.all(
-          requests.map(req => createBorrowRequest(req))
-        );
+        return Promise.all(requests.map((req) => createBorrowRequest(req)));
       });
 
       // Should handle 10 concurrent requests in under 2 seconds
@@ -354,9 +367,13 @@ describe('Borrowing Performance Tests', () => {
       expect(duration).toBeLessThan(1000);
       // Only one should succeed, one should fail
       const results = await Promise.allSettled(requests);
-      const successCount = results.filter(r => r.status === 'fulfilled').length;
-      const failureCount = results.filter(r => r.status === 'rejected').length;
-      
+      const successCount = results.filter(
+        (r) => r.status === 'fulfilled'
+      ).length;
+      const failureCount = results.filter(
+        (r) => r.status === 'rejected'
+      ).length;
+
       expect(successCount + failureCount).toBe(2);
       expect(failureCount).toBeGreaterThan(0); // At least one should fail due to unavailability
     });
@@ -372,11 +389,13 @@ describe('Borrowing Performance Tests', () => {
       const { result } = await measureExecutionTime(async () => {
         // Simulate processing large dataset
         const data = await mockDb.borrowRequest.findMany();
-        return data.map((item: { id: string; name: string; status?: string }) => ({
-          id: item.id,
-          name: item.name,
-          status: item.status,
-        }));
+        return data.map(
+          (item: { id: string; name: string; status?: string }) => ({
+            id: item.id,
+            name: item.name,
+            status: item.status,
+          })
+        );
       });
 
       const finalMemory = process.memoryUsage();
@@ -388,7 +407,9 @@ describe('Borrowing Performance Tests', () => {
     });
 
     it('should clean up resources after failed operations', async () => {
-      mockDb.borrowRequest.create.mockRejectedValue(new Error('Database error'));
+      mockDb.borrowRequest.create.mockRejectedValue(
+        new Error('Database error')
+      );
 
       const initialMemory = process.memoryUsage();
 
@@ -427,30 +448,34 @@ describe('Borrowing Performance Tests', () => {
         }));
 
         // Mock responses for all users
-        testUsers.forEach(user => {
+        testUsers.forEach((user) => {
           mockDb.user.findUnique.mockResolvedValueOnce(user);
         });
 
         const durations: number[] = [];
-        
-        for (let i = 0; i < Math.min(userCount, 20); i++) { // Test up to 20 samples
+
+        for (let i = 0; i < Math.min(userCount, 20); i++) {
+          // Test up to 20 samples
           const { duration } = await measureExecutionTime(async () => {
             return mockDb.user.findUnique({ where: { id: `user-${i}` } });
           });
           durations.push(duration);
         }
 
-        const avgDuration = durations.reduce((sum, d) => sum + d, 0) / durations.length;
+        const avgDuration =
+          durations.reduce((sum, d) => sum + d, 0) / durations.length;
         results.push({ userCount, avgDuration });
       }
 
       // Performance shouldn't degrade significantly with user count
       const firstResult = results[0];
       const lastResult = results[results.length - 1];
-      
+
       // Average duration shouldn't increase by more than 50%
       if (firstResult && lastResult) {
-        expect(lastResult.avgDuration).toBeLessThan(firstResult.avgDuration * 1.5);
+        expect(lastResult.avgDuration).toBeLessThan(
+          firstResult.avgDuration * 1.5
+        );
       }
     });
 
@@ -469,8 +494,9 @@ describe('Borrowing Performance Tests', () => {
       mockDb.borrowRequest.findMany.mockResolvedValue([]);
 
       const results = await Promise.all(operations);
-      const avgDuration = results.reduce((sum, r) => sum + r.duration, 0) / results.length;
-      const maxDuration = Math.max(...results.map(r => r.duration));
+      const avgDuration =
+        results.reduce((sum, r) => sum + r.duration, 0) / results.length;
+      const maxDuration = Math.max(...results.map((r) => r.duration));
 
       // Average should be reasonable
       expect(avgDuration).toBeLessThan(100); // 100ms average
@@ -490,11 +516,11 @@ describe('Borrowing Performance Tests', () => {
       });
 
       expect(result).toBeDefined();
-      
+
       // Verify cleanup (mocks should be called expected number of times)
       expect(mockDb.borrowRequest.create).toHaveBeenCalledTimes(1);
       expect(mockSendNotification).toHaveBeenCalledTimes(1);
-      
+
       // In real implementation, would verify:
       // - Database connections are returned to pool
       // - Memory is freed
@@ -517,7 +543,7 @@ describe('Borrowing Performance Tests', () => {
       });
 
       expect(result).toBeInstanceOf(Error);
-      
+
       // Verify that cleanup still happened despite error
       expect(mockDb.item.findUnique).toHaveBeenCalledTimes(1);
       expect(mockDb.borrowRequest.create).not.toHaveBeenCalled(); // Should not reach this point

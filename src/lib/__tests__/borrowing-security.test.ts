@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock dependencies
 vi.mock('next-auth');
@@ -31,9 +31,11 @@ describe('Borrowing Security Tests', () => {
     it('should reject requests without authentication', async () => {
       mockGetServerSession.mockResolvedValue(null);
 
-      const request = new NextRequest('http://localhost/api/borrow-requests/123');
+      const request = new NextRequest(
+        'http://localhost/api/borrow-requests/123'
+      );
       const params = { params: Promise.resolve({ id: '123' }) };
-      
+
       const response = await GET(request, params);
       const data = await response.json();
 
@@ -44,9 +46,11 @@ describe('Borrowing Security Tests', () => {
     it('should reject requests with invalid session', async () => {
       mockGetServerSession.mockResolvedValue({ user: {} }); // No user ID
 
-      const request = new NextRequest('http://localhost/api/borrow-requests/123');
+      const request = new NextRequest(
+        'http://localhost/api/borrow-requests/123'
+      );
       const params = { params: Promise.resolve({ id: '123' }) };
-      
+
       const response = await GET(request, params);
       const data = await response.json();
 
@@ -54,7 +58,7 @@ describe('Borrowing Security Tests', () => {
       expect(data.error).toBe('User ID not found');
     });
 
-    it('should prevent access to other users\' borrow requests', async () => {
+    it("should prevent access to other users' borrow requests", async () => {
       mockGetServerSession.mockResolvedValue({ user: { id: 'user-123' } });
       mockDb.borrowRequest.findUnique.mockResolvedValue({
         id: 'request-456',
@@ -63,17 +67,21 @@ describe('Borrowing Security Tests', () => {
         status: 'PENDING',
       });
 
-      const request = new NextRequest('http://localhost/api/borrow-requests/request-456');
+      const request = new NextRequest(
+        'http://localhost/api/borrow-requests/request-456'
+      );
       const params = { params: Promise.resolve({ id: 'request-456' }) };
-      
+
       const response = await GET(request, params);
       const data = await response.json();
 
       expect(response.status).toBe(403);
-      expect(data.error).toBe('Access denied - you are not authorized to view this request');
+      expect(data.error).toBe(
+        'Access denied - you are not authorized to view this request'
+      );
     });
 
-    it('should allow access to borrower\'s own requests', async () => {
+    it("should allow access to borrower's own requests", async () => {
       mockGetServerSession.mockResolvedValue({ user: { id: 'borrower-123' } });
       mockDb.borrowRequest.findUnique.mockResolvedValue({
         id: 'request-456',
@@ -85,15 +93,17 @@ describe('Borrowing Security Tests', () => {
         item: { id: 'item-123', name: 'Item' },
       });
 
-      const request = new NextRequest('http://localhost/api/borrow-requests/request-456');
+      const request = new NextRequest(
+        'http://localhost/api/borrow-requests/request-456'
+      );
       const params = { params: Promise.resolve({ id: 'request-456' }) };
-      
+
       const response = await GET(request, params);
 
       expect(response.status).toBe(200);
     });
 
-    it('should allow access to lender\'s requests', async () => {
+    it("should allow access to lender's requests", async () => {
       mockGetServerSession.mockResolvedValue({ user: { id: 'lender-123' } });
       mockDb.borrowRequest.findUnique.mockResolvedValue({
         id: 'request-456',
@@ -105,9 +115,11 @@ describe('Borrowing Security Tests', () => {
         item: { id: 'item-123', name: 'Item' },
       });
 
-      const request = new NextRequest('http://localhost/api/borrow-requests/request-456');
+      const request = new NextRequest(
+        'http://localhost/api/borrow-requests/request-456'
+      );
       const params = { params: Promise.resolve({ id: 'request-456' }) };
-      
+
       const response = await GET(request, params);
 
       expect(response.status).toBe(200);
@@ -121,8 +133,18 @@ describe('Borrowing Security Tests', () => {
       lenderId: 'lender-123',
       status: 'PENDING',
       item: { id: 'item-123', name: 'Test Item', ownerId: 'lender-123' },
-      borrower: { id: 'borrower-123', name: 'Borrower', phone: '+1234567890', email: 'b@test.com' },
-      lender: { id: 'lender-123', name: 'Lender', phone: '+1987654321', email: 'l@test.com' },
+      borrower: {
+        id: 'borrower-123',
+        name: 'Borrower',
+        phone: '+1234567890',
+        email: 'b@test.com',
+      },
+      lender: {
+        id: 'lender-123',
+        name: 'Lender',
+        phone: '+1987654321',
+        email: 'l@test.com',
+      },
     };
 
     beforeEach(() => {
@@ -133,18 +155,23 @@ describe('Borrowing Security Tests', () => {
     it('should prevent borrower from approving/declining requests', async () => {
       mockGetServerSession.mockResolvedValue({ user: { id: 'borrower-123' } });
 
-      const request = new NextRequest('http://localhost/api/borrow-requests/request-123', {
-        method: 'PATCH',
-        body: JSON.stringify({ action: 'approve' }),
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const request = new NextRequest(
+        'http://localhost/api/borrow-requests/request-123',
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ action: 'approve' }),
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
       const params = { params: Promise.resolve({ id: 'request-123' }) };
 
       const response = await PATCH(request, params);
       const data = await response.json();
 
       expect(response.status).toBe(403);
-      expect(data.error).toBe('Only the item owner can approve or decline requests');
+      expect(data.error).toBe(
+        'Only the item owner can approve or decline requests'
+      );
     });
 
     it('should prevent lender from marking items as returned', async () => {
@@ -154,11 +181,14 @@ describe('Borrowing Security Tests', () => {
         status: 'ACTIVE',
       });
 
-      const request = new NextRequest('http://localhost/api/borrow-requests/request-123', {
-        method: 'PATCH',
-        body: JSON.stringify({ action: 'return' }),
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const request = new NextRequest(
+        'http://localhost/api/borrow-requests/request-123',
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ action: 'return' }),
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
       const params = { params: Promise.resolve({ id: 'request-123' }) };
 
       const response = await PATCH(request, params);
@@ -169,20 +199,27 @@ describe('Borrowing Security Tests', () => {
     });
 
     it('should prevent unauthorized users from any actions', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'unauthorized-user' } });
-
-      const request = new NextRequest('http://localhost/api/borrow-requests/request-123', {
-        method: 'PATCH',
-        body: JSON.stringify({ action: 'approve' }),
-        headers: { 'Content-Type': 'application/json' },
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'unauthorized-user' },
       });
+
+      const request = new NextRequest(
+        'http://localhost/api/borrow-requests/request-123',
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ action: 'approve' }),
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
       const params = { params: Promise.resolve({ id: 'request-123' }) };
 
       const response = await PATCH(request, params);
       const data = await response.json();
 
       expect(response.status).toBe(403);
-      expect(data.error).toBe('Only the item owner can approve or decline requests');
+      expect(data.error).toBe(
+        'Only the item owner can approve or decline requests'
+      );
     });
   });
 
@@ -192,8 +229,18 @@ describe('Borrowing Security Tests', () => {
       borrowerId: 'borrower-123',
       lenderId: 'lender-123',
       item: { id: 'item-123', name: 'Test Item', ownerId: 'lender-123' },
-      borrower: { id: 'borrower-123', name: 'Borrower', phone: '+1234567890', email: 'b@test.com' },
-      lender: { id: 'lender-123', name: 'Lender', phone: '+1987654321', email: 'l@test.com' },
+      borrower: {
+        id: 'borrower-123',
+        name: 'Borrower',
+        phone: '+1234567890',
+        email: 'b@test.com',
+      },
+      lender: {
+        id: 'lender-123',
+        name: 'Lender',
+        phone: '+1987654321',
+        email: 'l@test.com',
+      },
     };
 
     beforeEach(() => {
@@ -207,11 +254,14 @@ describe('Borrowing Security Tests', () => {
         status: 'APPROVED', // Already approved
       });
 
-      const request = new NextRequest('http://localhost/api/borrow-requests/request-123', {
-        method: 'PATCH',
-        body: JSON.stringify({ action: 'approve' }),
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const request = new NextRequest(
+        'http://localhost/api/borrow-requests/request-123',
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ action: 'approve' }),
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
       const params = { params: Promise.resolve({ id: 'request-123' }) };
 
       const response = await PATCH(request, params);
@@ -228,18 +278,23 @@ describe('Borrowing Security Tests', () => {
         status: 'PENDING', // Not active yet
       });
 
-      const request = new NextRequest('http://localhost/api/borrow-requests/request-123', {
-        method: 'PATCH',
-        body: JSON.stringify({ action: 'return' }),
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const request = new NextRequest(
+        'http://localhost/api/borrow-requests/request-123',
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ action: 'return' }),
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
       const params = { params: Promise.resolve({ id: 'request-123' }) };
 
       const response = await PATCH(request, params);
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toBe('Can only return items that are currently active');
+      expect(data.error).toBe(
+        'Can only return items that are currently active'
+      );
     });
 
     it('should prevent cancellation of active borrows by lender', async () => {
@@ -248,11 +303,14 @@ describe('Borrowing Security Tests', () => {
         status: 'ACTIVE',
       });
 
-      const request = new NextRequest('http://localhost/api/borrow-requests/request-123', {
-        method: 'PATCH',
-        body: JSON.stringify({ action: 'cancel' }),
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const request = new NextRequest(
+        'http://localhost/api/borrow-requests/request-123',
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ action: 'cancel' }),
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
       const params = { params: Promise.resolve({ id: 'request-123' }) };
 
       const response = await PATCH(request, params);
@@ -272,28 +330,36 @@ describe('Borrowing Security Tests', () => {
         lenderId: 'lender-123',
       });
 
-      const request = new NextRequest('http://localhost/api/borrow-requests/request-123', {
-        method: 'PATCH',
-        body: JSON.stringify({ action: 'invalid-action' }),
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const request = new NextRequest(
+        'http://localhost/api/borrow-requests/request-123',
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ action: 'invalid-action' }),
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
       const params = { params: Promise.resolve({ id: 'request-123' }) };
 
       const response = await PATCH(request, params);
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toBe('Action must be one of: approve, decline, return, cancel, confirm-return');
+      expect(data.error).toBe(
+        'Action must be one of: approve, decline, return, cancel, confirm-return'
+      );
     });
 
     it('should handle malformed JSON gracefully', async () => {
       mockGetServerSession.mockResolvedValue({ user: { id: 'user-123' } });
 
-      const request = new NextRequest('http://localhost/api/borrow-requests/request-123', {
-        method: 'PATCH',
-        body: 'invalid-json{',
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const request = new NextRequest(
+        'http://localhost/api/borrow-requests/request-123',
+        {
+          method: 'PATCH',
+          body: 'invalid-json{',
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
       const params = { params: Promise.resolve({ id: 'request-123' }) };
 
       const response = await PATCH(request, params);
@@ -309,24 +375,40 @@ describe('Borrowing Security Tests', () => {
         lenderId: 'lender-123',
         status: 'PENDING',
         item: { id: 'item-123', name: 'Test Item', ownerId: 'lender-123' },
-        borrower: { id: 'borrower-123', name: 'Borrower', phone: '+1234567890', email: 'b@test.com' },
-        lender: { id: 'lender-123', name: 'Lender', phone: '+1987654321', email: 'l@test.com' },
+        borrower: {
+          id: 'borrower-123',
+          name: 'Borrower',
+          phone: '+1234567890',
+          email: 'b@test.com',
+        },
+        lender: {
+          id: 'lender-123',
+          name: 'Lender',
+          phone: '+1987654321',
+          email: 'l@test.com',
+        },
       });
 
       const maliciousMessage = '<script>alert("XSS")</script>Approved';
-      
-      const request = new NextRequest('http://localhost/api/borrow-requests/request-123', {
-        method: 'PATCH',
-        body: JSON.stringify({ action: 'approve', message: maliciousMessage }),
-        headers: { 'Content-Type': 'application/json' },
-      });
+
+      const request = new NextRequest(
+        'http://localhost/api/borrow-requests/request-123',
+        {
+          method: 'PATCH',
+          body: JSON.stringify({
+            action: 'approve',
+            message: maliciousMessage,
+          }),
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
       const params = { params: Promise.resolve({ id: 'request-123' }) };
 
       const response = await PATCH(request, params);
 
       expect(response.status).toBe(200);
-      
-      // Verify the message was stored (the API doesn't actually sanitize, 
+
+      // Verify the message was stored (the API doesn't actually sanitize,
       // but the frontend should handle this)
       expect(mockDb.borrowRequest.update).toHaveBeenCalledWith({
         where: { id: 'request-123' },
@@ -338,9 +420,11 @@ describe('Borrowing Security Tests', () => {
 
     it('should validate request ID format', async () => {
       mockGetServerSession.mockResolvedValue({ user: { id: 'user-123' } });
-      
+
       // Test with invalid UUID-like ID
-      const request = new NextRequest('http://localhost/api/borrow-requests/invalid-id');
+      const request = new NextRequest(
+        'http://localhost/api/borrow-requests/invalid-id'
+      );
       const params = { params: Promise.resolve({ id: 'invalid-id' }) };
 
       mockDb.borrowRequest.findUnique.mockResolvedValue(null);
@@ -362,26 +446,41 @@ describe('Borrowing Security Tests', () => {
         lenderId: 'lender-123',
         status: 'PENDING',
         item: { id: 'item-123', name: 'Test Item', ownerId: 'lender-123' },
-        borrower: { id: 'borrower-123', name: 'Borrower', phone: '+1234567890', email: 'b@test.com' },
-        lender: { id: 'lender-123', name: 'Lender', phone: '+1987654321', email: 'l@test.com' },
+        borrower: {
+          id: 'borrower-123',
+          name: 'Borrower',
+          phone: '+1234567890',
+          email: 'b@test.com',
+        },
+        lender: {
+          id: 'lender-123',
+          name: 'Lender',
+          phone: '+1987654321',
+          email: 'l@test.com',
+        },
       });
 
       // Simulate concurrent approval requests
-      const requests = Array(5).fill(null).map(() => {
-        const request = new NextRequest('http://localhost/api/borrow-requests/request-123', {
-          method: 'PATCH',
-          body: JSON.stringify({ action: 'approve' }),
-          headers: { 'Content-Type': 'application/json' },
+      const requests = Array(5)
+        .fill(null)
+        .map(() => {
+          const request = new NextRequest(
+            'http://localhost/api/borrow-requests/request-123',
+            {
+              method: 'PATCH',
+              body: JSON.stringify({ action: 'approve' }),
+              headers: { 'Content-Type': 'application/json' },
+            }
+          );
+          const params = { params: Promise.resolve({ id: 'request-123' }) };
+          return PATCH(request, params);
         });
-        const params = { params: Promise.resolve({ id: 'request-123' }) };
-        return PATCH(request, params);
-      });
 
       const responses = await Promise.all(requests);
 
       // At least one should succeed, others might fail due to status changes
-      const successCount = responses.filter(r => r.status === 200).length;
-      const errorCount = responses.filter(r => r.status >= 400).length;
+      const successCount = responses.filter((r) => r.status === 200).length;
+      const errorCount = responses.filter((r) => r.status >= 400).length;
 
       expect(successCount + errorCount).toBe(5);
       expect(successCount).toBeGreaterThan(0); // At least one should succeed
@@ -389,9 +488,13 @@ describe('Borrowing Security Tests', () => {
 
     it('should handle database connection failures gracefully', async () => {
       mockGetServerSession.mockResolvedValue({ user: { id: 'user-123' } });
-      mockDb.borrowRequest.findUnique.mockRejectedValue(new Error('Database connection failed'));
+      mockDb.borrowRequest.findUnique.mockRejectedValue(
+        new Error('Database connection failed')
+      );
 
-      const request = new NextRequest('http://localhost/api/borrow-requests/request-123');
+      const request = new NextRequest(
+        'http://localhost/api/borrow-requests/request-123'
+      );
       const params = { params: Promise.resolve({ id: 'request-123' }) };
 
       const response = await GET(request, params);
@@ -405,9 +508,11 @@ describe('Borrowing Security Tests', () => {
   describe('SQL Injection Prevention', () => {
     it('should handle SQL injection attempts in request ID', async () => {
       mockGetServerSession.mockResolvedValue({ user: { id: 'user-123' } });
-      
+
       const maliciousId = "1' OR '1'='1'; --";
-      const request = new NextRequest(`http://localhost/api/borrow-requests/${encodeURIComponent(maliciousId)}`);
+      const request = new NextRequest(
+        `http://localhost/api/borrow-requests/${encodeURIComponent(maliciousId)}`
+      );
       const params = { params: Promise.resolve({ id: maliciousId }) };
 
       // Prisma should handle this safely, but verify it doesn't break
@@ -427,9 +532,13 @@ describe('Borrowing Security Tests', () => {
   describe('Information Disclosure Prevention', () => {
     it('should not leak sensitive information in error messages', async () => {
       mockGetServerSession.mockResolvedValue({ user: { id: 'user-123' } });
-      mockDb.borrowRequest.findUnique.mockRejectedValue(new Error('Sensitive database error with connection string'));
+      mockDb.borrowRequest.findUnique.mockRejectedValue(
+        new Error('Sensitive database error with connection string')
+      );
 
-      const request = new NextRequest('http://localhost/api/borrow-requests/request-123');
+      const request = new NextRequest(
+        'http://localhost/api/borrow-requests/request-123'
+      );
       const params = { params: Promise.resolve({ id: 'request-123' }) };
 
       const response = await GET(request, params);
@@ -442,7 +551,9 @@ describe('Borrowing Security Tests', () => {
     });
 
     it('should not expose user details to unauthorized users', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { id: 'unauthorized-user' } });
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'unauthorized-user' },
+      });
       mockDb.borrowRequest.findUnique.mockResolvedValue({
         id: 'request-123',
         borrowerId: 'borrower-123',
@@ -456,7 +567,9 @@ describe('Borrowing Security Tests', () => {
         },
       });
 
-      const request = new NextRequest('http://localhost/api/borrow-requests/request-123');
+      const request = new NextRequest(
+        'http://localhost/api/borrow-requests/request-123'
+      );
       const params = { params: Promise.resolve({ id: 'request-123' }) };
 
       const response = await GET(request, params);
