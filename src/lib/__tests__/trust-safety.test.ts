@@ -27,11 +27,23 @@ import { db } from '@/lib/db';
 
 import { TrustSafetyService } from '../trust-safety';
 
-const mockDb = db as Record<string, unknown> & {
-  user: Record<string, unknown>;
-  userReport: Record<string, unknown>;
-  adminAction: Record<string, unknown>;
-  $transaction: unknown;
+const mockDb = db as unknown as {
+  user: {
+    findMany: ReturnType<typeof vi.fn>;
+    findUnique: ReturnType<typeof vi.fn>;
+    findFirst: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+  };
+  userReport: {
+    findFirst: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+    groupBy: ReturnType<typeof vi.fn>;
+  };
+  adminAction: {
+    create: ReturnType<typeof vi.fn>;
+  };
+  $transaction: ReturnType<typeof vi.fn>;
 };
 
 describe('TrustSafetyService', () => {
