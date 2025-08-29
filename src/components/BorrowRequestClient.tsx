@@ -252,9 +252,17 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
     }
 
     console.log('📹 Using MediaRecorder with mimeType:', mimeType);
-    const mediaRecorder = new MediaRecorder(streamRef.current, {
+
+    // Configure MediaRecorder with bitrate constraints to reduce file size
+    const recorderOptions: MediaRecorderOptions = {
       mimeType,
-    });
+      // Set moderate bitrate to balance quality and file size
+      // ~500kbps video + ~64kbps audio = ~564kbps total
+      videoBitsPerSecond: 500000, // 500 kbps for video
+      audioBitsPerSecond: 64000, // 64 kbps for audio
+    };
+
+    const mediaRecorder = new MediaRecorder(streamRef.current, recorderOptions);
 
     mediaRecorderRef.current = mediaRecorder;
 
@@ -308,14 +316,14 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
         );
     }, 1000);
 
-    // Auto-stop after ~15 seconds to keep uploads small
+    // Auto-stop after 12 seconds to keep uploads smaller and more focused
     autoStopTimeoutRef.current = window.setTimeout(() => {
       if (mediaRecorderRef.current?.state === 'recording') {
         mediaRecorderRef.current.stop();
       }
       clearTimers();
-    }, 15000);
-  }, []);
+    }, 12000);
+  }, [clearTimers, stopStream]);
 
   // Stop recording
   const stopRecording = useCallback(() => {
@@ -351,13 +359,20 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
     setState('submitting');
 
     try {
-      // Client-side size guard (~9MB)
-      const maxSize = 9 * 1024 * 1024;
+      // Client-side size guard with better error messaging and increased limit
+      const maxSize = 15 * 1024 * 1024; // Increased to 15MB for better UX
       if (videoBlob.size > maxSize) {
+        const sizeMB = Math.round((videoBlob.size / (1024 * 1024)) * 10) / 10;
         throw new Error(
-          'Video too large. Please re-record a shorter clip (~10–15 seconds).'
+          `Video file is ${sizeMB}MB, which is too large. Please try recording a shorter clip (aim for 8-12 seconds) or check your camera quality settings.`
         );
       }
+
+      // Log video details for debugging
+      const sizeMB = Math.round((videoBlob.size / (1024 * 1024)) * 100) / 100;
+      console.log(
+        `📏 Video size: ${sizeMB}MB, Duration: ~${Math.ceil(recordingTime)}s`
+      );
 
       // Step 1: create borrow request (Mux flow)
       const meta = new FormData();
@@ -422,7 +437,7 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
     } finally {
       xhrRef.current = null;
     }
-  }, [videoBlob, returnDate, promiseChecked, item]);
+  }, [videoBlob, returnDate, promiseChecked, item, recordingTime]);
 
   const suggestedScript = `Hey ${item.owner.name || 'there'}, I&apos;d love to borrow your ${item.name} for a few days. ${item.description ? `I need it for ${item.description.toLowerCase().includes('ing') ? item.description.toLowerCase() : 'my project'}` : 'I have a project that would benefit from using it'}. I can pick it up anytime after 5:30 on weeknights, or before noon on weekends. Thanks!`;
 
@@ -442,8 +457,9 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
               variant="body1"
               sx={{ color: brandColors.charcoal, opacity: 0.7, mb: 4 }}
             >
-              Record a short (10–15s) video selfie to introduce yourself and
-              explain why you&apos;d like to borrow this item.
+              Record a short (8-12 second) video selfie to introduce yourself
+              and explain why you&apos;d like to borrow this item. Keep it brief
+              for best results!
             </Typography>
 
             {/* Item Info */}
@@ -528,6 +544,17 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
               Recording Your Request
             </Typography>
 
+            <Typography
+              variant="body2"
+              sx={{
+                color: brandColors.charcoal,
+                mb: 2,
+                opacity: 0.8,
+              }}
+            >
+              Keep it short and sweet (8-12 seconds is perfect)
+            </Typography>
+
             {/* Video Preview */}
             <Box
               sx={{
@@ -579,7 +606,8 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
                     animation: 'blink 1s infinite',
                   }}
                 />
-                REC {recordingTime}s
+                REC {recordingTime}s{' '}
+                {recordingTime >= 10 ? '(wrapping up...)' : ''}
               </Box>
             </Box>
 
