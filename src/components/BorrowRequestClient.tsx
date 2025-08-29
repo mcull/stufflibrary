@@ -98,6 +98,7 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
   const [returnDate, setReturnDate] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [isFrontCamera, setIsFrontCamera] = useState<boolean>(false);
   const xhrRef = useRef<XMLHttpRequest | null>(null);
 
   // Start camera stream
@@ -148,6 +149,22 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
           );
           stream = await navigator.mediaDevices.getUserMedia(constraints[i]);
           console.log('✅ Camera access successful with configuration:', i + 1);
+
+          // Detect if we're using front-facing camera
+          const videoTrack = stream.getVideoTracks()[0];
+          if (videoTrack) {
+            const settings = videoTrack.getSettings();
+            // Check if facingMode indicates front camera or if it's the first constraint (which requests front camera)
+            const isFront =
+              settings.facingMode === 'user' ||
+              (i === 0 &&
+                constraints[i].video &&
+                typeof constraints[i].video === 'object' &&
+                (constraints[i].video as any).facingMode === 'user');
+            setIsFrontCamera(isFront);
+            console.log('📱 Front-facing camera detected:', isFront);
+          }
+
           break;
         } catch (err) {
           lastError = err;
@@ -313,6 +330,7 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
     clearTimers();
     stopStream();
     setRecordingTime(0);
+    setIsFrontCamera(false); // Reset front camera detection
     startCamera();
   }, [videoBlobUrl, startCamera, clearTimers, stopStream]);
 
@@ -526,6 +544,8 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
                   width: '100%',
                   height: 'auto',
                   display: 'block',
+                  // Mirror the video horizontally when using front-facing camera
+                  transform: isFrontCamera ? 'scaleX(-1)' : 'none',
                 }}
               />
 
