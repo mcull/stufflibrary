@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { sendBorrowRequestReceivedNotification } from '@/lib/enhanced-notification-service';
 import { sendBorrowRequestNotification } from '@/lib/twilio';
 
 // GET - Fetch borrow requests for the current user
@@ -241,6 +242,37 @@ export async function POST(request: NextRequest) {
 
     // Create approval URL
     const approvalUrl = `${process.env.NEXTAUTH_URL}/borrow-approval/${responseToken}`;
+
+    // Send in-app notification using enhanced notification service
+    try {
+      await sendBorrowRequestReceivedNotification({
+        ...borrowRequest,
+        requestMessage: borrowRequest.requestMessage || '',
+        lenderMessage: borrowRequest.lenderMessage || '',
+        videoUrl: borrowRequest.videoUrl || '',
+        borrower: {
+          id: borrowRequest.borrower.id,
+          name: borrowRequest.borrower.name || '',
+          image: borrowRequest.borrower.image || '',
+          phone: borrower.phone || '',
+          email: borrower.email || '',
+        },
+        lender: {
+          id: item.owner.id,
+          name: item.owner.name || '',
+          email: item.owner.email || '',
+          phone: item.owner.phone || '',
+        },
+        item: {
+          ...borrowRequest.item,
+          imageUrl: borrowRequest.item.imageUrl || '',
+        },
+      }, approvalUrl);
+      console.log('📱 In-app notification created successfully');
+    } catch (notificationError) {
+      console.error('❌ Failed to create in-app notification:', notificationError);
+      // Don't fail the request if notification fails
+    }
 
     // Send SMS and email notification to owner
     try {
