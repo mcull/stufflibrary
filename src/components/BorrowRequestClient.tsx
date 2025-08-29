@@ -155,12 +155,16 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
           if (videoTrack) {
             const settings = videoTrack.getSettings();
             // Check if facingMode indicates front camera or if it's the first constraint (which requests front camera)
+            const constraint = constraints[i];
+            const videoConstraint = constraint?.video;
             const isFront =
               settings.facingMode === 'user' ||
               (i === 0 &&
-                constraints[i].video &&
-                typeof constraints[i].video === 'object' &&
-                (constraints[i].video as any).facingMode === 'user');
+                videoConstraint &&
+                typeof videoConstraint === 'object' &&
+                videoConstraint !== null &&
+                'facingMode' in videoConstraint &&
+                videoConstraint.facingMode === 'user');
             setIsFrontCamera(isFront);
             console.log('📱 Front-facing camera detected:', isFront);
           }
