@@ -7,7 +7,11 @@ import { NotificationType } from '@prisma/client';
 
 import { EmailTemplates } from './email-templates';
 import { createNotification } from './notification-service';
-import { sendBorrowRequestNotification, sendBorrowResponseNotification, sendReturnNotification } from './twilio';
+import {
+  sendBorrowRequestNotification,
+  sendBorrowResponseNotification,
+  sendReturnNotification,
+} from './twilio';
 
 interface BorrowRequest {
   id: string;
@@ -42,7 +46,10 @@ interface BorrowRequest {
 /**
  * Send comprehensive notification for new borrow request
  */
-export async function sendBorrowRequestReceivedNotification(borrowRequest: BorrowRequest, approvalUrl: string) {
+export async function sendBorrowRequestReceivedNotification(
+  borrowRequest: BorrowRequest,
+  approvalUrl: string
+) {
   try {
     // Create in-app notification
     const notificationPromise = createNotification({
@@ -64,14 +71,17 @@ export async function sendBorrowRequestReceivedNotification(borrowRequest: Borro
     // Send email with rich template
     let emailPromise: Promise<any> | undefined;
     if (borrowRequest.lender.email) {
-      const templateProps: Parameters<typeof EmailTemplates.borrowRequestReceived>[0] = {
+      const templateProps: Parameters<
+        typeof EmailTemplates.borrowRequestReceived
+      >[0] = {
         recipientName: borrowRequest.lender.name || 'There',
         borrowerName: borrowRequest.borrower.name || 'Someone',
         itemName: borrowRequest.item.name,
-        requestedReturnDate: borrowRequest.requestedReturnDate.toLocaleDateString(),
+        requestedReturnDate:
+          borrowRequest.requestedReturnDate.toLocaleDateString(),
         approvalUrl,
       };
-      
+
       if (borrowRequest.borrower.image) {
         templateProps.borrowerImage = borrowRequest.borrower.image;
       }
@@ -84,7 +94,7 @@ export async function sendBorrowRequestReceivedNotification(borrowRequest: Borro
       if (borrowRequest.requestMessage) {
         templateProps.requestMessage = borrowRequest.requestMessage;
       }
-      
+
       const emailTemplate = EmailTemplates.borrowRequestReceived(templateProps);
 
       emailPromise = createNotification({
@@ -102,34 +112,39 @@ export async function sendBorrowRequestReceivedNotification(borrowRequest: Borro
     }
 
     // Legacy SMS notification for backward compatibility
-    const legacyNotificationData: Parameters<typeof sendBorrowRequestNotification>[0] = {
+    const legacyNotificationData: Parameters<
+      typeof sendBorrowRequestNotification
+    >[0] = {
       ownerName: borrowRequest.lender.name || 'Owner',
       borrowerName: borrowRequest.borrower.name || 'Someone',
       itemName: borrowRequest.item.name,
       approvalUrl,
     };
-    
+
     if (borrowRequest.lender.phone) {
       legacyNotificationData.ownerPhone = borrowRequest.lender.phone;
     }
     if (borrowRequest.lender.email) {
       legacyNotificationData.ownerEmail = borrowRequest.lender.email;
     }
-    
-    const legacySmsPromise = sendBorrowRequestNotification(legacyNotificationData);
+
+    const legacySmsPromise = sendBorrowRequestNotification(
+      legacyNotificationData
+    );
 
     // Wait for all notifications to complete
-    const results = await Promise.allSettled([
-      notificationPromise,
-      emailPromise,
-      legacySmsPromise,
-    ].filter(Boolean));
+    const results = await Promise.allSettled(
+      [notificationPromise, emailPromise, legacySmsPromise].filter(Boolean)
+    );
 
     // Log results for debugging
     results.forEach((result, index) => {
       const types = ['in-app', 'email', 'SMS'];
       if (result.status === 'rejected') {
-        console.error(`Failed to send ${types[index]} notification:`, result.reason);
+        console.error(
+          `Failed to send ${types[index]} notification:`,
+          result.reason
+        );
       }
     });
 
@@ -148,7 +163,9 @@ export async function sendBorrowRequestReceivedNotification(borrowRequest: Borro
 /**
  * Send comprehensive notification for approved borrow request
  */
-export async function sendBorrowRequestApprovedNotification(borrowRequest: BorrowRequest) {
+export async function sendBorrowRequestApprovedNotification(
+  borrowRequest: BorrowRequest
+) {
   try {
     // Create in-app notification
     const notificationPromise = createNotification({
@@ -169,13 +186,15 @@ export async function sendBorrowRequestApprovedNotification(borrowRequest: Borro
     // Send rich email notification
     let emailPromise: Promise<any> | undefined;
     if (borrowRequest.borrower.email) {
-      const templateProps: Parameters<typeof EmailTemplates.borrowRequestApproved>[0] = {
+      const templateProps: Parameters<
+        typeof EmailTemplates.borrowRequestApproved
+      >[0] = {
         recipientName: borrowRequest.borrower.name || 'There',
         lenderName: borrowRequest.lender.name || 'The owner',
         itemName: borrowRequest.item.name,
         returnDate: borrowRequest.requestedReturnDate.toLocaleDateString(),
       };
-      
+
       if (borrowRequest.item.imageUrl) {
         templateProps.itemImage = borrowRequest.item.imageUrl;
       }
@@ -185,7 +204,7 @@ export async function sendBorrowRequestApprovedNotification(borrowRequest: Borro
       if (borrowRequest.lender.phone) {
         templateProps.contactInfo = borrowRequest.lender.phone;
       }
-      
+
       const emailTemplate = EmailTemplates.borrowRequestApproved(templateProps);
 
       emailPromise = createNotification({
@@ -203,27 +222,28 @@ export async function sendBorrowRequestApprovedNotification(borrowRequest: Borro
     }
 
     // Legacy SMS notification
-    const legacySmsPromise = borrowRequest.borrower.phone ? 
-      sendBorrowResponseNotification({
-        _borrowerName: borrowRequest.borrower.name || 'Borrower',
-        borrowerPhone: borrowRequest.borrower.phone,
-        ownerName: borrowRequest.lender.name || 'Owner',
-        itemName: borrowRequest.item.name,
-        approved: true,
-        message: borrowRequest.lenderMessage || 'Request approved',
-      }) : null;
+    const legacySmsPromise = borrowRequest.borrower.phone
+      ? sendBorrowResponseNotification({
+          _borrowerName: borrowRequest.borrower.name || 'Borrower',
+          borrowerPhone: borrowRequest.borrower.phone,
+          ownerName: borrowRequest.lender.name || 'Owner',
+          itemName: borrowRequest.item.name,
+          approved: true,
+          message: borrowRequest.lenderMessage || 'Request approved',
+        })
+      : null;
 
-    const results = await Promise.allSettled([
-      notificationPromise,
-      emailPromise,
-      legacySmsPromise,
-    ].filter(Boolean));
+    const results = await Promise.allSettled(
+      [notificationPromise, emailPromise, legacySmsPromise].filter(Boolean)
+    );
 
     return {
       success: true,
       inApp: results[0]?.status === 'fulfilled',
       email: emailPromise ? results[1]?.status === 'fulfilled' : null,
-      sms: legacySmsPromise ? results[results.length - 1]?.status === 'fulfilled' : null,
+      sms: legacySmsPromise
+        ? results[results.length - 1]?.status === 'fulfilled'
+        : null,
     };
   } catch (error) {
     console.error('Error sending borrow request approved notification:', error);
@@ -234,7 +254,9 @@ export async function sendBorrowRequestApprovedNotification(borrowRequest: Borro
 /**
  * Send comprehensive notification for declined borrow request
  */
-export async function sendBorrowRequestDeclinedNotification(borrowRequest: BorrowRequest) {
+export async function sendBorrowRequestDeclinedNotification(
+  borrowRequest: BorrowRequest
+) {
   try {
     // Create in-app notification
     const notificationPromise = createNotification({
@@ -255,19 +277,21 @@ export async function sendBorrowRequestDeclinedNotification(borrowRequest: Borro
     // Send empathetic email notification
     let emailPromise: Promise<any> | undefined;
     if (borrowRequest.borrower.email) {
-      const templateProps: Parameters<typeof EmailTemplates.borrowRequestDeclined>[0] = {
+      const templateProps: Parameters<
+        typeof EmailTemplates.borrowRequestDeclined
+      >[0] = {
         recipientName: borrowRequest.borrower.name || 'There',
         lenderName: borrowRequest.lender.name || 'The owner',
         itemName: borrowRequest.item.name,
       };
-      
+
       if (borrowRequest.item.imageUrl) {
         templateProps.itemImage = borrowRequest.item.imageUrl;
       }
       if (borrowRequest.lenderMessage) {
         templateProps.lenderMessage = borrowRequest.lenderMessage;
       }
-      
+
       const emailTemplate = EmailTemplates.borrowRequestDeclined(templateProps);
 
       emailPromise = createNotification({
@@ -285,27 +309,28 @@ export async function sendBorrowRequestDeclinedNotification(borrowRequest: Borro
     }
 
     // Legacy SMS notification
-    const legacySmsPromise = borrowRequest.borrower.phone ?
-      sendBorrowResponseNotification({
-        _borrowerName: borrowRequest.borrower.name || 'Borrower',
-        borrowerPhone: borrowRequest.borrower.phone,
-        ownerName: borrowRequest.lender.name || 'Owner',
-        itemName: borrowRequest.item.name,
-        approved: false,
-        message: borrowRequest.lenderMessage || 'Request declined',
-      }) : null;
+    const legacySmsPromise = borrowRequest.borrower.phone
+      ? sendBorrowResponseNotification({
+          _borrowerName: borrowRequest.borrower.name || 'Borrower',
+          borrowerPhone: borrowRequest.borrower.phone,
+          ownerName: borrowRequest.lender.name || 'Owner',
+          itemName: borrowRequest.item.name,
+          approved: false,
+          message: borrowRequest.lenderMessage || 'Request declined',
+        })
+      : null;
 
-    const results = await Promise.allSettled([
-      notificationPromise,
-      emailPromise,
-      legacySmsPromise,
-    ].filter(Boolean));
+    const results = await Promise.allSettled(
+      [notificationPromise, emailPromise, legacySmsPromise].filter(Boolean)
+    );
 
     return {
       success: true,
       inApp: results[0]?.status === 'fulfilled',
       email: emailPromise ? results[1]?.status === 'fulfilled' : null,
-      sms: legacySmsPromise ? results[results.length - 1]?.status === 'fulfilled' : null,
+      sms: legacySmsPromise
+        ? results[results.length - 1]?.status === 'fulfilled'
+        : null,
     };
   } catch (error) {
     console.error('Error sending borrow request declined notification:', error);
@@ -316,7 +341,10 @@ export async function sendBorrowRequestDeclinedNotification(borrowRequest: Borro
 /**
  * Send comprehensive notification when item is returned
  */
-export async function sendItemReturnedNotification(borrowRequest: BorrowRequest, borrowerNotes?: string) {
+export async function sendItemReturnedNotification(
+  borrowRequest: BorrowRequest,
+  borrowerNotes?: string
+) {
   try {
     // Create in-app notification
     const notificationPromise = createNotification({
@@ -344,7 +372,7 @@ export async function sendItemReturnedNotification(borrowRequest: BorrowRequest,
         itemName: borrowRequest.item.name,
         returnDate: new Date().toLocaleDateString(),
       };
-      
+
       if (borrowRequest.item.imageUrl) {
         templateProps.itemImage = borrowRequest.item.imageUrl;
       }
@@ -352,7 +380,7 @@ export async function sendItemReturnedNotification(borrowRequest: BorrowRequest,
         templateProps.borrowerNotes = borrowerNotes;
       }
       templateProps.confirmReturnUrl = `/borrow-requests/${borrowRequest.id}`;
-      
+
       const emailTemplate = EmailTemplates.itemReturned(templateProps);
 
       emailPromise = createNotification({
@@ -370,13 +398,14 @@ export async function sendItemReturnedNotification(borrowRequest: BorrowRequest,
     }
 
     // Legacy notification
-    const legacyNotificationData: Parameters<typeof sendReturnNotification>[0] = {
-      ownerName: borrowRequest.lender.name || 'Owner',
-      borrowerName: borrowRequest.borrower.name || 'Borrower',
-      itemName: borrowRequest.item.name,
-      returnDate: new Date(),
-    };
-    
+    const legacyNotificationData: Parameters<typeof sendReturnNotification>[0] =
+      {
+        ownerName: borrowRequest.lender.name || 'Owner',
+        borrowerName: borrowRequest.borrower.name || 'Borrower',
+        itemName: borrowRequest.item.name,
+        returnDate: new Date(),
+      };
+
     if (borrowRequest.lender.phone) {
       legacyNotificationData.ownerPhone = borrowRequest.lender.phone;
     }
@@ -386,14 +415,12 @@ export async function sendItemReturnedNotification(borrowRequest: BorrowRequest,
     if (borrowerNotes) {
       legacyNotificationData.borrowerNotes = borrowerNotes;
     }
-    
+
     const legacyPromise = sendReturnNotification(legacyNotificationData);
 
-    const results = await Promise.allSettled([
-      notificationPromise,
-      emailPromise,
-      legacyPromise,
-    ].filter(Boolean));
+    const results = await Promise.allSettled(
+      [notificationPromise, emailPromise, legacyPromise].filter(Boolean)
+    );
 
     return {
       success: true,
@@ -410,7 +437,9 @@ export async function sendItemReturnedNotification(borrowRequest: BorrowRequest,
 /**
  * Send return reminder notification (24 hours before due date)
  */
-export async function sendReturnReminderNotification(borrowRequest: BorrowRequest) {
+export async function sendReturnReminderNotification(
+  borrowRequest: BorrowRequest
+) {
   try {
     // Create in-app notification
     const notificationPromise = createNotification({
@@ -431,20 +460,21 @@ export async function sendReturnReminderNotification(borrowRequest: BorrowReques
     // Send helpful email reminder
     let emailPromise: Promise<any> | undefined;
     if (borrowRequest.borrower.email) {
-      const templateProps: Parameters<typeof EmailTemplates.returnReminder>[0] = {
-        recipientName: borrowRequest.borrower.name || 'There',
-        itemName: borrowRequest.item.name,
-        lenderName: borrowRequest.lender.name || 'the owner',
-        returnDate: borrowRequest.requestedReturnDate.toLocaleDateString(),
-      };
-      
+      const templateProps: Parameters<typeof EmailTemplates.returnReminder>[0] =
+        {
+          recipientName: borrowRequest.borrower.name || 'There',
+          itemName: borrowRequest.item.name,
+          lenderName: borrowRequest.lender.name || 'the owner',
+          returnDate: borrowRequest.requestedReturnDate.toLocaleDateString(),
+        };
+
       if (borrowRequest.item.imageUrl) {
         templateProps.itemImage = borrowRequest.item.imageUrl;
       }
       if (borrowRequest.lender.phone) {
         templateProps.contactInfo = borrowRequest.lender.phone;
       }
-      
+
       const emailTemplate = EmailTemplates.returnReminder(templateProps);
 
       emailPromise = createNotification({
@@ -461,10 +491,9 @@ export async function sendReturnReminderNotification(borrowRequest: BorrowReques
       });
     }
 
-    const results = await Promise.allSettled([
-      notificationPromise,
-      emailPromise,
-    ].filter(Boolean));
+    const results = await Promise.allSettled(
+      [notificationPromise, emailPromise].filter(Boolean)
+    );
 
     return {
       success: true,

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+import { db } from '../db';
 import {
   createNotification,
   getUserNotifications,
@@ -8,7 +9,6 @@ import {
   getUnreadNotificationCount,
   NotificationHelpers,
 } from '../notification-service';
-import { db } from '../db';
 import { sendEmail } from '../twilio';
 
 // Mock the database and email service
@@ -53,7 +53,9 @@ describe('Notification Service', () => {
         },
       };
 
-      vi.mocked(db.notification.create).mockResolvedValue(mockNotification as any);
+      vi.mocked(db.notification.create).mockResolvedValue(
+        mockNotification as any
+      );
 
       const result = await createNotification({
         userId: 'user-123',
@@ -105,9 +107,17 @@ describe('Notification Service', () => {
         },
       };
 
-      vi.mocked(db.notification.create).mockResolvedValue(mockNotification as any);
-      vi.mocked(sendEmail).mockResolvedValue({ success: true, messageId: 'email-123' });
-      vi.mocked(db.notification.update).mockResolvedValue({ ...mockNotification, emailSent: true } as any);
+      vi.mocked(db.notification.create).mockResolvedValue(
+        mockNotification as any
+      );
+      vi.mocked(sendEmail).mockResolvedValue({
+        success: true,
+        messageId: 'email-123',
+      });
+      vi.mocked(db.notification.update).mockResolvedValue({
+        ...mockNotification,
+        emailSent: true,
+      } as any);
 
       await createNotification({
         userId: 'user-123',
@@ -150,7 +160,9 @@ describe('Notification Service', () => {
         },
       };
 
-      vi.mocked(db.notification.create).mockResolvedValue(mockNotification as any);
+      vi.mocked(db.notification.create).mockResolvedValue(
+        mockNotification as any
+      );
       vi.mocked(sendEmail).mockRejectedValue(new Error('Email service down'));
 
       const result = await createNotification({
@@ -182,7 +194,7 @@ describe('Notification Service', () => {
           createdAt: new Date(),
         },
         {
-          id: 'notif-2', 
+          id: 'notif-2',
           type: 'BORROW_REQUEST_APPROVED',
           title: 'Request Approved',
           message: 'Your request was approved',
@@ -191,7 +203,9 @@ describe('Notification Service', () => {
         },
       ];
 
-      vi.mocked(db.notification.findMany).mockResolvedValue(mockNotifications as any);
+      vi.mocked(db.notification.findMany).mockResolvedValue(
+        mockNotifications as any
+      );
       vi.mocked(db.notification.count).mockResolvedValue(2);
 
       const result = await getUserNotifications('user-123');
@@ -222,7 +236,9 @@ describe('Notification Service', () => {
         },
       ];
 
-      vi.mocked(db.notification.findMany).mockResolvedValue(mockNotifications as any);
+      vi.mocked(db.notification.findMany).mockResolvedValue(
+        mockNotifications as any
+      );
       vi.mocked(db.notification.count).mockResolvedValue(1);
 
       await getUserNotifications('user-123', { unreadOnly: true });
@@ -239,14 +255,14 @@ describe('Notification Service', () => {
       vi.mocked(db.notification.findMany).mockResolvedValue([]);
       vi.mocked(db.notification.count).mockResolvedValue(0);
 
-      await getUserNotifications('user-123', { 
-        types: ['BORROW_REQUEST_RECEIVED', 'BORROW_REQUEST_APPROVED'] 
+      await getUserNotifications('user-123', {
+        types: ['BORROW_REQUEST_RECEIVED', 'BORROW_REQUEST_APPROVED'],
       });
 
       expect(db.notification.findMany).toHaveBeenCalledWith({
-        where: { 
-          userId: 'user-123', 
-          type: { in: ['BORROW_REQUEST_RECEIVED', 'BORROW_REQUEST_APPROVED'] } 
+        where: {
+          userId: 'user-123',
+          type: { in: ['BORROW_REQUEST_RECEIVED', 'BORROW_REQUEST_APPROVED'] },
         },
         orderBy: { createdAt: 'desc' },
         take: 50,
@@ -262,12 +278,14 @@ describe('Notification Service', () => {
         isRead: true,
       };
 
-      vi.mocked(db.notification.update).mockResolvedValue(mockNotification as any);
+      vi.mocked(db.notification.update).mockResolvedValue(
+        mockNotification as any
+      );
 
       const result = await markNotificationAsRead('notif-123', 'user-123');
 
       expect(db.notification.update).toHaveBeenCalledWith({
-        where: { 
+        where: {
           id: 'notif-123',
           userId: 'user-123',
         },
@@ -331,10 +349,17 @@ describe('Notification Service', () => {
 
       vi.mocked(db.notification.create).mockResolvedValue({
         ...mockNotification,
-        user: { id: 'lender-123', name: 'Jane Lender', email: 'jane@example.com' },
+        user: {
+          id: 'lender-123',
+          name: 'Jane Lender',
+          email: 'jane@example.com',
+        },
       } as any);
 
-      const result = await NotificationHelpers.borrowRequestReceived('lender-123', mockBorrowRequest);
+      const result = await NotificationHelpers.borrowRequestReceived(
+        'lender-123',
+        mockBorrowRequest
+      );
 
       expect(db.notification.create).toHaveBeenCalledWith({
         data: {
