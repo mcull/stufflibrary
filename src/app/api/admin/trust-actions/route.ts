@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
           description,
           reason,
           metadata,
-          adminId: (adminUser as { user: { id: string } }).user.id,
+          adminId: (adminUser as unknown as { user: { id: string } }).user.id,
           targetUserId,
         },
       });

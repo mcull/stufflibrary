@@ -1,10 +1,7 @@
 import { UserReportReason } from '@prisma/client';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-import { db } from '@/lib/db';
-
-import { TrustSafetyService } from '../trust-safety';
-
+// Mock the db module
 vi.mock('@/lib/db', () => ({
   db: {
     user: {
@@ -26,7 +23,16 @@ vi.mock('@/lib/db', () => ({
   },
 }));
 
-const mockDb = db as unknown as typeof db;
+import { db } from '@/lib/db';
+
+import { TrustSafetyService } from '../trust-safety';
+
+const mockDb = db as Record<string, unknown> & {
+  user: Record<string, unknown>;
+  userReport: Record<string, unknown>;
+  adminAction: Record<string, unknown>;
+  $transaction: unknown;
+};
 
 describe('TrustSafetyService', () => {
   let service: TrustSafetyService;
@@ -68,7 +74,9 @@ describe('TrustSafetyService', () => {
         reportsCreated: [{ id: 'report-1' }, { id: 'report-2' }],
       };
 
-      mockDb.user.findUnique.mockResolvedValueOnce(mockUser);
+      (
+        mockDb.user.findUnique as ReturnType<typeof vi.fn>
+      ).mockResolvedValueOnce(mockUser);
 
       const score = await service.calculateTrustScore('user-1');
       expect(score).toBeGreaterThan(1000);
@@ -96,14 +104,18 @@ describe('TrustSafetyService', () => {
         reportsCreated: [],
       };
 
-      mockDb.user.findUnique.mockResolvedValueOnce(mockUser);
+      (
+        mockDb.user.findUnique as ReturnType<typeof vi.fn>
+      ).mockResolvedValueOnce(mockUser);
 
       const score = await service.calculateTrustScore('user-1');
       expect(score).toBeLessThan(1000);
     });
 
     it('returns 0 for non-existent user', async () => {
-      mockDb.user.findUnique.mockResolvedValueOnce(null);
+      (
+        mockDb.user.findUnique as ReturnType<typeof vi.fn>
+      ).mockResolvedValueOnce(null);
 
       const score = await service.calculateTrustScore('non-existent');
       expect(score).toBe(0);
@@ -121,7 +133,9 @@ describe('TrustSafetyService', () => {
         reportsCreated: [],
       };
 
-      mockDb.user.findUnique.mockResolvedValueOnce(mockUser);
+      (
+        mockDb.user.findUnique as ReturnType<typeof vi.fn>
+      ).mockResolvedValueOnce(mockUser);
 
       const score = await service.calculateTrustScore('user-1');
       expect(score).toBeGreaterThanOrEqual(0);
@@ -141,8 +155,12 @@ describe('TrustSafetyService', () => {
         suspensionCount: 0,
       };
 
-      mockDb.user.findUnique.mockResolvedValueOnce(mockUser);
-      mockDb.user.update.mockResolvedValueOnce({ trustScore: 1000 });
+      (
+        mockDb.user.findUnique as ReturnType<typeof vi.fn>
+      ).mockResolvedValueOnce(mockUser);
+      (mockDb.user.update as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        trustScore: 1000,
+      });
 
       const score = await service.updateUserTrustScore('user-1');
 
@@ -157,14 +175,18 @@ describe('TrustSafetyService', () => {
   describe('runAutomatedFlagging', () => {
     it('runs all active flagging rules', async () => {
       // Mock system admin
-      mockDb.user.findFirst.mockResolvedValueOnce({
-        id: 'system-admin',
-        email: 'system@stufflibrary.com',
-      });
+      (mockDb.user.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+        {
+          id: 'system-admin',
+          email: 'system@stufflibrary.com',
+        }
+      );
 
       // Mock empty results for all rules
-      mockDb.user.findMany.mockResolvedValue([]);
-      mockDb.userReport.groupBy.mockResolvedValue([]);
+      (mockDb.user.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+      (mockDb.userReport.groupBy as ReturnType<typeof vi.fn>).mockResolvedValue(
+        []
+      );
 
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
@@ -188,13 +210,21 @@ describe('TrustSafetyService', () => {
         },
       ];
 
-      mockDb.user.findMany.mockResolvedValueOnce(flaggedUsers);
-      mockDb.user.findFirst.mockResolvedValueOnce({
-        id: 'system-admin',
-        email: 'system@stufflibrary.com',
-      });
-      mockDb.userReport.findFirst.mockResolvedValueOnce(null); // No existing report
-      mockDb.userReport.create.mockResolvedValueOnce({ id: 'report-1' });
+      (mockDb.user.findMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+        flaggedUsers
+      );
+      (mockDb.user.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+        {
+          id: 'system-admin',
+          email: 'system@stufflibrary.com',
+        }
+      );
+      (
+        mockDb.userReport.findFirst as ReturnType<typeof vi.fn>
+      ).mockResolvedValueOnce(null); // No existing report
+      (
+        mockDb.userReport.create as ReturnType<typeof vi.fn>
+      ).mockResolvedValueOnce({ id: 'report-1' });
 
       await service.runAutomatedFlagging();
 
@@ -225,25 +255,38 @@ describe('TrustSafetyService', () => {
         },
       ];
 
-      mockDb.user.findMany.mockResolvedValueOnce(lowTrustUsers);
-      mockDb.user.findFirst.mockResolvedValueOnce({
-        id: 'system-admin',
-        email: 'system@stufflibrary.com',
+      (mockDb.user.findMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+        lowTrustUsers
+      );
+      (mockDb.user.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+        {
+          id: 'system-admin',
+          email: 'system@stufflibrary.com',
+        }
+      );
+      (mockDb.user.update as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'user-1',
       });
+      (mockDb.adminAction.create as ReturnType<typeof vi.fn>).mockResolvedValue(
+        { id: 'action-1' }
+      );
 
-      const mockTransaction = vi.fn().mockResolvedValueOnce(true);
-      mockDb.$transaction.mockImplementation(mockTransaction);
+      const mockTransaction = vi.fn().mockResolvedValueOnce([
+        { id: 'user-1' }, // user update result
+        { id: 'action-1' }, // admin action creation result
+      ]);
+      (mockDb.$transaction as ReturnType<typeof vi.fn>).mockImplementation(
+        mockTransaction
+      );
 
       await service.autoSuspendLowTrustUsers();
 
-      expect(mockDb.$transaction).toHaveBeenCalledWith([
-        expect.objectContaining({
-          // This would be the user update operation
-        }),
-        expect.objectContaining({
-          // This would be the admin action creation
-        }),
-      ]);
+      expect(mockDb.$transaction).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.any(Object), // user.update operation
+          expect.any(Object), // adminAction.create operation
+        ])
+      );
     });
   });
 
