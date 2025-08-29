@@ -1,7 +1,6 @@
 // import { put } from '@vercel/blob'; // Not used in Mux flow
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { v4 as uuidv4 } from 'uuid';
 
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -203,9 +202,6 @@ export async function POST(request: NextRequest) {
       console.log('📹 Creating borrow request for Mux upload flow');
     }
 
-    // Generate secure token for approval page
-    const responseToken = uuidv4();
-
     // Create the borrow request using new schema
     const borrowRequest = await db.borrowRequest.create({
       data: {
@@ -235,8 +231,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Create approval URL
-    const approvalUrl = `${process.env.NEXTAUTH_URL}/borrow-approval/${responseToken}`;
+    // Create approval URL using the borrow request ID (same as in-app notifications)
+    const approvalUrl = `${process.env.NEXTAUTH_URL}/borrow-approval/${borrowRequest.id}`;
 
     // Send in-app notification using enhanced notification service
     try {
