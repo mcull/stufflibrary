@@ -606,11 +606,22 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                   {activeBorrows.slice(0, 2).map((request) => (
                     <Box
                       key={request.id}
+                      component={Link}
+                      href={`/borrow-requests/${request.id}`}
                       sx={{
                         p: 2,
                         borderRadius: 2,
                         backgroundColor: brandColors.warmCream,
                         borderLeft: `4px solid ${brandColors.inkBlue}`,
+                        textDecoration: 'none',
+                        color: 'inherit',
+                        transition: 'all 0.2s ease',
+                        cursor: 'pointer',
+                        '&:hover': {
+                          backgroundColor: '#F5F1E8',
+                          transform: 'translateY(-1px)',
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                        },
                       }}
                     >
                       <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>

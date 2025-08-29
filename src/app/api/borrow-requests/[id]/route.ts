@@ -129,9 +129,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const { action, message, actualReturnDate } = body;
 
     // Validate action
-    if (!['approve', 'decline', 'return', 'cancel'].includes(action)) {
+    if (!['approve', 'decline', 'return', 'cancel', 'confirm-return'].includes(action)) {
       return NextResponse.json(
-        { error: 'Action must be one of: approve, decline, return, cancel' },
+        { error: 'Action must be one of: approve, decline, return, cancel, confirm-return' },
         { status: 400 }
       );
     }
@@ -269,6 +269,34 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           cancelledAt: new Date(),
           cancellationReason: message || null,
           cancelledBy: userId,
+        };
+        break;
+
+      case 'confirm-return':
+        // Only lender can confirm return of RETURNED requests
+        if (borrowRequest.lenderId !== userId) {
+          return NextResponse.json(
+            { error: 'Only the item owner can confirm returns' },
+            { status: 403 }
+          );
+        }
+
+        // Can only confirm return of returned items
+        if (borrowRequest.status !== 'RETURNED') {
+          return NextResponse.json(
+            { error: 'Can only confirm items that have been marked as returned' },
+            { status: 400 }
+          );
+        }
+
+        authorizedUser = true;
+        newStatus = 'RETURNED'; // Keep as RETURNED - confirmation is implicit
+        updateData = {
+          status: newStatus,
+          // Mark the return as confirmed by updating the lender message
+          lenderMessage: message || 'Return confirmed by lender',
+          // Update timestamp to indicate confirmation  
+          updatedAt: new Date(),
         };
         break;
     }
