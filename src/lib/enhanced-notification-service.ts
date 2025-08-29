@@ -6,8 +6,8 @@
 import { NotificationType } from '@prisma/client';
 
 import { EmailTemplates } from './email-templates';
-import { createNotification, CreateNotificationData } from './notification-service';
-import { sendBorrowRequestNotification, sendBorrowResponseNotification, sendReturnNotification, sendCancellationNotification } from './twilio';
+import { createNotification } from './notification-service';
+import { sendBorrowRequestNotification, sendBorrowResponseNotification, sendReturnNotification } from './twilio';
 
 interface BorrowRequest {
   id: string;

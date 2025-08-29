@@ -62,10 +62,10 @@ export async function createNotification({
     });
 
     // Send email if requested and template provided
-    const notificationWithUser = notification as typeof notification & { 
-      user?: { id: string; name?: string; email?: string } 
+    const notificationWithUser = notification as typeof notification & {
+      user?: { id: string; name?: string; email?: string };
     };
-    
+
     if (shouldSendEmail && emailTemplate && notificationWithUser.user?.email) {
       try {
         const emailResult = await sendEmail({
@@ -85,14 +85,18 @@ export async function createNotification({
           });
         }
       } catch (emailError) {
-        console.error('Failed to send notification email:', emailError);
+        if (process.env.NODE_ENV !== 'test') {
+          console.error('Failed to send notification email:', emailError);
+        }
         // Don't fail the notification creation if email fails
       }
     }
 
     return notification;
   } catch (error) {
-    console.error('Error creating notification:', error);
+    if (process.env.NODE_ENV !== 'test') {
+      console.error('Error creating notification:', error);
+    }
     throw new Error('Failed to create notification');
   }
 }
@@ -112,11 +116,11 @@ export async function getUserNotifications(
   const { limit = 50, offset = 0, unreadOnly = false, types } = options;
 
   const whereClause: any = { userId };
-  
+
   if (unreadOnly) {
     whereClause.isRead = false;
   }
-  
+
   if (types && types.length > 0) {
     whereClause.type = { in: types };
   }
@@ -141,9 +145,12 @@ export async function getUserNotifications(
 /**
  * Mark notification as read
  */
-export async function markNotificationAsRead(notificationId: string, userId: string) {
+export async function markNotificationAsRead(
+  notificationId: string,
+  userId: string
+) {
   const notification = await db.notification.update({
-    where: { 
+    where: {
       id: notificationId,
       userId, // Ensure user owns the notification
     },

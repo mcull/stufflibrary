@@ -75,7 +75,9 @@ export const authOptions: NextAuthOptions = {
             emailVerified: user.emailVerified,
           };
         } catch {
-          console.error('Auth code verification error');
+          if (process.env.NODE_ENV !== 'test') {
+            console.error('Auth code verification error');
+          }
           return null;
         }
       },

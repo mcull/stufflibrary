@@ -248,7 +248,7 @@ describe('LibraryManagement', () => {
   });
 
   it('resets filters when reset button clicked', async () => {
-    (fetch as any).mockResolvedValue({
+    (fetch as any).mockResolvedValueOnce({
       ok: true,
       json: async () => mockApiResponse,
     });
