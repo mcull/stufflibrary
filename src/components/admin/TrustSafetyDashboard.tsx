@@ -1,6 +1,12 @@
 'use client';
 
-import { AdminActionType } from '@prisma/client';
+// Stub enums until schema is updated  
+enum AdminActionType {
+  WARNING = 'WARNING',
+  SUSPENSION = 'SUSPENSION',
+  BAN = 'BAN',
+  TRUST_SCORE_ADJUSTMENT = 'TRUST_SCORE_ADJUSTMENT'
+}
 import { useState, useEffect, useCallback } from 'react';
 
 interface TrustSafetyStats {

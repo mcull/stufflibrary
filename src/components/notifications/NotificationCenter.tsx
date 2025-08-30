@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import {
   Container,
   Typography,
@@ -11,9 +11,9 @@ import {
   Button,
   Alert,
 } from '@mui/material';
-import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { useState } from 'react';
 
 import { NotificationList } from './NotificationList';
 

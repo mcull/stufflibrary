@@ -1,6 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import {
+  MarkEmailReadOutlined,
+  AccessTimeOutlined,
+  CheckCircleOutlined,
+  CancelOutlined,
+  ReplyOutlined,
+  InventoryOutlined,
+  AnnouncementOutlined,
+  GroupAddOutlined,
+} from '@mui/icons-material';
 import {
   List,
   ListItem,
@@ -16,19 +25,10 @@ import {
   IconButton,
   Divider,
 } from '@mui/material';
-import {
-  MarkEmailReadOutlined,
-  AccessTimeOutlined,
-  CheckCircleOutlined,
-  CancelOutlined,
-  ReplyOutlined,
-  InventoryOutlined,
-  AnnouncementOutlined,
-  GroupAddOutlined,
-} from '@mui/icons-material';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 
 interface Notification {
   id: string;

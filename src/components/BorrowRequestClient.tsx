@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  ArrowBack as ArrowBackIcon,
   Videocam as VideocamIcon,
   Stop as StopIcon,
   Send as SendIcon,
@@ -14,7 +13,6 @@ import {
   Button,
   Card,
   CardContent,
-  IconButton,
   FormControlLabel,
   Checkbox,
   Alert,
@@ -94,6 +92,7 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
   const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
   const [videoBlobUrl, setVideoBlobUrl] = useState<string | null>(null);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [isRecording, setIsRecording] = useState(false);
   const [promiseChecked, setPromiseChecked] = useState(false);
   const [returnDate, setReturnDate] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -105,11 +104,21 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
   const startCamera = useCallback(async () => {
     try {
       setState('recording');
-      console.log('📱 Requesting camera access...');
+      console.log('📱 Requesting camera and microphone access...');
+
+      // First, explicitly check for microphone permissions to provide better UX
+      try {
+        const permissionStatus = await navigator.permissions?.query({ name: 'microphone' as PermissionName });
+        if (permissionStatus?.state === 'denied') {
+          console.warn('🎤 Microphone permissions denied - user will need to enable in browser settings');
+        }
+      } catch (_e) {
+        console.log('🎤 Permission API not available, will rely on getUserMedia prompts');
+      }
 
       // Try different camera configurations for mobile compatibility
       const constraints = [
-        // First try: front-facing camera with specific constraints
+        // First try: front-facing camera with specific constraints + audio
         {
           video: {
             facingMode: 'user',
@@ -117,9 +126,13 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
             height: { ideal: 360, min: 240 },
             frameRate: { ideal: 24, max: 30 },
           },
-          audio: true,
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
         },
-        // Fallback 1: any camera with basic constraints
+        // Fallback 1: any camera with basic constraints + audio
         {
           video: {
             width: { ideal: 480, min: 320 },
@@ -127,19 +140,16 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
           },
           audio: true,
         },
-        // Fallback 2: minimal constraints
+        // Fallback 2: minimal constraints with audio
         {
           video: true,
           audio: true,
-        },
-        // Fallback 3: video only
-        {
-          video: true,
         },
       ];
 
       let stream = null;
       let lastError = null;
+      let hasAudio = false;
 
       for (let i = 0; i < constraints.length; i++) {
         try {
@@ -149,6 +159,15 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
           );
           stream = await navigator.mediaDevices.getUserMedia(constraints[i]);
           console.log('✅ Camera access successful with configuration:', i + 1);
+
+          // Check if audio track is present and enabled
+          const audioTracks = stream.getAudioTracks();
+          hasAudio = audioTracks.length > 0 && (audioTracks[0]?.enabled ?? false);
+          console.log('🎤 Audio track status:', {
+            hasAudioTrack: audioTracks.length > 0,
+            audioEnabled: audioTracks[0]?.enabled,
+            hasAudio
+          });
 
           // Detect if we're using front-facing camera
           const videoTrack = stream.getVideoTracks()[0];
@@ -184,6 +203,12 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
         throw lastError;
       }
 
+      // Require both video and audio - don't proceed without microphone
+      if (!hasAudio) {
+        console.warn('⚠️ No microphone access - blocking recording');
+        throw new Error('NotAllowedError');
+      }
+
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -193,33 +218,17 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
     } catch (err) {
       console.error('❌ Failed to access camera:', err);
 
-      // Provide specific error messages based on the error type
-      let errorMessage = 'Unable to access camera. ';
+      // Friendly message for permission errors
+      let errorMessage = 'Right now, all borrow requests are done by video to keep it real and keep it human. If you want to continue, please enable video and mic access for your browser!';
 
       if (err instanceof Error) {
-        if (err.name === 'NotAllowedError') {
-          errorMessage +=
-            'Please allow camera and microphone permissions in your browser settings.';
-          // Add mobile-specific guidance
-          if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-            errorMessage +=
-              ' On mobile, you may need to refresh the page and try again.';
-          }
-        } else if (err.name === 'NotFoundError') {
-          errorMessage += 'No camera found on this device.';
+        if (err.name === 'NotFoundError') {
+          errorMessage = 'No camera found on this device. You\'ll need a camera to record your borrow request video.';
         } else if (err.name === 'NotSupportedError') {
-          errorMessage +=
-            'Camera access is not supported in this browser. Try using Chrome or Safari.';
+          errorMessage = 'Camera access is not supported in this browser. Try using Chrome or Safari to record your video request.';
         } else if (err.name === 'NotReadableError') {
-          errorMessage +=
-            'Camera is already in use by another application. Please close other apps using the camera.';
-        } else {
-          errorMessage +=
-            'Please ensure you have granted camera and microphone permissions.';
+          errorMessage = 'Your camera is already in use by another app. Please close other apps using the camera and try again.';
         }
-      } else {
-        errorMessage +=
-          'Please ensure you have granted camera and microphone permissions.';
       }
 
       // Add HTTPS warning for localhost
@@ -238,6 +247,7 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
     if (!streamRef.current) return;
 
     recordedChunksRef.current = [];
+    setIsRecording(true);
 
     // Try different codecs based on browser support
     let mimeType = 'video/webm;codecs=vp9';
@@ -298,6 +308,7 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
         videoRef.current.srcObject = null;
       }
 
+      setIsRecording(false);
       setState('recorded');
       // Clean up
       stopStream();
@@ -306,14 +317,15 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
 
     mediaRecorder.start();
 
-    // Recording timer
+    // Countdown timer (12 to 0)
     recordingStartRef.current = Date.now();
-    setRecordingTime(0);
+    setRecordingTime(12);
     timerIntervalRef.current = window.setInterval(() => {
-      if (recordingStartRef.current)
-        setRecordingTime(
-          Math.floor((Date.now() - recordingStartRef.current) / 1000)
-        );
+      if (recordingStartRef.current) {
+        const elapsed = Math.floor((Date.now() - recordingStartRef.current) / 1000);
+        const remaining = Math.max(0, 12 - elapsed);
+        setRecordingTime(remaining);
+      }
     }, 1000);
 
     // Auto-stop after 12 seconds to keep uploads smaller and more focused
@@ -330,6 +342,7 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
     if (mediaRecorderRef.current?.state === 'recording') {
       mediaRecorderRef.current.stop();
     }
+    setIsRecording(false);
     clearTimers();
   }, [clearTimers]);
 
@@ -343,6 +356,7 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
     clearTimers();
     stopStream();
     setRecordingTime(0);
+    setIsRecording(false);
     setIsFrontCamera(false); // Reset front camera detection
     startCamera();
   }, [videoBlobUrl, startCamera, clearTimers, stopStream]);
@@ -439,31 +453,75 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
     }
   }, [videoBlob, returnDate, promiseChecked, item, recordingTime]);
 
-  const suggestedScript = `Hey ${item.owner.name || 'there'}, I&apos;d love to borrow your ${item.name} for a few days. ${item.description ? `I need it for ${item.description.toLowerCase().includes('ing') ? item.description.toLowerCase() : 'my project'}` : 'I have a project that would benefit from using it'}. I can pick it up anytime after 5:30 on weeknights, or before noon on weekends. Thanks!`;
+  const suggestedScript = `Hey ${item.owner.name || 'there'}, I'd love to borrow your ${item.name} for a few days. ${item.description ? `I need it for ${item.description.toLowerCase().includes('ing') ? item.description.toLowerCase() : 'my project'}` : 'I have a project that would benefit from using it'}. I can pick it up anytime after 5:30 on weeknights, or before noon on weekends. Thanks!`;
 
   const renderContent = () => {
     switch (state) {
       case 'intro':
         return (
-          <Box sx={{ textAlign: 'center', py: 4 }}>
-            <Typography
-              variant="h5"
-              gutterBottom
-              sx={{ fontWeight: 600, color: brandColors.charcoal }}
-            >
-              Record Your Borrow Request
-            </Typography>
+          <Box sx={{ textAlign: 'center' }}>
+            {/* Instructions moved up */}
             <Typography
               variant="body1"
-              sx={{ color: brandColors.charcoal, opacity: 0.7, mb: 4 }}
+              sx={{ color: brandColors.charcoal, opacity: 0.7, mb: 3 }}
             >
               Record a short (8-12 second) video selfie to introduce yourself
-              and explain why you&apos;d like to borrow this item. Keep it brief
-              for best results!
+              and explain why you&apos;d like to borrow this item.
             </Typography>
 
-            {/* Item Info */}
-            <Card sx={{ maxWidth: 400, mx: 'auto', mb: 4 }}>
+            {/* Suggested Script in italics */}
+            <Typography
+              variant="body1"
+              sx={{
+                fontStyle: 'italic',
+                color: brandColors.charcoal,
+                lineHeight: 1.6,
+                mb: 4,
+                px: 2,
+              }}
+            >
+              &ldquo;{suggestedScript}&rdquo;
+            </Typography>
+
+            {/* Start Recording button */}
+            <Button
+              variant="contained"
+              size="large"
+              onClick={startCamera}
+              startIcon={<VideocamIcon />}
+              sx={{
+                borderRadius: 3,
+                px: 4,
+                py: 1.5,
+                fontSize: '1.1rem',
+                fontWeight: 600,
+                mb: 4,
+              }}
+            >
+              Start Recording
+            </Button>
+
+            {/* Fixed-size container for camera view or permissions warning */}
+            <Box
+              sx={{
+                maxWidth: 640,
+                mx: 'auto',
+                aspectRatio: '4/3',
+                borderRadius: 2,
+                overflow: 'hidden',
+                bgcolor: 'black',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Typography variant="body2" color="white">
+                Camera will appear here
+              </Typography>
+            </Box>
+
+            {/* Item Info moved to bottom */}
+            <Card sx={{ maxWidth: 400, mx: 'auto', mt: 4 }}>
               <CardContent>
                 <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
                   {item.name}
@@ -488,80 +546,60 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
                 )}
               </CardContent>
             </Card>
+          </Box>
+        );
 
-            {/* Suggested Script */}
-            <Card
+      case 'recording':
+        return (
+          <Box sx={{ textAlign: 'center' }}>
+            {/* Instructions moved up */}
+            <Typography
+              variant="body1"
+              sx={{ color: brandColors.charcoal, opacity: 0.7, mb: 3 }}
+            >
+              Record a short (8-12 second) video selfie to introduce yourself
+              and explain why you&apos;d like to borrow this item.
+            </Typography>
+
+            {/* Suggested Script in italics */}
+            <Typography
+              variant="body1"
               sx={{
-                maxWidth: 600,
-                mx: 'auto',
+                fontStyle: 'italic',
+                color: brandColors.charcoal,
+                lineHeight: 1.6,
                 mb: 4,
-                bgcolor: brandColors.warmCream,
+                px: 2,
               }}
             >
-              <CardContent>
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                  Suggested Script
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontStyle: 'italic',
-                    color: brandColors.charcoal,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  &ldquo;{suggestedScript}&rdquo;
-                </Typography>
-              </CardContent>
-            </Card>
+              &ldquo;{suggestedScript}&rdquo;
+            </Typography>
 
+            {/* Recording button */}
             <Button
               variant="contained"
               size="large"
-              onClick={startCamera}
-              startIcon={<VideocamIcon />}
+              onClick={isRecording ? stopRecording : startRecording}
+              startIcon={isRecording ? <StopIcon /> : <VideocamIcon />}
               sx={{
                 borderRadius: 3,
                 px: 4,
                 py: 1.5,
                 fontSize: '1.1rem',
                 fontWeight: 600,
+                mb: 4,
               }}
             >
-              Start Recording
+              {isRecording ? 'Stop Recording' : 'Start Recording'}
             </Button>
-          </Box>
-        );
 
-      case 'recording':
-        return (
-          <Box sx={{ textAlign: 'center', py: 4 }}>
-            <Typography
-              variant="h5"
-              gutterBottom
-              sx={{ fontWeight: 600, color: brandColors.charcoal }}
-            >
-              Recording Your Request
-            </Typography>
-
-            <Typography
-              variant="body2"
-              sx={{
-                color: brandColors.charcoal,
-                mb: 2,
-                opacity: 0.8,
-              }}
-            >
-              Keep it short and sweet (8-12 seconds is perfect)
-            </Typography>
-
-            {/* Video Preview */}
+            {/* Fixed-size container for camera view */}
             <Box
               sx={{
                 position: 'relative',
                 maxWidth: 640,
                 mx: 'auto',
-                mb: 3,
+                aspectRatio: '4/3',
                 borderRadius: 2,
                 overflow: 'hidden',
                 bgcolor: 'black',
@@ -574,61 +612,89 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
                 playsInline
                 style={{
                   width: '100%',
-                  height: 'auto',
+                  height: '100%',
+                  objectFit: 'cover',
                   display: 'block',
                   // Mirror the video horizontally when using front-facing camera
                   transform: isFrontCamera ? 'scaleX(-1)' : 'none',
                 }}
               />
 
-              {/* Recording indicator */}
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: 16,
-                  left: 16,
-                  display: 'flex',
-                  alignItems: 'center',
-                  bgcolor: 'rgba(255, 0, 0, 0.8)',
-                  color: 'white',
-                  px: 2,
-                  py: 1,
-                  borderRadius: 1,
-                }}
-              >
+              {/* Countdown timer with color coding */}
+              {isRecording && (
                 <Box
                   sx={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    bgcolor: 'white',
-                    mr: 1,
-                    animation: 'blink 1s infinite',
+                    position: 'absolute',
+                    top: 16,
+                    left: 16,
+                    display: 'flex',
+                    alignItems: 'center',
+                    bgcolor: 'rgba(0, 0, 0, 0.8)',
+                    color: 'white',
+                    px: 2,
+                    py: 1,
+                    borderRadius: 1,
                   }}
-                />
-                REC {recordingTime}s{' '}
-                {recordingTime >= 10 ? '(wrapping up...)' : ''}
-              </Box>
+                >
+                  <Box
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      bgcolor: 'white',
+                      mr: 1,
+                      animation: 'blink 1s infinite',
+                    }}
+                  />
+                  REC
+                </Box>
+              )}
+
+              {/* Large countdown display */}
+              {isRecording && (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    fontSize: '4rem',
+                    fontWeight: 'bold',
+                    color: recordingTime > 4 ? 'green' : recordingTime > 2 ? 'yellow' : 'red',
+                    textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
+                  }}
+                >
+                  {recordingTime}
+                </Box>
+              )}
             </Box>
 
-            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
-              <Button
-                variant="contained"
-                onClick={startRecording}
-                startIcon={<VideocamIcon />}
-                sx={{ borderRadius: 2 }}
-              >
-                Start Recording
-              </Button>
-              <Button
-                variant="outlined"
-                onClick={stopRecording}
-                startIcon={<StopIcon />}
-                sx={{ borderRadius: 2 }}
-              >
-                Stop Recording
-              </Button>
-            </Box>
+            {/* Item Info moved to bottom */}
+            <Card sx={{ maxWidth: 400, mx: 'auto', mt: 4 }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                  {item.name}
+                </Typography>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mb: 2 }}
+                >
+                  owned by {item.owner.name}
+                </Typography>
+                {item.imageUrl && (
+                  <Box
+                    sx={{
+                      aspectRatio: '1',
+                      backgroundImage: `url(${item.imageUrl})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      borderRadius: 1,
+                    }}
+                  />
+                )}
+              </CardContent>
+            </Card>
           </Box>
         );
 
@@ -855,20 +921,98 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
 
       case 'error':
         return (
-          <Box sx={{ textAlign: 'center', py: 4 }}>
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {error}
-            </Alert>
+          <Box sx={{ textAlign: 'center' }}>
+            {/* Instructions moved up */}
+            <Typography
+              variant="body1"
+              sx={{ color: brandColors.charcoal, opacity: 0.7, mb: 3 }}
+            >
+              Record a short (8-12 second) video selfie to introduce yourself
+              and explain why you&apos;d like to borrow this item.
+            </Typography>
+
+            {/* Suggested Script in italics */}
+            <Typography
+              variant="body1"
+              sx={{
+                fontStyle: 'italic',
+                color: brandColors.charcoal,
+                lineHeight: 1.6,
+                mb: 4,
+                px: 2,
+              }}
+            >
+              &ldquo;{suggestedScript}&rdquo;
+            </Typography>
+
+            {/* Try Again button */}
             <Button
               variant="contained"
+              size="large"
               onClick={() => {
                 setError(null);
                 setState('intro');
+                startCamera();
               }}
-              sx={{ borderRadius: 2 }}
+              startIcon={<VideocamIcon />}
+              sx={{
+                borderRadius: 3,
+                px: 4,
+                py: 1.5,
+                fontSize: '1.1rem',
+                fontWeight: 600,
+                mb: 4,
+              }}
             >
               Try Again
             </Button>
+
+            {/* Fixed-size container for permissions warning */}
+            <Box
+              sx={{
+                maxWidth: 640,
+                mx: 'auto',
+                aspectRatio: '4/3',
+                borderRadius: 2,
+                overflow: 'hidden',
+                bgcolor: 'black',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                p: 3,
+              }}
+            >
+              <Alert severity="error" sx={{ width: '100%', bgcolor: 'rgba(255,255,255,0.9)' }}>
+                {error}
+              </Alert>
+            </Box>
+
+            {/* Item Info moved to bottom */}
+            <Card sx={{ maxWidth: 400, mx: 'auto', mt: 4 }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                  {item.name}
+                </Typography>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mb: 2 }}
+                >
+                  owned by {item.owner.name}
+                </Typography>
+                {item.imageUrl && (
+                  <Box
+                    sx={{
+                      aspectRatio: '1',
+                      backgroundImage: `url(${item.imageUrl})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      borderRadius: 1,
+                    }}
+                  />
+                )}
+              </CardContent>
+            </Card>
           </Box>
         );
 
@@ -889,19 +1033,13 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
       {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-        <IconButton
-          onClick={() => router.back()}
-          sx={{ mr: 2 }}
-          aria-label="Go back"
-        >
-          <ArrowBackIcon />
-        </IconButton>
+      <Box sx={{ mb: 2 }}>
         <Typography
           variant="h4"
           sx={{
             fontWeight: 700,
             color: brandColors.charcoal,
+            textAlign: 'center',
           }}
         >
           Borrow Request
