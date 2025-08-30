@@ -140,8 +140,14 @@ function ItemCard({ item, status }: ItemCardProps) {
       return;
     }
 
+    // For on-loan items, go to the borrow request detail page
+    if (status === 'on-loan' && item.id) {
+      router.push(`/borrow-requests/${item.id}`);
+      return;
+    }
+
     // For other items, go to the item detail page
-    const itemId = item.id || item.item?.id;
+    const itemId = item.item?.id || item.id;
     if (itemId) {
       router.push(`/stuff/${itemId}`);
     }
