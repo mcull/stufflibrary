@@ -131,16 +131,19 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         (session as SessionWithUser).userId;
 
       if (!userId) {
-        return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'User ID not found' },
+          { status: 400 }
+        );
       }
     }
-    
+
     console.log(`🚀 DEBUG API request received:`, {
       borrowRequestId: id,
       action,
       message,
       userId,
-      actualReturnDate
+      actualReturnDate,
     });
 
     // Validate action
@@ -234,7 +237,6 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           status: newStatus,
           lenderMessage: message || null,
           approvedAt: action === 'approve' ? new Date() : null,
-          declinedAt: action === 'decline' ? new Date() : null,
         };
         break;
 
@@ -401,16 +403,16 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       borrowRequestId: borrowRequest.id,
       newStatus,
       userId,
-      action
+      action,
     });
-    
+
     await updateItemAvailability(
       borrowRequest.item.id,
       borrowRequest.id,
       newStatus as 'APPROVED' | 'DECLINED' | 'RETURNED' | 'CANCELLED',
       userId // This can be undefined for magic link actions
     );
-    
+
     console.log(`🚀 DEBUG Finished calling updateItemAvailability`);
 
     // Send notifications based on action
