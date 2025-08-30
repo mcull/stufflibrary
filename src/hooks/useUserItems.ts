@@ -107,8 +107,25 @@ export function useUserItems(): UseUserItemsResult {
         .map((item: any) => ({ ...item, status: 'offline' as const }));
 
       // Use the filtered onLoan data from API (which excludes self-borrows)
-      const onLoanItems: ItemWithStatus[] = (
-        borrowRequestsData.onLoan || []
+      // Deduplicate by itemId, prioritizing ACTIVE over APPROVED status
+      const onLoanRequests = borrowRequestsData.onLoan || [];
+      const uniqueOnLoanItems = new Map();
+
+      onLoanRequests.forEach((request: any) => {
+        const itemId = request.item.id;
+        const existing = uniqueOnLoanItems.get(itemId);
+
+        // If no existing item or current request has higher priority (ACTIVE > APPROVED)
+        if (
+          !existing ||
+          (request.status === 'ACTIVE' && existing.status === 'APPROVED')
+        ) {
+          uniqueOnLoanItems.set(itemId, request);
+        }
+      });
+
+      const onLoanItems: ItemWithStatus[] = Array.from(
+        uniqueOnLoanItems.values()
       ).map((request: any) => ({
         ...request.item,
         status: 'on-loan' as const,
