@@ -6,16 +6,6 @@ import { Resend } from 'resend';
 
 import { authOptions } from '@/lib/auth';
 
-const octokit = new Octokit({
-  auth: process.env.GITHUB_TOKEN,
-});
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function POST(request: NextRequest) {
   try {
     // Check authentication
@@ -26,6 +16,17 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    // Initialize clients at request time to avoid build-time errors
+    const octokit = new Octokit({
+      auth: process.env.GITHUB_TOKEN,
+    });
+
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    const resend = new Resend(process.env.RESEND_API_KEY);
 
     const { type, message } = await request.json();
 
@@ -114,6 +115,7 @@ _${enhancement.comment}_
       feedbackType: type,
       issueUrl: issue.data.html_url,
       issueNumber: issue.data.number,
+      resend,
     });
 
     return NextResponse.json({
@@ -136,12 +138,14 @@ async function sendFeedbackEmail({
   feedbackType,
   issueUrl,
   issueNumber,
+  resend,
 }: {
   userEmail: string;
   userName: string;
   feedbackType: string;
   issueUrl: string;
   issueNumber: number;
+  resend: any;
 }) {
   try {
     const typeDescription =

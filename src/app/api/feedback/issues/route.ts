@@ -1,12 +1,12 @@
 import { Octokit } from '@octokit/rest';
 import { NextRequest, NextResponse } from 'next/server';
 
-const octokit = new Octokit({
-  auth: process.env.GITHUB_TOKEN,
-});
-
 export async function GET(_request: NextRequest) {
   try {
+    // Initialize client at request time to avoid build-time errors
+    const octokit = new Octokit({
+      auth: process.env.GITHUB_TOKEN,
+    });
     // Fetch open issues with the 'user-feedback' label
     const response = await octokit.rest.issues.listForRepo({
       owner: 'mcull',
