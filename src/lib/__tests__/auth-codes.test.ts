@@ -62,7 +62,7 @@ if (skipTests) {
       generateAuthCode = authCodesModule.generateAuthCode;
       verifyAuthCode = authCodesModule.verifyAuthCode;
       sendAuthCode = authCodesModule.sendAuthCode;
-      db = dbModule.db as typeof db;
+      db = dbModule.db as unknown as typeof db;
     });
 
     beforeEach(() => {

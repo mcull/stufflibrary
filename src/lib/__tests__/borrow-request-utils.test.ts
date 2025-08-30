@@ -38,10 +38,23 @@ if (skipTests) {
     let updateItemAvailability: (
       itemId: string,
       borrowRequestId: string,
-      status: string,
-      userId: string
+      status:
+        | 'PENDING'
+        | 'APPROVED'
+        | 'DECLINED'
+        | 'ACTIVE'
+        | 'RETURNED'
+        | 'CANCELLED',
+      userId?: string
     ) => Promise<void>;
-    let createBorrowRequest: (data: unknown) => Promise<unknown>;
+    let createBorrowRequest: (data: {
+      borrowerId: string;
+      lenderId: string;
+      itemId: string;
+      requestMessage?: string;
+      videoUrl?: string;
+      requestedReturnDate: Date;
+    }) => Promise<unknown>;
     let db: {
       item: {
         findUnique: ReturnType<typeof vi.fn>;
@@ -62,7 +75,7 @@ if (skipTests) {
       isItemAvailable = borrowRequestUtilsModule.isItemAvailable;
       updateItemAvailability = borrowRequestUtilsModule.updateItemAvailability;
       createBorrowRequest = borrowRequestUtilsModule.createBorrowRequest;
-      db = dbModule.db as typeof db;
+      db = dbModule.db as unknown as typeof db;
     });
 
     beforeEach(() => {
