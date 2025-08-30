@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { ItemWithStatus, getUserItemsWithStatus, getUserBorrowedItems, getUserItemsSummary } from '@/lib/item-status-utils';
+import { ItemWithStatus } from '@/lib/item-status-utils';
 
 interface BorrowedItem {
   id: string;
@@ -57,18 +57,42 @@ export function useUserItems(): UseUserItemsResult {
         throw new Error('User not authenticated');
       }
 
-      const [ownedItems, borrowedItemsData, summary] = await Promise.all([
-        getUserItemsWithStatus(userId),
-        getUserBorrowedItems(userId),
-        getUserItemsSummary(userId),
+      // Use existing API endpoints instead of direct database calls
+      const [itemsResponse, borrowRequestsResponse] = await Promise.all([
+        fetch('/api/user/items'),
+        fetch('/api/borrow-requests'),
       ]);
 
-      setReadyToLendItems(ownedItems.readyToLendItems);
-      setOnLoanItems(ownedItems.onLoanItems);
-      setBorrowedItems(borrowedItemsData);
-      setReadyToLendCount(summary.readyToLendCount);
-      setOnLoanCount(summary.onLoanCount);
-      setBorrowedCount(summary.borrowedCount);
+      if (!itemsResponse.ok || !borrowRequestsResponse.ok) {
+        throw new Error('Failed to fetch user items');
+      }
+
+      const [itemsData, borrowRequestsData] = await Promise.all([
+        itemsResponse.json(),
+        borrowRequestsResponse.json(),
+      ]);
+
+      // Process items with status logic
+      const allItems = itemsData.items || [];
+      const readyToLendItems: ItemWithStatus[] = allItems
+        .filter((item: any) => !item.currentBorrowRequestId)
+        .map((item: any) => ({ ...item, status: 'ready-to-lend' as const }));
+      
+      const onLoanItems: ItemWithStatus[] = allItems
+        .filter((item: any) => item.currentBorrowRequestId)
+        .map((item: any) => ({ ...item, status: 'on-loan' as const }));
+
+      const borrowedItems = borrowRequestsData.activeBorrows?.filter(
+        (request: BorrowedItem) =>
+          request.status === 'ACTIVE' || request.status === 'APPROVED'
+      ) || [];
+
+      setReadyToLendItems(readyToLendItems);
+      setOnLoanItems(onLoanItems);
+      setBorrowedItems(borrowedItems);
+      setReadyToLendCount(readyToLendItems.length);
+      setOnLoanCount(onLoanItems.length);
+      setBorrowedCount(borrowedItems.length);
     } catch (err) {
       console.error('Error fetching user items:', err);
       setError(
@@ -84,7 +108,7 @@ export function useUserItems(): UseUserItemsResult {
     if (userId) {
       fetchUserItems();
     }
-  }, [(session?.user as any)?.id]);
+  }, [session?.user]);
 
   const refetch = () => {
     fetchUserItems();
