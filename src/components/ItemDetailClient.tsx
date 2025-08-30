@@ -983,88 +983,13 @@ export function ItemDetailClient({
                       />
                     </Box>
 
-                    {/* Checkout Grid */}
-                    <Box sx={{ mt: 2 }}>
-                      {/* Header Row */}
-                      <Box
-                        sx={{
-                          display: 'grid',
-                          gridTemplateColumns: '1fr 100px 100px',
-                          gap: 1,
-                          mb: 2,
-                          pb: 1,
-                          borderBottom: '2px solid #8b4513',
-                          opacity: 0.8,
-                        }}
-                      >
-                        <Typography
-                          className="vintage-stampette"
-                          sx={{
-                            fontSize: '0.75rem',
-                            fontWeight: 'bold',
-                            color: '#2c1810',
-                            textAlign: 'center',
-                          }}
-                        >
-                          BORROWER&apos;S NAME
-                        </Typography>
-                        <Typography
-                          className="vintage-stampette"
-                          sx={{
-                            fontSize: '0.75rem',
-                            fontWeight: 'bold',
-                            color: '#2c1810',
-                            textAlign: 'center',
-                          }}
-                        >
-                          DUE DATE
-                        </Typography>
-                        <Typography
-                          className="vintage-stampette"
-                          sx={{
-                            fontSize: '0.75rem',
-                            fontWeight: 'bold',
-                            color: '#2c1810',
-                            textAlign: 'center',
-                          }}
-                        >
-                          RETURNED
-                        </Typography>
-                      </Box>
-
-                      {/* Actual History or Empty Rows */}
-                      {borrowHistory &&
-                      borrowHistory.borrowHistory.length > 0 ? (
-                        <VintageCheckoutCard
-                          itemName={borrowHistory.itemName}
-                          borrowHistory={borrowHistory.borrowHistory}
-                          compact={true}
-                          showTitle={false}
-                        />
-                      ) : (
-                        // Empty checkout rows
-                        <>
-                          {Array.from({ length: 14 }).map((_, index) => (
-                            <Box
-                              key={index}
-                              sx={{
-                                display: 'grid',
-                                gridTemplateColumns: '1fr 100px 100px',
-                                gap: 1,
-                                mb: 1.5,
-                                height: '20px',
-                                borderBottom: '1px solid #8b4513',
-                                opacity: 0.3,
-                              }}
-                            >
-                              <Box />
-                              <Box />
-                              <Box />
-                            </Box>
-                          ))}
-                        </>
-                      )}
-                    </Box>
+                    {/* Checkout Card */}
+                    <VintageCheckoutCard
+                      itemName={borrowHistory?.itemName || item.name}
+                      borrowHistory={borrowHistory?.borrowHistory || []}
+                      compact={true}
+                      showTitle={false}
+                    />
 
                     {/* Bottom Library Mark */}
                     <Box

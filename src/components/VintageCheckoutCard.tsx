@@ -112,8 +112,7 @@ export function VintageCheckoutCard({
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: '1fr 1fr 1fr',
-          gap: 2,
+          gridTemplateColumns: '50% 25% 25%',
           mb: 2,
           pb: 1,
           borderBottom: '2px solid #8b4513',
@@ -161,124 +160,77 @@ export function VintageCheckoutCard({
       </Box>
 
       {/* Checkout rows */}
-      {Array.from({ length: compact ? 6 : 10 }).map((_, index) => {
+      {Array.from({ length: compact ? 12 : 18 }).map((_, index) => {
         const record = enrichedHistory[index];
         return (
           <Box
             key={`row-${index}`}
             sx={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr 1fr',
-              gap: 2,
-              mb: 2,
+              gridTemplateColumns: '50% 25% 25%',
+              mb: 1,
               minHeight: '32px',
               alignItems: 'end',
+              borderBottom: '1px solid #333',
+              pb: 1,
             }}
           >
             {/* Borrower name */}
-            <Box sx={{ textAlign: 'center' }}>
-              <Box
-                sx={{
-                  borderBottom: '1px solid #333',
-                  pb: 0.5,
-                  minHeight: '24px',
-                  display: 'flex',
-                  alignItems: 'end',
-                  justifyContent: 'center',
-                }}
-              >
-                {record && (
-                  <Typography
-                    sx={{
-                      fontSize: '0.95rem',
-                      fontFamily: 'Courier, monospace',
-                      color: '#1a1a1a',
-                      fontWeight: 'normal',
-                    }}
-                  >
-                    {record.borrower.name}
-                  </Typography>
-                )}
-              </Box>
+            <Box sx={{ textAlign: 'left', pl: 2 }}>
+              {record && (
+                <Typography
+                  sx={{
+                    fontSize: '0.95rem',
+                    fontFamily: 'Courier, monospace',
+                    color: '#1a1a1a',
+                    fontWeight: 'normal',
+                  }}
+                >
+                  {record.borrower.name}
+                </Typography>
+              )}
             </Box>
 
             {/* Due date */}
             <Box sx={{ textAlign: 'center' }}>
-              <Box
-                sx={{
-                  borderBottom: '1px solid #333',
-                  pb: 0.5,
-                  minHeight: '24px',
-                  display: 'flex',
-                  alignItems: 'end',
-                  justifyContent: 'center',
-                }}
-              >
-                {record && record.promisedReturnBy && (
-                  <Typography
-                    className="vintage-impact-label"
-                    sx={{
-                      fontSize: '0.8rem',
-                      color: '#dc2626',
-                      fontWeight: 'bold',
-                      textTransform: 'uppercase',
-                      letterSpacing: '1px',
-                      transform: 'rotate(-1deg)',
-                    }}
-                  >
-                    {formatDate(record.promisedReturnBy)}
-                  </Typography>
-                )}
-              </Box>
+              {record && record.promisedReturnBy && (
+                <Typography
+                  className="vintage-impact-label"
+                  sx={{
+                    fontSize: '0.8rem',
+                    color: '#dc2626',
+                    fontWeight: 'bold',
+                    textTransform: 'uppercase',
+                    letterSpacing: '1px',
+                    transform: 'rotate(-1deg)',
+                  }}
+                >
+                  {formatDate(record.promisedReturnBy)}
+                </Typography>
+              )}
             </Box>
 
             {/* Return date */}
             <Box sx={{ textAlign: 'center' }}>
-              <Box
-                sx={{
-                  borderBottom: '1px solid #333',
-                  pb: 0.5,
-                  minHeight: '24px',
-                  display: 'flex',
-                  alignItems: 'end',
-                  justifyContent: 'center',
-                }}
-              >
-                {record && record.returnedAt && (
-                  <Typography
-                    className="vintage-impact-label"
-                    sx={{
-                      fontSize: '0.8rem',
-                      color: '#2e7d32',
-                      fontWeight: 'bold',
-                      textTransform: 'uppercase',
-                      letterSpacing: '1px',
-                      transform: 'rotate(1deg)',
-                    }}
-                  >
-                    {formatDate(record.returnedAt)}
-                  </Typography>
-                )}
-              </Box>
+              {record && record.returnedAt && (
+                <Typography
+                  className="vintage-impact-label"
+                  sx={{
+                    fontSize: '0.8rem',
+                    color: '#2e7d32',
+                    fontWeight: 'bold',
+                    textTransform: 'uppercase',
+                    letterSpacing: '1px',
+                    transform: 'rotate(1deg)',
+                  }}
+                >
+                  {formatDate(record.returnedAt)}
+                </Typography>
+              )}
             </Box>
           </Box>
         );
       })}
-
-      {/* Library stamp/seal */}
-      <Box sx={{ textAlign: 'center', mt: 4, opacity: 0.8 }}>
-        <Typography
-          className="vintage-impact-label"
-          sx={{
-            fontSize: compact ? '0.8rem' : '0.9rem',
-            color: '#8b4513',
-            letterSpacing: '2px',
-            textTransform: 'uppercase',
-          }}
-        >
-          RETURN PROMPTLY • FINE 5¢ PER DAY
-        </Typography>
-      </Box>
     </Box>
   );
 }
