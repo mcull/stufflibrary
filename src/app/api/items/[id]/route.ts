@@ -35,6 +35,16 @@ export async function GET(
             iconPath: true,
           },
         },
+        libraries: {
+          select: {
+            library: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -55,6 +65,7 @@ export async function GET(
       updatedAt: item.updatedAt,
       owner: item.owner,
       stuffType: item.stuffType,
+      libraries: item.libraries.map((il) => il.library),
     };
 
     return NextResponse.json({ item: formattedItem });
@@ -171,6 +182,16 @@ export async function PUT(
             iconPath: true,
           },
         },
+        libraries: {
+          select: {
+            library: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -187,6 +208,7 @@ export async function PUT(
       updatedAt: updatedItem.updatedAt,
       owner: updatedItem.owner,
       stuffType: updatedItem.stuffType,
+      libraries: updatedItem.libraries?.map((il) => il.library) || [],
     };
 
     return NextResponse.json({ item: formattedItem });

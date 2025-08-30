@@ -11,6 +11,7 @@ interface BorrowRecord {
   borrower: {
     id: string;
     name: string | null;
+    image?: string | null;
   };
   signature?: string | null;
   promiseText?: string | null;

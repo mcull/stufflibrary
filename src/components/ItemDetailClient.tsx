@@ -9,6 +9,8 @@ import {
   Close as CloseIcon,
   Delete as DeleteIcon,
   Check as CheckIcon,
+  AssignmentTurnedIn as CheckInIcon,
+  ReportProblem as LostIcon,
 } from '@mui/icons-material';
 import {
   Box,
@@ -62,6 +64,10 @@ interface ItemData {
     category: string;
     iconPath: string;
   };
+  libraries?: {
+    id: string;
+    name: string;
+  }[];
 }
 
 interface ItemDetailClientProps {
@@ -95,6 +101,8 @@ export function ItemDetailClient({
     open: false,
     message: '',
   });
+  const [checkingIn, setCheckingIn] = useState(false);
+  const [markingLost, setMarkingLost] = useState(false);
 
   // Store original values for cancel functionality
   const [originalValues, setOriginalValues] = useState({
@@ -123,6 +131,11 @@ export function ItemDetailClient({
 
   // Get current user ID
   const currentUserId = (session?.user as any)?.id;
+
+  // Find current active borrower from borrow history
+  const currentActiveBorrow = borrowHistory?.borrowHistory.find(
+    (record) => record.status === 'ACTIVE' || record.status === 'APPROVED'
+  );
 
   // Handle borrow request
   const handleBorrowRequest = () => {
@@ -174,6 +187,100 @@ export function ItemDetailClient({
       );
     } finally {
       setCheckingOut(false);
+    }
+  };
+
+  // Handle checking in a borrowed item
+  const handleCheckIn = async () => {
+    if (!item || !currentActiveBorrow) return;
+
+    try {
+      setCheckingIn(true);
+
+      const response = await fetch(
+        `/api/borrow-requests/${currentActiveBorrow.id}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'lender-return',
+            message: 'Item checked in by owner',
+            actualReturnDate: new Date().toISOString(),
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to check in item');
+      }
+
+      setToast({
+        open: true,
+        message: 'Item checked in successfully! Borrower has been notified.',
+      });
+
+      // Refresh the page data
+      window.location.reload();
+    } catch (error) {
+      console.error('Error checking in item:', error);
+      setToast({
+        open: true,
+        message: 'Failed to check in item. Please try again.',
+      });
+    } finally {
+      setCheckingIn(false);
+    }
+  };
+
+  // Handle marking an item as lost
+  const handleMarkLost = async () => {
+    if (!item || !currentActiveBorrow) return;
+
+    const confirmed = window.confirm(
+      'Are you sure you want to mark this item as lost? This action cannot be undone and will notify the borrower.'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setMarkingLost(true);
+
+      // Mark the borrow request as lost
+      const response = await fetch(
+        `/api/borrow-requests/${currentActiveBorrow.id}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'mark-lost',
+            message: 'Item marked as lost by owner',
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to mark item as lost');
+      }
+
+      setToast({
+        open: true,
+        message: 'Item marked as lost. Borrower has been notified.',
+      });
+
+      // Refresh the page data
+      window.location.reload();
+    } catch (error) {
+      console.error('Error marking item as lost:', error);
+      setToast({
+        open: true,
+        message: 'Failed to mark item as lost. Please try again.',
+      });
+    } finally {
+      setMarkingLost(false);
     }
   };
 
@@ -265,6 +372,13 @@ export function ItemDetailClient({
         setCondition(itemData.condition);
         setLocation(itemData.location);
         setOriginalValues(itemData);
+
+        // Initialize library memberships
+        if (data.item.libraries) {
+          setSelectedLibraries(
+            data.item.libraries.map((lib: { id: string }) => lib.id)
+          );
+        }
       } catch (err) {
         console.error('Error fetching item:', err);
         setError('Failed to load item details');
@@ -458,11 +572,15 @@ export function ItemDetailClient({
                     transition: 'filter 0.3s ease',
                   }}
                 />
-                {/* Owner Avatar Overlay for checked out items */}
-                {!item.isAvailable && (
+                {/* Borrower Avatar Overlay for borrowed items */}
+                {!item.isAvailable && currentActiveBorrow && (
                   <Avatar
-                    {...(item.owner.image && { src: item.owner.image })}
-                    onClick={() => router.push(`/profile/${item.owner.id}`)}
+                    {...(currentActiveBorrow.borrower.image && {
+                      src: currentActiveBorrow.borrower.image,
+                    })}
+                    onClick={() =>
+                      router.push(`/profile/${currentActiveBorrow.borrower.id}`)
+                    }
                     sx={{
                       position: 'absolute',
                       top: 8,
@@ -478,7 +596,8 @@ export function ItemDetailClient({
                       },
                     }}
                   >
-                    {!item.owner.image && item.owner.name?.[0]}
+                    {!currentActiveBorrow.borrower.image &&
+                      (currentActiveBorrow.borrower.name?.[0] || '?')}
                   </Avatar>
                 )}
               </Paper>
@@ -829,35 +948,99 @@ export function ItemDetailClient({
                             gap: 2,
                           }}
                         >
-                          {/* Take Offline/Online Button */}
-                          <Button
-                            variant={
-                              item?.isAvailable ? 'outlined' : 'contained'
-                            }
-                            color={item?.isAvailable ? 'warning' : 'success'}
-                            size="large"
-                            startIcon={
-                              checkingOut ? (
-                                <CircularProgress size={20} />
-                              ) : (
-                                <CheckIcon />
-                              )
-                            }
-                            onClick={handleToggleOffline}
-                            disabled={checkingOut}
-                            sx={{
-                              borderRadius: 2,
-                              textTransform: 'none',
-                            }}
-                          >
-                            {checkingOut
-                              ? item?.isAvailable
+                          {/* Conditional buttons based on item status */}
+                          {item?.isAvailable ? (
+                            /* Take Offline Button - for available items */
+                            <Button
+                              variant="outlined"
+                              color="warning"
+                              size="large"
+                              startIcon={
+                                checkingOut ? (
+                                  <CircularProgress size={20} />
+                                ) : (
+                                  <CheckIcon />
+                                )
+                              }
+                              onClick={handleToggleOffline}
+                              disabled={checkingOut}
+                              sx={{
+                                borderRadius: 2,
+                                textTransform: 'none',
+                              }}
+                            >
+                              {checkingOut
                                 ? 'Taking Offline...'
-                                : 'Taking Online...'
-                              : item?.isAvailable
-                                ? 'Take Offline'
-                                : 'Take Online'}
-                          </Button>
+                                : 'Take Offline'}
+                            </Button>
+                          ) : currentActiveBorrow ? (
+                            /* Check In and Lost buttons for borrowed items */
+                            <>
+                              <Button
+                                variant="contained"
+                                color="success"
+                                size="large"
+                                startIcon={
+                                  checkingIn ? (
+                                    <CircularProgress size={20} />
+                                  ) : (
+                                    <CheckInIcon />
+                                  )
+                                }
+                                onClick={handleCheckIn}
+                                disabled={checkingIn || markingLost}
+                                sx={{
+                                  borderRadius: 2,
+                                  textTransform: 'none',
+                                  mr: 1,
+                                }}
+                              >
+                                {checkingIn ? 'Checking In...' : 'Check In'}
+                              </Button>
+                              <Button
+                                variant="outlined"
+                                color="error"
+                                size="large"
+                                startIcon={
+                                  markingLost ? (
+                                    <CircularProgress size={20} />
+                                  ) : (
+                                    <LostIcon />
+                                  )
+                                }
+                                onClick={handleMarkLost}
+                                disabled={checkingIn || markingLost}
+                                sx={{
+                                  borderRadius: 2,
+                                  textTransform: 'none',
+                                }}
+                              >
+                                {markingLost ? 'Marking Lost...' : 'Lost'}
+                              </Button>
+                            </>
+                          ) : (
+                            /* Take Online Button - for offline items */
+                            <Button
+                              variant="contained"
+                              color="success"
+                              size="large"
+                              startIcon={
+                                checkingOut ? (
+                                  <CircularProgress size={20} />
+                                ) : (
+                                  <CheckIcon />
+                                )
+                              }
+                              onClick={handleToggleOffline}
+                              disabled={checkingOut}
+                              sx={{
+                                borderRadius: 2,
+                                textTransform: 'none',
+                              }}
+                            >
+                              {checkingOut ? 'Taking Online...' : 'Take Online'}
+                            </Button>
+                          )}
 
                           {/* Delete Button - only for available items */}
                           {item?.isAvailable && (
