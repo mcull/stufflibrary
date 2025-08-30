@@ -176,7 +176,7 @@ export function VintageCheckoutCard({
                     fontWeight: 'bold',
                     textTransform: 'uppercase',
                     letterSpacing: '1px',
-                    transform: 'rotate(-1deg)',
+                    transform: `rotate(${record.rotation}deg)`,
                   }}
                 >
                   {formatDate(record.promisedReturnBy)}
@@ -195,7 +195,7 @@ export function VintageCheckoutCard({
                     fontWeight: 'bold',
                     textTransform: 'uppercase',
                     letterSpacing: '1px',
-                    transform: 'rotate(1deg)',
+                    transform: `rotate(${record.stampRotation}deg)`,
                   }}
                 >
                   {formatDate(record.returnedAt)}

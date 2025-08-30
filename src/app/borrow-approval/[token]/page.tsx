@@ -57,5 +57,12 @@ export default async function BorrowApprovalPage({
     );
   }
 
-  return <BorrowApprovalClient borrowRequest={borrowRequest as any} />;
+  // Map fields to what BorrowApprovalClient expects
+  const formattedBorrowRequest = {
+    ...borrowRequest,
+    promiseText: borrowRequest.requestMessage,
+    promisedReturnBy: borrowRequest.requestedReturnDate,
+  };
+
+  return <BorrowApprovalClient borrowRequest={formattedBorrowRequest as any} />;
 }

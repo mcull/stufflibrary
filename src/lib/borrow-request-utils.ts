@@ -46,9 +46,9 @@ export async function updateItemAvailability(
 
   const wasAvailable = !currentItem?.currentBorrowRequestId;
 
-  // Set currentBorrowRequestId when request becomes ACTIVE
+  // Set currentBorrowRequestId when request becomes APPROVED or ACTIVE
   // Clear it when request is RETURNED, CANCELLED, or DECLINED
-  if (newStatus === 'ACTIVE') {
+  if (['APPROVED', 'ACTIVE'].includes(newStatus)) {
     await db.item.update({
       where: { id: itemId },
       data: { currentBorrowRequestId: borrowRequestId },
