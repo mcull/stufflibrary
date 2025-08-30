@@ -1,71 +1,33 @@
 import { useState, useEffect } from 'react';
-
-interface UserItem {
-  id: string;
-  name: string;
-  description?: string;
-  imageUrl?: string;
-  currentBorrowRequestId?: string;
-  condition: string;
-  location?: string | undefined;
-  createdAt: string;
-  stuffType?: {
-    displayName: string;
-    category: string;
-  };
-  libraries?: {
-    library: {
-      id: string;
-      name: string;
-    };
-  }[];
-}
+import { useSession } from 'next-auth/react';
+import { ItemWithStatus, getUserItemsWithStatus, getUserBorrowedItems, getUserItemsSummary } from '@/lib/item-status-utils';
 
 interface BorrowedItem {
   id: string;
   status: string;
   createdAt: string;
   requestedReturnDate: string;
-  actualReturnDate?: string;
+  actualReturnDate?: string | null;
   item: {
     id: string;
     name: string;
-    imageUrl?: string;
+    imageUrl?: string | null;
   };
   lender: {
     id: string;
-    name: string;
-  };
-}
-
-interface LentItem {
-  id: string;
-  status: string;
-  createdAt: string;
-  requestedReturnDate: string;
-  actualReturnDate?: string;
-  borrower: {
-    id: string;
-    name: string;
-  };
-  item: {
-    id: string;
-    name: string;
-    imageUrl?: string;
+    name: string | null;
   };
 }
 
 interface UseUserItemsResult {
   // Items I own
-  readyToLendItems: UserItem[];
-  offlineItems: UserItem[];
-  onLoanItems: LentItem[];
+  readyToLendItems: ItemWithStatus[];
+  onLoanItems: ItemWithStatus[];
   // Items I've borrowed
   borrowedItems: BorrowedItem[];
 
   // Summary counts
   readyToLendCount: number;
-  offlineCount: number;
   onLoanCount: number;
   borrowedCount: number;
 
@@ -75,10 +37,13 @@ interface UseUserItemsResult {
 }
 
 export function useUserItems(): UseUserItemsResult {
-  const [readyToLendItems, setReadyToLendItems] = useState<UserItem[]>([]);
-  const [offlineItems, setOfflineItems] = useState<UserItem[]>([]);
-  const [onLoanItems, setOnLoanItems] = useState<LentItem[]>([]);
+  const { data: session } = useSession();
+  const [readyToLendItems, setReadyToLendItems] = useState<ItemWithStatus[]>([]);
+  const [onLoanItems, setOnLoanItems] = useState<ItemWithStatus[]>([]);
   const [borrowedItems, setBorrowedItems] = useState<BorrowedItem[]>([]);
+  const [readyToLendCount, setReadyToLendCount] = useState(0);
+  const [onLoanCount, setOnLoanCount] = useState(0);
+  const [borrowedCount, setBorrowedCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -87,45 +52,23 @@ export function useUserItems(): UseUserItemsResult {
       setIsLoading(true);
       setError(null);
 
-      const [itemsResponse, borrowRequestsResponse] = await Promise.all([
-        fetch('/api/user/items'),
-        fetch('/api/borrow-requests'),
-      ]);
-
-      if (!itemsResponse.ok || !borrowRequestsResponse.ok) {
-        throw new Error('Failed to fetch user items');
+      const userId = (session?.user as any)?.id;
+      if (!userId) {
+        throw new Error('User not authenticated');
       }
 
-      const [itemsData, borrowRequestsData] = await Promise.all([
-        itemsResponse.json(),
-        borrowRequestsResponse.json(),
+      const [ownedItems, borrowedItemsData, summary] = await Promise.all([
+        getUserItemsWithStatus(userId),
+        getUserBorrowedItems(userId),
+        getUserItemsSummary(userId),
       ]);
 
-      setReadyToLendItems(
-        itemsData.items?.filter(
-          (item: UserItem) => !item.currentBorrowRequestId
-        ) || []
-      );
-
-      setOfflineItems(
-        itemsData.items?.filter(
-          (item: UserItem) => item.currentBorrowRequestId
-        ) || []
-      );
-
-      setBorrowedItems(
-        borrowRequestsData.activeBorrows?.filter(
-          (request: BorrowedItem) =>
-            request.status === 'ACTIVE' || request.status === 'APPROVED'
-        ) || []
-      );
-
-      setOnLoanItems(
-        borrowRequestsData.onLoan?.filter(
-          (request: LentItem) =>
-            request.status === 'ACTIVE' || request.status === 'APPROVED'
-        ) || []
-      );
+      setReadyToLendItems(ownedItems.readyToLendItems);
+      setOnLoanItems(ownedItems.onLoanItems);
+      setBorrowedItems(borrowedItemsData);
+      setReadyToLendCount(summary.readyToLendCount);
+      setOnLoanCount(summary.onLoanCount);
+      setBorrowedCount(summary.borrowedCount);
     } catch (err) {
       console.error('Error fetching user items:', err);
       setError(
@@ -137,8 +80,11 @@ export function useUserItems(): UseUserItemsResult {
   };
 
   useEffect(() => {
-    fetchUserItems();
-  }, []);
+    const userId = (session?.user as any)?.id;
+    if (userId) {
+      fetchUserItems();
+    }
+  }, [(session?.user as any)?.id]);
 
   const refetch = () => {
     fetchUserItems();
@@ -146,13 +92,11 @@ export function useUserItems(): UseUserItemsResult {
 
   return {
     readyToLendItems,
-    offlineItems,
     onLoanItems,
     borrowedItems,
-    readyToLendCount: readyToLendItems.length,
-    offlineCount: offlineItems.length,
-    onLoanCount: onLoanItems.length,
-    borrowedCount: borrowedItems.length,
+    readyToLendCount,
+    onLoanCount,
+    borrowedCount,
     isLoading,
     error,
     refetch,

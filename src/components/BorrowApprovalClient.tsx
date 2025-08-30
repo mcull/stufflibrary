@@ -86,15 +86,14 @@ export function BorrowApprovalClient({
     setError(null);
 
     try {
-      const responseData = await fetch('/api/borrow-requests/respond', {
-        method: 'POST',
+      const responseData = await fetch(`/api/borrow-requests/${borrowRequest.id}`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          borrowRequestId: borrowRequest.id,
-          decision,
-          response: response.trim(),
+          action: decision,
+          message: response.trim(),
         }),
       });
 

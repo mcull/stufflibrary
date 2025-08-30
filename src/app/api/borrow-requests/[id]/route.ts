@@ -111,23 +111,37 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const userId =
-      (session.user as SessionUser)?.id ||
-      (session as SessionWithUser).user?.id ||
-      (session as SessionWithUser).userId;
-
-    if (!userId) {
-      return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
-    }
-
     const body = await request.json();
     const { action, message, actualReturnDate } = body;
+
+    // For magic link approve/decline, no authentication required
+    // For all other actions, require authentication
+    const isMagicLinkAction = ['approve', 'decline'].includes(action);
+    let userId: string | undefined;
+
+    if (!isMagicLinkAction) {
+      const session = await getServerSession(authOptions);
+      if (!session?.user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+
+      userId =
+        (session.user as SessionUser)?.id ||
+        (session as SessionWithUser).user?.id ||
+        (session as SessionWithUser).userId;
+
+      if (!userId) {
+        return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
+      }
+    }
+    
+    console.log(`🚀 DEBUG API request received:`, {
+      borrowRequestId: id,
+      action,
+      message,
+      userId,
+      actualReturnDate
+    });
 
     // Validate action
     if (
@@ -195,8 +209,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     switch (action) {
       case 'approve':
       case 'decline':
-        // Only lender can approve/decline
-        if (borrowRequest.lenderId !== userId) {
+        // For magic link actions, only verify request is pending
+        // For authenticated actions, verify user is lender
+        if (!isMagicLinkAction && borrowRequest.lenderId !== userId) {
           return NextResponse.json(
             { error: 'Only the item owner can approve or decline requests' },
             { status: 403 }
@@ -364,27 +379,39 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       data: updateData,
     });
 
-    // Log status change for audit trail
-    await logBorrowRequestStatusChange(
-      borrowRequest.id,
-      userId,
-      borrowRequest.status,
-      newStatus,
-      {
-        action,
-        message,
-        itemId: borrowRequest.item.id,
-        itemName: borrowRequest.item.name,
-      }
-    );
+    // Log status change for audit trail (skip if no userId for magic link)
+    if (userId) {
+      await logBorrowRequestStatusChange(
+        borrowRequest.id,
+        userId,
+        borrowRequest.status,
+        newStatus,
+        {
+          action,
+          message,
+          itemId: borrowRequest.item.id,
+          itemName: borrowRequest.item.name,
+        }
+      );
+    }
 
     // Update item availability based on new status
+    console.log(`🚀 DEBUG About to call updateItemAvailability:`, {
+      itemId: borrowRequest.item.id,
+      borrowRequestId: borrowRequest.id,
+      newStatus,
+      userId,
+      action
+    });
+    
     await updateItemAvailability(
       borrowRequest.item.id,
       borrowRequest.id,
       newStatus as 'APPROVED' | 'DECLINED' | 'RETURNED' | 'CANCELLED',
-      userId
+      userId // This can be undefined for magic link actions
     );
+    
+    console.log(`🚀 DEBUG Finished calling updateItemAvailability`);
 
     // Send notifications based on action
     try {
@@ -506,7 +533,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     // Log status change for audit trail (additional console log)
     console.log(
-      `📝 Borrow request ${id} status changed from ${borrowRequest.status} to ${newStatus} by user ${userId}`
+      `📝 Borrow request ${id} status changed from ${borrowRequest.status} to ${newStatus} by ${userId ? `user ${userId}` : 'magic link'}`
     );
 
     return NextResponse.json({

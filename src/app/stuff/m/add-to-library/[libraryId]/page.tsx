@@ -45,7 +45,6 @@ export default function AddToLibraryPage() {
 
   const {
     readyToLendItems,
-    offlineItems,
     isLoading: itemsLoading,
     error: itemsError,
   } = useUserItems();
@@ -72,7 +71,7 @@ export default function AddToLibraryPage() {
   }, [libraryId]);
 
   // Available items (those not currently in the library and available for sharing)
-  const availableItems = [...readyToLendItems, ...offlineItems].filter(
+  const availableItems = [...readyToLendItems].filter(
     (item) => !(item as any).currentBorrowRequestId
   );
 
