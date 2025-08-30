@@ -111,12 +111,12 @@ export function VintageCheckoutCard({
           </Box>
         )}
 
-        {/* Item name */}
+        {/* Item name in center - like traditional library checkout card */}
         <Box sx={{ mb: 4, textAlign: 'center' }}>
           <Typography
             className="vintage-stamp-press"
             sx={{
-              fontSize: compact ? '1.1rem' : '1.4rem',
+              fontSize: compact ? '1.2rem' : '1.6rem',
               fontWeight: 'bold',
               color: '#1a1a1a',
               letterSpacing: '1px',
@@ -126,13 +126,13 @@ export function VintageCheckoutCard({
           </Typography>
         </Box>
 
-        {/* Header row */}
+        {/* Header row with columns */}
         <Box
           sx={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr 1fr',
             gap: 2,
-            mb: 3,
+            mb: 2,
             pb: 1,
             borderBottom: '2px solid #8b4513',
           }}
@@ -140,7 +140,7 @@ export function VintageCheckoutCard({
           <Typography
             className="vintage-stampette"
             sx={{
-              fontSize: '0.9rem',
+              fontSize: '0.8rem',
               fontWeight: 'bold',
               color: '#2c1810',
               textAlign: 'center',
@@ -148,14 +148,12 @@ export function VintageCheckoutCard({
               letterSpacing: '1px',
             }}
           >
-            BORROWER&apos;S
-            <br />
-            NAME
+            BORROWER&apos;S NAME
           </Typography>
           <Typography
             className="vintage-stampette"
             sx={{
-              fontSize: '0.9rem',
+              fontSize: '0.8rem',
               fontWeight: 'bold',
               color: '#2c1810',
               textAlign: 'center',
@@ -168,7 +166,7 @@ export function VintageCheckoutCard({
           <Typography
             className="vintage-stampette"
             sx={{
-              fontSize: '0.9rem',
+              fontSize: '0.8rem',
               fontWeight: 'bold',
               color: '#2c1810',
               textAlign: 'center',
@@ -180,120 +178,110 @@ export function VintageCheckoutCard({
           </Typography>
         </Box>
 
-        {/* Current checkout record (first active one) */}
-        {enrichedHistory.length > 0 && (
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr 1fr',
-              gap: 2,
-              mb: 3,
-              minHeight: '40px',
-              alignItems: 'end',
-            }}
-          >
-            {/* Borrower name - typed style */}
-            <Box sx={{ textAlign: 'center', position: 'relative' }}>
-              <Box
-                sx={{
-                  borderBottom: '1px solid #333',
-                  pb: 0.5,
-                  minHeight: '24px',
-                  display: 'flex',
-                  alignItems: 'end',
-                  justifyContent: 'center',
-                }}
-              >
-                <Typography
+        {/* Checkout rows */}
+        {Array.from({ length: compact ? 6 : 10 }).map((_, index) => {
+          const record = enrichedHistory[index];
+          return (
+            <Box
+              key={`row-${index}`}
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr 1fr',
+                gap: 2,
+                mb: 2,
+                minHeight: '32px',
+                alignItems: 'end',
+              }}
+            >
+              {/* Borrower name */}
+              <Box sx={{ textAlign: 'center' }}>
+                <Box
                   sx={{
-                    fontSize: '1rem',
-                    fontFamily: 'Courier, monospace',
-                    color: '#1a1a1a',
-                    fontWeight: 'normal',
+                    borderBottom: '1px solid #333',
+                    pb: 0.5,
+                    minHeight: '24px',
+                    display: 'flex',
+                    alignItems: 'end',
+                    justifyContent: 'center',
                   }}
                 >
-                  {enrichedHistory[0].borrower.name}
-                </Typography>
+                  {record && (
+                    <Typography
+                      sx={{
+                        fontSize: '0.95rem',
+                        fontFamily: 'Courier, monospace',
+                        color: '#1a1a1a',
+                        fontWeight: 'normal',
+                      }}
+                    >
+                      {record.borrower.name}
+                    </Typography>
+                  )}
+                </Box>
               </Box>
-            </Box>
 
-            {/* Due date - stamped style */}
-            <Box sx={{ textAlign: 'center', position: 'relative' }}>
-              <Box
-                sx={{
-                  borderBottom: '1px solid #333',
-                  pb: 0.5,
-                  minHeight: '24px',
-                  display: 'flex',
-                  alignItems: 'end',
-                  justifyContent: 'center',
-                }}
-              >
-                <Typography
-                  className="vintage-impact-label"
+              {/* Due date */}
+              <Box sx={{ textAlign: 'center' }}>
+                <Box
                   sx={{
-                    fontSize: '0.9rem',
-                    color: '#dc2626',
-                    fontWeight: 'bold',
-                    textTransform: 'uppercase',
-                    letterSpacing: '1px',
-                    transform: 'rotate(-1deg)',
+                    borderBottom: '1px solid #333',
+                    pb: 0.5,
+                    minHeight: '24px',
+                    display: 'flex',
+                    alignItems: 'end',
+                    justifyContent: 'center',
                   }}
                 >
-                  {formatDate(enrichedHistory[0].promisedReturnBy)}
-                </Typography>
+                  {record && record.promisedReturnBy && (
+                    <Typography
+                      className="vintage-impact-label"
+                      sx={{
+                        fontSize: '0.8rem',
+                        color: '#dc2626',
+                        fontWeight: 'bold',
+                        textTransform: 'uppercase',
+                        letterSpacing: '1px',
+                        transform: 'rotate(-1deg)',
+                      }}
+                    >
+                      {formatDate(record.promisedReturnBy)}
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+
+              {/* Return date */}
+              <Box sx={{ textAlign: 'center' }}>
+                <Box
+                  sx={{
+                    borderBottom: '1px solid #333',
+                    pb: 0.5,
+                    minHeight: '24px',
+                    display: 'flex',
+                    alignItems: 'end',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {record && record.returnedAt && (
+                    <Typography
+                      className="vintage-impact-label"
+                      sx={{
+                        fontSize: '0.8rem',
+                        color: '#2e7d32',
+                        fontWeight: 'bold',
+                        textTransform: 'uppercase',
+                        letterSpacing: '1px',
+                        transform: 'rotate(1deg)',
+                      }}
+                    >
+                      {formatDate(record.returnedAt)}
+                    </Typography>
+                  )}
+                </Box>
               </Box>
             </Box>
-
-            {/* Return date - empty until returned */}
-            <Box sx={{ textAlign: 'center' }}>
-              <Box
-                sx={{
-                  borderBottom: '1px solid #333',
-                  pb: 0.5,
-                  minHeight: '24px',
-                  display: 'flex',
-                  alignItems: 'end',
-                  justifyContent: 'center',
-                }}
-              >
-                {enrichedHistory[0].returnedAt && (
-                  <Typography
-                    className="vintage-impact-label"
-                    sx={{
-                      fontSize: '0.8rem',
-                      color: '#2e7d32',
-                      fontWeight: 'bold',
-                      textTransform: 'uppercase',
-                      letterSpacing: '1px',
-                      transform: 'rotate(1deg)',
-                    }}
-                  >
-                    {formatDate(enrichedHistory[0].returnedAt)}
-                  </Typography>
-                )}
-              </Box>
-            </Box>
-          </Box>
-        )}
-
-        {/* Empty rows for future checkouts */}
-        {Array.from({ length: compact ? 4 : 8 }).map((_, index) => (
-          <Box
-            key={`empty-${index}`}
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr 1fr',
-              gap: 2,
-              mb: 2,
-              minHeight: '24px',
-            }}
-          >
-            <Box sx={{ borderBottom: '1px solid #ccc', opacity: 0.5 }} />
-            <Box sx={{ borderBottom: '1px solid #ccc', opacity: 0.5 }} />
-            <Box sx={{ borderBottom: '1px solid #ccc', opacity: 0.5 }} />
-          </Box>
-        ))}
+          );
+        })}
 
         {/* Library stamp/seal */}
         <Box sx={{ textAlign: 'center', mt: 4, opacity: 0.8 }}>
