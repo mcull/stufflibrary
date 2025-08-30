@@ -91,7 +91,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: 'asc',
       },
     });
 

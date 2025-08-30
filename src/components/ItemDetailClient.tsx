@@ -190,100 +190,6 @@ export function ItemDetailClient({
     }
   };
 
-  // Handle checking in a borrowed item
-  const handleCheckIn = async () => {
-    if (!item || !currentActiveBorrow) return;
-
-    try {
-      setCheckingIn(true);
-
-      const response = await fetch(
-        `/api/borrow-requests/${currentActiveBorrow.id}`,
-        {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            action: 'lender-return',
-            message: 'Item checked in by owner',
-            actualReturnDate: new Date().toISOString(),
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to check in item');
-      }
-
-      setToast({
-        open: true,
-        message: 'Item checked in successfully! Borrower has been notified.',
-      });
-
-      // Refresh the page data
-      window.location.reload();
-    } catch (error) {
-      console.error('Error checking in item:', error);
-      setToast({
-        open: true,
-        message: 'Failed to check in item. Please try again.',
-      });
-    } finally {
-      setCheckingIn(false);
-    }
-  };
-
-  // Handle marking an item as lost
-  const handleMarkLost = async () => {
-    if (!item || !currentActiveBorrow) return;
-
-    const confirmed = window.confirm(
-      'Are you sure you want to mark this item as lost? This action cannot be undone and will notify the borrower.'
-    );
-
-    if (!confirmed) return;
-
-    try {
-      setMarkingLost(true);
-
-      // Mark the borrow request as lost
-      const response = await fetch(
-        `/api/borrow-requests/${currentActiveBorrow.id}`,
-        {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            action: 'mark-lost',
-            message: 'Item marked as lost by owner',
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to mark item as lost');
-      }
-
-      setToast({
-        open: true,
-        message: 'Item marked as lost. Borrower has been notified.',
-      });
-
-      // Refresh the page data
-      window.location.reload();
-    } catch (error) {
-      console.error('Error marking item as lost:', error);
-      setToast({
-        open: true,
-        message: 'Failed to mark item as lost. Please try again.',
-      });
-    } finally {
-      setMarkingLost(false);
-    }
-  };
-
   // Handle delete item
   const handleDelete = async () => {
     if (
@@ -492,6 +398,100 @@ export function ItemDetailClient({
       item?.owner.id === currentUserId
     ) {
       await handleSave(field, false);
+    }
+  };
+
+  // Handle checking in a borrowed item
+  const handleCheckIn = async () => {
+    if (!item || !currentActiveBorrow) return;
+
+    try {
+      setCheckingIn(true);
+
+      const response = await fetch(
+        `/api/borrow-requests/${currentActiveBorrow.id}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'lender-return',
+            message: 'Item checked in by owner',
+            actualReturnDate: new Date().toISOString(),
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to check in item');
+      }
+
+      setToast({
+        open: true,
+        message: 'Item checked in successfully! Borrower has been notified.',
+      });
+
+      // Refresh the page data
+      window.location.reload();
+    } catch (error) {
+      console.error('Error checking in item:', error);
+      setToast({
+        open: true,
+        message: 'Failed to check in item. Please try again.',
+      });
+    } finally {
+      setCheckingIn(false);
+    }
+  };
+
+  // Handle marking an item as lost
+  const handleMarkLost = async () => {
+    if (!item || !currentActiveBorrow) return;
+
+    const confirmed = window.confirm(
+      'Are you sure you want to mark this item as lost? This action cannot be undone and will notify the borrower.'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setMarkingLost(true);
+
+      // Mark the borrow request as lost
+      const response = await fetch(
+        `/api/borrow-requests/${currentActiveBorrow.id}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'mark-lost',
+            message: 'Item marked as lost by owner',
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to mark item as lost');
+      }
+
+      setToast({
+        open: true,
+        message: 'Item marked as lost. Borrower has been notified.',
+      });
+
+      // Refresh the page data
+      window.location.reload();
+    } catch (error) {
+      console.error('Error marking item as lost:', error);
+      setToast({
+        open: true,
+        message: 'Failed to mark item as lost. Please try again.',
+      });
+    } finally {
+      setMarkingLost(false);
     }
   };
 
@@ -1172,6 +1172,7 @@ export function ItemDetailClient({
                       borrowHistory={borrowHistory?.borrowHistory || []}
                       compact={true}
                       showTitle={false}
+                      itemId={item.id}
                     />
 
                     {/* Bottom Library Mark */}

@@ -11,7 +11,6 @@ interface BorrowRecord {
   borrower: {
     id: string;
     name: string | null;
-    image?: string | null;
   };
   signature?: string | null;
   promiseText?: string | null;
@@ -32,7 +31,7 @@ interface VintageCheckoutCardProps {
 export function VintageCheckoutCard({
   itemName: _itemName,
   borrowHistory,
-  showTitle = true,
+  showTitle: _showTitle = true,
   compact = false,
 }: VintageCheckoutCardProps) {
   // Generate consistent random values for each record
@@ -80,35 +79,9 @@ export function VintageCheckoutCard({
       sx={{
         width: '100%',
         height: '100%',
-        p: compact ? 3 : 4,
+        p: 0,
       }}
     >
-      {showTitle && (
-        <Box sx={{ mb: 4, textAlign: 'center' }}>
-          <Typography
-            className="vintage-impact-label"
-            sx={{
-              fontSize: compact ? '1rem' : '1.2rem',
-              fontWeight: 'bold',
-              letterSpacing: '3px',
-              color: '#2c1810',
-              textTransform: 'uppercase',
-            }}
-          >
-            ★ LIBRARY CHECKOUT CARD ★
-          </Typography>
-          <Box
-            sx={{
-              width: '80%',
-              height: '3px',
-              bgcolor: '#8b4513',
-              mt: 2,
-              mx: 'auto',
-            }}
-          />
-        </Box>
-      )}
-
       {/* Header row with columns */}
       <Box
         sx={{
