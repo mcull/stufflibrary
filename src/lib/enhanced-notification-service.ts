@@ -51,25 +51,10 @@ export async function sendBorrowRequestReceivedNotification(
   approvalUrl: string
 ) {
   try {
-    // Create in-app notification
-    const notificationPromise = createNotification({
-      userId: borrowRequest.lenderId,
-      type: 'BORROW_REQUEST_RECEIVED' as NotificationType,
-      title: 'New Borrow Request',
-      message: `${borrowRequest.borrower.name} wants to borrow your "${borrowRequest.item.name}"`,
-      actionUrl: `/lender/requests/${borrowRequest.id}`,
-      relatedItemId: borrowRequest.itemId,
-      relatedRequestId: borrowRequest.id,
-      metadata: {
-        borrowerName: borrowRequest.borrower.name,
-        itemName: borrowRequest.item.name,
-        requestMessage: borrowRequest.requestMessage,
-        videoUrl: borrowRequest.videoUrl,
-      },
-    });
-
-    // Send email with rich template
-    let emailPromise: Promise<any> | undefined;
+    // Prepare email template if email is available
+    let emailTemplate:
+      | { subject: string; html: string; to: string }
+      | undefined;
     if (borrowRequest.lender.email) {
       const templateProps: Parameters<
         typeof EmailTemplates.borrowRequestReceived
@@ -95,21 +80,38 @@ export async function sendBorrowRequestReceivedNotification(
         templateProps.requestMessage = borrowRequest.requestMessage;
       }
 
-      const emailTemplate = EmailTemplates.borrowRequestReceived(templateProps);
-
-      emailPromise = createNotification({
-        userId: borrowRequest.lenderId,
-        type: 'BORROW_REQUEST_RECEIVED' as NotificationType,
-        title: 'New Borrow Request',
-        message: `${borrowRequest.borrower.name} wants to borrow your "${borrowRequest.item.name}"`,
-        sendEmail: true,
-        emailTemplate: {
-          subject: emailTemplate.subject,
-          html: emailTemplate.html,
-          to: borrowRequest.lender.email,
-        },
-      });
+      const template = EmailTemplates.borrowRequestReceived(templateProps);
+      emailTemplate = {
+        subject: template.subject,
+        html: template.html,
+        to: borrowRequest.lender.email,
+      };
     }
+
+    // Create single notification that handles both in-app and email
+    const notificationData: any = {
+      userId: borrowRequest.lenderId,
+      type: 'BORROW_REQUEST_RECEIVED' as NotificationType,
+      title: 'New Borrow Request',
+      message: `${borrowRequest.borrower.name} wants to borrow your "${borrowRequest.item.name}"`,
+      actionUrl: `/borrow-approval/${borrowRequest.id}`,
+      relatedItemId: borrowRequest.itemId,
+      relatedRequestId: borrowRequest.id,
+      metadata: {
+        borrowerName: borrowRequest.borrower.name,
+        itemName: borrowRequest.item.name,
+        requestMessage: borrowRequest.requestMessage,
+        videoUrl: borrowRequest.videoUrl,
+      },
+    };
+
+    // Only add email properties if template exists
+    if (emailTemplate) {
+      notificationData.sendEmail = true;
+      notificationData.emailTemplate = emailTemplate;
+    }
+
+    const notificationPromise = createNotification(notificationData);
 
     // Legacy SMS notification for backward compatibility
     const legacyNotificationData: Parameters<
@@ -134,12 +136,12 @@ export async function sendBorrowRequestReceivedNotification(
 
     // Wait for all notifications to complete
     const results = await Promise.allSettled(
-      [notificationPromise, emailPromise, legacySmsPromise].filter(Boolean)
+      [notificationPromise, legacySmsPromise].filter(Boolean)
     );
 
     // Log results for debugging
     results.forEach((result, index) => {
-      const types = ['in-app', 'email', 'SMS'];
+      const types = ['in-app+email', 'SMS'];
       if (result.status === 'rejected') {
         console.error(
           `Failed to send ${types[index]} notification:`,
@@ -151,8 +153,8 @@ export async function sendBorrowRequestReceivedNotification(
     return {
       success: true,
       inApp: results[0]?.status === 'fulfilled',
-      email: emailPromise ? results[1]?.status === 'fulfilled' : null,
-      sms: results[results.length - 1]?.status === 'fulfilled',
+      email: emailTemplate ? results[0]?.status === 'fulfilled' : null,
+      sms: results[1]?.status === 'fulfilled',
     };
   } catch (error) {
     console.error('Error sending borrow request received notification:', error);
