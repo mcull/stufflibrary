@@ -11,12 +11,12 @@ type _ReportPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export async function GET(_request: NextRequest) {
   try {
     await requireAdminAuth();
-    
+
     // Stub implementation - return empty disputes until schema is ready
     return NextResponse.json({
       disputes: [],
       total: 0,
-      pages: 0
+      pages: 0,
     });
   } catch (error) {
     console.error('Admin disputes fetch error:', error);
@@ -30,7 +30,7 @@ export async function GET(_request: NextRequest) {
 export async function POST(_request: NextRequest) {
   try {
     await requireAdminAuth();
-    
+
     // Stub implementation - dispute creation disabled until schema is ready
     return NextResponse.json(
       { error: 'Dispute creation temporarily disabled' },
@@ -48,7 +48,7 @@ export async function POST(_request: NextRequest) {
 export async function PATCH(_request: NextRequest) {
   try {
     await requireAdminAuth();
-    
+
     // Stub implementation - dispute updates disabled until schema is ready
     return NextResponse.json(
       { error: 'Dispute updates temporarily disabled' },

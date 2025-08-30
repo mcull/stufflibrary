@@ -5,22 +5,22 @@ enum DisputeStatus {
   PENDING = 'PENDING',
   OPEN = 'OPEN',
   IN_PROGRESS = 'IN_PROGRESS',
-  UNDER_REVIEW = 'UNDER_REVIEW', 
+  UNDER_REVIEW = 'UNDER_REVIEW',
   RESOLVED = 'RESOLVED',
   CLOSED = 'CLOSED',
-  DISMISSED = 'DISMISSED'
+  DISMISSED = 'DISMISSED',
 }
 enum DisputeType {
   ITEM_DAMAGE = 'ITEM_DAMAGE',
   RETURN_DELAY = 'RETURN_DELAY',
   NO_SHOW = 'NO_SHOW',
-  OTHER = 'OTHER'
+  OTHER = 'OTHER',
 }
 enum ReportPriority {
   LOW = 'LOW',
   MEDIUM = 'MEDIUM',
   HIGH = 'HIGH',
-  CRITICAL = 'CRITICAL'
+  CRITICAL = 'CRITICAL',
 }
 import { useState, useEffect, useCallback } from 'react';
 

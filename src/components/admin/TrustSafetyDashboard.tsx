@@ -1,6 +1,6 @@
 'use client';
 
-// Stub enums until schema is updated  
+// Stub enums until schema is updated
 enum AdminActionType {
   WARNING = 'WARNING',
   USER_WARNING = 'USER_WARNING',
@@ -12,7 +12,7 @@ enum AdminActionType {
   LIBRARY_SUSPENSION = 'LIBRARY_SUSPENSION',
   DISPUTE_RESOLUTION = 'DISPUTE_RESOLUTION',
   MANUAL_INTERVENTION = 'MANUAL_INTERVENTION',
-  TRUST_SCORE_ADJUSTMENT = 'TRUST_SCORE_ADJUSTMENT'
+  TRUST_SCORE_ADJUSTMENT = 'TRUST_SCORE_ADJUSTMENT',
 }
 import { useState, useEffect, useCallback } from 'react';
 
