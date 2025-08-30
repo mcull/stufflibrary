@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { NotificationsOutlined } from '@mui/icons-material';
 import { IconButton, Badge, Popover, Typography, Box } from '@mui/material';
 import { useSession } from 'next-auth/react';
+import { useState, useEffect } from 'react';
 
 import { NotificationList } from './NotificationList';
 

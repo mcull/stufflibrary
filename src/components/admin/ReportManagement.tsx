@@ -1,6 +1,27 @@
 'use client';
 
-import { ReportStatus, ReportPriority, UserReportReason } from '@prisma/client';
+// Stub enums until schema is updated
+enum ReportStatus {
+  PENDING = 'PENDING',
+  UNDER_REVIEW = 'UNDER_REVIEW',
+  REVIEWED = 'REVIEWED',
+  ESCALATED = 'ESCALATED',
+  RESOLVED = 'RESOLVED',
+  DISMISSED = 'DISMISSED'
+}
+enum ReportPriority {
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM',
+  HIGH = 'HIGH',
+  CRITICAL = 'CRITICAL'
+}
+enum UserReportReason {
+  SPAM = 'SPAM',
+  HARASSMENT = 'HARASSMENT',
+  INAPPROPRIATE_CONTENT = 'INAPPROPRIATE_CONTENT',
+  FRAUD = 'FRAUD',
+  OTHER = 'OTHER'
+}
 import { useState, useEffect, useCallback } from 'react';
 
 interface UserReport {

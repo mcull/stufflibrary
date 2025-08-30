@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 import { LenderRequestsPage } from '../LenderRequestsPage';

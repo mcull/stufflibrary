@@ -1,6 +1,13 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import {
+  PlayArrow,
+  Pause,
+  VolumeOff,
+  VolumeUp,
+  Fullscreen,
+  FullscreenExit,
+} from '@mui/icons-material';
 import {
   Box,
   IconButton,
@@ -10,14 +17,7 @@ import {
   Fade,
   CircularProgress,
 } from '@mui/material';
-import {
-  PlayArrow,
-  Pause,
-  VolumeOff,
-  VolumeUp,
-  Fullscreen,
-  FullscreenExit,
-} from '@mui/icons-material';
+import { useState, useRef, useEffect } from 'react';
 
 interface VideoPlayerProps {
   videoUrl: string;
