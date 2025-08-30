@@ -104,7 +104,7 @@ export function NotificationList({
     } finally {
       setLoading(false);
     }
-  }, [types, unreadOnly, limit, onUpdate]);
+  }, [limit, onUpdate]);
 
   useEffect(() => {
     fetchNotifications();
