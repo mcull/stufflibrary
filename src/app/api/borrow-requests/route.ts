@@ -69,13 +69,19 @@ export async function GET(_request: NextRequest) {
       (req) => req.lenderId === userId
     );
     const activeBorrows = borrowRequests.filter(
-      (req) => req.status === 'ACTIVE'
+      (req) => req.status === 'ACTIVE' || req.status === 'APPROVED'
+    );
+    const onLoan = borrowRequests.filter(
+      (req) =>
+        req.lenderId === userId &&
+        (req.status === 'ACTIVE' || req.status === 'APPROVED')
     );
 
     return NextResponse.json({
       sentRequests,
       receivedRequests,
       activeBorrows,
+      onLoan,
       all: borrowRequests,
     });
   } catch (error) {
