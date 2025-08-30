@@ -139,7 +139,7 @@ export function VideoPlayer({ videoUrl, autoMuted = true }: VideoPlayerProps) {
     if (typeof volumeValue === 'number') {
       video.volume = volumeValue;
       setVolume(volumeValue);
-      
+
       if (volumeValue === 0) {
         setIsMuted(true);
         video.muted = true;
@@ -326,15 +326,19 @@ export function VideoPlayer({ videoUrl, autoMuted = true }: VideoPlayerProps) {
           {/* Control Buttons */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             {/* Play/Pause */}
-            <IconButton
-              onClick={togglePlayPause}
-              sx={{ color: 'white' }}
-            >
+            <IconButton onClick={togglePlayPause} sx={{ color: 'white' }}>
               {isPlaying ? <Pause /> : <PlayArrow />}
             </IconButton>
 
             {/* Volume */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 120 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                minWidth: 120,
+              }}
+            >
               <IconButton onClick={toggleMute} sx={{ color: 'white' }}>
                 {isMuted || volume === 0 ? <VolumeOff /> : <VolumeUp />}
               </IconButton>
@@ -369,10 +373,7 @@ export function VideoPlayer({ videoUrl, autoMuted = true }: VideoPlayerProps) {
             <Box sx={{ flexGrow: 1 }} />
 
             {/* Fullscreen */}
-            <IconButton
-              onClick={toggleFullscreen}
-              sx={{ color: 'white' }}
-            >
+            <IconButton onClick={toggleFullscreen} sx={{ color: 'white' }}>
               {isFullscreen ? <FullscreenExit /> : <Fullscreen />}
             </IconButton>
           </Box>

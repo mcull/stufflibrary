@@ -3,8 +3,12 @@
 
 // Trust safety types - temporarily using string literals until schema is updated
 type ReportPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-type UserReportReason = 'SPAM' | 'HARASSMENT' | 'INAPPROPRIATE_CONTENT' | 'FRAUD' | 'OTHER';
-type AdminActionType = 'WARNING' | 'SUSPENSION' | 'BAN' | 'TRUST_SCORE_ADJUSTMENT';
+type UserReportReason =
+  | 'SPAM'
+  | 'HARASSMENT'
+  | 'INAPPROPRIATE_CONTENT'
+  | 'FRAUD'
+  | 'OTHER';
 
 export interface FlaggingRule {
   id: string;
@@ -36,11 +40,14 @@ export class TrustSafetyService {
   }
 
   // Stub methods to prevent compilation errors
-  async calculateTrustScore(userId: string): Promise<number> {
+  async calculateTrustScore(_userId: string): Promise<number> {
     return 100; // Default trust score
   }
 
-  async updateUserTrustScore(userId: string, newScore: number): Promise<void> {
+  async updateUserTrustScore(
+    _userId: string,
+    _newScore: number
+  ): Promise<void> {
     // Stub - no-op until schema is ready
   }
 
@@ -56,15 +63,15 @@ export class TrustSafetyService {
     return this.rules;
   }
 
-  async toggleRule(ruleId: string): Promise<boolean> {
+  async toggleRule(_ruleId: string): Promise<boolean> {
     return false; // Rule not found/not toggled
   }
 
   async createReport(
-    reporterId: string,
-    reportedId: string,
-    reason: UserReportReason,
-    description?: string
+    _reporterId: string,
+    _reportedId: string,
+    _reason: UserReportReason,
+    _description?: string
   ): Promise<string | null> {
     return null; // Report not created until schema is ready
   }

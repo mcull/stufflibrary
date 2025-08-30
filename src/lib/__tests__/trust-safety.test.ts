@@ -1,9 +1,6 @@
 // Trust safety tests - temporarily disabled until schema is updated
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-// Stub types
-type UserReportReason = 'SPAM' | 'HARASSMENT' | 'INAPPROPRIATE_CONTENT' | 'FRAUD' | 'OTHER';
-
 // Mock the db module
 vi.mock('@/lib/db', () => ({
   db: {
@@ -58,7 +55,11 @@ describe('TrustSafetyService', () => {
   describe('createReport', () => {
     it('returns null until schema is implemented', async () => {
       const service = TrustSafetyService.getInstance();
-      const result = await service.createReport('reporter-123', 'reported-456', 'SPAM');
+      const result = await service.createReport(
+        'reporter-123',
+        'reported-456',
+        'SPAM'
+      );
       expect(result).toBeNull();
     });
   });

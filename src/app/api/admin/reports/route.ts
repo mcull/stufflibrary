@@ -3,20 +3,15 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { requireAdminAuth } from '@/lib/admin-auth';
 
-// Stub types
-type ReportStatus = 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED';
-type ReportPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-type UserReportReason = 'SPAM' | 'HARASSMENT' | 'INAPPROPRIATE_CONTENT' | 'FRAUD' | 'OTHER';
-
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     await requireAdminAuth();
-    
+
     // Stub implementation - return empty reports until schema is ready
     return NextResponse.json({
       reports: [],
       total: 0,
-      pages: 0
+      pages: 0,
     });
   } catch (error) {
     console.error('Admin reports fetch error:', error);
@@ -27,10 +22,10 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     await requireAdminAuth();
-    
+
     // Stub implementation - report creation disabled until schema is ready
     return NextResponse.json(
       { error: 'Report creation temporarily disabled' },
@@ -45,10 +40,10 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function PATCH(request: NextRequest) {
+export async function PATCH(_request: NextRequest) {
   try {
     await requireAdminAuth();
-    
+
     // Stub implementation - report updates disabled until schema is ready
     return NextResponse.json(
       { error: 'Report updates temporarily disabled' },

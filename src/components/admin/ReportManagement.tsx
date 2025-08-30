@@ -7,20 +7,20 @@ enum ReportStatus {
   REVIEWED = 'REVIEWED',
   ESCALATED = 'ESCALATED',
   RESOLVED = 'RESOLVED',
-  DISMISSED = 'DISMISSED'
+  DISMISSED = 'DISMISSED',
 }
 enum ReportPriority {
   LOW = 'LOW',
   MEDIUM = 'MEDIUM',
   HIGH = 'HIGH',
-  CRITICAL = 'CRITICAL'
+  CRITICAL = 'CRITICAL',
 }
 enum UserReportReason {
   SPAM = 'SPAM',
   HARASSMENT = 'HARASSMENT',
   INAPPROPRIATE_CONTENT = 'INAPPROPRIATE_CONTENT',
   FRAUD = 'FRAUD',
-  OTHER = 'OTHER'
+  OTHER = 'OTHER',
 }
 import { useState, useEffect, useCallback } from 'react';
 

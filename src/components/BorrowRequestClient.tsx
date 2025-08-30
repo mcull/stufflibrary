@@ -108,12 +108,18 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
 
       // First, explicitly check for microphone permissions to provide better UX
       try {
-        const permissionStatus = await navigator.permissions?.query({ name: 'microphone' as PermissionName });
+        const permissionStatus = await navigator.permissions?.query({
+          name: 'microphone' as PermissionName,
+        });
         if (permissionStatus?.state === 'denied') {
-          console.warn('🎤 Microphone permissions denied - user will need to enable in browser settings');
+          console.warn(
+            '🎤 Microphone permissions denied - user will need to enable in browser settings'
+          );
         }
-      } catch (_e) {
-        console.log('🎤 Permission API not available, will rely on getUserMedia prompts');
+      } catch {
+        console.log(
+          '🎤 Permission API not available, will rely on getUserMedia prompts'
+        );
       }
 
       // Try different camera configurations for mobile compatibility
@@ -162,11 +168,12 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
 
           // Check if audio track is present and enabled
           const audioTracks = stream.getAudioTracks();
-          hasAudio = audioTracks.length > 0 && (audioTracks[0]?.enabled ?? false);
+          hasAudio =
+            audioTracks.length > 0 && (audioTracks[0]?.enabled ?? false);
           console.log('🎤 Audio track status:', {
             hasAudioTrack: audioTracks.length > 0,
             audioEnabled: audioTracks[0]?.enabled,
-            hasAudio
+            hasAudio,
           });
 
           // Detect if we're using front-facing camera
@@ -219,15 +226,19 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
       console.error('❌ Failed to access camera:', err);
 
       // Friendly message for permission errors
-      let errorMessage = 'Right now, all borrow requests are done by video to keep it real and keep it human. If you want to continue, please enable video and mic access for your browser!';
+      let errorMessage =
+        'Right now, all borrow requests are done by video to keep it real and keep it human. If you want to continue, please enable video and mic access for your browser!';
 
       if (err instanceof Error) {
         if (err.name === 'NotFoundError') {
-          errorMessage = 'No camera found on this device. You\'ll need a camera to record your borrow request video.';
+          errorMessage =
+            "No camera found on this device. You'll need a camera to record your borrow request video.";
         } else if (err.name === 'NotSupportedError') {
-          errorMessage = 'Camera access is not supported in this browser. Try using Chrome or Safari to record your video request.';
+          errorMessage =
+            'Camera access is not supported in this browser. Try using Chrome or Safari to record your video request.';
         } else if (err.name === 'NotReadableError') {
-          errorMessage = 'Your camera is already in use by another app. Please close other apps using the camera and try again.';
+          errorMessage =
+            'Your camera is already in use by another app. Please close other apps using the camera and try again.';
         }
       }
 
@@ -322,7 +333,9 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
     setRecordingTime(12);
     timerIntervalRef.current = window.setInterval(() => {
       if (recordingStartRef.current) {
-        const elapsed = Math.floor((Date.now() - recordingStartRef.current) / 1000);
+        const elapsed = Math.floor(
+          (Date.now() - recordingStartRef.current) / 1000
+        );
         const remaining = Math.max(0, 12 - elapsed);
         setRecordingTime(remaining);
       }
@@ -660,7 +673,12 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
                     transform: 'translate(-50%, -50%)',
                     fontSize: '4rem',
                     fontWeight: 'bold',
-                    color: recordingTime > 4 ? 'green' : recordingTime > 2 ? 'yellow' : 'red',
+                    color:
+                      recordingTime > 4
+                        ? 'green'
+                        : recordingTime > 2
+                          ? 'yellow'
+                          : 'red',
                     textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
                   }}
                 >
@@ -982,7 +1000,10 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
                 p: 3,
               }}
             >
-              <Alert severity="error" sx={{ width: '100%', bgcolor: 'rgba(255,255,255,0.9)' }}>
+              <Alert
+                severity="error"
+                sx={{ width: '100%', bgcolor: 'rgba(255,255,255,0.9)' }}
+              >
                 {error}
               </Alert>
             </Box>

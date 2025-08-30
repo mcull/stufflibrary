@@ -3,18 +3,15 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { requireAdminAuth } from '@/lib/admin-auth';
 
-// Stub types
-type AdminActionType = 'WARNING' | 'SUSPENSION' | 'BAN' | 'TRUST_SCORE_ADJUSTMENT';
-
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     await requireAdminAuth();
-    
+
     // Stub implementation - return empty actions until schema is ready
     return NextResponse.json({
       actions: [],
       total: 0,
-      pages: 0
+      pages: 0,
     });
   } catch (error) {
     console.error('Admin trust actions fetch error:', error);
@@ -25,10 +22,10 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     await requireAdminAuth();
-    
+
     // Stub implementation - trust actions disabled until schema is ready
     return NextResponse.json(
       { error: 'Trust actions temporarily disabled' },
