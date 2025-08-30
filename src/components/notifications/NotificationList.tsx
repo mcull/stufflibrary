@@ -299,15 +299,20 @@ export function NotificationList({
                     </Box>
                   }
                   secondary={
-                    <Box>
+                    <Box component="div">
                       <Typography
                         variant="body2"
                         color="textSecondary"
+                        component="div"
                         sx={{ mb: 0.5 }}
                       >
                         {notification.message}
                       </Typography>
-                      <Typography variant="caption" color="textSecondary">
+                      <Typography
+                        variant="caption"
+                        color="textSecondary"
+                        component="div"
+                      >
                         {formatDistanceToNow(new Date(notification.createdAt), {
                           addSuffix: true,
                         })}
