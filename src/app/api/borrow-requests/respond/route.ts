@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { updateItemAvailability } from '@/lib/borrow-request-utils';
 import { db } from '@/lib/db';
 import {
   sendBorrowRequestApprovedNotification,
@@ -85,6 +86,26 @@ export async function POST(request: NextRequest) {
         approvedAt: decision === 'approve' ? new Date() : null,
       },
     });
+
+    // Update item availability based on decision
+    console.log(
+      `🚀 DEBUG About to call updateItemAvailability from respond route:`,
+      {
+        itemId: borrowRequest.item.id,
+        borrowRequestId,
+        newStatus: decision === 'approve' ? 'APPROVED' : 'DECLINED',
+      }
+    );
+
+    await updateItemAvailability(
+      borrowRequest.item.id,
+      borrowRequestId,
+      decision === 'approve' ? 'APPROVED' : 'DECLINED'
+    );
+
+    console.log(
+      `🚀 DEBUG Finished calling updateItemAvailability from respond route`
+    );
 
     // Send comprehensive notification to borrower (in-app + email)
     try {
