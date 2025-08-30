@@ -277,11 +277,12 @@ export function BorrowApprovalClient({
               })()
             ) : (
               <Box sx={{ p: 4, textAlign: 'center', color: 'white' }}>
+                <CircularProgress size={40} sx={{ mb: 2, color: 'white' }} />
                 <Typography variant="body1" sx={{ mb: 1 }}>
-                  Processing video...
+                  Video processing in progress
                 </Typography>
                 <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                  This page will refresh shortly.
+                  Please wait or check back later.
                 </Typography>
               </Box>
             )}
