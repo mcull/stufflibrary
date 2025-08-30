@@ -6,20 +6,50 @@ import { db } from '@/lib/db';
 import { sendBorrowRequestNotification } from '@/lib/twilio';
 
 export async function POST(request: NextRequest) {
+  console.log('🎬 Mux webhook received at:', new Date().toISOString());
   try {
+    // Check environment variables
     if (!process.env.MUX_TOKEN_ID || !process.env.MUX_TOKEN_SECRET) {
+      console.log(
+        '❌ Missing MUX_TOKEN_ID or MUX_TOKEN_SECRET, skipping webhook'
+      );
       return NextResponse.json({ ok: true });
+    }
+
+    // Check for webhook secret
+    if (!process.env.MUX_WEBHOOK_SECRET) {
+      console.log('❌ Missing MUX_WEBHOOK_SECRET environment variable');
+      return NextResponse.json(
+        { error: 'Missing webhook secret' },
+        { status: 400 }
+      );
     }
 
     // Verify webhook signature using the raw body
     const signature =
       request.headers.get('mux-signature') ||
       request.headers.get('Mux-Signature');
-    if (!signature || !process.env.MUX_WEBHOOK_SECRET) {
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+
+    console.log('🔐 Signature check:', {
+      hasSignature: !!signature,
+      signatureLength: signature?.length || 0,
+      hasWebhookSecret: !!process.env.MUX_WEBHOOK_SECRET,
+    });
+
+    if (!signature) {
+      console.log('❌ No Mux signature found in headers');
+      return NextResponse.json(
+        { error: 'No signature provided' },
+        { status: 400 }
+      );
     }
 
     const rawBody = await request.text();
+    console.log('📨 Webhook payload received:', {
+      bodyLength: rawBody.length,
+      bodyPreview: rawBody.substring(0, 200),
+    });
+
     try {
       const muxNode: any = await import('@mux/mux-node');
       muxNode.Webhooks.verifyHeader(
@@ -27,7 +57,16 @@ export async function POST(request: NextRequest) {
         signature,
         process.env.MUX_WEBHOOK_SECRET
       );
-    } catch {
+      console.log('✅ Webhook signature verified successfully');
+    } catch (signatureError) {
+      console.log('❌ Signature verification failed:', {
+        error:
+          signatureError instanceof Error
+            ? signatureError.message
+            : signatureError,
+        signaturePreview: signature.substring(0, 20) + '...',
+        bodyHash: rawBody.length,
+      });
       return NextResponse.json(
         { error: 'Signature verification failed' },
         { status: 400 }
@@ -37,6 +76,12 @@ export async function POST(request: NextRequest) {
     const payload = JSON.parse(rawBody);
     const eventType = payload?.type as string | undefined;
     const data = payload?.data;
+
+    console.log('📋 Webhook payload parsed:', {
+      eventType,
+      hasData: !!data,
+      dataKeys: data ? Object.keys(data) : [],
+    });
 
     if (eventType === 'video.asset.ready' && data) {
       const playbackId = data.playback_ids?.[0]?.id as string | undefined;
