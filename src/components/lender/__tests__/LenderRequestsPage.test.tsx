@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 import { LenderRequestsPage } from '../LenderRequestsPage';
@@ -102,7 +102,11 @@ describe('LenderRequestsPage', () => {
       expect(screen.getByText('Lending Requests')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Review and respond to borrowing requests for your items')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Review and respond to borrowing requests for your items'
+      )
+    ).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /pending/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /active/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /completed/i })).toBeInTheDocument();
@@ -134,7 +138,9 @@ describe('LenderRequestsPage', () => {
       expect(screen.getByText('No pending requests')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('New borrowing requests will appear here')).toBeInTheDocument();
+    expect(
+      screen.getByText('New borrowing requests will appear here')
+    ).toBeInTheDocument();
   });
 
   it('handles fetch error gracefully', async () => {

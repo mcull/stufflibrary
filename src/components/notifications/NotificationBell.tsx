@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { NotificationsOutlined } from '@mui/icons-material';
 import { IconButton, Badge, Popover, Typography, Box } from '@mui/material';
 import { useSession } from 'next-auth/react';
+import { useState, useEffect } from 'react';
 
 import { NotificationList } from './NotificationList';
 
@@ -52,8 +52,8 @@ export function NotificationBell({ className }: NotificationBellProps) {
     // Refresh unread count when notifications are updated
     if (session?.user) {
       fetch('/api/notifications/count')
-        .then(response => response.json())
-        .then(data => setUnreadCount(data.count || 0))
+        .then((response) => response.json())
+        .then((data) => setUnreadCount(data.count || 0))
         .catch(console.error);
     }
   };
@@ -74,8 +74,8 @@ export function NotificationBell({ className }: NotificationBellProps) {
         size="large"
         aria-label={`${unreadCount} unread notifications`}
       >
-        <Badge 
-          badgeContent={unreadCount} 
+        <Badge
+          badgeContent={unreadCount}
           color="error"
           max={99}
           overlap="circular"
@@ -111,7 +111,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
             Notifications
           </Typography>
         </Box>
-        
+
         <NotificationList
           onUpdate={handleNotificationUpdate}
           isLoading={isLoading}

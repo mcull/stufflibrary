@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import {
   Container,
   Typography,
@@ -11,9 +11,9 @@ import {
   Button,
   Alert,
 } from '@mui/material';
-import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { useState } from 'react';
 
 import { NotificationList } from './NotificationList';
 
@@ -26,12 +26,12 @@ const tabLabels: Record<TabValue, string> = {
   library: 'Libraries',
 };
 
-const tabTypes: Record<TabValue, string[] | undefined> = {
+const _tabTypes: Record<TabValue, string[] | undefined> = {
   all: undefined,
   unread: undefined, // Special case handled in component
   borrow: [
     'BORROW_REQUEST_RECEIVED',
-    'BORROW_REQUEST_APPROVED', 
+    'BORROW_REQUEST_APPROVED',
     'BORROW_REQUEST_DECLINED',
     'BORROW_REQUEST_CANCELLED',
     'ITEM_DUE_TOMORROW',
@@ -39,10 +39,7 @@ const tabTypes: Record<TabValue, string[] | undefined> = {
     'ITEM_RETURNED',
     'RETURN_CONFIRMED',
   ],
-  library: [
-    'LIBRARY_INVITATION',
-    'SYSTEM_ANNOUNCEMENT',
-  ],
+  library: ['LIBRARY_INVITATION', 'SYSTEM_ANNOUNCEMENT'],
 };
 
 export function NotificationCenter() {
@@ -87,11 +84,11 @@ export function NotificationCenter() {
         >
           Back
         </Button>
-        
+
         <Typography variant="h4" component="h1" gutterBottom>
           Notifications
         </Typography>
-        
+
         <Typography variant="body1" color="textSecondary">
           Stay updated on your borrowing activity and library updates
         </Typography>
@@ -136,9 +133,9 @@ export function NotificationCenter() {
       <Box sx={{ mt: 3 }}>
         <Alert severity="info" sx={{ borderRadius: 2 }}>
           <Typography variant="body2">
-            💡 <strong>Tip:</strong> You'll receive notifications for borrow requests, 
-            approvals, return reminders, and library updates. You can also receive 
-            email notifications for important updates.
+            💡 <strong>Tip:</strong> You&apos;ll receive notifications for
+            borrow requests, approvals, return reminders, and library updates.
+            You can also receive email notifications for important updates.
           </Typography>
         </Alert>
       </Box>
