@@ -26,6 +26,7 @@ interface VintageCheckoutCardProps {
   borrowHistory: BorrowRecord[];
   showTitle?: boolean;
   compact?: boolean;
+  itemId?: string;
 }
 
 export function VintageCheckoutCard({
@@ -33,6 +34,7 @@ export function VintageCheckoutCard({
   borrowHistory,
   showTitle: _showTitle = true,
   compact = false,
+  itemId: _itemId,
 }: VintageCheckoutCardProps) {
   // Generate consistent random values for each record
   const enrichedHistory = useMemo(() => {
