@@ -31,6 +31,7 @@ interface UseBorrowRequestsResult {
   sentRequests: BorrowRequest[];
   receivedRequests: BorrowRequest[];
   activeBorrows: BorrowRequest[];
+  onLoan: BorrowRequest[];
   isLoading: boolean;
   error: string | null;
   refetch: () => void;
@@ -40,6 +41,7 @@ export function useBorrowRequests(): UseBorrowRequestsResult {
   const [sentRequests, setSentRequests] = useState<BorrowRequest[]>([]);
   const [receivedRequests, setReceivedRequests] = useState<BorrowRequest[]>([]);
   const [activeBorrows, setActiveBorrows] = useState<BorrowRequest[]>([]);
+  const [onLoan, setOnLoan] = useState<BorrowRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,6 +61,7 @@ export function useBorrowRequests(): UseBorrowRequestsResult {
       setSentRequests(data.sentRequests || []);
       setReceivedRequests(data.receivedRequests || []);
       setActiveBorrows(data.activeBorrows || []);
+      setOnLoan(data.onLoan || []);
     } catch (err) {
       console.error('Error fetching borrow requests:', err);
       setError(
@@ -81,6 +84,7 @@ export function useBorrowRequests(): UseBorrowRequestsResult {
     sentRequests,
     receivedRequests,
     activeBorrows,
+    onLoan,
     isLoading,
     error,
     refetch,
