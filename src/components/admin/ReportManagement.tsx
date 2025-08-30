@@ -3,7 +3,9 @@
 // Stub enums until schema is updated
 enum ReportStatus {
   PENDING = 'PENDING',
+  UNDER_REVIEW = 'UNDER_REVIEW',
   REVIEWED = 'REVIEWED',
+  ESCALATED = 'ESCALATED',
   RESOLVED = 'RESOLVED',
   DISMISSED = 'DISMISSED'
 }
