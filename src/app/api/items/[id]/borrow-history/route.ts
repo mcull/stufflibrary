@@ -102,11 +102,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         status: record.status,
         borrower: record.borrower,
         requestMessage: record.requestMessage,
+        promisedReturnBy: record.requestedReturnDate,
         requestedReturnDate: record.requestedReturnDate,
         actualReturnDate: record.actualReturnDate,
         returnedAt: record.returnedAt,
         approvedAt: record.approvedAt,
-        createdAt: record.createdAt,
+        requestedAt: record.createdAt,
       })),
     });
   } catch (error) {

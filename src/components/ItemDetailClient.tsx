@@ -424,7 +424,11 @@ export function ItemDetailClient({
       );
 
       if (!response.ok) {
-        throw new Error('Failed to check in item');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Check in failed:', response.status, errorData);
+        throw new Error(
+          errorData.error || `Failed to check in item (${response.status})`
+        );
       }
 
       setToast({

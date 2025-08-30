@@ -131,14 +131,19 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     // Validate action
     if (
-      !['approve', 'decline', 'return', 'cancel', 'confirm-return'].includes(
-        action
-      )
+      ![
+        'approve',
+        'decline',
+        'return',
+        'cancel',
+        'confirm-return',
+        'lender-return',
+      ].includes(action)
     ) {
       return NextResponse.json(
         {
           error:
-            'Action must be one of: approve, decline, return, cancel, confirm-return',
+            'Action must be one of: approve, decline, return, cancel, confirm-return, lender-return',
         },
         { status: 400 }
       );
@@ -308,6 +313,37 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           lenderMessage: message || 'Return confirmed by lender',
           // Update timestamp to indicate confirmation
           updatedAt: new Date(),
+        };
+        break;
+
+      case 'lender-return':
+        // Only lender can mark as returned directly
+        if (borrowRequest.lenderId !== userId) {
+          return NextResponse.json(
+            { error: 'Only the item owner can check in items' },
+            { status: 403 }
+          );
+        }
+
+        // Can only return active or approved borrows
+        if (!['ACTIVE', 'APPROVED'].includes(borrowRequest.status)) {
+          return NextResponse.json(
+            {
+              error:
+                'Can only check in items that are currently active or approved',
+            },
+            { status: 400 }
+          );
+        }
+
+        authorizedUser = true;
+        newStatus = 'RETURNED';
+        updateData = {
+          status: newStatus,
+          returnedAt: actualReturnDate
+            ? new Date(actualReturnDate)
+            : new Date(),
+          lenderMessage: message || 'Item checked in by owner',
         };
         break;
     }
