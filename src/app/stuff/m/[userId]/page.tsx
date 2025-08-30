@@ -134,20 +134,8 @@ function ItemCard({ item, status }: ItemCardProps) {
   const router = useRouter();
 
   const handleClick = () => {
-    // For borrowed items, go to the borrow request detail page
-    if (status === 'borrowed' && item.borrowRequestId) {
-      router.push(`/borrow-requests/${item.borrowRequestId}`);
-      return;
-    }
-
-    // For on-loan items, go to the borrow request detail page
-    if (status === 'on-loan' && item.id) {
-      router.push(`/borrow-requests/${item.id}`);
-      return;
-    }
-
-    // For other items, go to the item detail page
-    const itemId = item.item?.id || item.id;
+    // Always go to item details page, but extract the correct item ID based on data structure
+    const itemId = item.item?.id || item.id; // For borrow requests: item.item.id, for direct items: item.id
     if (itemId) {
       router.push(`/stuff/${itemId}`);
     }
