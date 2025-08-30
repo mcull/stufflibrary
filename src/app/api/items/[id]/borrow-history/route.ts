@@ -76,7 +76,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Get borrow history for this item
-    const borrowHistory = await db.borrowRequest.findMany({
+    const allBorrowHistory = await db.borrowRequest.findMany({
       where: {
         itemId: itemId,
         status: { in: ['APPROVED', 'ACTIVE', 'RETURNED'] }, // Only show meaningful borrows
@@ -94,6 +94,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         createdAt: 'asc',
       },
     });
+
+    // Filter out self-borrows (offline status) from history display
+    const borrowHistory = allBorrowHistory.filter(
+      (record) => record.borrowerId !== record.lenderId
+    );
 
     return NextResponse.json({
       itemName: item.name,

@@ -46,6 +46,11 @@ interface LibraryItemCardProps {
         name?: string;
         image?: string;
       };
+      lender: {
+        id: string;
+        name?: string;
+        image?: string;
+      };
       dueDate: string;
       borrowedAt: string;
     };
@@ -71,15 +76,31 @@ export function LibraryItemCard({ item }: LibraryItemCardProps) {
 
   const getStatusConfig = () => {
     if (item.currentBorrow) {
-      return {
-        backgroundColor: '#FFF8E1',
-        borderColor: brandColors.mustardYellow,
-        statusChip: {
-          label: `Lent to ${item.currentBorrow.borrower.name}`,
-          color: '#FFF3E0',
-          textColor: '#F57C00',
-        },
-      };
+      // Check if this is a self-borrow (offline item)
+      const isOffline =
+        item.currentBorrow.borrower.id === item.currentBorrow.lender.id;
+
+      if (isOffline) {
+        return {
+          backgroundColor: '#F3E5F5',
+          borderColor: '#9C27B0',
+          statusChip: {
+            label: 'Offline',
+            color: '#F3E5F5',
+            textColor: '#7B1FA2',
+          },
+        };
+      } else {
+        return {
+          backgroundColor: '#FFF8E1',
+          borderColor: brandColors.mustardYellow,
+          statusChip: {
+            label: `Lent to ${item.currentBorrow.borrower.name}`,
+            color: '#FFF3E0',
+            textColor: '#F57C00',
+          },
+        };
+      }
     } else if (item.isAvailable) {
       return {
         backgroundColor: brandColors.warmCream,
@@ -95,7 +116,7 @@ export function LibraryItemCard({ item }: LibraryItemCardProps) {
         backgroundColor: '#F5F5F5',
         borderColor: '#BDBDBD',
         statusChip: {
-          label: 'Offline',
+          label: 'Unavailable',
           color: '#F5F5F5',
           textColor: '#757575',
         },
@@ -164,42 +185,51 @@ export function LibraryItemCard({ item }: LibraryItemCardProps) {
                 }}
               />
               {/* Avatar Overlay for offline/borrowed items */}
-              {(!item.isAvailable || item.currentBorrow) && (
-                <Avatar
-                  {...((item.currentBorrow?.borrower.image ||
-                    item.owner?.image) && {
-                    src:
-                      item.currentBorrow?.borrower.image || item.owner?.image,
-                  })}
-                  onClick={(e: React.MouseEvent) => {
-                    e.stopPropagation();
-                    const userId =
-                      item.currentBorrow?.borrower.id || item.owner?.id;
-                    if (userId) {
-                      router.push(`/profile/${userId}`);
-                    }
-                  }}
-                  sx={{
-                    position: 'absolute',
-                    top: 4,
-                    right: 4,
-                    width: 24,
-                    height: 24,
-                    cursor: 'pointer',
-                    border: '1px solid white',
-                    boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
-                    fontSize: '0.7rem',
-                    '&:hover': {
-                      transform: 'scale(1.1)',
-                      transition: 'transform 0.2s ease',
-                    },
-                  }}
-                >
-                  {!(item.currentBorrow?.borrower.image || item.owner?.image) &&
-                    (item.currentBorrow?.borrower.name?.[0] ||
-                      item.owner?.name?.[0])}
-                </Avatar>
-              )}
+              {(!item.isAvailable || item.currentBorrow) &&
+                (() => {
+                  // Check if this is a self-borrow (offline item)
+                  const isOffline =
+                    item.currentBorrow &&
+                    item.currentBorrow.borrower.id ===
+                      item.currentBorrow.lender.id;
+
+                  // For offline items, show owner's avatar; for borrowed items, show borrower's avatar
+                  const displayUser = isOffline
+                    ? item.owner
+                    : item.currentBorrow?.borrower;
+                  const userId = displayUser?.id;
+
+                  return (
+                    <Avatar
+                      {...(displayUser?.image && {
+                        src: displayUser.image,
+                      })}
+                      onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        if (userId) {
+                          router.push(`/profile/${userId}`);
+                        }
+                      }}
+                      sx={{
+                        position: 'absolute',
+                        top: 4,
+                        right: 4,
+                        width: 24,
+                        height: 24,
+                        cursor: 'pointer',
+                        border: '1px solid white',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+                        fontSize: '0.7rem',
+                        '&:hover': {
+                          transform: 'scale(1.1)',
+                          transition: 'transform 0.2s ease',
+                        },
+                      }}
+                    >
+                      {!displayUser?.image && (displayUser?.name?.[0] || '?')}
+                    </Avatar>
+                  );
+                })()}
             </>
           ) : (
             <Typography variant="h4" sx={{ opacity: 0.5 }}>

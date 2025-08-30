@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { useState, useEffect } from 'react';
+
 import { ItemWithStatus } from '@/lib/item-status-utils';
 
 interface BorrowedItem {
@@ -23,12 +24,14 @@ interface UseUserItemsResult {
   // Items I own
   readyToLendItems: ItemWithStatus[];
   onLoanItems: ItemWithStatus[];
+  offlineItems: ItemWithStatus[];
   // Items I've borrowed
   borrowedItems: BorrowedItem[];
 
   // Summary counts
   readyToLendCount: number;
   onLoanCount: number;
+  offlineCount: number;
   borrowedCount: number;
 
   isLoading: boolean;
@@ -38,11 +41,15 @@ interface UseUserItemsResult {
 
 export function useUserItems(): UseUserItemsResult {
   const { data: session } = useSession();
-  const [readyToLendItems, setReadyToLendItems] = useState<ItemWithStatus[]>([]);
+  const [readyToLendItems, setReadyToLendItems] = useState<ItemWithStatus[]>(
+    []
+  );
   const [onLoanItems, setOnLoanItems] = useState<ItemWithStatus[]>([]);
+  const [offlineItems, setOfflineItems] = useState<ItemWithStatus[]>([]);
   const [borrowedItems, setBorrowedItems] = useState<BorrowedItem[]>([]);
   const [readyToLendCount, setReadyToLendCount] = useState(0);
   const [onLoanCount, setOnLoanCount] = useState(0);
+  const [offlineCount, setOfflineCount] = useState(0);
   const [borrowedCount, setBorrowedCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -74,24 +81,61 @@ export function useUserItems(): UseUserItemsResult {
 
       // Process items with status logic
       const allItems = itemsData.items || [];
+      const allBorrowRequests = borrowRequestsData.all || [];
+
+      // Find self-borrow request IDs (offline items)
+      const selfBorrowRequestIds = allBorrowRequests
+        .filter(
+          (request: any) =>
+            request.borrowerId === userId &&
+            request.lenderId === userId &&
+            (request.status === 'ACTIVE' || request.status === 'APPROVED')
+        )
+        .map((request: any) => request.id);
+
       const readyToLendItems: ItemWithStatus[] = allItems
         .filter((item: any) => !item.currentBorrowRequestId)
         .map((item: any) => ({ ...item, status: 'ready-to-lend' as const }));
-      
-      const onLoanItems: ItemWithStatus[] = allItems
-        .filter((item: any) => item.currentBorrowRequestId)
-        .map((item: any) => ({ ...item, status: 'on-loan' as const }));
 
-      const borrowedItems = borrowRequestsData.activeBorrows?.filter(
-        (request: BorrowedItem) =>
-          request.status === 'ACTIVE' || request.status === 'APPROVED'
-      ) || [];
+      // Identify offline items (items with currentBorrowRequestId that matches a self-borrow)
+      const offlineItems: ItemWithStatus[] = allItems
+        .filter(
+          (item: any) =>
+            item.currentBorrowRequestId &&
+            selfBorrowRequestIds.includes(item.currentBorrowRequestId)
+        )
+        .map((item: any) => ({ ...item, status: 'offline' as const }));
+
+      // Use the filtered onLoan data from API (which excludes self-borrows)
+      const onLoanItems: ItemWithStatus[] = (
+        borrowRequestsData.onLoan || []
+      ).map((request: any) => ({
+        ...request.item,
+        status: 'on-loan' as const,
+        borrower: request.borrower,
+        borrowRequest: {
+          id: request.id,
+          status: request.status,
+          requestedReturnDate: request.requestedReturnDate,
+          createdAt: request.createdAt,
+        },
+      }));
+
+      // Filter borrowed items to exclude self-borrows
+      const borrowedItems =
+        borrowRequestsData.activeBorrows?.filter(
+          (request: BorrowedItem) =>
+            (request.status === 'ACTIVE' || request.status === 'APPROVED') &&
+            request.lender.id !== userId // Exclude items borrowed from myself (self-borrows)
+        ) || [];
 
       setReadyToLendItems(readyToLendItems);
       setOnLoanItems(onLoanItems);
+      setOfflineItems(offlineItems);
       setBorrowedItems(borrowedItems);
       setReadyToLendCount(readyToLendItems.length);
       setOnLoanCount(onLoanItems.length);
+      setOfflineCount(offlineItems.length);
       setBorrowedCount(borrowedItems.length);
     } catch (err) {
       console.error('Error fetching user items:', err);
@@ -117,9 +161,11 @@ export function useUserItems(): UseUserItemsResult {
   return {
     readyToLendItems,
     onLoanItems,
+    offlineItems,
     borrowedItems,
     readyToLendCount,
     onLoanCount,
+    offlineCount,
     borrowedCount,
     isLoading,
     error,

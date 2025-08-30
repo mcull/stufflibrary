@@ -45,6 +45,28 @@ export async function GET(
             },
           },
         },
+        borrowRequests: {
+          where: {
+            status: { in: ['ACTIVE', 'APPROVED'] },
+          },
+          include: {
+            borrower: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+              },
+            },
+            lender: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+              },
+            },
+          },
+          take: 1,
+        },
       },
     });
 
@@ -53,6 +75,7 @@ export async function GET(
     }
 
     // Format response
+    const activeBorrowRequest = item.borrowRequests?.[0] || null;
     const formattedItem = {
       id: item.id,
       name: item.name,
@@ -66,6 +89,7 @@ export async function GET(
       owner: item.owner,
       stuffType: item.stuffType,
       libraries: item.libraries.map((il) => il.library),
+      currentActiveBorrow: activeBorrowRequest,
     };
 
     return NextResponse.json({ item: formattedItem });
@@ -294,8 +318,8 @@ export async function PATCH(
             itemId,
             borrowerId: userId,
             lenderId: userId,
-            status: 'ACTIVE'
-          }
+            status: 'ACTIVE',
+          },
         });
 
         if (!existingSelfBorrow) {
@@ -306,14 +330,16 @@ export async function PATCH(
               lenderId: userId,
               status: 'ACTIVE',
               requestMessage: 'Item taken offline by owner',
-              requestedReturnDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
-            }
+              requestedReturnDate: new Date(
+                Date.now() + 365 * 24 * 60 * 60 * 1000
+              ), // 1 year from now
+            },
           });
 
           // Update item to reference this self-borrow request
           await db.item.update({
             where: { id: itemId },
-            data: { currentBorrowRequestId: selfBorrowRequest.id }
+            data: { currentBorrowRequestId: selfBorrowRequest.id },
           });
         }
       } else {
@@ -323,20 +349,20 @@ export async function PATCH(
             itemId,
             borrowerId: userId,
             lenderId: userId,
-            status: 'ACTIVE'
-          }
+            status: 'ACTIVE',
+          },
         });
 
         if (selfBorrowRequest) {
           // Update to returned status and clear currentBorrowRequestId
           await db.borrowRequest.update({
             where: { id: selfBorrowRequest.id },
-            data: { status: 'RETURNED', returnedAt: new Date() }
+            data: { status: 'RETURNED', returnedAt: new Date() },
           });
 
           await db.item.update({
             where: { id: itemId },
-            data: { currentBorrowRequestId: null }
+            data: { currentBorrowRequestId: null },
           });
         }
       }
@@ -372,19 +398,26 @@ export async function PATCH(
         },
         borrowRequests: {
           where: {
-            status: { in: ['ACTIVE', 'APPROVED'] }
+            status: { in: ['ACTIVE', 'APPROVED'] },
           },
           include: {
             borrower: {
               select: {
                 id: true,
                 name: true,
-                image: true
-              }
-            }
+                image: true,
+              },
+            },
+            lender: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+              },
+            },
           },
-          take: 1
-        }
+          take: 1,
+        },
       },
     });
 
@@ -437,10 +470,34 @@ export async function PATCH(
               },
             },
           },
+          borrowRequests: {
+            where: {
+              status: { in: ['ACTIVE', 'APPROVED'] },
+            },
+            include: {
+              borrower: {
+                select: {
+                  id: true,
+                  name: true,
+                  image: true,
+                },
+              },
+              lender: {
+                select: {
+                  id: true,
+                  name: true,
+                  image: true,
+                },
+              },
+            },
+            take: 1,
+          },
         },
       });
 
       // Format response with libraries
+      const activeBorrowRequestWithLibraries =
+        itemWithLibraries!.borrowRequests?.[0] || null;
       const formattedItemWithLibraries = {
         id: itemWithLibraries!.id,
         name: itemWithLibraries!.name,
@@ -454,6 +511,7 @@ export async function PATCH(
         owner: itemWithLibraries!.owner,
         stuffType: itemWithLibraries!.stuffType,
         libraries: itemWithLibraries!.libraries.map((il) => il.library),
+        currentActiveBorrow: activeBorrowRequestWithLibraries,
       };
 
       return NextResponse.json({

@@ -63,6 +63,11 @@ interface LibraryItem {
       name?: string;
       image?: string;
     };
+    lender: {
+      id: string;
+      name?: string;
+      image?: string;
+    };
     dueDate: string;
     borrowedAt: string;
   };
@@ -500,7 +505,12 @@ export function LibraryDetailClient({ libraryId }: LibraryDetailClientProps) {
               variant="h4"
               sx={{ fontWeight: 700, color: brandColors.mustardYellow, mb: 0 }}
             >
-              {library.items?.filter((item) => item.currentBorrow).length || 0}
+              {library.items?.filter(
+                (item) =>
+                  item.currentBorrow &&
+                  item.currentBorrow.borrower.id !==
+                    item.currentBorrow.lender.id // Exclude self-borrows
+              ).length || 0}
             </Typography>
             <Typography
               variant="caption"

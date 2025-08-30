@@ -1,6 +1,6 @@
 import { BorrowRequestStatus } from '@prisma/client';
 
-export type ItemStatus = 'ready-to-lend' | 'on-loan';
+export type ItemStatus = 'ready-to-lend' | 'on-loan' | 'offline';
 
 export interface ItemWithStatus {
   id: string;
@@ -27,6 +27,8 @@ export interface ItemWithStatus {
 /**
  * Determine item status based on currentBorrowRequestId
  */
-export function getItemStatus(currentBorrowRequestId: string | null): ItemStatus {
+export function getItemStatus(
+  currentBorrowRequestId: string | null
+): ItemStatus {
   return currentBorrowRequestId ? 'on-loan' : 'ready-to-lend';
 }

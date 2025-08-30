@@ -127,7 +127,7 @@ function AddItemCard() {
 
 interface ItemCardProps {
   item: any;
-  status: 'ready-to-lend' | 'on-loan' | 'borrowed';
+  status: 'ready-to-lend' | 'on-loan' | 'offline' | 'borrowed';
 }
 
 function ItemCard({ item, status }: ItemCardProps) {
@@ -156,6 +156,16 @@ function ItemCard({ item, status }: ItemCardProps) {
             label: item.borrower ? `Lent to ${item.borrower.name}` : 'On Loan',
             color: '#FFF3E0',
             textColor: '#F57C00',
+          },
+        };
+      case 'offline':
+        return {
+          backgroundColor: '#F3E5F5',
+          borderColor: '#9C27B0',
+          statusChip: {
+            label: 'Taken offline',
+            color: '#F3E5F5',
+            textColor: '#7B1FA2',
           },
         };
       case 'borrowed':
@@ -191,6 +201,8 @@ function ItemCard({ item, status }: ItemCardProps) {
             })
           : '';
         return `Lent to ${borrower}${lentDate ? ` on ${lentDate}` : ''}`;
+      case 'offline':
+        return 'Not available to lend';
       case 'borrowed':
         const lender = item.lender?.name || 'Unknown';
         const dueDate = item.promisedReturnBy
@@ -405,7 +417,7 @@ function Section({ title, items, color, showAddItem = false }: SectionProps) {
   );
 }
 
-type FilterType = 'all' | 'ready-to-lend' | 'on-loan' | 'borrowed';
+type FilterType = 'all' | 'ready-to-lend' | 'on-loan' | 'offline' | 'borrowed';
 
 export default function UserInventoryPage() {
   const params = useParams();
@@ -416,6 +428,7 @@ export default function UserInventoryPage() {
   const {
     readyToLendItems,
     onLoanItems,
+    offlineItems,
     borrowedItems,
     isLoading: itemsLoading,
     error,
@@ -429,7 +442,7 @@ export default function UserInventoryPage() {
     const filterParam = searchParams.get('filter') as FilterType;
     if (
       filterParam &&
-      ['ready-to-lend', 'on-loan', 'borrowed'].includes(filterParam)
+      ['ready-to-lend', 'on-loan', 'offline', 'borrowed'].includes(filterParam)
     ) {
       setActiveFilter(filterParam);
     }
@@ -552,6 +565,7 @@ export default function UserInventoryPage() {
       status: 'ready-to-lend' as const,
     })),
     ...onLoanItems.map((item) => ({ ...item, status: 'on-loan' as const })),
+    ...offlineItems.map((item) => ({ ...item, status: 'offline' as const })),
     ...borrowedItems.map((item) => ({ ...item, status: 'borrowed' as const })),
   ];
 
@@ -592,6 +606,10 @@ export default function UserInventoryPage() {
   const onLoanSection = onLoanItems.map((item) => ({
     ...item,
     status: 'on-loan' as const,
+  }));
+  const offlineSection = offlineItems.map((item) => ({
+    ...item,
+    status: 'offline' as const,
   }));
   const borrowedSection = borrowedItems.map((item) => ({
     ...item,
@@ -710,6 +728,21 @@ export default function UserInventoryPage() {
                       activeFilter === 'on-loan'
                         ? brandColors.white
                         : '#F57C00',
+                  }}
+                />
+                <Chip
+                  {...getChipProps('offline', offlineItems.length, 'Offline')}
+                  sx={{
+                    ...getChipProps('offline', offlineItems.length, 'Offline')
+                      .sx,
+                    backgroundColor:
+                      activeFilter === 'offline'
+                        ? brandColors.inkBlue
+                        : '#F3E5F5',
+                    color:
+                      activeFilter === 'offline'
+                        ? brandColors.white
+                        : '#7B1FA2',
                   }}
                 />
                 <Chip
@@ -835,6 +868,12 @@ export default function UserInventoryPage() {
                   title="On Loan"
                   items={onLoanSection}
                   color={{ background: '#FFF3E0', text: '#F57C00' }}
+                />
+
+                <Section
+                  title="Offline"
+                  items={offlineSection}
+                  color={{ background: '#F3E5F5', text: '#7B1FA2' }}
                 />
 
                 <Section

@@ -68,6 +68,20 @@ interface ItemData {
     id: string;
     name: string;
   }[];
+  currentActiveBorrow?: {
+    id: string;
+    status: string;
+    borrower: {
+      id: string;
+      name?: string;
+      image?: string;
+    };
+    lender: {
+      id: string;
+      name?: string;
+      image?: string;
+    };
+  };
 }
 
 interface ItemDetailClientProps {
@@ -132,10 +146,14 @@ export function ItemDetailClient({
   // Get current user ID
   const currentUserId = (session?.user as any)?.id;
 
-  // Find current active borrower from borrow history
-  const currentActiveBorrow = borrowHistory?.borrowHistory.find(
-    (record) => record.status === 'ACTIVE' || record.status === 'APPROVED'
-  );
+  // Get current active borrow request from item data (includes self-borrows)
+  const currentActiveBorrow = item?.currentActiveBorrow;
+
+  // Check if item is offline (self-borrowed)
+  const isOffline =
+    currentActiveBorrow &&
+    currentActiveBorrow.borrower?.id === currentUserId &&
+    currentActiveBorrow.lender?.id === currentUserId;
 
   // Handle borrow request
   const handleBorrowRequest = () => {
@@ -576,14 +594,16 @@ export function ItemDetailClient({
                     transition: 'filter 0.3s ease',
                   }}
                 />
-                {/* Borrower Avatar Overlay for borrowed items */}
-                {!item.isAvailable && currentActiveBorrow && (
+                {/* Borrower Avatar Overlay for borrowed items (but not offline items) */}
+                {!item.isAvailable && currentActiveBorrow && !isOffline && (
                   <Avatar
-                    {...(currentActiveBorrow.borrower.image && {
+                    {...(currentActiveBorrow.borrower?.image && {
                       src: currentActiveBorrow.borrower.image,
                     })}
                     onClick={() =>
-                      router.push(`/profile/${currentActiveBorrow.borrower.id}`)
+                      router.push(
+                        `/profile/${currentActiveBorrow.borrower?.id}`
+                      )
                     }
                     sx={{
                       position: 'absolute',
@@ -600,8 +620,8 @@ export function ItemDetailClient({
                       },
                     }}
                   >
-                    {!currentActiveBorrow.borrower.image &&
-                      (currentActiveBorrow.borrower.name?.[0] || '?')}
+                    {!currentActiveBorrow.borrower?.image &&
+                      (currentActiveBorrow.borrower?.name?.[0] || '?')}
                   </Avatar>
                 )}
               </Paper>
@@ -976,6 +996,28 @@ export function ItemDetailClient({
                               {checkingOut
                                 ? 'Taking Offline...'
                                 : 'Take Offline'}
+                            </Button>
+                          ) : isOffline ? (
+                            /* Take Online Button - for offline items (self-borrowed) */
+                            <Button
+                              variant="contained"
+                              color="primary"
+                              size="large"
+                              startIcon={
+                                checkingOut ? (
+                                  <CircularProgress size={20} />
+                                ) : (
+                                  <CheckIcon />
+                                )
+                              }
+                              onClick={handleToggleOffline}
+                              disabled={checkingOut}
+                              sx={{
+                                borderRadius: 2,
+                                textTransform: 'none',
+                              }}
+                            >
+                              {checkingOut ? 'Taking Online...' : 'Take Online'}
                             </Button>
                           ) : currentActiveBorrow ? (
                             /* Check In and Lost buttons for borrowed items */
