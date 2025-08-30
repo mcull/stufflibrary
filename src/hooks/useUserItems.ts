@@ -115,13 +115,15 @@ export function useUserItems(): UseUserItemsResult {
 
       setBorrowedItems(
         borrowRequestsData.activeBorrows?.filter(
-          (request: BorrowedItem) => request.status === 'ACTIVE'
+          (request: BorrowedItem) =>
+            request.status === 'ACTIVE' || request.status === 'APPROVED'
         ) || []
       );
 
       setOnLoanItems(
-        borrowRequestsData.receivedRequests?.filter(
-          (request: LentItem) => request.status === 'ACTIVE'
+        borrowRequestsData.onLoan?.filter(
+          (request: LentItem) =>
+            request.status === 'ACTIVE' || request.status === 'APPROVED'
         ) || []
       );
     } catch (err) {
