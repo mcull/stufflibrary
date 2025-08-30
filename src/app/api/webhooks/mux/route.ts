@@ -51,12 +51,8 @@ export async function POST(request: NextRequest) {
     });
 
     try {
-      const muxNode: any = await import('@mux/mux-node');
-      muxNode.Webhooks.verifyHeader(
-        rawBody,
-        signature,
-        process.env.MUX_WEBHOOK_SECRET
-      );
+      const { Webhooks } = await import('@mux/mux-node');
+      Webhooks.verifyHeader(rawBody, signature, process.env.MUX_WEBHOOK_SECRET);
       console.log('✅ Webhook signature verified successfully');
     } catch (signatureError) {
       console.log('❌ Signature verification failed:', {
