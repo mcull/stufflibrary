@@ -2,18 +2,22 @@
 import { NextRequest } from 'next/server';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-import { requireAdminAuth } from '@/lib/admin-auth';
-import { db } from '@/lib/db';
-
-import { GET, PATCH } from '../route';
-
-// Stub types
-type ReportStatus = 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED';
-type ReportPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-type UserReportReason = 'SPAM' | 'HARASSMENT' | 'INAPPROPRIATE_CONTENT' | 'FRAUD' | 'OTHER';
+// Stub types - prefixed with underscore to indicate they're unused in current implementation
+type _ReportStatus = 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED';
+type _ReportPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+type _UserReportReason =
+  | 'SPAM'
+  | 'HARASSMENT'
+  | 'INAPPROPRIATE_CONTENT'
+  | 'FRAUD'
+  | 'OTHER';
 
 vi.mock('@/lib/admin-auth');
 vi.mock('@/lib/db');
+
+import { requireAdminAuth } from '@/lib/admin-auth';
+
+import { GET, PATCH } from '../route';
 
 describe('/api/admin/reports', () => {
   beforeEach(() => {
@@ -22,9 +26,11 @@ describe('/api/admin/reports', () => {
 
   describe('GET', () => {
     it('returns empty reports until schema is implemented', async () => {
-      vi.mocked(requireAdminAuth).mockResolvedValue(undefined as any);
+      vi.mocked(requireAdminAuth).mockResolvedValue(undefined as never);
 
-      const request = new NextRequest('http://localhost:3000/api/admin/reports');
+      const request = new NextRequest(
+        'http://localhost:3000/api/admin/reports'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -36,7 +42,9 @@ describe('/api/admin/reports', () => {
     it('requires admin authentication', async () => {
       vi.mocked(requireAdminAuth).mockRejectedValue(new Error('Unauthorized'));
 
-      const request = new NextRequest('http://localhost:3000/api/admin/reports');
+      const request = new NextRequest(
+        'http://localhost:3000/api/admin/reports'
+      );
       const response = await GET(request);
 
       expect(response.status).toBe(500);
@@ -45,13 +53,16 @@ describe('/api/admin/reports', () => {
 
   describe('PATCH', () => {
     it('returns 501 until schema is implemented', async () => {
-      vi.mocked(requireAdminAuth).mockResolvedValue(undefined as any);
+      vi.mocked(requireAdminAuth).mockResolvedValue(undefined as never);
 
-      const request = new NextRequest('http://localhost:3000/api/admin/reports', {
-        method: 'PATCH',
-        body: JSON.stringify({ status: 'REVIEWED' })
-      });
-      
+      const request = new NextRequest(
+        'http://localhost:3000/api/admin/reports',
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ status: 'REVIEWED' }),
+        }
+      );
+
       const response = await PATCH(request);
       const data = await response.json();
 
