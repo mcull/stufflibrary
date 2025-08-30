@@ -89,7 +89,7 @@ export async function sendBorrowRequestReceivedNotification(
     }
 
     // Create single notification that handles both in-app and email
-    const notificationPromise = createNotification({
+    const notificationData: any = {
       userId: borrowRequest.lenderId,
       type: 'BORROW_REQUEST_RECEIVED' as NotificationType,
       title: 'New Borrow Request',
@@ -97,15 +97,21 @@ export async function sendBorrowRequestReceivedNotification(
       actionUrl: `/borrow-approval/${borrowRequest.id}`,
       relatedItemId: borrowRequest.itemId,
       relatedRequestId: borrowRequest.id,
-      sendEmail: !!emailTemplate,
-      emailTemplate,
       metadata: {
         borrowerName: borrowRequest.borrower.name,
         itemName: borrowRequest.item.name,
         requestMessage: borrowRequest.requestMessage,
         videoUrl: borrowRequest.videoUrl,
       },
-    });
+    };
+
+    // Only add email properties if template exists
+    if (emailTemplate) {
+      notificationData.sendEmail = true;
+      notificationData.emailTemplate = emailTemplate;
+    }
+
+    const notificationPromise = createNotification(notificationData);
 
     // Legacy SMS notification for backward compatibility
     const legacyNotificationData: Parameters<
