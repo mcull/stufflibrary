@@ -29,7 +29,7 @@ interface VintageCheckoutCardProps {
 }
 
 export function VintageCheckoutCard({
-  itemName,
+  itemName: _itemName,
   borrowHistory,
   showTitle = true,
   compact = false,
@@ -110,21 +110,6 @@ export function VintageCheckoutCard({
             />
           </Box>
         )}
-
-        {/* Item name in center - like traditional library checkout card */}
-        <Box sx={{ mb: 4, textAlign: 'center' }}>
-          <Typography
-            className="vintage-stamp-press"
-            sx={{
-              fontSize: compact ? '1.2rem' : '1.6rem',
-              fontWeight: 'bold',
-              color: '#1a1a1a',
-              letterSpacing: '1px',
-            }}
-          >
-            {itemName}
-          </Typography>
-        </Box>
 
         {/* Header row with columns */}
         <Box
