@@ -139,7 +139,7 @@ function ItemCard({ item, status }: ItemCardProps) {
       router.push(`/borrow-requests/${item.borrowRequestId}`);
       return;
     }
-    
+
     // For other items, go to the item detail page
     const itemId = item.id || item.item?.id;
     if (itemId) {
@@ -269,10 +269,10 @@ function ItemCard({ item, status }: ItemCardProps) {
             overflow: 'hidden',
           }}
         >
-          {item.imageUrl ? (
+          {item.imageUrl || item.item?.imageUrl ? (
             <>
               <Image
-                src={item.imageUrl}
+                src={item.imageUrl || item.item?.imageUrl}
                 alt={item.name || 'Item'}
                 fill
                 style={{
