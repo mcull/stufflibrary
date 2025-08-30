@@ -2,10 +2,18 @@ import { ReportStatus, ReportPriority, UserReportReason } from '@prisma/client';
 import { NextRequest } from 'next/server';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-import { requireAdminAuth } from '@/lib/admin-auth';
-import { db } from '@/lib/db';
-
-import { GET, PATCH } from '../route';
+// Mock the database configuration before importing anything that uses it
+vi.mock('@/lib/db-config', () => ({
+  getDatabaseConfig: vi.fn(() => ({
+    url: 'postgresql://test:test@localhost:5432/test',
+    directUrl: undefined,
+    environment: 'test',
+    isProduction: false,
+    allowDestructiveOperations: true,
+  })),
+  getDatabaseEnvironment: vi.fn(() => 'test'),
+  logDatabaseConfig: vi.fn(),
+}));
 
 vi.mock('@/lib/admin-auth');
 vi.mock('@/lib/db', () => ({
@@ -17,6 +25,11 @@ vi.mock('@/lib/db', () => ({
     },
   },
 }));
+
+import { requireAdminAuth } from '@/lib/admin-auth';
+import { db } from '@/lib/db';
+
+import { GET, PATCH } from '../route';
 
 const mockDb = db as unknown as {
   userReport: {
