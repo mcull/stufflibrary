@@ -51,9 +51,29 @@ export async function POST(request: NextRequest) {
     });
 
     try {
-      const { Webhooks } = await import('@mux/mux-node');
-      Webhooks.verifyHeader(rawBody, signature, process.env.MUX_WEBHOOK_SECRET);
+      // Import Mux dynamically to avoid type issues
+      const Mux = await import('@mux/mux-node');
+      const mux = new Mux.default({
+        tokenId: process.env.MUX_TOKEN_ID!,
+        tokenSecret: process.env.MUX_TOKEN_SECRET!,
+        webhookSecret: process.env.MUX_WEBHOOK_SECRET!,
+      });
+
+      // Verify webhook signature and parse payload
+      const event = mux.webhooks.unwrap(rawBody, {
+        'mux-signature': signature,
+      });
       console.log('✅ Webhook signature verified successfully');
+
+      // Use the parsed event
+      const eventType = event.type;
+      const data = event.data;
+
+      console.log('📋 Webhook event parsed:', {
+        eventType,
+        hasData: !!data,
+        dataKeys: data ? Object.keys(data) : [],
+      });
     } catch (signatureError) {
       console.log('❌ Signature verification failed:', {
         error:
@@ -69,15 +89,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Parse the raw payload as fallback (since event parsing is in try block)
     const payload = JSON.parse(rawBody);
     const eventType = payload?.type as string | undefined;
     const data = payload?.data;
-
-    console.log('📋 Webhook payload parsed:', {
-      eventType,
-      hasData: !!data,
-      dataKeys: data ? Object.keys(data) : [],
-    });
 
     if (eventType === 'video.asset.ready' && data) {
       const playbackId = data.playback_ids?.[0]?.id as string | undefined;
