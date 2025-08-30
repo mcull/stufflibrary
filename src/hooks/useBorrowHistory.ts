@@ -41,8 +41,8 @@ export function useBorrowHistory(itemId: string): UseBorrowHistoryResult {
       const response = await fetch(`/api/items/${itemId}/borrow-history`);
 
       if (!response.ok) {
-        if (response.status === 403) {
-          // Access denied - this is expected for non-members
+        if (response.status === 403 || response.status === 401) {
+          // Access denied or unauthorized - this is expected for non-members or unauthenticated users
           setData(null);
           setError(null);
           return;
