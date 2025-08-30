@@ -238,7 +238,15 @@ export function ItemDetailClient({
         const response = await fetch(`/api/items/${itemId}`);
 
         if (!response.ok) {
-          throw new Error('Failed to fetch item');
+          if (response.status === 401 || response.status === 403) {
+            setError('You do not have permission to view this item');
+            return;
+          }
+          if (response.status === 404) {
+            setError('Item not found');
+            return;
+          }
+          throw new Error(`Failed to fetch item: ${response.statusText}`);
         }
 
         const data = await response.json();
