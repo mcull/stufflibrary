@@ -33,7 +33,7 @@ export default function AboutPage() {
               fontSize: { xs: '2rem', md: '3rem' },
             }}
           >
-            The Magic of Sharing
+            Share more, buy less.
           </Typography>
           <Typography
             variant="h5"
@@ -45,7 +45,7 @@ export default function AboutPage() {
               mx: 'auto',
             }}
           >
-            Why working together makes everyone&apos;s life better
+            The idea behind stuff libraries
           </Typography>
         </Box>
 
@@ -95,45 +95,6 @@ export default function AboutPage() {
           </Card>
 
           {/* The Solution */}
-          <Card sx={{ backgroundColor: brandColors.inkBlue, color: 'white' }}>
-            <CardContent sx={{ p: { xs: 3, md: 4 } }}>
-              <Typography
-                variant="h4"
-                component="h2"
-                sx={{
-                  fontWeight: 600,
-                  mb: 3,
-                }}
-              >
-                🤝 A Better Way: Sharing
-              </Typography>
-              <Typography
-                variant="body1"
-                sx={{
-                  lineHeight: 1.7,
-                  fontSize: '1.1rem',
-                  mb: 2,
-                }}
-              >
-                What if you could borrow that drill from your neighbor instead
-                of buying one? What if someone could use your cake pan when
-                you&apos;re not making birthdays special?
-              </Typography>
-              <Typography
-                variant="body1"
-                sx={{
-                  lineHeight: 1.7,
-                  fontSize: '1.1rem',
-                }}
-              >
-                This is called &ldquo;sharing the commons&rdquo; - when a
-                community works together to use things more wisely. Instead of
-                everyone owning everything, we share what we have.
-              </Typography>
-            </CardContent>
-          </Card>
-
-          {/* The Science Behind It */}
           <Card sx={{ backgroundColor: brandColors.white }}>
             <CardContent sx={{ p: { xs: 3, md: 4 } }}>
               <Typography
@@ -145,7 +106,7 @@ export default function AboutPage() {
                   mb: 3,
                 }}
               >
-                🧠 Smart People Studied This
+                🤝 So let&apos;s make it easier to share.
               </Typography>
               <Typography
                 variant="body1"
@@ -156,33 +117,80 @@ export default function AboutPage() {
                   mb: 2,
                 }}
               >
-                A very smart scientist named Elinor Ostrom spent her whole life
-                studying how people share things. She won a big prize called the
-                Nobel Prize for figuring out something amazing.
+                What if it were easier for us to pool our stuff among friends
+                and neighbors? What if it were easier to see what the folks
+                around us have and are willing to share?
               </Typography>
               <Typography
                 variant="body1"
                 sx={{
                   color: brandColors.charcoal,
+                  lineHeight: 1.7,
+                  fontSize: '1.1rem',
+                }}
+              >
+                When communities work together to use things more wisely,
+                everyone wins. Instead of everyone owning everything, we share
+                what we have.
+              </Typography>
+            </CardContent>
+          </Card>
+
+          {/* The Research */}
+          <Card sx={{ backgroundColor: brandColors.inkBlue, color: 'white' }}>
+            <CardContent sx={{ p: { xs: 3, md: 4 } }}>
+              <Typography
+                variant="h4"
+                component="h2"
+                sx={{
+                  fontWeight: 600,
+                  color: 'white',
+                  mb: 3,
+                }}
+              >
+                🏛️ But does sharing actually work?
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{
+                  color: 'white',
                   lineHeight: 1.7,
                   fontSize: '1.1rem',
                   mb: 2,
                 }}
               >
-                She found out that when neighbors work together and share things
-                fairly, everyone ends up happier and richer. She called this
-                &ldquo;the triumph of the commons.&rdquo;
+                A lot of people are skeptical about sharing in practice.
+                Won&apos;t things get broken, or unfairly used if there&apos;s
+                no central authority to supervise?
               </Typography>
               <Typography
                 variant="body1"
                 sx={{
-                  color: brandColors.charcoal,
+                  color: 'white',
+                  lineHeight: 1.7,
+                  fontSize: '1.1rem',
+                  mb: 2,
+                }}
+              >
+                Nobel Prize-winning economist Elinor Ostrom discovered that
+                communities all over the world are great at sharing common
+                resources. When it works well, it&apos;s because these
+                principles are in place: clear boundaries, collective choice,
+                monitoring, graduated sanctions, conflict resolution,
+                recognition of rights, nested enterprises, and accountable
+                governance.
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{
+                  color: 'white',
                   lineHeight: 1.7,
                   fontSize: '1.1rem',
                 }}
               >
-                It turns out that sharing isn&apos;t just nice - it&apos;s
-                actually the smartest way to live!
+                Inspired by her research, we&apos;ve designed this app to help
+                communities of friends and neighbors share well and buy less
+                stuff.
               </Typography>
             </CardContent>
           </Card>
@@ -304,7 +312,7 @@ export default function AboutPage() {
             </CardContent>
           </Card>
 
-          {/* The Benefits */}
+          {/* Platform Features Mapped to Ostrom's Principles */}
           <Card sx={{ backgroundColor: brandColors.white }}>
             <CardContent sx={{ p: { xs: 3, md: 4 } }}>
               <Typography
@@ -316,7 +324,7 @@ export default function AboutPage() {
                   mb: 3,
                 }}
               >
-                🌟 Why This Makes Everything Better
+                🔧 How the platform supports good sharing
               </Typography>
               <Box
                 sx={{
@@ -336,7 +344,7 @@ export default function AboutPage() {
                           mb: 1,
                         }}
                       >
-                        💰 Save Money
+                        🏠 Clear Boundaries
                       </Typography>
                       <Typography
                         variant="body1"
@@ -345,8 +353,8 @@ export default function AboutPage() {
                           lineHeight: 1.6,
                         }}
                       >
-                        Instead of buying things you rarely use, borrow them
-                        when you need them.
+                        Library membership defines who can participate and
+                        access shared items.
                       </Typography>
                     </Box>
                     <Box>
@@ -358,7 +366,7 @@ export default function AboutPage() {
                           mb: 1,
                         }}
                       >
-                        🏠 Less Clutter
+                        🗳️ Collective Choice
                       </Typography>
                       <Typography
                         variant="body1"
@@ -367,8 +375,7 @@ export default function AboutPage() {
                           lineHeight: 1.6,
                         }}
                       >
-                        Your house stays neat when you don&apos;t have to store
-                        everything yourself.
+                        [Placeholder for community governance features]
                       </Typography>
                     </Box>
                     <Box>
@@ -380,7 +387,7 @@ export default function AboutPage() {
                           mb: 1,
                         }}
                       >
-                        🌍 Help the Planet
+                        👀 Monitoring
                       </Typography>
                       <Typography
                         variant="body1"
@@ -389,8 +396,29 @@ export default function AboutPage() {
                           lineHeight: 1.6,
                         }}
                       >
-                        When we share instead of always buying new, we make less
-                        waste.
+                        Borrow/return tracking and item condition reporting
+                        provide transparency.
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          fontWeight: 600,
+                          color: brandColors.charcoal,
+                          mb: 1,
+                        }}
+                      >
+                        ⚖️ Graduated Sanctions
+                      </Typography>
+                      <Typography
+                        variant="body1"
+                        sx={{
+                          color: brandColors.charcoal,
+                          lineHeight: 1.6,
+                        }}
+                      >
+                        [Placeholder for community moderation system]
                       </Typography>
                     </Box>
                   </Stack>
@@ -406,7 +434,7 @@ export default function AboutPage() {
                           mb: 1,
                         }}
                       >
-                        👥 Build Community
+                        🤝 Conflict Resolution
                       </Typography>
                       <Typography
                         variant="body1"
@@ -415,8 +443,8 @@ export default function AboutPage() {
                           lineHeight: 1.6,
                         }}
                       >
-                        Get to know your neighbors and make your neighborhood
-                        friendlier.
+                        Direct messaging and community guidelines help resolve
+                        issues.
                       </Typography>
                     </Box>
                     <Box>
@@ -428,7 +456,7 @@ export default function AboutPage() {
                           mb: 1,
                         }}
                       >
-                        ⚡ Get Things Done
+                        🏅 Recognition of Rights
                       </Typography>
                       <Typography
                         variant="body1"
@@ -437,8 +465,8 @@ export default function AboutPage() {
                           lineHeight: 1.6,
                         }}
                       >
-                        Don&apos;t put off projects because you don&apos;t have
-                        the right tools.
+                        Clear ownership records and borrower/lender protections
+                        respect everyone&apos;s rights.
                       </Typography>
                     </Box>
                     <Box>
@@ -450,7 +478,7 @@ export default function AboutPage() {
                           mb: 1,
                         }}
                       >
-                        🎉 Feel Good
+                        🌐 Nested Enterprises
                       </Typography>
                       <Typography
                         variant="body1"
@@ -459,7 +487,30 @@ export default function AboutPage() {
                           lineHeight: 1.6,
                         }}
                       >
-                        Helping others and being helped feels amazing.
+                        Multiple libraries can connect and coordinate at
+                        different scales.
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          fontWeight: 600,
+                          color: brandColors.charcoal,
+                          mb: 1,
+                        }}
+                      >
+                        📋 Accountable Governance
+                      </Typography>
+                      <Typography
+                        variant="body1"
+                        sx={{
+                          color: brandColors.charcoal,
+                          lineHeight: 1.6,
+                        }}
+                      >
+                        [Placeholder for community leadership and accountability
+                        features]
                       </Typography>
                     </Box>
                   </Stack>
@@ -482,14 +533,16 @@ export default function AboutPage() {
                 component="h2"
                 sx={{
                   fontWeight: 600,
+                  color: 'white',
                   mb: 3,
                 }}
               >
-                🚀 Join the Sharing Revolution
+                ✨ Share more, buy less, see how it goes!
               </Typography>
               <Typography
                 variant="body1"
                 sx={{
+                  color: 'white',
                   lineHeight: 1.7,
                   fontSize: '1.1rem',
                   mb: 2,
@@ -497,20 +550,19 @@ export default function AboutPage() {
                   mx: 'auto',
                 }}
               >
-                Elinor Ostrom showed us that communities work best when people
-                share fairly and help each other. Stuff libraries are a simple
-                way to make this happen in your neighborhood.
+                Communities are pretty good at sharing when they have the right
+                tools and structure. We&apos;re building those tools.
               </Typography>
               <Typography
                 variant="body1"
                 sx={{
+                  color: 'white',
                   lineHeight: 1.7,
                   fontSize: '1.1rem',
                   fontWeight: 600,
                 }}
               >
-                Together, we can share more and buy less. It&apos;s better for
-                everyone!
+                Want to try it out with your friends and neighbors?
               </Typography>
             </CardContent>
           </Card>
