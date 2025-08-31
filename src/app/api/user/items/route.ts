@@ -87,6 +87,7 @@ export async function GET(_request: NextRequest) {
       name: item.name,
       description: item.description,
       imageUrl: item.imageUrl,
+      watercolorThumbUrl: item.watercolorThumbUrl,
       currentBorrowRequestId: item.currentBorrowRequestId, // Include this field for filtering
       isAvailable: !item.currentBorrowRequestId, // Computed from currentBorrowRequestId
       canBeBorrowed: !item.currentBorrowRequestId, // Computed field for actual borrowability

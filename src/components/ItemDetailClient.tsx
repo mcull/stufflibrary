@@ -51,6 +51,8 @@ interface ItemData {
   condition: string;
   location?: string;
   imageUrl?: string;
+  watercolorUrl?: string;
+  watercolorThumbUrl?: string;
   isAvailable: boolean;
   currentBorrowRequestId?: string;
   createdAt: string;
@@ -572,7 +574,7 @@ export function ItemDetailClient({
           }}
         >
           {/* Image */}
-          {item.imageUrl && (
+          {(item.watercolorThumbUrl || item.imageUrl) && (
             <Box sx={{ flex: '0 0 300px' }}>
               <Paper
                 elevation={3}
@@ -584,7 +586,7 @@ export function ItemDetailClient({
                 }}
               >
                 <img
-                  src={item.imageUrl}
+                  src={item.watercolorThumbUrl || item.imageUrl}
                   alt={item.name}
                   style={{
                     width: '100%',

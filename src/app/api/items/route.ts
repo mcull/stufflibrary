@@ -181,6 +181,35 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Trigger asynchronous watercolor rendering (fire and forget)
+    if (process.env.GOOGLE_AI_API_KEY) {
+      console.log('🎨 Triggering watercolor rendering for item:', item.id);
+
+      // Make async request to our watercolor endpoint
+      fetch(
+        `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/items/render-watercolor`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Cookie: request.headers.get('Cookie') || '',
+          },
+          body: JSON.stringify({ itemId: item.id }),
+        }
+      )
+        .then(() => {
+          console.log(
+            '✅ Watercolor rendering request sent for item:',
+            item.id
+          );
+        })
+        .catch((error) => {
+          console.error('❌ Failed to trigger watercolor rendering:', error);
+        });
+    } else {
+      console.log('⚠️ Watercolor rendering disabled (no GOOGLE_AI_API_KEY)');
+    }
+
     return NextResponse.json({
       itemId: itemWithLibraries!.id,
       item: {
@@ -189,6 +218,8 @@ export async function POST(request: NextRequest) {
         description: itemWithLibraries!.description,
         condition: itemWithLibraries!.condition,
         imageUrl: itemWithLibraries!.imageUrl,
+        watercolorUrl: itemWithLibraries!.watercolorUrl,
+        watercolorThumbUrl: itemWithLibraries!.watercolorThumbUrl,
         isAvailable: !itemWithLibraries!.currentBorrowRequestId,
         createdAt: itemWithLibraries!.createdAt,
         owner: itemWithLibraries!.owner,
