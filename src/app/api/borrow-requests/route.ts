@@ -69,11 +69,14 @@ export async function GET(_request: NextRequest) {
       (req) => req.lenderId === userId
     );
     const activeBorrows = borrowRequests.filter(
-      (req) => req.status === 'ACTIVE' || req.status === 'APPROVED'
+      (req) =>
+        req.borrowerId === userId &&
+        (req.status === 'ACTIVE' || req.status === 'APPROVED')
     );
     const onLoan = borrowRequests.filter(
       (req) =>
         req.lenderId === userId &&
+        req.borrowerId !== userId && // Exclude self-borrows (offline items)
         (req.status === 'ACTIVE' || req.status === 'APPROVED')
     );
 
