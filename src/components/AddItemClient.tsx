@@ -24,6 +24,57 @@ import { brandColors } from '@/theme/brandTokens';
 
 import { LibrarySelectionModal } from './LibrarySelectionModal';
 
+// Animated "Illustrating item..." overlay component
+function IllustratingOverlay() {
+  const [dotCount, setDotCount] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setDotCount((prev) => (prev + 1) % 4); // Cycles through 0, 1, 2, 3
+    }, 600); // Change every 600ms for smooth animation
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const getDots = (count: number) => {
+    return '.'.repeat(count);
+  };
+
+  return (
+    <Box
+      sx={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: '80%',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        backdropFilter: 'blur(4px)',
+        borderRadius: 1,
+        py: 1.5,
+        px: 2,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 1,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+      }}
+    >
+      <CircularProgress size={16} sx={{ color: brandColors.inkBlue }} />
+      <Typography
+        variant="body2"
+        sx={{
+          color: brandColors.inkBlue,
+          fontWeight: 500,
+          fontSize: '0.875rem',
+        }}
+      >
+        Illustrating item{getDots(dotCount)}
+      </Typography>
+    </Box>
+  );
+}
+
 type CaptureState =
   | 'permission'
   | 'streaming'
@@ -824,6 +875,9 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
                     }}
                   />
                 )}
+
+                {/* Illustrating overlay - only show when processing watercolor */}
+                {isProcessingWatercolor && <IllustratingOverlay />}
               </Paper>
             )}
 
@@ -841,24 +895,6 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
               Confidence:{' '}
               {Math.round((recognitionResult?.confidence || 0) * 100)}%
             </Typography>
-
-            {/* Live analysis status */}
-            {isProcessingWatercolor && (
-              <Box
-                sx={{
-                  mb: 3,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 1,
-                }}
-              >
-                <CircularProgress size={20} />
-                <Typography variant="body2" color="text.secondary">
-                  Illustrating item...
-                </Typography>
-              </Box>
-            )}
 
             {isWatercolorReady && (
               <Typography variant="body2" color="success.main" sx={{ mb: 3 }}>
