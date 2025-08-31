@@ -191,6 +191,13 @@ model Item {
   condition              String          @default("good")
   location               String?         // e.g., "garage", "kitchen", "basement"
   imageUrl               String?
+  // Watercolor rendering fields
+  watercolorUrl          String?
+  watercolorThumbUrl     String?
+  styleVersion           String?         // e.g., "wc/v1"
+  aiModel                String?         // e.g., "gemini-2.5-flash-image"
+  synthIdWatermark       Boolean         @default(false)
+  flags                  Json?           // e.g., ["person_detected"]
   currentBorrowRequestId String?
   createdAt              DateTime        @default(now())
   updatedAt              DateTime        @updatedAt
