@@ -67,20 +67,25 @@ test.describe('VintageCheckoutCard Component', () => {
         <style>
           body { margin: 0; padding: 20px; font-family: 'Roboto', sans-serif; background: #f5f5f5; }
           
-          /* Vintage fonts CSS - inline for testing */
-          @import url('https://fonts.googleapis.com/css2?family=Special+Elite&family=Courier+Prime&family=Source+Code+Pro:wght@400;600&display=swap');
+          /* Vintage fonts CSS - using reliable web fonts for testing */
+          @import url('https://fonts.googleapis.com/css2?family=Special+Elite&family=Courier+Prime:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap');
+          
+          .vintage-stampette {
+            font-family: 'JetBrains Mono', 'Courier New', 'Courier', monospace !important;
+            font-weight: 600 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 1px !important;
+          }
           
           .vintage-impact-label {
-            font-family: 'Special Elite', 'Courier New', monospace !important;
+            font-family: 'Special Elite', 'Times New Roman', 'Times', serif !important;
             font-weight: 400 !important;
             letter-spacing: 1px !important;
           }
           
-          .vintage-stampette {
-            font-family: 'Source Code Pro', 'Courier New', monospace !important;
-            font-weight: 600 !important;
-            text-transform: uppercase !important;
-            letter-spacing: 0.5px !important;
+          .vintage-stamp-press {
+            font-family: 'Courier Prime', 'Times New Roman', 'Times', serif !important;
+            font-weight: 700 !important;
           }
         </style>
       </head>
@@ -412,9 +417,9 @@ test.describe('VintageCheckoutCard Component', () => {
   }) => {
     await page.evaluate(() => window.renderTestScenario('with-history'));
 
-    // Wait for fonts to load properly
-    await page.waitForFunction(() => document.fonts.ready, { timeout: 10000 });
-    await page.waitForTimeout(500); // Additional buffer for rendering
+    // Wait for fonts to load (with reliable fallbacks)
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000); // Buffer for font rendering
 
     const card = page.locator('#test-container');
     await expect(card).toHaveScreenshot(
@@ -429,9 +434,9 @@ test.describe('VintageCheckoutCard Component', () => {
       window.renderTestScenario('compact-with-history')
     );
 
-    // Wait for fonts to load properly
-    await page.waitForFunction(() => document.fonts.ready, { timeout: 10000 });
-    await page.waitForTimeout(500); // Additional buffer for rendering
+    // Wait for fonts to load (with reliable fallbacks)
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000); // Buffer for font rendering
 
     const card = page.locator('#test-container');
     await expect(card).toHaveScreenshot(
@@ -442,9 +447,9 @@ test.describe('VintageCheckoutCard Component', () => {
   test('should match snapshot - empty card (no history)', async ({ page }) => {
     await page.evaluate(() => window.renderTestScenario('empty'));
 
-    // Wait for fonts to load properly
-    await page.waitForFunction(() => document.fonts.ready, { timeout: 10000 });
-    await page.waitForTimeout(500); // Additional buffer for rendering
+    // Wait for fonts to load (with reliable fallbacks)
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000); // Buffer for font rendering
 
     const card = page.locator('#test-container');
     await expect(card).toHaveScreenshot('vintage-checkout-card-empty.png');
@@ -453,9 +458,9 @@ test.describe('VintageCheckoutCard Component', () => {
   test('should match snapshot - compact empty card', async ({ page }) => {
     await page.evaluate(() => window.renderTestScenario('compact-empty'));
 
-    // Wait for fonts to load properly
-    await page.waitForFunction(() => document.fonts.ready, { timeout: 10000 });
-    await page.waitForTimeout(500); // Additional buffer for rendering
+    // Wait for fonts to load (with reliable fallbacks)
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(1000); // Buffer for font rendering
 
     const card = page.locator('#test-container');
     await expect(card).toHaveScreenshot(
