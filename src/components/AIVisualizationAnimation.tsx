@@ -19,6 +19,12 @@ export function AIVisualizationAnimation({
   const [phase, setPhase] = useState<
     'loading' | 'mask' | 'watercolor' | 'complete'
   >('loading');
+
+  console.log('🎬 AIVisualizationAnimation render:', {
+    phase,
+    maskUrl: !!maskUrl,
+    watercolorUrl: !!watercolorUrl,
+  });
   const [maskOpacity, setMaskOpacity] = useState(0);
   const [originalOpacity, setOriginalOpacity] = useState(1);
   const [watercolorOpacity, setWatercolorOpacity] = useState(0);
@@ -26,31 +32,59 @@ export function AIVisualizationAnimation({
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!maskUrl || !watercolorUrl) return;
-
-    const sequence = async () => {
-      // Phase 1: Show mask overlay fading in (1 second)
+    // Start animation after a brief loading period, even if we don't have all data
+    const startAnimation = () => {
+      // Phase 1: Show object detection (if available) or skip to watercolor
       setTimeout(() => {
-        setPhase('mask');
-        setMaskOpacity(1);
-      }, 500);
+        if (maskUrl) {
+          console.log('🎯 Starting mask phase');
+          setPhase('mask');
+          setMaskOpacity(1);
+        } else if (watercolorUrl) {
+          console.log('🎨 Starting watercolor phase (no mask)');
+          setPhase('watercolor');
+          setOriginalOpacity(0);
+          setWatercolorOpacity(1);
+        } else {
+          // No AI data available, show completion immediately
+          console.log('⚡ No AI data, completing immediately');
+          setPhase('complete');
+          onAnimationComplete?.();
+          return;
+        }
+      }, 1000); // Give it a second to load
 
-      // Phase 2: Cross-fade from original to watercolor (1.5 seconds)
-      setTimeout(() => {
-        setPhase('watercolor');
-        setOriginalOpacity(0);
-        setWatercolorOpacity(1);
-        setMaskOpacity(0);
-      }, 2000);
+      // Phase 2: Cross-fade to watercolor (if available)
+      setTimeout(
+        () => {
+          if (watercolorUrl) {
+            setPhase('watercolor');
+            setOriginalOpacity(0);
+            setWatercolorOpacity(1);
+            setMaskOpacity(0);
+          } else {
+            // No watercolor, but we might have shown mask, so complete
+            setPhase('complete');
+            onAnimationComplete?.();
+            return;
+          }
+        },
+        maskUrl ? 3000 : 2000
+      ); // Longer delay, minimum 2s for watercolor
 
-      // Phase 3: Complete
-      setTimeout(() => {
-        setPhase('complete');
-        onAnimationComplete?.();
-      }, 3500);
+      // Phase 3: Complete (ensure minimum 4 seconds total)
+      setTimeout(
+        () => {
+          console.log('✨ Animation complete, calling onAnimationComplete');
+          setPhase('complete');
+          onAnimationComplete?.();
+        },
+        maskUrl && watercolorUrl ? 5000 : 4000
+      ); // Minimum 4s total animation
     };
 
-    sequence();
+    // Always start the animation, even without data
+    startAnimation();
   }, [maskUrl, watercolorUrl, onAnimationComplete]);
 
   return (

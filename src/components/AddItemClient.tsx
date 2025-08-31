@@ -4,6 +4,7 @@ import {
   ArrowBack as ArrowBackIcon,
   CameraAlt as CameraIcon,
   Check as CheckIcon,
+  CheckCircle as CheckCircleIcon,
   ErrorOutline as ErrorIcon,
 } from '@mui/icons-material';
 import {
@@ -29,6 +30,7 @@ type CaptureState =
   | 'streaming'
   | 'capturing'
   | 'analyzing'
+  | 'illustrating' // New state: recognition done, watercolor processing in background
   | 'recognized'
   | 'uploaded'
   | 'error';
@@ -63,6 +65,8 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
   const [shouldMirrorCamera, setShouldMirrorCamera] = useState(false);
   const [uploadedItem, setUploadedItem] = useState<UploadedItem | null>(null);
   const [showLibraryModal, setShowLibraryModal] = useState(false);
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const [watercolorData, setWatercolorData] = useState<{
     maskUrl?: string;
@@ -231,7 +235,9 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
           return;
         }
 
-        setState('analyzing');
+        // Skip analyzing state - go directly to recognized with loading
+        console.log('📸 Image captured, starting analysis...');
+        setIsAnalyzing(true);
 
         try {
           // Create form data for combined AI analysis and visualization
@@ -248,6 +254,7 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
           }
 
           const result = await response.json();
+          console.log('🎨 AI Analysis result:', result);
 
           if (result.recognized && result.name) {
             // Set recognition results
@@ -258,16 +265,31 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
               category: result.category || 'other',
             });
 
-            // Set watercolor visualization data (if available)
-            if (result.maskUrl || result.watercolorUrl) {
-              setWatercolorData({
+            // Store previewId for polling
+            setPreviewId(result.previewId);
+
+            // Analysis complete, show results
+            setIsAnalyzing(false);
+
+            // Check if watercolor is processing in background
+            if (result.watercolorProcessing) {
+              console.log(
+                '🎨 Recognition complete, moving to recognized state with background processing...'
+              );
+              setState('recognized');
+              // Start polling for watercolor completion
+              startWatercolorPolling(result.previewId);
+            } else {
+              // Legacy path: watercolor data already available
+              const watercolorInfo = {
                 maskUrl: result.maskUrl,
                 watercolorUrl: result.watercolorUrl,
                 segmentationMasks: result.segmentationMasks || [],
-              });
+              };
+              console.log('🎯 Setting watercolor data:', watercolorInfo);
+              setWatercolorData(watercolorInfo);
+              setState('recognized');
             }
-
-            setState('recognized');
           } else if (result.prohibited) {
             setError(
               result.error ||
@@ -284,12 +306,56 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
           console.error('Error analyzing image:', err);
           setError('Failed to analyze the image. Please try again.');
           setState('error');
+        } finally {
+          setIsAnalyzing(false);
         }
       },
       'image/jpeg',
       0.8
     );
   }, [shouldMirrorCamera]);
+
+  // Start polling for watercolor completion
+  const startWatercolorPolling = useCallback(async (previewId: string) => {
+    console.log('🔄 Starting watercolor polling for', previewId);
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/watercolor-status/${previewId}`);
+        const result = await response.json();
+
+        if (result.ready) {
+          console.log('🎨 Watercolor ready!', result);
+          clearInterval(pollInterval);
+
+          if (result.error) {
+            console.warn('⚠️ Watercolor processing failed:', result.error);
+            // Still move to recognized state with original photo
+            setState('recognized');
+          } else {
+            // Set watercolor data - this will trigger the cross-fade animation
+            console.log('🎨 Watercolor ready, triggering cross-fade...');
+            setWatercolorData({
+              maskUrl: result.maskUrl,
+              watercolorUrl: result.watercolorUrl,
+              segmentationMasks: result.segmentationMasks || [],
+            });
+            // State stays 'recognized' but now with watercolor data
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error polling watercolor status:', error);
+        // Continue polling - don't break the flow
+      }
+    }, 2000); // Poll every 2 seconds
+
+    // Stop polling after 2 minutes to prevent infinite polling
+    setTimeout(() => {
+      clearInterval(pollInterval);
+      console.warn('⏰ Watercolor polling timed out');
+      setState('recognized'); // Move to recognized state even without watercolor
+    }, 120000);
+  }, []);
 
   // Add item and navigate to metadata page
   const addItem = useCallback(async () => {
@@ -673,45 +739,115 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
         );
 
       case 'recognized':
+        const isWatercolorReady = !!watercolorData?.watercolorUrl;
+        const isProcessingWatercolor = previewId && !isWatercolorReady;
+
+        // If still analyzing, show analyzing state
+        if (isAnalyzing) {
+          return (
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <CircularProgress size={64} sx={{ mb: 2 }} />
+              <Typography variant="h6" gutterBottom>
+                Analyzing image...
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                AI is identifying your item
+              </Typography>
+            </Box>
+          );
+        }
+
         return (
           <Box sx={{ textAlign: 'center', py: 4 }}>
+            {/* Square image container with cross-fade animation */}
             {capturedImageUrl && (
               <Paper
                 elevation={3}
                 sx={{
-                  maxWidth: 300,
+                  width: 300,
+                  height: 300,
                   mx: 'auto',
                   mb: 3,
                   borderRadius: 2,
                   overflow: 'hidden',
                   bgcolor: 'grey.100',
+                  position: 'relative',
                 }}
               >
+                {/* Original image */}
                 <img
                   src={capturedImageUrl}
                   alt="Captured item"
                   style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
                     width: '100%',
-                    height: 'auto',
-                    display: 'block',
-                    maxHeight: '300px',
-                    objectFit: 'contain',
+                    height: '100%',
+                    objectFit: 'cover',
+                    opacity: isWatercolorReady ? 0 : 1,
+                    transition: 'opacity 1.5s ease-in-out',
                   }}
                 />
+
+                {/* Watercolor image (when ready) */}
+                {watercolorData?.watercolorUrl && (
+                  <img
+                    src={watercolorData.watercolorUrl}
+                    alt="Watercolor illustration"
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      opacity: isWatercolorReady ? 1 : 0,
+                      transition: 'opacity 1.5s ease-in-out',
+                    }}
+                  />
+                )}
               </Paper>
             )}
 
-            <CheckIcon sx={{ fontSize: 48, color: 'success.main', mb: 2 }} />
+            {/* Success icon and title */}
+            <CheckCircleIcon
+              sx={{ fontSize: 48, color: 'success.main', mb: 2 }}
+            />
             <Typography variant="h5" gutterBottom>
               Item Recognized!
             </Typography>
-            <Typography variant="h6" sx={{ mb: 3, color: brandColors.inkBlue }}>
+            <Typography variant="h6" sx={{ mb: 1, color: brandColors.inkBlue }}>
               {recognitionResult?.name}
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
               Confidence:{' '}
               {Math.round((recognitionResult?.confidence || 0) * 100)}%
             </Typography>
+
+            {/* Live analysis status */}
+            {isProcessingWatercolor && (
+              <Box
+                sx={{
+                  mb: 3,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 1,
+                }}
+              >
+                <CircularProgress size={20} />
+                <Typography variant="body2" color="text.secondary">
+                  Illustrating item...
+                </Typography>
+              </Box>
+            )}
+
+            {isWatercolorReady && (
+              <Typography variant="body2" color="success.main" sx={{ mb: 3 }}>
+                ✨ Watercolor illustration ready!
+              </Typography>
+            )}
 
             <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
               <Button
@@ -724,9 +860,10 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
               <Button
                 variant="contained"
                 onClick={addItem}
+                disabled={isProcessingWatercolor}
                 sx={{ borderRadius: 2 }}
               >
-                Add Item
+                {isProcessingWatercolor ? 'Processing...' : 'Add Item'}
               </Button>
             </Box>
           </Box>

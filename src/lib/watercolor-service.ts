@@ -133,11 +133,40 @@ Use descriptive, specific labels that would help someone identify the item for b
         }
       }
 
-      const masks: SegmentationMask[] = JSON.parse(jsonText);
       console.log(
-        `🎯 Detected ${masks.length} objects:`,
-        masks.map((m) => m.label)
+        '🔍 Raw AI response:',
+        responseText.substring(0, 200) + '...'
       );
+      console.log(
+        '🔍 Extracted JSON text:',
+        jsonText.substring(0, 200) + '...'
+      );
+
+      let masks: SegmentationMask[] = [];
+      try {
+        masks = JSON.parse(jsonText);
+        console.log(
+          `🎯 Detected ${masks.length} objects:`,
+          masks.map((m) => m.label)
+        );
+      } catch (parseError) {
+        console.error('JSON parsing failed:', parseError);
+        console.error('Failed to parse JSON text:', jsonText.substring(0, 500));
+        // Try to extract valid JSON from the response if it's malformed
+        const jsonMatch = jsonText.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          try {
+            masks = JSON.parse(jsonMatch[0]);
+            console.log(
+              '✅ Recovered from malformed JSON, detected objects:',
+              masks.length
+            );
+          } catch (recoveryError) {
+            console.error('JSON recovery also failed:', recoveryError);
+            masks = []; // Fall back to empty array
+          }
+        }
+      }
 
       return masks;
     } catch (error) {
@@ -186,12 +215,22 @@ Use descriptive, specific labels that would help someone identify the item for b
 
         const maskBuffer = Buffer.from(maskBase64, 'base64');
 
-        // Resize mask to match bounding box dimensions
-        const _resizedMask = await sharp(maskBuffer)
-          .resize(x1 - x0, y1 - y0, { fit: 'fill' })
-          .ensureAlpha()
-          .raw()
-          .toBuffer({ resolveWithObject: true });
+        // Try to resize mask to match bounding box dimensions, with fallback
+        let _resizedMask;
+        try {
+          _resizedMask = await sharp(maskBuffer)
+            .resize(x1 - x0, y1 - y0, { fit: 'fill' })
+            .ensureAlpha()
+            .raw()
+            .toBuffer({ resolveWithObject: true });
+        } catch (maskError) {
+          console.warn(
+            `⚠️ Corrupted mask from AI for ${maskData.label}, using bounding box fallback:`,
+            maskError
+          );
+          // Skip detailed mask processing and just use bounding box highlight
+          _resizedMask = null;
+        }
 
         // Create a highlight overlay for this mask region
         const highlightColor = { r: 255, g: 255, b: 255, alpha: 0.7 }; // Semi-transparent white
@@ -270,9 +309,14 @@ Use descriptive, specific labels that would help someone identify the item for b
 
   private async generateWatercolor(
     imageBuffer: Buffer,
-    _mimeType: string
+    _mimeType: string,
+    hasPersons: boolean = false
   ): Promise<Buffer> {
+    const startTime = Date.now();
+    console.log('🎨 Starting watercolor generation...');
+
     // Resize image to 768x768 for cost optimization (single tile)
+    const resizeStart = Date.now();
     const resizedImageBuffer = await sharp(imageBuffer)
       .resize(768, 768, {
         fit: 'inside',
@@ -280,11 +324,17 @@ Use descriptive, specific labels that would help someone identify the item for b
       })
       .jpeg({ quality: 85 })
       .toBuffer();
+    const resizeTime = Date.now() - resizeStart;
+    console.log(`📐 Image resize completed in ${resizeTime}ms`);
+
+    const deIdentificationText = hasPersons
+      ? '\n    CRITICAL: People are present in this image. You MUST completely remove all people, faces, hands, body parts, and any reflections or silhouettes of people. Focus solely on the shareable item and render it as if no people were ever in the photo.'
+      : '';
 
     const prompt = [
       {
         text: `You are a production image editor for StuffLibrary, a community tool-sharing app. 
-    Convert this item photo into a consistent watercolor illustration with an "analog librarian" feel.
+    Convert this item photo into a consistent watercolor illustration with an "analog librarian" feel.${deIdentificationText}
 
     Task: Transform the attached photo into a uniform watercolor illustration of the foreground item only.
     Style: subtle ink linework and soft watercolor washes; paper color #F9F5EB (warm cream); slightly desaturated palette; no drop shadows; no background clutter; no visible people.
@@ -302,22 +352,40 @@ Use descriptive, specific labels that would help someone identify the item for b
     ];
 
     try {
+      const apiStart = Date.now();
+      console.log('🌐 Sending watercolor request to Gemini API...');
+
       const response = await this.genAI.models.generateContent({
         model: 'gemini-2.5-flash-image-preview',
         contents: prompt,
       });
 
+      const apiTime = Date.now() - apiStart;
+      console.log(`🌐 Gemini API responded in ${apiTime}ms`);
+
       // Extract image data from response
+      const extractStart = Date.now();
       for (const part of response.candidates?.[0]?.content?.parts || []) {
         if (part.inlineData?.data) {
           const imageData = part.inlineData.data;
-          return Buffer.from(imageData, 'base64');
+          const buffer = Buffer.from(imageData, 'base64');
+          const extractTime = Date.now() - extractStart;
+          const totalTime = Date.now() - startTime;
+          console.log(`📦 Image data extracted in ${extractTime}ms`);
+          console.log(
+            `🎨 Total watercolor generation: ${totalTime}ms (resize: ${resizeTime}ms, API: ${apiTime}ms, extract: ${extractTime}ms)`
+          );
+          return buffer;
         }
       }
 
       throw new Error('No image data found in response');
     } catch (error) {
-      console.error('Error generating watercolor:', error);
+      const totalTime = Date.now() - startTime;
+      console.error(
+        `❌ Watercolor generation failed after ${totalTime}ms:`,
+        error
+      );
       throw new Error('Failed to generate watercolor illustration');
     }
   }
@@ -451,12 +519,9 @@ Use descriptive, specific labels that would help someone identify the item for b
     const flags: string[] = [];
 
     try {
-      // Step 1: Object detection and segmentation (new!)
-      console.log('🔍 Starting object detection and segmentation...');
-      const segmentationMasks = await this.detectAndSegmentObjects(
-        originalImageBuffer,
-        mimeType
-      );
+      // Step 1: Skip object detection for now (too slow for 5s target)
+      console.log('⏩ Skipping object detection for fast processing...');
+      const segmentationMasks: SegmentationMask[] = [];
 
       // Step 2: Generate mask overlay
       let maskUrl: string | undefined;
@@ -484,7 +549,7 @@ Use descriptive, specific labels that would help someone identify the item for b
       if (hasPersons) {
         flags.push('person_detected');
         console.log(
-          'Person detected in image, watercolor generation may be skipped'
+          'Person detected in image, will be de-identified in watercolor processing'
         );
       }
 
@@ -500,50 +565,49 @@ Use descriptive, specific labels that would help someone identify the item for b
       let watercolorThumbUrl: string;
       let iconUrl: string | undefined;
 
-      if (hasPersons) {
-        // Skip watercolor generation for images with people
-        // Use processed original images instead
-        const { heroBuffer, thumbBuffer } =
-          await this.processImages(originalImageBuffer);
-
-        const heroPath = `items/${itemId}/renders/${styleVersion}/hero_1200x900.webp`;
-        const thumbPath = `items/${itemId}/renders/${styleVersion}/thumb_600x600.webp`;
-
-        watercolorUrl = await this.uploadToStorage(
-          heroBuffer,
-          heroPath,
-          'image/webp'
-        );
-        watercolorThumbUrl = await this.uploadToStorage(
-          thumbBuffer,
-          thumbPath,
-          'image/webp'
-        );
-      } else {
+      // Always generate watercolor, with enhanced de-identification if people detected
+      {
         // Step 3: Generate watercolor illustration
+        const watercolorStart = Date.now();
+        console.log('🎨 Starting watercolor illustration generation...');
         const watercolorBuffer = await this.generateWatercolor(
           originalImageBuffer,
-          mimeType
+          mimeType,
+          hasPersons
+        );
+        const watercolorTime = Date.now() - watercolorStart;
+        console.log(
+          `✅ Watercolor generation completed in ${watercolorTime}ms`
         );
 
-        // Step 4: Process images (resize, format conversion)
-        const { heroBuffer, thumbBuffer } =
-          await this.processImages(watercolorBuffer);
+        // Step 4: Process image to 600x600 square only
+        const processStart = Date.now();
+        console.log('🔧 Processing watercolor to 600x600 square...');
+        const squareBuffer = await sharp(watercolorBuffer)
+          .resize(600, 600, {
+            fit: 'cover',
+            position: 'center',
+            background: { r: 249, g: 245, b: 235 }, // #F9F5EB cream background
+          })
+          .webp({ quality: 85 })
+          .toBuffer();
+        const processTime = Date.now() - processStart;
+        console.log(`🔧 Square processing completed in ${processTime}ms`);
 
-        // Step 5: Upload processed images
-        const heroPath = `items/${itemId}/renders/${styleVersion}/hero_1200x900.webp`;
-        const thumbPath = `items/${itemId}/renders/${styleVersion}/thumb_600x600.webp`;
+        // Step 5: Upload square image only
+        const uploadStart = Date.now();
+        console.log('☁️ Uploading watercolor square to storage...');
+        const squarePath = `items/${itemId}/renders/${styleVersion}/square_600x600.webp`;
 
         watercolorUrl = await this.uploadToStorage(
-          heroBuffer,
-          heroPath,
+          squareBuffer,
+          squarePath,
           'image/webp'
         );
-        watercolorThumbUrl = await this.uploadToStorage(
-          thumbBuffer,
-          thumbPath,
-          'image/webp'
-        );
+        // Use same URL for both since we only have one size now
+        watercolorThumbUrl = watercolorUrl;
+        const uploadTime = Date.now() - uploadStart;
+        console.log(`☁️ Square upload completed in ${uploadTime}ms`);
 
         // Step 6: Generate category icon (optional for now)
         // TODO: Determine category from item metadata
