@@ -22,14 +22,12 @@ import { useRef, useState, useCallback, useEffect } from 'react';
 
 import { brandColors } from '@/theme/brandTokens';
 
-import { AIVisualizationAnimation } from './AIVisualizationAnimation';
 import { LibrarySelectionModal } from './LibrarySelectionModal';
 
 type CaptureState =
   | 'permission'
   | 'streaming'
   | 'capturing'
-  | 'analyzing'
   | 'illustrating' // New state: recognition done, watercolor processing in background
   | 'recognized'
   | 'uploaded'
@@ -76,6 +74,7 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
       confidence: number;
     }>;
   } | null>(null);
+  const [showWatercolor, setShowWatercolor] = useState(false);
 
   // Request camera permission and start stream
   const startCamera = useCallback(async () => {
@@ -356,6 +355,17 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
       setState('recognized'); // Move to recognized state even without watercolor
     }, 120000);
   }, []);
+
+  // Trigger cross-fade animation when watercolor data becomes available
+  useEffect(() => {
+    if (watercolorData?.watercolorUrl && !showWatercolor) {
+      console.log('🎨 Watercolor available, starting cross-fade animation...');
+      // Small delay to ensure the image has loaded
+      setTimeout(() => {
+        setShowWatercolor(true);
+      }, 100);
+    }
+  }, [watercolorData?.watercolorUrl, showWatercolor]);
 
   // Add item and navigate to metadata page
   const addItem = useCallback(async () => {
@@ -723,24 +733,18 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
         );
 
       case 'capturing':
-      case 'analyzing':
         return (
-          <AIVisualizationAnimation
-            originalImageUrl={capturedImageUrl || ''}
-            maskUrl={watercolorData?.maskUrl}
-            watercolorUrl={watercolorData?.watercolorUrl}
-            onAnimationComplete={() => {
-              // Animation complete, move to recognized state
-              if (recognitionResult) {
-                setState('recognized');
-              }
-            }}
-          />
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <CircularProgress size={64} sx={{ mb: 2 }} />
+            <Typography variant="h6" gutterBottom>
+              Capturing photo...
+            </Typography>
+          </Box>
         );
 
       case 'recognized':
         const isWatercolorReady = !!watercolorData?.watercolorUrl;
-        const isProcessingWatercolor = previewId && !isWatercolorReady;
+        const isProcessingWatercolor = !!(previewId && !isWatercolorReady);
 
         // If still analyzing, show analyzing state
         if (isAnalyzing) {
@@ -775,34 +779,47 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
                 }}
               >
                 {/* Original image */}
-                <img
+                <Box
+                  component="img"
                   src={capturedImageUrl}
                   alt="Captured item"
-                  style={{
+                  sx={{
                     position: 'absolute',
                     top: 0,
                     left: 0,
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
-                    opacity: isWatercolorReady ? 0 : 1,
+                    opacity: showWatercolor ? 0 : 1,
                     transition: 'opacity 1.5s ease-in-out',
+                    ...(isProcessingWatercolor && {
+                      animation: 'pulse 2s ease-in-out infinite',
+                      '@keyframes pulse': {
+                        '0%, 100%': {
+                          opacity: showWatercolor ? 0 : 1,
+                        },
+                        '50%': {
+                          opacity: showWatercolor ? 0 : 0.7,
+                        },
+                      },
+                    }),
                   }}
                 />
 
                 {/* Watercolor image (when ready) */}
                 {watercolorData?.watercolorUrl && (
-                  <img
+                  <Box
+                    component="img"
                     src={watercolorData.watercolorUrl}
                     alt="Watercolor illustration"
-                    style={{
+                    sx={{
                       position: 'absolute',
                       top: 0,
                       left: 0,
                       width: '100%',
                       height: '100%',
                       objectFit: 'cover',
-                      opacity: isWatercolorReady ? 1 : 0,
+                      opacity: showWatercolor ? 1 : 0,
                       transition: 'opacity 1.5s ease-in-out',
                     }}
                   />
