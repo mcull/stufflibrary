@@ -1,17 +1,18 @@
 import { NextRequest } from 'next/server';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-import { requireAdminAuth } from '@/lib/admin-auth';
-import { db } from '@/lib/db';
-
-import { POST } from '../route';
-
+// Mock modules before importing them
 vi.mock('@/lib/admin-auth');
 vi.mock('@/lib/db', () => ({
   db: {
     $queryRaw: vi.fn(),
   },
 }));
+
+import { requireAdminAuth } from '@/lib/admin-auth';
+import { db } from '@/lib/db';
+
+import { POST } from '../route';
 
 const mockDb = db as unknown as {
   $queryRaw: ReturnType<typeof vi.fn>;

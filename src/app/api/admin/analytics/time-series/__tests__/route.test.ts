@@ -1,12 +1,7 @@
 import { NextRequest } from 'next/server';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-import { requireAdminAuth } from '@/lib/admin-auth';
-import { db } from '@/lib/db';
-import { RedisService } from '@/lib/redis';
-
-import { GET } from '../route';
-
+// Mock modules before importing them
 vi.mock('@/lib/admin-auth');
 vi.mock('@/lib/db', () => ({
   db: {
@@ -19,6 +14,12 @@ vi.mock('@/lib/redis', () => ({
     set: vi.fn(),
   },
 }));
+
+import { requireAdminAuth } from '@/lib/admin-auth';
+import { db } from '@/lib/db';
+import { RedisService } from '@/lib/redis';
+
+import { GET } from '../route';
 
 const mockDb = db as unknown as {
   $queryRaw: ReturnType<typeof vi.fn>;
