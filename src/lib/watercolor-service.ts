@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { put } from '@vercel/blob';
 import sharp from 'sharp';
 
@@ -24,14 +24,14 @@ interface WatercolorResult {
 }
 
 export class WatercolorService {
-  private genAI: GoogleGenerativeAI;
+  private genAI: GoogleGenAI;
 
   constructor() {
     const apiKey = process.env.GOOGLE_AI_API_KEY;
     if (!apiKey) {
       throw new Error('GOOGLE_AI_API_KEY environment variable is required');
     }
-    this.genAI = new GoogleGenerativeAI(apiKey);
+    this.genAI = new GoogleGenAI({ apiKey });
   }
 
   private generateIdempotencyKey(
@@ -58,29 +58,35 @@ export class WatercolorService {
     return blob.url;
   }
 
-  private async detectPersonsInImage(imageBuffer: Buffer): Promise<boolean> {
-    const model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-
-    const prompt = `
-    Analyze this image and determine if it contains any people, faces, or human figures.
+  private async detectPersonsInImage(
+    imageBuffer: Buffer,
+    mimeType: string
+  ): Promise<boolean> {
+    const prompt = [
+      {
+        text: `Analyze this image and determine if it contains any people, faces, or human figures.
     
     Return only "true" if people/faces are detected, "false" if not.
-    This is for content safety - we need to flag images that contain people.
-    `;
+    This is for content safety - we need to flag images that contain people.`,
+      },
+      {
+        inlineData: {
+          data: imageBuffer.toString('base64'),
+          mimeType: mimeType,
+        },
+      },
+    ];
 
     try {
-      const result = await model.generateContent([
-        prompt,
-        {
-          inlineData: {
-            data: imageBuffer.toString('base64'),
-            mimeType: 'image/jpeg',
-          },
-        },
-      ]);
+      const response = await this.genAI.models.generateContent({
+        model: 'gemini-2.0-flash-exp',
+        contents: prompt,
+      });
 
-      const response = await result.response;
-      const text = response.text().toLowerCase().trim();
+      const text =
+        response.candidates?.[0]?.content?.parts?.[0]?.text
+          ?.toLowerCase()
+          .trim() || '';
       return text.includes('true');
     } catch (error) {
       console.error('Error detecting persons:', error);
@@ -91,56 +97,52 @@ export class WatercolorService {
 
   private async generateWatercolor(
     imageBuffer: Buffer,
-    mimeType: string
+    _mimeType: string
   ): Promise<Buffer> {
-    const model = this.genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash-image',
-      generationConfig: {
-        temperature: 0.3,
-        topP: 0.8,
-        maxOutputTokens: 1024,
+    // Resize image to 768x768 for cost optimization (single tile)
+    const resizedImageBuffer = await sharp(imageBuffer)
+      .resize(768, 768, {
+        fit: 'inside',
+        withoutEnlargement: true,
+      })
+      .jpeg({ quality: 85 })
+      .toBuffer();
+
+    const prompt = [
+      {
+        text: `You are a production image editor for StuffLibrary, a community tool-sharing app. 
+    Convert this item photo into a consistent watercolor illustration with an "analog librarian" feel.
+
+    Task: Transform the attached photo into a uniform watercolor illustration of the foreground item only.
+    Style: subtle ink linework and soft watercolor washes; paper color #F9F5EB (warm cream); slightly desaturated palette; no drop shadows; no background clutter; no visible people.
+    Composition: center the object on canvas with ~10% margin; maintain real-world orientation and proportions.
+    Constraints: remove any text labels, faces, reflections of people, or household backgrounds. Keep proportions faithful, no cartoonification.
+    
+    Return a clean watercolor illustration ready for a community sharing platform.`,
       },
-    });
-
-    const systemMessage = `
-    You are a production image editor for StuffLibrary, a community tool-sharing app. 
-    Convert item photos into consistent watercolor illustrations with an "analog librarian" feel. 
-    Isolate the object, remove messy backgrounds, and render on warm cream paper. 
-    Keep proportions faithful, no cartoonification. Avoid text overlays and branding.
-    `;
-
-    const userPrompt = `
-    Input: [attached item photo]
-    Task: Produce a uniform watercolor illustration of the foreground item only.
-    Style: subtle ink linework and soft watercolor washes; paper color #F9F5EB; slightly desaturated palette; no drop shadows; no background clutter; no visible people.
-    Composition: center the object on canvas with ~10% margin; maintain real-world orientation.
-    Output: 1200×900 (4:3) clean edges.
-    Constraints: remove any text labels, faces, reflections of people, or household backgrounds.
-    Return: the watercolor image with maintained SynthID/visible AI marks.
-    `;
+      {
+        inlineData: {
+          data: resizedImageBuffer.toString('base64'),
+          mimeType: 'image/jpeg',
+        },
+      },
+    ];
 
     try {
-      const result = await model.generateContent([
-        systemMessage + '\n\n' + userPrompt,
-        {
-          inlineData: {
-            data: imageBuffer.toString('base64'),
-            mimeType: mimeType,
-          },
-        },
-      ]);
+      const response = await this.genAI.models.generateContent({
+        model: 'gemini-2.5-flash-image-preview',
+        contents: prompt,
+      });
 
-      const response = await result.response;
+      // Extract image data from response
+      for (const part of response.candidates?.[0]?.content?.parts || []) {
+        if (part.inlineData?.data) {
+          const imageData = part.inlineData.data;
+          return Buffer.from(imageData, 'base64');
+        }
+      }
 
-      // Note: This is a placeholder for the actual image generation
-      // The Gemini Image API would return binary image data
-      // For now, we'll use the original image as a fallback
-      console.log('Watercolor generation result:', response);
-
-      // TODO: Extract the generated image buffer from the response
-      // This depends on the exact API response format from Gemini 2.5 Flash Image
-
-      return imageBuffer; // Temporary fallback
+      throw new Error('No image data found in response');
     } catch (error) {
       console.error('Error generating watercolor:', error);
       throw new Error('Failed to generate watercolor illustration');
@@ -152,42 +154,47 @@ export class WatercolorService {
     mimeType: string,
     category: string
   ): Promise<Buffer> {
-    const model = this.genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash-image',
-      generationConfig: {
-        temperature: 0.2,
-        topP: 0.6,
-        maxOutputTokens: 512,
-      },
-    });
+    // Resize to small size for cost optimization
+    const resizedImageBuffer = await sharp(imageBuffer)
+      .resize(384, 384, {
+        fit: 'inside',
+        withoutEnlargement: true,
+      })
+      .jpeg({ quality: 85 })
+      .toBuffer();
 
-    const userPrompt = `
-    Input: [watercolor result or original photo]
-    Task: Create a 2-color, flat icon representing the item's category (${category}).
+    const prompt = [
+      {
+        text: `Create a 2-color, flat icon representing the item's category (${category}) based on this image.
+    
     Style: simplified silhouette/line in Ink Blue #1E3A5F on transparent background; no gradients; no text; no drop shadow.
     Canvas: 256×256 with 12–16% padding; keep the silhouette legible at 24×24.
-    Output: PNG with transparency; clean vector-like appearance.
-    `;
+    Output: PNG with transparency; clean vector-like appearance.`,
+      },
+      {
+        inlineData: {
+          data: resizedImageBuffer.toString('base64'),
+          mimeType: 'image/jpeg',
+        },
+      },
+    ];
 
     try {
-      const result = await model.generateContent([
-        userPrompt,
-        {
-          inlineData: {
-            data: imageBuffer.toString('base64'),
-            mimeType: mimeType,
-          },
-        },
-      ]);
+      const response = await this.genAI.models.generateContent({
+        model: 'gemini-2.5-flash-image-preview',
+        contents: prompt,
+      });
 
-      const response = await result.response;
+      // Extract image data from response
+      for (const part of response.candidates?.[0]?.content?.parts || []) {
+        if (part.inlineData?.data) {
+          const imageData = part.inlineData.data;
+          return Buffer.from(imageData, 'base64');
+        }
+      }
 
-      // Note: This is a placeholder for the actual icon generation
-      // The Gemini Image API would return binary image data
-      console.log('Icon generation result:', response);
-
-      // TODO: Extract the generated image buffer from the response
-      // For now, create a simple colored square as a placeholder
+      // Fallback: create a simple colored square as placeholder
+      console.log('No icon image generated, using placeholder');
       const placeholderIcon = await sharp({
         create: {
           width: 256,
@@ -259,7 +266,7 @@ export class WatercolorService {
     const { itemId, originalImageBuffer, originalImageName, mimeType } =
       options;
     const styleVersion = 'wc_v1';
-    const aiModel = 'gemini-2.5-flash-image';
+    const aiModel = 'gemini-2.5-flash-image-preview';
 
     // Generate idempotency key
     const idempotencyKey = this.generateIdempotencyKey(
@@ -272,7 +279,10 @@ export class WatercolorService {
 
     try {
       // Step 1: Safety check - detect people in image
-      const hasPersons = await this.detectPersonsInImage(originalImageBuffer);
+      const hasPersons = await this.detectPersonsInImage(
+        originalImageBuffer,
+        mimeType
+      );
       if (hasPersons) {
         flags.push('person_detected');
         console.log(

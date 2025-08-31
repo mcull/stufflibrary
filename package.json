@@ -59,7 +59,7 @@
     "@fontsource/space-grotesk": "^5.2.8",
     "@fontsource/special-elite": "^5.2.6",
     "@fontsource/syne-mono": "^5.2.6",
-    "@google/generative-ai": "^0.24.1",
+    "@google/genai": "^1.16.0",
     "@googlemaps/google-maps-services-js": "^3.4.2",
     "@hookform/resolvers": "^5.2.1",
     "@mui/icons-material": "^7.3.1",

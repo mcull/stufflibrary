@@ -3,15 +3,31 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { WatercolorService } from '../watercolor-service';
 
 // Mock the dependencies
-vi.mock('@google/generative-ai', () => ({
-  GoogleGenerativeAI: vi.fn().mockImplementation(() => ({
-    getGenerativeModel: vi.fn().mockReturnValue({
+vi.mock('@google/genai', () => ({
+  GoogleGenAI: vi.fn().mockImplementation(() => ({
+    models: {
       generateContent: vi.fn().mockResolvedValue({
-        response: {
-          text: vi.fn().mockReturnValue('false'),
-        },
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  text: 'false',
+                  inlineData: {
+                    data: 'mock-base64-image-data',
+                  },
+                },
+              ],
+            },
+          },
+        ],
+        text: 'false',
+        data: null,
+        functionCalls: null,
+        executableCode: null,
+        codeExecutionResult: null,
       }),
-    }),
+    },
   })),
 }));
 
@@ -26,6 +42,7 @@ vi.mock('sharp', () => ({
     resize: vi.fn().mockReturnThis(),
     webp: vi.fn().mockReturnThis(),
     png: vi.fn().mockReturnThis(),
+    jpeg: vi.fn().mockReturnThis(),
     toBuffer: vi.fn().mockResolvedValue(Buffer.from('mock-processed-image')),
   })),
 }));
@@ -69,7 +86,7 @@ describe('WatercolorService', () => {
         watercolorUrl: expect.stringContaining('https://'),
         watercolorThumbUrl: expect.stringContaining('https://'),
         styleVersion: 'wc_v1',
-        aiModel: 'gemini-2.5-flash-image',
+        aiModel: 'gemini-2.5-flash-image-preview',
         synthIdWatermark: false,
         flags: [],
         idempotencyKey: expect.stringMatching(/^[a-f0-9]{64}$/),
@@ -77,18 +94,38 @@ describe('WatercolorService', () => {
     });
 
     it('should handle images with people detected', async () => {
-      // Mock person detection to return true
-      const { GoogleGenerativeAI } = await import('@google/generative-ai');
-      const mockGenAI = new GoogleGenerativeAI('test');
-      const mockModel = mockGenAI.getGenerativeModel({ model: 'test' });
+      // Create a new service instance and override the detectPersonsInImage method behavior
+      const testService = new WatercolorService();
 
-      vi.mocked(mockModel.generateContent).mockResolvedValueOnce({
-        response: {
-          text: vi.fn().mockReturnValue('true'), // Person detected
+      // Mock the generateContent to return 'true' for person detection (first call)
+      const mockGenerateContent = vi.fn().mockResolvedValueOnce({
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  text: 'true', // Person detected
+                },
+              ],
+            },
+          },
+        ],
+        text: 'true',
+        data: null,
+        functionCalls: null,
+        executableCode: null,
+        codeExecutionResult: null,
+      });
+
+      // Override the genAI models property
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (testService as any).genAI = {
+        models: {
+          generateContent: mockGenerateContent,
         },
-      } as any);
+      };
 
-      const result = await service.renderWatercolor(mockOptions);
+      const result = await testService.renderWatercolor(mockOptions);
 
       expect(result.flags).toContain('person_detected');
       expect(result.watercolorUrl).toBeDefined();
@@ -115,18 +152,28 @@ describe('WatercolorService', () => {
     });
 
     it('should handle API errors gracefully', async () => {
-      // Mock API error
-      const { GoogleGenerativeAI } = await import('@google/generative-ai');
-      const mockGenAI = new GoogleGenerativeAI('test');
-      const mockModel = mockGenAI.getGenerativeModel({ model: 'test' });
+      // Create a new service instance with error-throwing mock
+      const testService = new WatercolorService();
 
-      vi.mocked(mockModel.generateContent).mockRejectedValueOnce(
-        new Error('API Error')
-      );
+      const mockGenerateContent = vi
+        .fn()
+        .mockRejectedValue(new Error('API Error'));
 
-      await expect(service.renderWatercolor(mockOptions)).rejects.toThrow(
-        'Watercolor rendering failed'
-      );
+      // Override the genAI models property
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (testService as any).genAI = {
+        models: {
+          generateContent: mockGenerateContent,
+        },
+      };
+
+      // The service should gracefully degrade to safe processing when person detection fails
+      const result = await testService.renderWatercolor(mockOptions);
+
+      // Should flag as person detected (conservative approach) and still process the image
+      expect(result.flags).toContain('person_detected');
+      expect(result.watercolorUrl).toBeDefined();
+      expect(result.watercolorThumbUrl).toBeDefined();
     });
   });
 
@@ -146,7 +193,7 @@ describe('WatercolorService', () => {
       const calls = mockPut.mock.calls;
       expect(calls.length).toBeGreaterThan(0);
       // Basic check that paths contain expected patterns
-      const pathStrings = calls.map((call) => String(call[1]));
+      const pathStrings = calls.map((call) => String(call[0])); // First argument is the path in Vercel Blob API
       expect(pathStrings.some((path) => path.includes('test-item'))).toBe(true);
     });
   });
