@@ -407,11 +407,14 @@ test.describe('VintageCheckoutCard Component', () => {
     `);
   });
 
-  test.skip('should match snapshot - full card with borrow history', async ({
+  test('should match snapshot - full card with borrow history', async ({
     page,
   }) => {
     await page.evaluate(() => window.renderTestScenario('with-history'));
-    await page.waitForTimeout(100); // Allow fonts to load
+
+    // Wait for fonts to load properly
+    await page.waitForFunction(() => document.fonts.ready, { timeout: 10000 });
+    await page.waitForTimeout(500); // Additional buffer for rendering
 
     const card = page.locator('#test-container');
     await expect(card).toHaveScreenshot(
@@ -419,13 +422,16 @@ test.describe('VintageCheckoutCard Component', () => {
     );
   });
 
-  test.skip('should match snapshot - compact card with borrow history', async ({
+  test('should match snapshot - compact card with borrow history', async ({
     page,
   }) => {
     await page.evaluate(() =>
       window.renderTestScenario('compact-with-history')
     );
-    await page.waitForTimeout(100); // Allow fonts to load
+
+    // Wait for fonts to load properly
+    await page.waitForFunction(() => document.fonts.ready, { timeout: 10000 });
+    await page.waitForTimeout(500); // Additional buffer for rendering
 
     const card = page.locator('#test-container');
     await expect(card).toHaveScreenshot(
@@ -433,19 +439,23 @@ test.describe('VintageCheckoutCard Component', () => {
     );
   });
 
-  test.skip('should match snapshot - empty card (no history)', async ({
-    page,
-  }) => {
+  test('should match snapshot - empty card (no history)', async ({ page }) => {
     await page.evaluate(() => window.renderTestScenario('empty'));
-    await page.waitForTimeout(100); // Allow fonts to load
+
+    // Wait for fonts to load properly
+    await page.waitForFunction(() => document.fonts.ready, { timeout: 10000 });
+    await page.waitForTimeout(500); // Additional buffer for rendering
 
     const card = page.locator('#test-container');
     await expect(card).toHaveScreenshot('vintage-checkout-card-empty.png');
   });
 
-  test.skip('should match snapshot - compact empty card', async ({ page }) => {
+  test('should match snapshot - compact empty card', async ({ page }) => {
     await page.evaluate(() => window.renderTestScenario('compact-empty'));
-    await page.waitForTimeout(100); // Allow fonts to load
+
+    // Wait for fonts to load properly
+    await page.waitForFunction(() => document.fonts.ready, { timeout: 10000 });
+    await page.waitForTimeout(500); // Additional buffer for rendering
 
     const card = page.locator('#test-container');
     await expect(card).toHaveScreenshot(
