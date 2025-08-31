@@ -86,15 +86,14 @@ export function BorrowApprovalClient({
     setError(null);
 
     try {
-      const responseData = await fetch('/api/borrow-requests/respond', {
-        method: 'POST',
+      const responseData = await fetch(`/api/borrow-requests/${borrowRequest.id}`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          borrowRequestId: borrowRequest.id,
-          decision,
-          response: response.trim(),
+          action: decision,
+          message: response.trim(),
         }),
       });
 
@@ -217,20 +216,19 @@ export function BorrowApprovalClient({
           {/* Promise Info */}
           <Box sx={{ bgcolor: brandColors.warmCream, p: 2, borderRadius: 1 }}>
             <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>
-              Their Promise:
+              Requested return date:
             </Typography>
-            <Typography variant="body2">
-              &ldquo;{borrowRequest.promiseText || 'No promise text provided'}
-              &rdquo;
-            </Typography>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ mt: 1, display: 'block' }}
-            >
-              Promised return date:{' '}
+            <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
               {borrowRequest.promisedReturnBy
-                ? new Date(borrowRequest.promisedReturnBy).toLocaleDateString()
+                ? new Date(borrowRequest.promisedReturnBy).toLocaleDateString(
+                    'en-US',
+                    {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    }
+                  )
                 : 'No date specified'}
             </Typography>
           </Box>

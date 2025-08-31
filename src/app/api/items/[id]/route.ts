@@ -35,6 +35,38 @@ export async function GET(
             iconPath: true,
           },
         },
+        libraries: {
+          select: {
+            library: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+        borrowRequests: {
+          where: {
+            status: { in: ['ACTIVE', 'APPROVED'] },
+          },
+          include: {
+            borrower: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+              },
+            },
+            lender: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+              },
+            },
+          },
+          take: 1,
+        },
       },
     });
 
@@ -43,6 +75,7 @@ export async function GET(
     }
 
     // Format response
+    const activeBorrowRequest = item.borrowRequests?.[0] || null;
     const formattedItem = {
       id: item.id,
       name: item.name,
@@ -55,6 +88,8 @@ export async function GET(
       updatedAt: item.updatedAt,
       owner: item.owner,
       stuffType: item.stuffType,
+      libraries: item.libraries.map((il) => il.library),
+      currentActiveBorrow: activeBorrowRequest,
     };
 
     return NextResponse.json({ item: formattedItem });
@@ -171,6 +206,16 @@ export async function PUT(
             iconPath: true,
           },
         },
+        libraries: {
+          select: {
+            library: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -187,6 +232,7 @@ export async function PUT(
       updatedAt: updatedItem.updatedAt,
       owner: updatedItem.owner,
       stuffType: updatedItem.stuffType,
+      libraries: updatedItem.libraries?.map((il) => il.library) || [],
     };
 
     return NextResponse.json({ item: formattedItem });
@@ -263,17 +309,68 @@ export async function PATCH(
       );
     }
 
-    // Prepare update data - Note: We no longer store isAvailable directly
-    // Instead, availability is computed from currentBorrowRequestId
-    const updateData: any = {};
+    // Handle offline/online toggle through borrow request creation/deletion
+    if (isAvailable !== undefined) {
+      if (isAvailable === false) {
+        // Taking offline: Create a self-borrow request to mark as unavailable
+        const existingSelfBorrow = await db.borrowRequest.findFirst({
+          where: {
+            itemId,
+            borrowerId: userId,
+            lenderId: userId,
+            status: 'ACTIVE',
+          },
+        });
 
-    // For backward compatibility, if isAvailable is provided, we ignore it
-    // since availability is now managed through borrow request status
+        if (!existingSelfBorrow) {
+          const selfBorrowRequest = await db.borrowRequest.create({
+            data: {
+              itemId,
+              borrowerId: userId,
+              lenderId: userId,
+              status: 'ACTIVE',
+              requestMessage: 'Item taken offline by owner',
+              requestedReturnDate: new Date(
+                Date.now() + 365 * 24 * 60 * 60 * 1000
+              ), // 1 year from now
+            },
+          });
 
-    // Update item
-    const updatedItem = await db.item.update({
+          // Update item to reference this self-borrow request
+          await db.item.update({
+            where: { id: itemId },
+            data: { currentBorrowRequestId: selfBorrowRequest.id },
+          });
+        }
+      } else {
+        // Taking online: Remove self-borrow request
+        const selfBorrowRequest = await db.borrowRequest.findFirst({
+          where: {
+            itemId,
+            borrowerId: userId,
+            lenderId: userId,
+            status: 'ACTIVE',
+          },
+        });
+
+        if (selfBorrowRequest) {
+          // Update to returned status and clear currentBorrowRequestId
+          await db.borrowRequest.update({
+            where: { id: selfBorrowRequest.id },
+            data: { status: 'RETURNED', returnedAt: new Date() },
+          });
+
+          await db.item.update({
+            where: { id: itemId },
+            data: { currentBorrowRequestId: null },
+          });
+        }
+      }
+    }
+
+    // Get updated item
+    const updatedItem = await db.item.findUnique({
       where: { id: itemId },
-      data: updateData,
       include: {
         owner: {
           select: {
@@ -298,6 +395,28 @@ export async function PATCH(
               },
             },
           },
+        },
+        borrowRequests: {
+          where: {
+            status: { in: ['ACTIVE', 'APPROVED'] },
+          },
+          include: {
+            borrower: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+              },
+            },
+            lender: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+              },
+            },
+          },
+          take: 1,
         },
       },
     });
@@ -351,10 +470,34 @@ export async function PATCH(
               },
             },
           },
+          borrowRequests: {
+            where: {
+              status: { in: ['ACTIVE', 'APPROVED'] },
+            },
+            include: {
+              borrower: {
+                select: {
+                  id: true,
+                  name: true,
+                  image: true,
+                },
+              },
+              lender: {
+                select: {
+                  id: true,
+                  name: true,
+                  image: true,
+                },
+              },
+            },
+            take: 1,
+          },
         },
       });
 
       // Format response with libraries
+      const activeBorrowRequestWithLibraries =
+        itemWithLibraries!.borrowRequests?.[0] || null;
       const formattedItemWithLibraries = {
         id: itemWithLibraries!.id,
         name: itemWithLibraries!.name,
@@ -368,6 +511,7 @@ export async function PATCH(
         owner: itemWithLibraries!.owner,
         stuffType: itemWithLibraries!.stuffType,
         libraries: itemWithLibraries!.libraries.map((il) => il.library),
+        currentActiveBorrow: activeBorrowRequestWithLibraries,
       };
 
       return NextResponse.json({
@@ -377,19 +521,21 @@ export async function PATCH(
     }
 
     // Format response
+    const activeBorrowRequest = updatedItem!.borrowRequests?.[0] || null;
     const formattedItem = {
-      id: updatedItem.id,
-      name: updatedItem.name,
-      description: updatedItem.description,
-      condition: updatedItem.condition,
-      location: updatedItem.location,
-      imageUrl: updatedItem.imageUrl,
-      isAvailable: !updatedItem.currentBorrowRequestId,
-      createdAt: updatedItem.createdAt,
-      updatedAt: updatedItem.updatedAt,
-      owner: updatedItem.owner,
-      stuffType: updatedItem.stuffType,
-      libraries: updatedItem.libraries.map((il) => il.library),
+      id: updatedItem!.id,
+      name: updatedItem!.name,
+      description: updatedItem!.description,
+      condition: updatedItem!.condition,
+      location: updatedItem!.location,
+      imageUrl: updatedItem!.imageUrl,
+      isAvailable: !updatedItem!.currentBorrowRequestId,
+      createdAt: updatedItem!.createdAt,
+      updatedAt: updatedItem!.updatedAt,
+      owner: updatedItem!.owner,
+      stuffType: updatedItem!.stuffType,
+      libraries: updatedItem!.libraries.map((il) => il.library),
+      currentActiveBorrow: activeBorrowRequest,
     };
 
     return NextResponse.json({

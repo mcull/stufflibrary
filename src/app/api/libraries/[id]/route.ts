@@ -81,7 +81,7 @@ export async function GET(
       return NextResponse.json({ error: 'Library not found' }, { status: 404 });
     }
 
-    // Get library items (only available items)
+    // Get library items (including offline items for proper display)
     const items = await db.item.findMany({
       where: {
         libraries: {
@@ -89,7 +89,6 @@ export async function GET(
             libraryId: libraryId,
           },
         },
-        currentBorrowRequestId: null, // Only show available items in library views
       },
       include: {
         owner: {
@@ -112,6 +111,13 @@ export async function GET(
           },
           include: {
             borrower: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+              },
+            },
+            lender: {
               select: {
                 id: true,
                 name: true,
@@ -193,6 +199,7 @@ export async function GET(
             ? {
                 id: activeBorrow.id,
                 borrower: activeBorrow.borrower,
+                lender: activeBorrow.lender,
                 dueDate: activeBorrow.requestedReturnDate,
                 borrowedAt: activeBorrow.approvedAt,
               }
@@ -234,6 +241,7 @@ export async function GET(
               ? {
                   id: activeBorrow.id,
                   borrower: activeBorrow.borrower,
+                  lender: activeBorrow.lender,
                   dueDate: activeBorrow.requestedReturnDate,
                   borrowedAt: activeBorrow.approvedAt,
                 }

@@ -127,21 +127,15 @@ function AddItemCard() {
 
 interface ItemCardProps {
   item: any;
-  status: 'ready-to-lend' | 'on-loan' | 'borrowed' | 'offline';
+  status: 'ready-to-lend' | 'on-loan' | 'offline' | 'borrowed';
 }
 
 function ItemCard({ item, status }: ItemCardProps) {
   const router = useRouter();
 
   const handleClick = () => {
-    // For borrowed items, go to the borrow request detail page
-    if (status === 'borrowed' && item.borrowRequestId) {
-      router.push(`/borrow-requests/${item.borrowRequestId}`);
-      return;
-    }
-    
-    // For other items, go to the item detail page
-    const itemId = item.id || item.item?.id;
+    // Always go to item details page, but extract the correct item ID based on data structure
+    const itemId = item.item?.id || item.id; // For borrow requests: item.item.id, for direct items: item.id
     if (itemId) {
       router.push(`/stuff/${itemId}`);
     }
@@ -164,6 +158,16 @@ function ItemCard({ item, status }: ItemCardProps) {
             textColor: '#F57C00',
           },
         };
+      case 'offline':
+        return {
+          backgroundColor: '#F3E5F5',
+          borderColor: '#9C27B0',
+          statusChip: {
+            label: 'Taken offline',
+            color: '#F3E5F5',
+            textColor: '#7B1FA2',
+          },
+        };
       case 'borrowed':
         return {
           backgroundColor: '#FFEBEE',
@@ -172,16 +176,6 @@ function ItemCard({ item, status }: ItemCardProps) {
             label: item.lender ? `From ${item.lender.name}` : 'Borrowed',
             color: '#FFEBEE',
             textColor: '#C62828',
-          },
-        };
-      case 'offline':
-        return {
-          backgroundColor: '#F5F5F5',
-          borderColor: '#BDBDBD',
-          statusChip: {
-            label: 'Offline',
-            color: '#F5F5F5',
-            textColor: '#757575',
           },
         };
       default:
@@ -207,6 +201,8 @@ function ItemCard({ item, status }: ItemCardProps) {
             })
           : '';
         return `Lent to ${borrower}${lentDate ? ` on ${lentDate}` : ''}`;
+      case 'offline':
+        return 'Not available to lend';
       case 'borrowed':
         const lender = item.lender?.name || 'Unknown';
         const dueDate = item.promisedReturnBy
@@ -216,8 +212,6 @@ function ItemCard({ item, status }: ItemCardProps) {
             })
           : '';
         return `From ${lender}${dueDate ? ` due ${dueDate}` : ''}`;
-      case 'offline':
-        return item.location || 'No location';
       default:
         return '';
     }
@@ -269,10 +263,10 @@ function ItemCard({ item, status }: ItemCardProps) {
             overflow: 'hidden',
           }}
         >
-          {item.imageUrl ? (
+          {item.imageUrl || item.item?.imageUrl ? (
             <>
               <Image
-                src={item.imageUrl}
+                src={item.imageUrl || item.item?.imageUrl}
                 alt={item.name || 'Item'}
                 fill
                 style={{
@@ -423,7 +417,7 @@ function Section({ title, items, color, showAddItem = false }: SectionProps) {
   );
 }
 
-type FilterType = 'all' | 'ready-to-lend' | 'offline' | 'on-loan' | 'borrowed';
+type FilterType = 'all' | 'ready-to-lend' | 'on-loan' | 'offline' | 'borrowed';
 
 export default function UserInventoryPage() {
   const params = useParams();
@@ -433,8 +427,8 @@ export default function UserInventoryPage() {
 
   const {
     readyToLendItems,
-    offlineItems,
     onLoanItems,
+    offlineItems,
     borrowedItems,
     isLoading: itemsLoading,
     error,
@@ -448,7 +442,7 @@ export default function UserInventoryPage() {
     const filterParam = searchParams.get('filter') as FilterType;
     if (
       filterParam &&
-      ['ready-to-lend', 'offline', 'on-loan', 'borrowed'].includes(filterParam)
+      ['ready-to-lend', 'on-loan', 'offline', 'borrowed'].includes(filterParam)
     ) {
       setActiveFilter(filterParam);
     }
@@ -570,11 +564,8 @@ export default function UserInventoryPage() {
       ...item,
       status: 'ready-to-lend' as const,
     })),
-    ...offlineItems.map((item) => ({
-      ...item,
-      status: 'offline' as const,
-    })),
     ...onLoanItems.map((item) => ({ ...item, status: 'on-loan' as const })),
+    ...offlineItems.map((item) => ({ ...item, status: 'offline' as const })),
     ...borrowedItems.map((item) => ({ ...item, status: 'borrowed' as const })),
   ];
 
@@ -612,13 +603,13 @@ export default function UserInventoryPage() {
     ...item,
     status: 'ready-to-lend' as const,
   }));
-  const offlineSection = offlineItems.map((item) => ({
-    ...item,
-    status: 'offline' as const,
-  }));
   const onLoanSection = onLoanItems.map((item) => ({
     ...item,
     status: 'on-loan' as const,
+  }));
+  const offlineSection = offlineItems.map((item) => ({
+    ...item,
+    status: 'offline' as const,
   }));
   const borrowedSection = borrowedItems.map((item) => ({
     ...item,
@@ -722,16 +713,6 @@ export default function UserInventoryPage() {
                     : '#2E7D32',
               }}
             />
-            <Chip
-              {...getChipProps('offline', offlineItems.length, 'Offline')}
-              sx={{
-                ...getChipProps('offline', offlineItems.length, 'Offline').sx,
-                backgroundColor:
-                  activeFilter === 'offline' ? brandColors.inkBlue : '#F5F5F5',
-                color:
-                  activeFilter === 'offline' ? brandColors.white : '#757575',
-              }}
-            />
             {isOwnInventory && (
               <>
                 <Chip
@@ -747,6 +728,21 @@ export default function UserInventoryPage() {
                       activeFilter === 'on-loan'
                         ? brandColors.white
                         : '#F57C00',
+                  }}
+                />
+                <Chip
+                  {...getChipProps('offline', offlineItems.length, 'Offline')}
+                  sx={{
+                    ...getChipProps('offline', offlineItems.length, 'Offline')
+                      .sx,
+                    backgroundColor:
+                      activeFilter === 'offline'
+                        ? brandColors.inkBlue
+                        : '#F3E5F5',
+                    color:
+                      activeFilter === 'offline'
+                        ? brandColors.white
+                        : '#7B1FA2',
                   }}
                 />
                 <Chip
@@ -866,18 +862,18 @@ export default function UserInventoryPage() {
               showAddItem={isOwnInventory || false}
             />
 
-            <Section
-              title="Offline"
-              items={offlineSection}
-              color={{ background: '#F5F5F5', text: '#757575' }}
-            />
-
             {isOwnInventory && (
               <>
                 <Section
                   title="On Loan"
                   items={onLoanSection}
                   color={{ background: '#FFF3E0', text: '#F57C00' }}
+                />
+
+                <Section
+                  title="Offline"
+                  items={offlineSection}
+                  color={{ background: '#F3E5F5', text: '#7B1FA2' }}
                 />
 
                 <Section
