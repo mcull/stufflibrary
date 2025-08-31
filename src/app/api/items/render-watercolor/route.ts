@@ -141,9 +141,11 @@ export async function POST(request: NextRequest) {
       itemId: updatedItem.id,
       watercolorUrl: updatedItem.watercolorUrl,
       watercolorThumbUrl: updatedItem.watercolorThumbUrl,
+      maskUrl: result.maskUrl, // New: mask overlay URL for animation
       iconUrl: result.iconUrl,
       styleVersion: updatedItem.styleVersion,
       flags: updatedItem.flags as string[],
+      segmentationMasks: result.segmentationMasks, // New: detected objects data
       item: {
         id: updatedItem.id,
         name: updatedItem.name,

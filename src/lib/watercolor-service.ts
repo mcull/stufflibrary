@@ -11,16 +11,25 @@ interface WatercolorRenderOptions {
   mimeType: string;
 }
 
+interface SegmentationMask {
+  label: string;
+  box_2d: [number, number, number, number]; // [y0, x0, y1, x1] normalized 0-1000
+  mask: string; // base64 encoded PNG
+  confidence: number;
+}
+
 interface WatercolorResult {
   originalUrl: string;
   watercolorUrl: string;
   watercolorThumbUrl: string;
+  maskUrl?: string | undefined; // New: URL to the segmentation mask overlay
   iconUrl?: string | undefined;
   styleVersion: string;
   aiModel: string;
   synthIdWatermark: boolean;
   flags: string[];
   idempotencyKey: string;
+  segmentationMasks?: SegmentationMask[] | undefined; // New: detected objects and masks
 }
 
 export class WatercolorService {
@@ -56,6 +65,170 @@ export class WatercolorService {
       contentType,
     });
     return blob.url;
+  }
+
+  private async detectAndSegmentObjects(
+    imageBuffer: Buffer,
+    _mimeType: string
+  ): Promise<SegmentationMask[]> {
+    // Resize image to 1024x1024 for optimal object detection
+    const resizedImageBuffer = await sharp(imageBuffer)
+      .resize(1024, 1024, {
+        fit: 'inside',
+        withoutEnlargement: true,
+      })
+      .jpeg({ quality: 90 })
+      .toBuffer();
+
+    const prompt = [
+      {
+        text: `Give the segmentation masks for all prominent items in this image that would be relevant for a tool-sharing community library.
+
+Focus on detecting: tools, equipment, household items, books, electronics, sports gear, kitchen items, outdoor gear, and similar shareable objects.
+
+Output a JSON list of segmentation masks where each entry contains:
+- "box_2d": 2D bounding box as [y0, x0, y1, x1] normalized to 0-1000
+- "mask": segmentation mask as base64 PNG
+- "label": descriptive text label for the object
+- "confidence": confidence score 0-1
+
+Use descriptive, specific labels that would help someone identify the item for borrowing.`,
+      },
+      {
+        inlineData: {
+          data: resizedImageBuffer.toString('base64'),
+          mimeType: 'image/jpeg',
+        },
+      },
+    ];
+
+    try {
+      const response = await this.genAI.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+          thinkingConfig: {
+            thinkingBudget: 0, // Disable thinking for better object detection
+          },
+        },
+      });
+
+      const responseText =
+        response.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
+
+      // Parse JSON response, handling potential markdown fencing
+      let jsonText = responseText;
+      if (responseText) {
+        const lines = responseText.split('\n');
+        for (let i = 0; i < lines.length; i++) {
+          if (lines[i]?.trim() === '```json') {
+            jsonText = lines.slice(i + 1).join('\n');
+            const endIndex = jsonText.indexOf('```');
+            if (endIndex !== -1) {
+              jsonText = jsonText.substring(0, endIndex);
+            }
+            break;
+          }
+        }
+      }
+
+      const masks: SegmentationMask[] = JSON.parse(jsonText);
+      console.log(
+        `🎯 Detected ${masks.length} objects:`,
+        masks.map((m) => m.label)
+      );
+
+      return masks;
+    } catch (error) {
+      console.error('Error in object detection/segmentation:', error);
+      return []; // Return empty array if detection fails
+    }
+  }
+
+  private async generateMaskOverlay(
+    originalImageBuffer: Buffer,
+    masks: SegmentationMask[]
+  ): Promise<Buffer> {
+    // Get original image dimensions
+    const { width, height } = await sharp(originalImageBuffer).metadata();
+    if (!width || !height) {
+      throw new Error('Could not determine image dimensions');
+    }
+
+    // Create base overlay
+    let overlay = sharp({
+      create: {
+        width,
+        height,
+        channels: 4,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      },
+    });
+
+    // Process each mask and composite them
+    for (const maskData of masks) {
+      try {
+        // Convert normalized coordinates to absolute pixels
+        const y0 = Math.floor((maskData.box_2d[0] / 1000) * height);
+        const x0 = Math.floor((maskData.box_2d[1] / 1000) * width);
+        const y1 = Math.ceil((maskData.box_2d[2] / 1000) * height);
+        const x1 = Math.ceil((maskData.box_2d[3] / 1000) * width);
+
+        // Skip invalid bounding boxes
+        if (y0 >= y1 || x0 >= x1) continue;
+
+        // Decode base64 mask
+        let maskBase64 = maskData.mask;
+        if (maskBase64.startsWith('data:image/png;base64,')) {
+          maskBase64 = maskBase64.substring('data:image/png;base64,'.length);
+        }
+
+        const maskBuffer = Buffer.from(maskBase64, 'base64');
+
+        // Resize mask to match bounding box dimensions
+        const _resizedMask = await sharp(maskBuffer)
+          .resize(x1 - x0, y1 - y0, { fit: 'fill' })
+          .ensureAlpha()
+          .raw()
+          .toBuffer({ resolveWithObject: true });
+
+        // Create a highlight overlay for this mask region
+        const highlightColor = { r: 255, g: 255, b: 255, alpha: 0.7 }; // Semi-transparent white
+
+        // For now, create a simple bounding box overlay
+        // In production, we'd composite the actual mask pixel by pixel
+        const boxOverlay = await sharp({
+          create: {
+            width: x1 - x0,
+            height: y1 - y0,
+            channels: 4,
+            background: highlightColor,
+          },
+        })
+          .png()
+          .toBuffer();
+
+        // Composite this mask onto the main overlay
+        overlay = overlay.composite([
+          {
+            input: boxOverlay,
+            left: x0,
+            top: y0,
+            blend: 'over',
+          },
+        ]);
+
+        console.log(
+          `📍 Added overlay for ${maskData.label} at (${x0},${y0}) to (${x1},${y1})`
+        );
+      } catch (error) {
+        console.error(`Error processing mask for ${maskData.label}:`, error);
+        continue;
+      }
+    }
+
+    return overlay.png().toBuffer();
   }
 
   private async detectPersonsInImage(
@@ -278,7 +451,32 @@ export class WatercolorService {
     const flags: string[] = [];
 
     try {
-      // Step 1: Safety check - detect people in image
+      // Step 1: Object detection and segmentation (new!)
+      console.log('🔍 Starting object detection and segmentation...');
+      const segmentationMasks = await this.detectAndSegmentObjects(
+        originalImageBuffer,
+        mimeType
+      );
+
+      // Step 2: Generate mask overlay
+      let maskUrl: string | undefined;
+      if (segmentationMasks.length > 0) {
+        console.log('🎨 Generating mask overlay...');
+        const maskOverlayBuffer = await this.generateMaskOverlay(
+          originalImageBuffer,
+          segmentationMasks
+        );
+
+        const maskPath = `items/${itemId}/masks/${styleVersion}/detection_overlay.png`;
+        maskUrl = await this.uploadToStorage(
+          maskOverlayBuffer,
+          maskPath,
+          'image/png'
+        );
+        console.log('✅ Mask overlay saved:', maskUrl);
+      }
+
+      // Step 3: Safety check - detect people in image
       const hasPersons = await this.detectPersonsInImage(
         originalImageBuffer,
         mimeType
@@ -290,7 +488,7 @@ export class WatercolorService {
         );
       }
 
-      // Step 2: Upload original image
+      // Step 4: Upload original image
       const originalPath = `items/${itemId}/original/${crypto.randomUUID()}.${originalImageName.split('.').pop()}`;
       const originalUrl = await this.uploadToStorage(
         originalImageBuffer,
@@ -361,12 +559,14 @@ export class WatercolorService {
         originalUrl,
         watercolorUrl,
         watercolorThumbUrl,
+        maskUrl,
         iconUrl,
         styleVersion,
         aiModel,
         synthIdWatermark: false, // TODO: Detect SynthID watermarks
         flags,
         idempotencyKey,
+        segmentationMasks,
       };
     } catch (error) {
       console.error('Error in watercolor rendering pipeline:', error);

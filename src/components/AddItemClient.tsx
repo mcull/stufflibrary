@@ -21,6 +21,7 @@ import { useRef, useState, useCallback, useEffect } from 'react';
 
 import { brandColors } from '@/theme/brandTokens';
 
+import { AIVisualizationAnimation } from './AIVisualizationAnimation';
 import { LibrarySelectionModal } from './LibrarySelectionModal';
 
 type CaptureState =
@@ -62,6 +63,15 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
   const [shouldMirrorCamera, setShouldMirrorCamera] = useState(false);
   const [uploadedItem, setUploadedItem] = useState<UploadedItem | null>(null);
   const [showLibraryModal, setShowLibraryModal] = useState(false);
+
+  const [watercolorData, setWatercolorData] = useState<{
+    maskUrl?: string;
+    watercolorUrl?: string;
+    segmentationMasks?: Array<{
+      label: string;
+      confidence: number;
+    }>;
+  } | null>(null);
 
   // Request camera permission and start stream
   const startCamera = useCallback(async () => {
@@ -224,11 +234,11 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
         setState('analyzing');
 
         try {
-          // Create form data for API request
+          // Create form data for combined AI analysis and visualization
           const formData = new FormData();
           formData.append('image', blob, 'capture.jpg');
 
-          const response = await fetch('/api/analyze-item', {
+          const response = await fetch('/api/analyze-and-visualize', {
             method: 'POST',
             body: formData,
           });
@@ -240,12 +250,23 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
           const result = await response.json();
 
           if (result.recognized && result.name) {
+            // Set recognition results
             setRecognitionResult({
               name: result.name,
               description: result.description || '',
               confidence: result.confidence || 0,
               category: result.category || 'other',
             });
+
+            // Set watercolor visualization data (if available)
+            if (result.maskUrl || result.watercolorUrl) {
+              setWatercolorData({
+                maskUrl: result.maskUrl,
+                watercolorUrl: result.watercolorUrl,
+                segmentationMasks: result.segmentationMasks || [],
+              });
+            }
+
             setState('recognized');
           } else if (result.prohibited) {
             setError(
@@ -638,15 +659,17 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
       case 'capturing':
       case 'analyzing':
         return (
-          <Box sx={{ textAlign: 'center', py: 4 }}>
-            <CircularProgress size={64} sx={{ mb: 2 }} />
-            <Typography variant="h6" gutterBottom>
-              {state === 'capturing' ? 'Capturing...' : 'Analyzing item...'}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {state === 'analyzing' && 'This may take a few seconds'}
-            </Typography>
-          </Box>
+          <AIVisualizationAnimation
+            originalImageUrl={capturedImageUrl || ''}
+            maskUrl={watercolorData?.maskUrl}
+            watercolorUrl={watercolorData?.watercolorUrl}
+            onAnimationComplete={() => {
+              // Animation complete, move to recognized state
+              if (recognitionResult) {
+                setState('recognized');
+              }
+            }}
+          />
         );
 
       case 'recognized':
