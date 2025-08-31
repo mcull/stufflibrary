@@ -13,6 +13,8 @@ interface BorrowedItem {
     id: string;
     name: string;
     imageUrl?: string | null;
+    watercolorUrl?: string | null;
+    watercolorThumbUrl?: string | null;
   };
   lender: {
     id: string;

@@ -49,6 +49,8 @@ interface BorrowRequest {
     name: string;
     description: string | null;
     imageUrl: string | null;
+    watercolorUrl?: string | null;
+    watercolorThumbUrl?: string | null;
   };
 }
 
@@ -86,16 +88,19 @@ export function BorrowApprovalClient({
     setError(null);
 
     try {
-      const responseData = await fetch(`/api/borrow-requests/${borrowRequest.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: decision,
-          message: response.trim(),
-        }),
-      });
+      const responseData = await fetch(
+        `/api/borrow-requests/${borrowRequest.id}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: decision,
+            message: response.trim(),
+          }),
+        }
+      );
 
       if (!responseData.ok) {
         const error = await responseData.json();
@@ -188,12 +193,13 @@ export function BorrowApprovalClient({
 
           {/* Item Info */}
           <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-            {borrowRequest.item.imageUrl && (
+            {(borrowRequest.item.watercolorThumbUrl ||
+              borrowRequest.item.imageUrl) && (
               <Box
                 sx={{
                   width: 80,
                   height: 80,
-                  backgroundImage: `url(${borrowRequest.item.imageUrl})`,
+                  backgroundImage: `url(${borrowRequest.item.watercolorThumbUrl || borrowRequest.item.imageUrl})`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
                   borderRadius: 1,

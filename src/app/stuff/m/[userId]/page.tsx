@@ -263,10 +263,18 @@ function ItemCard({ item, status }: ItemCardProps) {
             overflow: 'hidden',
           }}
         >
-          {item.imageUrl || item.item?.imageUrl ? (
+          {item.watercolorThumbUrl ||
+          item.imageUrl ||
+          item.item?.watercolorThumbUrl ||
+          item.item?.imageUrl ? (
             <>
               <Image
-                src={item.imageUrl || item.item?.imageUrl}
+                src={
+                  (item.watercolorThumbUrl ||
+                    item.imageUrl ||
+                    item.item?.watercolorThumbUrl ||
+                    item.item?.imageUrl)!
+                }
                 alt={item.name || 'Item'}
                 fill
                 style={{
