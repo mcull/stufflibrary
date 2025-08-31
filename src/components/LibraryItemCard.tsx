@@ -25,6 +25,7 @@ interface LibraryItemCardProps {
     description?: string;
     condition: string;
     imageUrl?: string;
+    watercolorThumbUrl?: string;
     isAvailable: boolean;
     createdAt: string;
     category: string;
@@ -172,10 +173,10 @@ export function LibraryItemCard({ item }: LibraryItemCardProps) {
             overflow: 'hidden',
           }}
         >
-          {item.imageUrl ? (
+          {item.watercolorThumbUrl || item.imageUrl ? (
             <>
               <Image
-                src={item.imageUrl}
+                src={item.watercolorThumbUrl || item.imageUrl!}
                 alt={item.name || 'Item'}
                 fill
                 style={{

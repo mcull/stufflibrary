@@ -83,6 +83,8 @@ export async function GET(
       condition: item.condition,
       location: item.location,
       imageUrl: item.imageUrl,
+      watercolorUrl: item.watercolorUrl,
+      watercolorThumbUrl: item.watercolorThumbUrl,
       isAvailable: !item.currentBorrowRequestId,
       createdAt: item.createdAt,
       updatedAt: item.updatedAt,
