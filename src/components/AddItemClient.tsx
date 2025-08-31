@@ -896,12 +896,6 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
               {Math.round((recognitionResult?.confidence || 0) * 100)}%
             </Typography>
 
-            {isWatercolorReady && (
-              <Typography variant="body2" color="success.main" sx={{ mb: 3 }}>
-                ✨ Watercolor illustration ready!
-              </Typography>
-            )}
-
             <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
               <Button
                 variant="outlined"
