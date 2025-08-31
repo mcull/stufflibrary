@@ -39,6 +39,8 @@ export async function GET(_request: NextRequest) {
             id: true,
             name: true,
             imageUrl: true,
+            watercolorUrl: true,
+            watercolorThumbUrl: true,
           },
         },
         borrower: {
@@ -235,6 +237,8 @@ export async function POST(request: NextRequest) {
             id: true,
             name: true,
             imageUrl: true,
+            watercolorUrl: true,
+            watercolorThumbUrl: true,
           },
         },
       },

@@ -38,6 +38,8 @@ export default async function BorrowApprovalPage({
           name: true,
           description: true,
           imageUrl: true,
+          watercolorUrl: true,
+          watercolorThumbUrl: true,
         },
       },
     },

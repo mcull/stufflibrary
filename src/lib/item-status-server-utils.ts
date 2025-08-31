@@ -13,50 +13,53 @@ export async function getUserItemsWithStatus(userId: string): Promise<{
     include: {
       borrowRequests: {
         where: {
-          OR: [
-            { status: 'APPROVED' },
-            { status: 'ACTIVE' }
-          ]
+          OR: [{ status: 'APPROVED' }, { status: 'ACTIVE' }],
         },
         include: {
           borrower: {
-            select: { id: true, name: true }
-          }
+            select: { id: true, name: true },
+          },
         },
         orderBy: { createdAt: 'desc' },
-        take: 1 // Get the most recent active/approved request
-      }
+        take: 1, // Get the most recent active/approved request
+      },
     },
-    orderBy: { createdAt: 'desc' }
+    orderBy: { createdAt: 'desc' },
   });
 
-  const itemsWithStatus: ItemWithStatus[] = items.map(item => {
+  const itemsWithStatus: ItemWithStatus[] = items.map((item) => {
     const status = getItemStatus(item.currentBorrowRequestId);
     const activeBorrowRequest = item.borrowRequests[0];
-    
+
     return {
       id: item.id,
       name: item.name,
       description: item.description,
       imageUrl: item.imageUrl,
+      watercolorUrl: item.watercolorUrl,
+      watercolorThumbUrl: item.watercolorThumbUrl,
       currentBorrowRequestId: item.currentBorrowRequestId,
       condition: item.condition,
       location: item.location,
       createdAt: item.createdAt.toISOString(),
       status,
       borrower: activeBorrowRequest?.borrower || null,
-      borrowRequest: activeBorrowRequest ? {
-        id: activeBorrowRequest.id,
-        status: activeBorrowRequest.status,
-        requestedReturnDate: activeBorrowRequest.requestedReturnDate,
-        createdAt: activeBorrowRequest.createdAt
-      } : null
+      borrowRequest: activeBorrowRequest
+        ? {
+            id: activeBorrowRequest.id,
+            status: activeBorrowRequest.status,
+            requestedReturnDate: activeBorrowRequest.requestedReturnDate,
+            createdAt: activeBorrowRequest.createdAt,
+          }
+        : null,
     };
   });
 
   return {
-    readyToLendItems: itemsWithStatus.filter(item => item.status === 'ready-to-lend'),
-    onLoanItems: itemsWithStatus.filter(item => item.status === 'on-loan')
+    readyToLendItems: itemsWithStatus.filter(
+      (item) => item.status === 'ready-to-lend'
+    ),
+    onLoanItems: itemsWithStatus.filter((item) => item.status === 'on-loan'),
   };
 }
 
@@ -67,34 +70,36 @@ export async function getUserBorrowedItems(userId: string) {
   const borrowRequests = await db.borrowRequest.findMany({
     where: {
       borrowerId: userId,
-      status: { in: ['APPROVED', 'ACTIVE'] }
+      status: { in: ['APPROVED', 'ACTIVE'] },
     },
     include: {
       item: {
         select: {
           id: true,
           name: true,
-          imageUrl: true
-        }
+          imageUrl: true,
+          watercolorUrl: true,
+          watercolorThumbUrl: true,
+        },
       },
       lender: {
         select: {
           id: true,
-          name: true
-        }
-      }
+          name: true,
+        },
+      },
     },
-    orderBy: { createdAt: 'desc' }
+    orderBy: { createdAt: 'desc' },
   });
 
-  return borrowRequests.map(request => ({
+  return borrowRequests.map((request) => ({
     id: request.id,
     status: request.status,
     createdAt: request.createdAt.toISOString(),
     requestedReturnDate: request.requestedReturnDate.toISOString(),
     actualReturnDate: request.actualReturnDate?.toISOString() || null,
     item: request.item,
-    lender: request.lender
+    lender: request.lender,
   }));
 }
 
@@ -108,26 +113,26 @@ export async function getUserItemsSummary(userId: string): Promise<{
 }> {
   const [ownedItems, borrowedRequests] = await Promise.all([
     db.item.count({
-      where: { ownerId: userId }
+      where: { ownerId: userId },
     }),
     db.borrowRequest.count({
       where: {
         borrowerId: userId,
-        status: { in: ['APPROVED', 'ACTIVE'] }
-      }
-    })
+        status: { in: ['APPROVED', 'ACTIVE'] },
+      },
+    }),
   ]);
 
   const onLoanCount = await db.item.count({
     where: {
       ownerId: userId,
-      currentBorrowRequestId: { not: null }
-    }
+      currentBorrowRequestId: { not: null },
+    },
   });
 
   return {
     readyToLendCount: ownedItems - onLoanCount,
     onLoanCount,
-    borrowedCount: borrowedRequests
+    borrowedCount: borrowedRequests,
   };
 }

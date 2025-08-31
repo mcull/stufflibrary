@@ -42,7 +42,7 @@ export async function updateItemAvailability(
     itemId,
     borrowRequestId,
     newStatus,
-    userId
+    userId,
   });
 
   // Get current state for audit logging
@@ -61,19 +61,27 @@ export async function updateItemAvailability(
   // Set currentBorrowRequestId when request becomes APPROVED or ACTIVE
   // Clear it when request is RETURNED, CANCELLED, or DECLINED
   if (['APPROVED', 'ACTIVE'].includes(newStatus)) {
-    console.log(`🔧 DEBUG Setting currentBorrowRequestId to ${borrowRequestId} for status ${newStatus}`);
+    console.log(
+      `🔧 DEBUG Setting currentBorrowRequestId to ${borrowRequestId} for status ${newStatus}`
+    );
     await db.item.update({
       where: { id: itemId },
       data: { currentBorrowRequestId: borrowRequestId },
     });
-    console.log(`🔧 DEBUG Successfully updated item ${itemId} with borrowRequestId ${borrowRequestId}`);
+    console.log(
+      `🔧 DEBUG Successfully updated item ${itemId} with borrowRequestId ${borrowRequestId}`
+    );
   } else if (['RETURNED', 'CANCELLED', 'DECLINED'].includes(newStatus)) {
-    console.log(`🔧 DEBUG Clearing currentBorrowRequestId for status ${newStatus}`);
+    console.log(
+      `🔧 DEBUG Clearing currentBorrowRequestId for status ${newStatus}`
+    );
     await db.item.update({
       where: { id: itemId },
       data: { currentBorrowRequestId: null },
     });
-    console.log(`🔧 DEBUG Successfully cleared currentBorrowRequestId for item ${itemId}`);
+    console.log(
+      `🔧 DEBUG Successfully cleared currentBorrowRequestId for item ${itemId}`
+    );
   } else {
     console.log(`🔧 DEBUG No action needed for status ${newStatus}`);
   }
@@ -196,7 +204,13 @@ export async function createBorrowRequest({
         select: { id: true, name: true, email: true, phone: true },
       },
       item: {
-        select: { id: true, name: true, imageUrl: true },
+        select: {
+          id: true,
+          name: true,
+          imageUrl: true,
+          watercolorUrl: true,
+          watercolorThumbUrl: true,
+        },
       },
     },
   });

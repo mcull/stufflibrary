@@ -258,9 +258,9 @@ export default function AddToLibraryPage() {
                       overflow: 'hidden',
                     }}
                   >
-                    {item.imageUrl ? (
+                    {item.watercolorThumbUrl || item.imageUrl ? (
                       <Image
-                        src={item.imageUrl}
+                        src={(item.watercolorThumbUrl || item.imageUrl)!}
                         alt={item.name}
                         fill
                         style={{ objectFit: 'cover' }}

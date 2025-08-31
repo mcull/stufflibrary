@@ -7,6 +7,8 @@ export interface ItemWithStatus {
   name: string;
   description?: string | null;
   imageUrl?: string | null;
+  watercolorUrl?: string | null;
+  watercolorThumbUrl?: string | null;
   currentBorrowRequestId?: string | null;
   condition: string;
   location?: string | null;

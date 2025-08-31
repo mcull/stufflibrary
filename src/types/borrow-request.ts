@@ -34,6 +34,8 @@ export interface BorrowRequestWithRelations extends BorrowRequest {
     name: string;
     description?: string;
     imageUrl?: string;
+    watercolorUrl?: string;
+    watercolorThumbUrl?: string;
     condition: string;
     location?: string;
   };
