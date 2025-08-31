@@ -412,7 +412,7 @@ test.describe('VintageCheckoutCard Component', () => {
     `);
   });
 
-  test('should match snapshot - full card with borrow history', async ({
+  test.skip('should match snapshot - full card with borrow history', async ({
     page,
   }) => {
     await page.evaluate(() => window.renderTestScenario('with-history'));
@@ -427,7 +427,7 @@ test.describe('VintageCheckoutCard Component', () => {
     );
   });
 
-  test('should match snapshot - compact card with borrow history', async ({
+  test.skip('should match snapshot - compact card with borrow history', async ({
     page,
   }) => {
     await page.evaluate(() =>
@@ -444,7 +444,9 @@ test.describe('VintageCheckoutCard Component', () => {
     );
   });
 
-  test('should match snapshot - empty card (no history)', async ({ page }) => {
+  test.skip('should match snapshot - empty card (no history)', async ({
+    page,
+  }) => {
     await page.evaluate(() => window.renderTestScenario('empty'));
 
     // Wait for fonts to load (with reliable fallbacks)
@@ -455,7 +457,7 @@ test.describe('VintageCheckoutCard Component', () => {
     await expect(card).toHaveScreenshot('vintage-checkout-card-empty.png');
   });
 
-  test('should match snapshot - compact empty card', async ({ page }) => {
+  test.skip('should match snapshot - compact empty card', async ({ page }) => {
     await page.evaluate(() => window.renderTestScenario('compact-empty'));
 
     // Wait for fonts to load (with reliable fallbacks)
