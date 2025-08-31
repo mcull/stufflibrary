@@ -32,7 +32,7 @@ interface VintageCheckoutCardProps {
 export function VintageCheckoutCard({
   itemName: _itemName,
   borrowHistory,
-  showTitle: _showTitle = true,
+  showTitle = true,
   compact = false,
   itemId: _itemId,
 }: VintageCheckoutCardProps) {
@@ -84,6 +84,24 @@ export function VintageCheckoutCard({
         p: 0,
       }}
     >
+      {/* Title section */}
+      {showTitle && (
+        <Box sx={{ mb: 2, textAlign: 'center' }}>
+          <Typography
+            className="vintage-stampette"
+            sx={{
+              fontSize: '1rem',
+              fontWeight: 'bold',
+              color: '#2c1810',
+              textTransform: 'uppercase',
+              letterSpacing: '2px',
+            }}
+          >
+            ★ LIBRARY CHECKOUT CARD ★
+          </Typography>
+        </Box>
+      )}
+
       {/* Header row with columns */}
       <Box
         sx={{
