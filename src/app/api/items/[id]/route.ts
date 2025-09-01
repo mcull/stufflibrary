@@ -74,6 +74,17 @@ export async function GET(
       return NextResponse.json({ error: 'Item not found' }, { status: 404 });
     }
 
+    // Check if user can access this item
+    const userId =
+      (session.user as any).id ||
+      (session as any).user?.id ||
+      (session as any).userId;
+
+    // Only owners can access draft items (active=false)
+    if (!item.active && item.ownerId !== userId) {
+      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+    }
+
     // Format response
     const activeBorrowRequest = item.borrowRequests?.[0] || null;
     const formattedItem = {
@@ -229,6 +240,8 @@ export async function PUT(
       condition: updatedItem.condition,
       location: updatedItem.location,
       imageUrl: updatedItem.imageUrl,
+      watercolorUrl: updatedItem.watercolorUrl,
+      watercolorThumbUrl: updatedItem.watercolorThumbUrl,
       isAvailable: !updatedItem.currentBorrowRequestId,
       createdAt: updatedItem.createdAt,
       updatedAt: updatedItem.updatedAt,
@@ -507,6 +520,8 @@ export async function PATCH(
         condition: itemWithLibraries!.condition,
         location: itemWithLibraries!.location,
         imageUrl: itemWithLibraries!.imageUrl,
+        watercolorUrl: itemWithLibraries!.watercolorUrl,
+        watercolorThumbUrl: itemWithLibraries!.watercolorThumbUrl,
         isAvailable: !itemWithLibraries!.currentBorrowRequestId,
         createdAt: itemWithLibraries!.createdAt,
         updatedAt: itemWithLibraries!.updatedAt,
@@ -531,6 +546,8 @@ export async function PATCH(
       condition: updatedItem!.condition,
       location: updatedItem!.location,
       imageUrl: updatedItem!.imageUrl,
+      watercolorUrl: updatedItem!.watercolorUrl,
+      watercolorThumbUrl: updatedItem!.watercolorThumbUrl,
       isAvailable: !updatedItem!.currentBorrowRequestId,
       createdAt: updatedItem!.createdAt,
       updatedAt: updatedItem!.updatedAt,
@@ -539,6 +556,15 @@ export async function PATCH(
       libraries: updatedItem!.libraries.map((il) => il.library),
       currentActiveBorrow: activeBorrowRequest,
     };
+
+    console.log('🎨 PATCH response item data:', {
+      id: formattedItem.id,
+      name: formattedItem.name,
+      watercolorUrl: formattedItem.watercolorUrl,
+      watercolorThumbUrl: formattedItem.watercolorThumbUrl,
+      imageUrl: formattedItem.imageUrl,
+      isAvailable: formattedItem.isAvailable,
+    });
 
     return NextResponse.json({
       item: formattedItem,

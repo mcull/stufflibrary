@@ -22,10 +22,11 @@ export async function GET(_request: NextRequest) {
       return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
     }
 
-    // Get user's items
+    // Get user's items (only active items)
     const items = await db.item.findMany({
       where: {
         ownerId: userId,
+        active: true, // Only show active items
       },
       include: {
         stuffType: {

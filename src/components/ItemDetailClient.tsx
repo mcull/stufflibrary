@@ -189,6 +189,14 @@ export function ItemDetailClient({
       }
 
       const data = await response.json();
+      console.log('🎨 Client received PATCH response item data:', {
+        id: data.item.id,
+        name: data.item.name,
+        watercolorUrl: data.item.watercolorUrl,
+        watercolorThumbUrl: data.item.watercolorThumbUrl,
+        imageUrl: data.item.imageUrl,
+        isAvailable: data.item.isAvailable,
+      });
       setItem(data.item);
 
       setToast({
@@ -316,6 +324,36 @@ export function ItemDetailClient({
     // Fetch item data regardless - even "new" items exist in the database
     fetchItem();
   }, [itemId, isNewItem]);
+
+  // Light polling for watercolor completion on new items (only if not already present)
+  useEffect(() => {
+    if (!isNewItem || !item || item.watercolorUrl) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/items/${itemId}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.item.watercolorUrl) {
+            setItem(data.item);
+            clearInterval(pollInterval); // Stop polling once we get the watercolor
+          }
+        }
+      } catch (err) {
+        console.error('Error polling for watercolor:', err);
+      }
+    }, 2000); // Poll every 2 seconds
+
+    // Stop polling after 30 seconds - watercolor should be ready by then
+    const timeout = setTimeout(() => {
+      clearInterval(pollInterval);
+    }, 30000);
+
+    return () => {
+      clearInterval(pollInterval);
+      clearTimeout(timeout);
+    };
+  }, [isNewItem, item?.watercolorUrl, itemId]);
 
   // Save item updates
   const handleSave = async (field?: string, silent = false) => {
@@ -574,7 +612,7 @@ export function ItemDetailClient({
           }}
         >
           {/* Image */}
-          {(item.watercolorThumbUrl || item.imageUrl) && (
+          {(item.watercolorUrl || item.watercolorThumbUrl || item.imageUrl) && (
             <Box sx={{ flex: '0 0 300px' }}>
               <Paper
                 elevation={3}
@@ -586,7 +624,11 @@ export function ItemDetailClient({
                 }}
               >
                 <img
-                  src={item.watercolorThumbUrl || item.imageUrl}
+                  src={
+                    item.watercolorUrl ||
+                    item.watercolorThumbUrl ||
+                    item.imageUrl
+                  }
                   alt={item.name}
                   style={{
                     width: '100%',

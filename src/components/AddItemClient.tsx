@@ -114,17 +114,10 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
   const [shouldMirrorCamera, setShouldMirrorCamera] = useState(false);
   const [uploadedItem, setUploadedItem] = useState<UploadedItem | null>(null);
   const [showLibraryModal, setShowLibraryModal] = useState(false);
-  const [previewId, setPreviewId] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-
-  const [watercolorData, setWatercolorData] = useState<{
-    maskUrl?: string;
-    watercolorUrl?: string;
-    segmentationMasks?: Array<{
-      label: string;
-      confidence: number;
-    }>;
-  } | null>(null);
+  const [draftItemId, setDraftItemId] = useState<string | null>(null);
+  const [isGeneratingWatercolor, setIsGeneratingWatercolor] = useState(false);
+  const [watercolorUrl, setWatercolorUrl] = useState<string | null>(null);
   const [showWatercolor, setShowWatercolor] = useState(false);
 
   // Request camera permission and start stream
@@ -285,78 +278,121 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
           return;
         }
 
-        // Skip analyzing state - go directly to recognized with loading
-        console.log('📸 Image captured, starting analysis...');
+        // New clean approach: Create draft item immediately
+        console.log('📸 Image captured, creating draft item...');
         setIsAnalyzing(true);
 
         try {
-          // Create form data for combined AI analysis and visualization
-          const formData = new FormData();
-          formData.append('image', blob, 'capture.jpg');
+          // Step 1: Create draft item immediately with photo
+          const draftFormData = new FormData();
+          draftFormData.append('image', blob, 'capture.jpg');
 
-          const response = await fetch('/api/analyze-and-visualize', {
+          const draftResponse = await fetch('/api/items/create-draft', {
             method: 'POST',
-            body: formData,
+            body: draftFormData,
           });
 
-          if (!response.ok) {
+          if (!draftResponse.ok) {
+            throw new Error('Failed to create draft item');
+          }
+
+          const draftResult = await draftResponse.json();
+          const itemId = draftResult.itemId;
+          setDraftItemId(itemId);
+          console.log('✅ Draft item created:', itemId);
+
+          // Step 2: Get AI analysis
+          const analysisFormData = new FormData();
+          analysisFormData.append('image', blob, 'capture.jpg');
+
+          const analysisResponse = await fetch('/api/analyze-item', {
+            method: 'POST',
+            body: analysisFormData,
+          });
+
+          if (!analysisResponse.ok) {
             throw new Error('Analysis failed');
           }
 
-          const result = await response.json();
-          console.log('🎨 AI Analysis result:', result);
+          const analysisResult = await analysisResponse.json();
+          console.log('🔍 Analysis result:', analysisResult);
 
-          if (result.recognized && result.name) {
-            // Set recognition results
+          if (analysisResult.recognized && analysisResult.name) {
+            // Step 3: Update item with analysis results
+            const updateAnalysisResponse = await fetch(
+              '/api/items/update-analysis',
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  itemId: itemId,
+                  name: analysisResult.name,
+                  description: analysisResult.description,
+                  category: analysisResult.category,
+                }),
+              }
+            );
+
+            if (updateAnalysisResponse.ok) {
+              console.log('✅ Item updated with analysis');
+            }
+
+            // Set recognition results for UI
             setRecognitionResult({
-              name: result.name,
-              description: result.description || '',
-              confidence: result.confidence || 0,
-              category: result.category || 'other',
+              name: analysisResult.name,
+              description: analysisResult.description || '',
+              confidence: analysisResult.confidence || 0,
+              category: analysisResult.category || 'other',
             });
 
-            // Store previewId for polling
-            setPreviewId(result.previewId);
+            // Store the real item ID
+            setUploadedItem({
+              id: itemId,
+              name: analysisResult.name,
+            });
 
-            // Analysis complete, show results
             setIsAnalyzing(false);
+            setState('recognized');
 
-            // Check if watercolor is processing in background
-            if (result.watercolorProcessing) {
-              console.log(
-                '🎨 Recognition complete, moving to recognized state with background processing...'
-              );
-              setState('recognized');
-              // Start polling for watercolor completion
-              startWatercolorPolling(result.previewId);
-            } else {
-              // Legacy path: watercolor data already available
-              const watercolorInfo = {
-                maskUrl: result.maskUrl,
-                watercolorUrl: result.watercolorUrl,
-                segmentationMasks: result.segmentationMasks || [],
-              };
-              console.log('🎯 Setting watercolor data:', watercolorInfo);
-              setWatercolorData(watercolorInfo);
-              setState('recognized');
-            }
-          } else if (result.prohibited) {
-            setError(
-              result.error ||
-                'This item is not permitted in our community sharing library. Please try a different household item.'
-            );
-            setState('error');
+            // Step 4: Start watercolor generation with UI updates
+            setIsGeneratingWatercolor(true);
+
+            fetch('/api/items/render-watercolor', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ itemId: itemId }),
+            })
+              .then(async (watercolorResponse) => {
+                if (watercolorResponse.ok) {
+                  const watercolorResult = await watercolorResponse.json();
+                  console.log(
+                    '🎨 Watercolor generated:',
+                    watercolorResult.watercolorUrl
+                  );
+
+                  // Update the watercolor URL in state and show it
+                  setWatercolorUrl(watercolorResult.watercolorUrl);
+                  setTimeout(() => {
+                    setShowWatercolor(true);
+                    setIsGeneratingWatercolor(false);
+                  }, 100);
+                } else {
+                  console.error('❌ Watercolor generation failed');
+                  setIsGeneratingWatercolor(false);
+                }
+              })
+              .catch((error) => {
+                console.error('❌ Watercolor generation failed:', error);
+                setIsGeneratingWatercolor(false);
+              });
           } else {
-            setError(
-              "We couldn't identify this object. Please try again with better lighting or a clearer view of the item."
-            );
+            setError('Could not identify the item. Please try again.');
             setState('error');
           }
         } catch (err) {
-          console.error('Error analyzing image:', err);
-          setError('Failed to analyze the image. Please try again.');
+          console.error('❌ Error in new item creation flow:', err);
+          setError('Failed to create item. Please try again.');
           setState('error');
-        } finally {
           setIsAnalyzing(false);
         }
       },
@@ -365,130 +401,64 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
     );
   }, [shouldMirrorCamera]);
 
-  // Start polling for watercolor completion
-  const startWatercolorPolling = useCallback(async (previewId: string) => {
-    console.log('🔄 Starting watercolor polling for', previewId);
-
-    const pollInterval = setInterval(async () => {
-      try {
-        const response = await fetch(`/api/watercolor-status/${previewId}`);
-        const result = await response.json();
-
-        if (result.ready) {
-          console.log('🎨 Watercolor ready!', result);
-          clearInterval(pollInterval);
-
-          if (result.error) {
-            console.warn('⚠️ Watercolor processing failed:', result.error);
-            // Still move to recognized state with original photo
-            setState('recognized');
-          } else {
-            // Set watercolor data - this will trigger the cross-fade animation
-            console.log('🎨 Watercolor ready, triggering cross-fade...');
-            setWatercolorData({
-              maskUrl: result.maskUrl,
-              watercolorUrl: result.watercolorUrl,
-              segmentationMasks: result.segmentationMasks || [],
-            });
-            // State stays 'recognized' but now with watercolor data
-          }
-        }
-      } catch (error) {
-        console.error('❌ Error polling watercolor status:', error);
-        // Continue polling - don't break the flow
-      }
-    }, 2000); // Poll every 2 seconds
-
-    // Stop polling after 2 minutes to prevent infinite polling
-    setTimeout(() => {
-      clearInterval(pollInterval);
-      console.warn('⏰ Watercolor polling timed out');
-      setState('recognized'); // Move to recognized state even without watercolor
-    }, 120000);
-  }, []);
-
-  // Trigger cross-fade animation when watercolor data becomes available
-  useEffect(() => {
-    if (watercolorData?.watercolorUrl && !showWatercolor) {
-      console.log('🎨 Watercolor available, starting cross-fade animation...');
-      // Small delay to ensure the image has loaded
-      setTimeout(() => {
-        setShowWatercolor(true);
-      }, 100);
-    }
-  }, [watercolorData?.watercolorUrl, showWatercolor]);
-
   // Add item and navigate to metadata page
   const addItem = useCallback(async () => {
-    if (!recognitionResult || !canvasRef.current) return;
+    if (!recognitionResult || !draftItemId) {
+      console.error('❌ Missing recognition result or draft item ID');
+      return;
+    }
 
-    console.log('🏪 Starting add item process...');
+    console.log('🏪 Activating item:', draftItemId);
 
     try {
-      // Convert canvas to blob for storage
-      canvasRef.current.toBlob(
-        async (blob) => {
-          if (!blob) {
-            console.error('❌ Failed to create blob from canvas');
-            return;
-          }
-
-          console.log('📦 Created blob for upload:', blob.size, 'bytes');
-
-          console.log('📋 Creating form data...');
-          const formData = new FormData();
-          formData.append('image', blob, 'item.jpg');
-          formData.append('name', recognitionResult.name);
-          formData.append('description', recognitionResult.description);
-          formData.append('category', recognitionResult.category);
-
-          // Only add libraryIds if provided (from specific library context)
-          if (libraryId) {
-            formData.append('libraryIds', JSON.stringify([libraryId]));
-          }
-
-          console.log('🚀 Uploading to API...');
-          const response = await fetch('/api/items', {
-            method: 'POST',
-            body: formData,
-          });
-
-          if (!response.ok) {
-            console.error(
-              '❌ API response not OK:',
-              response.status,
-              response.statusText
-            );
-            throw new Error('Failed to create item');
-          }
-
-          const responseData = await response.json();
-          console.log('✅ Item created successfully:', responseData);
-          const { itemId, item } = responseData;
-
-          // Store uploaded item info
-          setUploadedItem({
-            id: itemId,
-            name: item.name,
-          });
-
-          setState('uploaded');
-          setShowLibraryModal(true);
+      // Activate the draft item
+      const response = await fetch('/api/items/activate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        'image/jpeg',
-        0.8
-      );
+        body: JSON.stringify({
+          itemId: draftItemId,
+          libraryIds: libraryId ? [libraryId] : [],
+        }),
+      });
+
+      if (!response.ok) {
+        console.error(
+          '❌ API response not OK:',
+          response.status,
+          response.statusText
+        );
+        throw new Error('Failed to activate item');
+      }
+
+      const responseData = await response.json();
+      console.log('✅ Item activated successfully:', responseData);
+      const { itemId, item } = responseData;
+
+      // Store uploaded item info
+      setUploadedItem({
+        id: itemId,
+        name: item.name,
+      });
+
+      setState('uploaded');
+      setShowLibraryModal(true);
     } catch (err) {
-      console.error('Error adding item:', err);
+      console.error('❌ Error activating item:', err);
       setError('Failed to add item. Please try again.');
       setState('error');
     }
-  }, [recognitionResult, libraryId]);
+  }, [recognitionResult, draftItemId, libraryId]);
 
   // Retry capture
   const retryCapture = useCallback(() => {
     setError(null);
     setRecognitionResult(null);
+    setDraftItemId(null);
+    setIsGeneratingWatercolor(false);
+    setWatercolorUrl(null);
+    setShowWatercolor(false);
     setState('streaming');
   }, []);
 
@@ -794,9 +764,6 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
         );
 
       case 'recognized':
-        const isWatercolorReady = !!watercolorData?.watercolorUrl;
-        const isProcessingWatercolor = !!(previewId && !isWatercolorReady);
-
         // If still analyzing, show analyzing state
         if (isAnalyzing) {
           return (
@@ -843,7 +810,7 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
                     objectFit: 'cover',
                     opacity: showWatercolor ? 0 : 1,
                     transition: 'opacity 1.5s ease-in-out',
-                    ...(isProcessingWatercolor && {
+                    ...(isGeneratingWatercolor && {
                       animation: 'pulse 2s ease-in-out infinite',
                       '@keyframes pulse': {
                         '0%, 100%': {
@@ -858,10 +825,10 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
                 />
 
                 {/* Watercolor image (when ready) */}
-                {watercolorData?.watercolorUrl && (
+                {watercolorUrl && (
                   <Box
                     component="img"
-                    src={watercolorData.watercolorUrl}
+                    src={watercolorUrl}
                     alt="Watercolor illustration"
                     sx={{
                       position: 'absolute',
@@ -876,8 +843,8 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
                   />
                 )}
 
-                {/* Illustrating overlay - only show when processing watercolor */}
-                {isProcessingWatercolor && <IllustratingOverlay />}
+                {/* Illustrating overlay - only show when generating watercolor */}
+                {isGeneratingWatercolor && <IllustratingOverlay />}
               </Paper>
             )}
 
@@ -896,12 +863,6 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
               {Math.round((recognitionResult?.confidence || 0) * 100)}%
             </Typography>
 
-            {isWatercolorReady && (
-              <Typography variant="body2" color="success.main" sx={{ mb: 3 }}>
-                ✨ Watercolor illustration ready!
-              </Typography>
-            )}
-
             <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
               <Button
                 variant="outlined"
@@ -913,10 +874,10 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
               <Button
                 variant="contained"
                 onClick={addItem}
-                disabled={isProcessingWatercolor}
+                disabled={isGeneratingWatercolor}
                 sx={{ borderRadius: 2 }}
               >
-                {isProcessingWatercolor ? 'Processing...' : 'Add Item'}
+                {isGeneratingWatercolor ? 'Illustrating...' : 'Add Item'}
               </Button>
             </Box>
           </Box>

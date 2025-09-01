@@ -18,11 +18,7 @@ export function storeWatercolorResult(previewId: string, result: any) {
 export function getWatercolorResult(previewId: string) {
   const result = watercolorResults.get(previewId);
 
-  if (result) {
-    // Clean up after returning result
-    watercolorResults.delete(previewId);
-    return result;
-  }
-
-  return null;
+  // Don't delete immediately - let the cleanup timeout handle it
+  // This allows multiple polling requests to get the same result
+  return result || null;
 }
