@@ -167,6 +167,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Item not found' }, { status: 404 });
     }
 
+    // Only allow borrowing active items
+    if (!item.active) {
+      return NextResponse.json(
+        { error: 'Item not available' },
+        { status: 400 }
+      );
+    }
+
     // Don't let users borrow their own items
     if (item.ownerId === userId) {
       return NextResponse.json(

@@ -74,6 +74,17 @@ export async function GET(
       return NextResponse.json({ error: 'Item not found' }, { status: 404 });
     }
 
+    // Check if user can access this item
+    const userId =
+      (session.user as any).id ||
+      (session as any).user?.id ||
+      (session as any).userId;
+
+    // Only owners can access draft items (active=false)
+    if (!item.active && item.ownerId !== userId) {
+      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+    }
+
     // Format response
     const activeBorrowRequest = item.borrowRequests?.[0] || null;
     const formattedItem = {

@@ -317,6 +317,36 @@ export function ItemDetailClient({
     fetchItem();
   }, [itemId, isNewItem]);
 
+  // Light polling for watercolor completion on new items (only if not already present)
+  useEffect(() => {
+    if (!isNewItem || !item || item.watercolorUrl) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/items/${itemId}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.item.watercolorUrl) {
+            setItem(data.item);
+            clearInterval(pollInterval); // Stop polling once we get the watercolor
+          }
+        }
+      } catch (err) {
+        console.error('Error polling for watercolor:', err);
+      }
+    }, 2000); // Poll every 2 seconds
+
+    // Stop polling after 30 seconds - watercolor should be ready by then
+    const timeout = setTimeout(() => {
+      clearInterval(pollInterval);
+    }, 30000);
+
+    return () => {
+      clearInterval(pollInterval);
+      clearTimeout(timeout);
+    };
+  }, [isNewItem, item?.watercolorUrl, itemId]);
+
   // Save item updates
   const handleSave = async (field?: string, silent = false) => {
     if (!item) return;

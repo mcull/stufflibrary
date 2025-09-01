@@ -29,6 +29,9 @@ export async function POST(request: NextRequest) {
     const description = (formData.get('description') as string) || null;
     const category = (formData.get('category') as string) || 'other';
     const libraryIdsString = formData.get('libraryIds') as string;
+    const watercolorUrl = (formData.get('watercolorUrl') as string) || null;
+    const watercolorThumbUrl =
+      (formData.get('watercolorThumbUrl') as string) || null;
     let libraryIds: string[] = [];
     if (libraryIdsString) {
       try {
@@ -104,6 +107,9 @@ export async function POST(request: NextRequest) {
         description: description || `Added via camera capture`,
         condition: 'good', // Default condition
         imageUrl: imageUrl,
+        watercolorUrl: watercolorUrl,
+        watercolorThumbUrl: watercolorThumbUrl,
+        styleVersion: watercolorUrl ? 'wc_v1' : null,
         currentBorrowRequestId: null,
         ownerId: userId,
         stuffTypeId: stuffType.id,
@@ -181,8 +187,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Trigger asynchronous watercolor rendering (fire and forget)
-    if (process.env.GOOGLE_AI_API_KEY) {
+    // Trigger asynchronous watercolor rendering only if we don't already have watercolor URLs
+    if (process.env.GOOGLE_AI_API_KEY && !watercolorUrl) {
       console.log('🎨 Triggering watercolor rendering for item:', item.id);
 
       // Make async request to our watercolor endpoint
@@ -206,6 +212,8 @@ export async function POST(request: NextRequest) {
         .catch((error) => {
           console.error('❌ Failed to trigger watercolor rendering:', error);
         });
+    } else if (watercolorUrl) {
+      console.log('✅ Item created with existing watercolor:', watercolorUrl);
     } else {
       console.log('⚠️ Watercolor rendering disabled (no GOOGLE_AI_API_KEY)');
     }

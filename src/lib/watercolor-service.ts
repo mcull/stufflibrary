@@ -341,6 +341,8 @@ Use descriptive, specific labels that would help someone identify the item for b
     Composition: center the object on canvas with ~10% margin; maintain real-world orientation and proportions.
     Constraints: remove any text labels, faces, reflections of people, or household backgrounds. Keep proportions faithful, no cartoonification.
     
+    CRITICAL: Do not add any text, numbers, codes, labels, or written characters to the image. The watercolor should contain only the visual illustration of the item with NO TEXT ANYWHERE.
+    
     Return a clean watercolor illustration ready for a community sharing platform.`,
       },
       {
