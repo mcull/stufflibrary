@@ -28,7 +28,14 @@ export default async function BorrowRequestPage({
   // Get the item details
   const item = await db.item.findUnique({
     where: { id: itemId },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      imageUrl: true,
+      watercolorUrl: true,
+      watercolorThumbUrl: true,
+      ownerId: true,
       owner: {
         select: {
           id: true,

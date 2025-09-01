@@ -32,6 +32,8 @@ interface Item {
   name: string;
   description: string | null;
   imageUrl: string | null;
+  watercolorUrl?: string | null;
+  watercolorThumbUrl?: string | null;
   owner: {
     id: string;
     name: string | null;
@@ -61,6 +63,11 @@ type RequestState =
 
 export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
   const router = useRouter();
+
+  // Helper function to get the best available image URL (prioritize watercolor)
+  const getDisplayImageUrl = () => {
+    return item.watercolorUrl || item.watercolorThumbUrl || item.imageUrl;
+  };
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -546,11 +553,11 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
                 >
                   owned by {item.owner.name}
                 </Typography>
-                {item.imageUrl && (
+                {getDisplayImageUrl() && (
                   <Box
                     sx={{
                       aspectRatio: '1',
-                      backgroundImage: `url(${item.imageUrl})`,
+                      backgroundImage: `url(${getDisplayImageUrl()})`,
                       backgroundSize: 'cover',
                       backgroundPosition: 'center',
                       borderRadius: 1,
@@ -700,11 +707,11 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
                 >
                   owned by {item.owner.name}
                 </Typography>
-                {item.imageUrl && (
+                {getDisplayImageUrl() && (
                   <Box
                     sx={{
                       aspectRatio: '1',
-                      backgroundImage: `url(${item.imageUrl})`,
+                      backgroundImage: `url(${getDisplayImageUrl()})`,
                       backgroundSize: 'cover',
                       backgroundPosition: 'center',
                       borderRadius: 1,
@@ -1021,11 +1028,11 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
                 >
                   owned by {item.owner.name}
                 </Typography>
-                {item.imageUrl && (
+                {getDisplayImageUrl() && (
                   <Box
                     sx={{
                       aspectRatio: '1',
-                      backgroundImage: `url(${item.imageUrl})`,
+                      backgroundImage: `url(${getDisplayImageUrl()})`,
                       backgroundSize: 'cover',
                       backgroundPosition: 'center',
                       borderRadius: 1,
