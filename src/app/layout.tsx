@@ -1,3 +1,4 @@
+import { Analytics } from '@vercel/analytics/next';
 import type { Metadata } from 'next';
 import { Roboto, Space_Grotesk } from 'next/font/google';
 import localFont from 'next/font/local';
@@ -85,6 +86,7 @@ export default function RootLayout({
             <ConditionalFooter />
           </ClientThemeProvider>
         </NextAuthSessionProvider>
+        <Analytics />
       </body>
     </html>
   );
