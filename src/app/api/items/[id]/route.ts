@@ -240,6 +240,8 @@ export async function PUT(
       condition: updatedItem.condition,
       location: updatedItem.location,
       imageUrl: updatedItem.imageUrl,
+      watercolorUrl: updatedItem.watercolorUrl,
+      watercolorThumbUrl: updatedItem.watercolorThumbUrl,
       isAvailable: !updatedItem.currentBorrowRequestId,
       createdAt: updatedItem.createdAt,
       updatedAt: updatedItem.updatedAt,
