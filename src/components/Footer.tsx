@@ -167,7 +167,7 @@ export function Footer() {
             }}
           >
             <Link
-              href="#"
+              href="/privacy"
               underline="none"
               sx={{
                 color: brandColors.white,
