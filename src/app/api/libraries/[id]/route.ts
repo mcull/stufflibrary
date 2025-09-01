@@ -178,7 +178,7 @@ export async function GET(
       ],
       items: items.map((item) => {
         const activeBorrow = item.borrowRequests.find(
-          (req) => req.status === 'ACTIVE'
+          (req) => req.status === 'ACTIVE' || req.status === 'APPROVED'
         );
         const pendingRequests = item.borrowRequests.filter(
           (req) => req.status === 'PENDING'
@@ -222,7 +222,7 @@ export async function GET(
           }
 
           const activeBorrow = item.borrowRequests.find(
-            (req) => req.status === 'ACTIVE'
+            (req) => req.status === 'ACTIVE' || req.status === 'APPROVED'
           );
           const pendingRequests = item.borrowRequests.filter(
             (req) => req.status === 'PENDING'

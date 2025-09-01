@@ -96,7 +96,7 @@ export function LibraryItemCard({ item }: LibraryItemCardProps) {
           backgroundColor: '#FFF8E1',
           borderColor: brandColors.mustardYellow,
           statusChip: {
-            label: `Lent to ${item.currentBorrow.borrower.name}`,
+            label: `Checked out to ${item.currentBorrow.borrower.name || 'borrower'}`,
             color: '#FFF3E0',
             textColor: '#F57C00',
           },
@@ -113,13 +113,15 @@ export function LibraryItemCard({ item }: LibraryItemCardProps) {
         },
       };
     } else {
+      // If not available and no currentBorrow, this might be a data inconsistency
+      // Show as checked out but with generic message since we don't have borrower info
       return {
-        backgroundColor: '#F5F5F5',
-        borderColor: '#BDBDBD',
+        backgroundColor: '#FFF8E1',
+        borderColor: brandColors.mustardYellow,
         statusChip: {
-          label: 'Unavailable',
-          color: '#F5F5F5',
-          textColor: '#757575',
+          label: 'Checked out',
+          color: '#FFF3E0',
+          textColor: '#F57C00',
         },
       };
     }
