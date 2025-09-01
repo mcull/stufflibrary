@@ -557,6 +557,15 @@ export async function PATCH(
       currentActiveBorrow: activeBorrowRequest,
     };
 
+    console.log('🎨 PATCH response item data:', {
+      id: formattedItem.id,
+      name: formattedItem.name,
+      watercolorUrl: formattedItem.watercolorUrl,
+      watercolorThumbUrl: formattedItem.watercolorThumbUrl,
+      imageUrl: formattedItem.imageUrl,
+      isAvailable: formattedItem.isAvailable,
+    });
+
     return NextResponse.json({
       item: formattedItem,
       message: 'Item updated successfully',

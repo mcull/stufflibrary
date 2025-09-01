@@ -189,6 +189,14 @@ export function ItemDetailClient({
       }
 
       const data = await response.json();
+      console.log('🎨 Client received PATCH response item data:', {
+        id: data.item.id,
+        name: data.item.name,
+        watercolorUrl: data.item.watercolorUrl,
+        watercolorThumbUrl: data.item.watercolorThumbUrl,
+        imageUrl: data.item.imageUrl,
+        isAvailable: data.item.isAvailable,
+      });
       setItem(data.item);
 
       setToast({
