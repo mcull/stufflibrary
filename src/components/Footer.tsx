@@ -182,7 +182,7 @@ export function Footer() {
               Privacy Policy
             </Link>
             <Link
-              href="#"
+              href="/terms"
               underline="none"
               sx={{
                 color: brandColors.white,
