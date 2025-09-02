@@ -12,7 +12,7 @@ test.describe('Basic Homepage Tests', () => {
     await page.goto('/');
 
     // Test main headline exists
-    const heading = page.locator('h1', { hasText: /share more.*buy less/i });
+    const heading = page.locator('h1', { hasText: /borrow.*lend.*belong/i });
     await expect(heading).toBeVisible();
   });
 
@@ -32,12 +32,12 @@ test.describe('Basic Homepage Tests', () => {
   test('hero section renders', async ({ page }) => {
     await page.goto('/');
 
-    // Test hero content
+    // Test hero content - updated for new Figma mockup design
     await expect(
-      page.getByText(/neighborhood platform for safely sharing stuff/i)
+      page.getByText(/neighborly way to share what you have/i)
     ).toBeVisible();
     await expect(
-      page.getByText(/build community.*reduce clutter.*save money/i)
+      page.getByText(/find what you need.*rediscover community/i)
     ).toBeVisible();
   });
 });
