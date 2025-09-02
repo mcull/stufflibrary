@@ -197,7 +197,7 @@ export function Footer() {
               Terms of Service
             </Link>
             <Link
-              href="#"
+              href="/cookies"
               underline="none"
               sx={{
                 color: brandColors.white,
