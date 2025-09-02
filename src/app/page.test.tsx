@@ -19,7 +19,7 @@ describe('Home Page', () => {
       </SessionProvider>
     );
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      /share more.*buy less/i
+      /borrow.*lend.*belong/i
     );
   });
 
@@ -30,7 +30,7 @@ describe('Home Page', () => {
       </SessionProvider>
     );
     expect(
-      screen.getByText(/A neighborhood platform for safely sharing stuff/)
+      screen.getByText(/A neighborly way to share what you have/)
     ).toBeInTheDocument();
   });
 });
