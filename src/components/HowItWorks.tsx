@@ -1,39 +1,31 @@
-import { CameraAlt, VideoCall, CheckCircle } from '@mui/icons-material';
-import {
-  Box,
-  Container,
-  Typography,
-  Card,
-  CardContent,
-  Stack,
-} from '@mui/material';
+import { Box, Container, Typography, Card, CardContent } from '@mui/material';
 
-import { brandColors, spacing } from '@/theme/brandTokens';
+import { brandColors } from '@/theme/brandTokens';
 
 const steps = [
   {
     number: '1',
-    icon: CameraAlt,
-    title: 'Add Your Items',
+    title: 'Buy Less Borrow More',
     description:
-      "Use your phone camera to add items to your branch's shared library with AI-powered descriptions.",
-    color: brandColors.inkBlue,
+      "When you need an infrequently used item, browse what's available nearby. Avoid buying something you'll rarely use and feel resourceful without imposing on anyone.",
+    color: '#4CA1AA',
+    bgColor: 'rgba(76, 161, 170, 0.1)',
   },
   {
     number: '2',
-    icon: VideoCall,
-    title: 'Request with Video',
+    title: 'Lend Without Stress',
     description:
-      "Send a personal video message explaining what you need and when you'll return it.",
-    color: brandColors.mustardYellow,
+      'Make your unused items visible and lendable in a controlled way. Reduce waste, justify keeping things, and feel generous without feeling exposed.',
+    color: '#DE703A',
+    bgColor: 'rgba(222, 112, 58, 0.1)',
   },
   {
     number: '3',
-    icon: CheckCircle,
-    title: 'Approve & Share',
+    title: 'Belong to Your Community',
     description:
-      'Owners approve requests and arrange handoff. Get notified via email when your items are returned.',
-    color: brandColors.tomatoRed,
+      'Join neighbors and friends in a defined group with shared norms. Build trust, know expectations, and rediscover the joy of neighborliness.',
+    color: '#4CA1AA',
+    bgColor: 'rgba(76, 161, 170, 0.1)',
   },
 ];
 
@@ -42,48 +34,25 @@ export function HowItWorks() {
     <Box
       component="section"
       sx={{
-        py: { xs: spacing.xs, md: spacing.xs },
+        py: { xs: 12, md: 24 },
         backgroundColor: brandColors.white,
-        position: 'relative',
       }}
     >
       <Container maxWidth="lg">
         {/* Section Header */}
-        <Box sx={{ textAlign: 'center', mb: { xs: 6, md: 8 } }}>
+        <Box sx={{ textAlign: 'center', mb: { xs: 8, md: 16 } }}>
           <Typography
             variant="h2"
             component="h2"
             sx={{
-              fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
-              fontWeight: 700,
-              color: brandColors.charcoal,
-              mb: 3,
-              letterSpacing: '-0.01em',
+              fontFamily:
+                'var(--font-primary, "Special Elite"), "Courier New", Monaco, Consolas, "Liberation Mono", monospace',
+              fontSize: { xs: '2rem', md: '4rem' },
+              fontWeight: 400,
+              color: '#3F342B',
             }}
           >
-            How{' '}
-            <Box
-              component="span"
-              sx={{
-                color: brandColors.inkBlue,
-              }}
-            >
-              it works
-            </Box>
-          </Typography>
-
-          <Typography
-            variant="body1"
-            sx={{
-              fontSize: { xs: '1.125rem', md: '1.25rem' },
-              color: brandColors.charcoal,
-              opacity: 0.8,
-              maxWidth: '600px',
-              mx: 'auto',
-              lineHeight: 1.6,
-            }}
-          >
-            Camera-first sharing with personal video requests
+            How It Works
           </Typography>
         </Box>
 
@@ -95,148 +64,81 @@ export function HowItWorks() {
               xs: '1fr',
               md: 'repeat(3, 1fr)',
             },
-            gap: { xs: 4, md: 3 },
-            position: 'relative',
-            mt: 2, // Add top margin for badge overflow space
+            gap: { xs: 4, md: 8 },
           }}
         >
-          {steps.map((step, index) => {
-            const IconComponent = step.icon;
-            const isLastStep = index === steps.length - 1;
-
-            return (
-              <Box key={index} sx={{ position: 'relative' }}>
-                {/* Step Number - Outside container */}
+          {steps.map((step, index) => (
+            <Card
+              key={index}
+              elevation={8}
+              sx={{
+                backgroundColor: step.bgColor,
+                border: 'none',
+                borderRadius: 2,
+              }}
+            >
+              <CardContent
+                sx={{
+                  p: { xs: 4, md: 8 },
+                  textAlign: 'center',
+                }}
+              >
+                {/* Step Number Circle */}
                 <Box
                   sx={{
-                    position: 'absolute',
-                    top: -16,
-                    left: 24,
-                    width: 48,
-                    height: 32,
+                    width: 64,
+                    height: 64,
                     backgroundColor: step.color,
-                    borderRadius: 2,
+                    borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: brandColors.white,
-                    fontWeight: 700,
-                    fontSize: '1.1rem',
-                    zIndex: 3,
+                    mx: 'auto',
+                    mb: 6,
                   }}
                 >
-                  {step.number}
-                </Box>
-
-                {/* Connecting Line (desktop only) */}
-                {!isLastStep && (
-                  <Box
+                  <Typography
                     sx={{
-                      display: { xs: 'none', md: 'block' },
-                      position: 'absolute',
-                      top: 60,
-                      right: -24,
-                      width: 48,
-                      height: 2,
-                      backgroundColor: brandColors.softGray,
-                      zIndex: 0,
-                    }}
-                  />
-                )}
-
-                <Card
-                  elevation={0}
-                  sx={{
-                    height: '100%',
-                    backgroundColor: brandColors.warmCream,
-                    border: `1px solid ${brandColors.softGray}`,
-                    borderRadius: 3,
-                    position: 'relative',
-                    zIndex: 1,
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: '0 12px 24px 0 rgba(30, 58, 95, 0.1)',
-                      borderColor: step.color,
-                    },
-                  }}
-                >
-                  <CardContent
-                    sx={{
-                      p: { xs: 3, md: 4 },
-                      pt: { xs: 4, md: 5 }, // Extra top padding to accommodate the badge
-                      textAlign: 'center',
+                      color: 'white',
+                      fontSize: '2rem',
+                      fontWeight: 500,
                     }}
                   >
-                    {/* Icon */}
-                    <Box
-                      sx={{
-                        width: 64,
-                        height: 64,
-                        borderRadius: '50%',
-                        backgroundColor: `${step.color}15`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        mx: 'auto',
-                        mb: 3,
-                        mt: 2,
-                      }}
-                    >
-                      <IconComponent
-                        sx={{
-                          fontSize: 32,
-                          color: step.color,
-                        }}
-                      />
-                    </Box>
+                    {step.number}
+                  </Typography>
+                </Box>
 
-                    {/* Content */}
-                    <Stack spacing={2}>
-                      <Typography
-                        variant="h5"
-                        component="h3"
-                        sx={{
-                          fontWeight: 600,
-                          color: brandColors.charcoal,
-                          fontSize: { xs: '1.25rem', md: '1.375rem' },
-                        }}
-                      >
-                        {step.title}
-                      </Typography>
+                {/* Title */}
+                <Typography
+                  variant="h5"
+                  component="h3"
+                  sx={{
+                    fontFamily:
+                      'system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+                    fontSize: { xs: '1.25rem', md: '1.25rem' },
+                    fontWeight: 500,
+                    color: '#3F342B',
+                    mb: 4,
+                  }}
+                >
+                  {step.title}
+                </Typography>
 
-                      <Typography
-                        variant="body1"
-                        sx={{
-                          color: brandColors.charcoal,
-                          opacity: 0.8,
-                          lineHeight: 1.6,
-                          fontSize: '1rem',
-                        }}
-                      >
-                        {step.description}
-                      </Typography>
-                    </Stack>
-                  </CardContent>
-                </Card>
-              </Box>
-            );
-          })}
-        </Box>
-
-        {/* Bottom CTA */}
-        <Box sx={{ textAlign: 'center', mt: { xs: 6, md: 8 } }}>
-          <Typography
-            variant="body1"
-            sx={{
-              fontSize: '1.1rem',
-              color: brandColors.charcoal,
-              opacity: 0.8,
-              fontStyle: 'italic',
-            }}
-          >
-            Simple, safe, and built for community
-          </Typography>
+                {/* Description */}
+                <Typography
+                  variant="body1"
+                  sx={{
+                    fontFamily:
+                      'system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+                    color: 'rgba(63, 52, 43, 0.8)',
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {step.description}
+                </Typography>
+              </CardContent>
+            </Card>
+          ))}
         </Box>
       </Container>
     </Box>

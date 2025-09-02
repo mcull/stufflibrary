@@ -4,9 +4,9 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useEffect } from 'react';
 
-import { FeatureShowcase } from '@/components/FeatureShowcase';
 import { Hero } from '@/components/Hero';
 import { HowItWorks } from '@/components/HowItWorks';
+import { InBeta } from '@/components/InBeta';
 
 export default function Home() {
   const { data: session, status } = useSession();
@@ -32,8 +32,8 @@ export default function Home() {
   return (
     <>
       <Hero />
-      <FeatureShowcase />
       <HowItWorks />
+      <InBeta />
     </>
   );
 }

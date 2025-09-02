@@ -81,17 +81,19 @@ export function Header() {
                 Sign Out
               </Button>
             ) : (
-              <Stack direction="row" spacing={2} alignItems="center">
+              <Stack direction="row" spacing={3} alignItems="center">
                 <MuiLink
                   component={Link}
                   href="/auth/signin"
                   underline="none"
                   sx={{
-                    fontSize: '0.9rem',
+                    fontSize: '1.125rem',
+                    fontFamily:
+                      'system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+                    fontWeight: 400,
                     color: brandColors.charcoal,
-                    opacity: 0.8,
                     '&:hover': {
-                      opacity: 1,
+                      color: brandColors.inkBlue,
                     },
                   }}
                 >
@@ -101,14 +103,24 @@ export function Header() {
                   component={Link}
                   href="/auth/signin"
                   variant="contained"
-                  color="primary"
                   sx={{
+                    backgroundColor: '#DE703A',
+                    color: 'white',
+                    fontFamily:
+                      'system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+                    fontSize: '1rem',
+                    fontWeight: 400,
                     textTransform: 'none',
-                    fontWeight: 500,
                     px: 3,
+                    py: 1.5,
+                    borderRadius: 1,
+                    minHeight: 'auto',
+                    '&:hover': {
+                      backgroundColor: 'rgba(222, 112, 58, 0.9)',
+                    },
                   }}
                 >
-                  Get Started
+                  Join Now
                 </Button>
               </Stack>
             )}
