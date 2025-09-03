@@ -7,8 +7,13 @@ export function Hero() {
       sx={{
         position: 'relative',
         backgroundColor: '#FDF2D6',
-        aspectRatio: { xs: '4/3', md: '16/9' }, // Maintain aspect ratio
-        minHeight: { xs: '400px', md: '500px' },
+        height: {
+          xs: '100vw', // 0px+: height = 100% of viewport width (square on mobile)
+          sm: '90vw', // 600px+: height = 90% of viewport width
+          md: '70vw', // 900px+: height = 70% of viewport width
+          lg: '60vw', // 1200px+: height = 60% of viewport width
+          xl: '50vw', // 1536px+: height = 50% of viewport width (wide on desktop)
+        },
         overflow: 'hidden',
       }}
     >
@@ -40,9 +45,9 @@ export function Hero() {
           bottom: 0,
           zIndex: 2,
           display: 'flex',
-          alignItems: 'flex-start',
+          alignItems: 'flex-start', // Always pin text at the top
           justifyContent: 'center',
-          pt: { xs: 4, md: 8 },
+          pt: { xs: 3, sm: 4, md: 8 }, // Consistent top padding across devices
         }}
       >
         <Container maxWidth="lg">
@@ -51,8 +56,7 @@ export function Hero() {
               textAlign: 'center',
               color: '#3F342B',
               px: { xs: 2, md: 0 },
-              // Position text over the lighter, upper portion of the image
-              mt: { xs: 2, md: 4 },
+              // Remove extra top margin since we're centering vertically
             }}
           >
             {/* Hero Headline */}
@@ -63,8 +67,8 @@ export function Hero() {
                 fontFamily:
                   'var(--font-primary, "Special Elite"), "Courier New", Monaco, Consolas, "Liberation Mono", monospace',
                 fontSize: {
-                  xs: '2rem',
-                  sm: '2.5rem',
+                  xs: '1.75rem', // Slightly smaller on mobile
+                  sm: '2.25rem',
                   md: '3.5rem',
                   lg: '4.5rem',
                   xl: '5.5rem',
