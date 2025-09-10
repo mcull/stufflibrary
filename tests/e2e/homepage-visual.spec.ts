@@ -2,7 +2,7 @@ import { test } from '@playwright/test';
 
 test('Homepage visual inspection', async ({ page }) => {
   // Navigate to the homepage
-  await page.goto('http://localhost:3002');
+  await page.goto('/');
 
   // Wait for the page to load
   await page.waitForLoadState('networkidle');
