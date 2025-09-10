@@ -45,22 +45,35 @@ export const borderRadius = {
   round: '50%', // Fully rounded
 } as const;
 
-// Typography Scale (based on geometric sans serif)
+// Typography Scale - Accessible three-font system
 export const typography = {
-  // Font families
+  // Font families - New accessible hierarchy
   fontFamily: {
+    // H1 Hero Headlines - Merriweather (warm, trustworthy serif)
+    hero: 'var(--font-merriweather), Georgia, "Times New Roman", serif',
+
+    // H2 Section Headers - Roboto Mono (friendly monospace for library-card feel)
+    section:
+      'var(--font-roboto-mono), Monaco, Consolas, "Liberation Mono", monospace',
+
+    // H3+ UI Text - Inter (clean, modern sans for clarity)
+    ui: 'var(--font-inter), "Helvetica Neue", Helvetica, Arial, sans-serif',
+
+    // Legacy fallbacks
     primary:
-      'var(--font-primary, "Special Elite"), "Courier New", Monaco, Consolas, "Liberation Mono", monospace',
+      'var(--font-inter), "Helvetica Neue", Helvetica, Arial, sans-serif',
     fallback: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
-    mono: 'var(--font-primary, "Special Elite"), "Courier New", Monaco, Consolas, "Liberation Mono", monospace',
+    mono: 'var(--font-roboto-mono), Monaco, Consolas, "Liberation Mono", monospace',
   },
 
-  // Font weights
+  // Font weights - Proper weights for new fonts
   fontWeight: {
-    light: 400,
+    light: 300,
     regular: 400,
-    medium: 400,
-    bold: 400,
+    medium: 500,
+    semibold: 600,
+    bold: 700,
+    black: 900,
   },
 
   // Line heights

@@ -83,87 +83,102 @@ export const theme = createTheme({
     },
   },
 
-  // Typography system
+  // Typography system - New accessible font hierarchy
   typography: {
-    fontFamily: typography.fontFamily.primary,
+    fontFamily: typography.fontFamily.ui, // Default to Inter for UI
 
-    // Headings - clean, geometric
+    // H1 - Hero Headlines (Merriweather, Bold, 48-64px desktop / 32-40px mobile)
     h1: {
-      fontFamily: typography.fontFamily.primary,
-      fontSize: typography.fontSize['5xl'],
-      fontWeight: typography.fontWeight.bold,
+      fontFamily: typography.fontFamily.hero,
+      fontSize: typography.fontSize['5xl'], // 48px (will be responsive)
+      fontWeight: typography.fontWeight.bold, // 700
       lineHeight: typography.lineHeight.tight,
       color: brandColors.charcoal,
+      '@media (max-width: 768px)': {
+        fontSize: typography.fontSize['3xl'], // 30px mobile
+      },
     },
+
+    // H2 - Section Headers (Roboto Mono, Medium, 24-32px desktop / 20-24px mobile)
     h2: {
-      fontFamily: typography.fontFamily.primary,
-      fontSize: typography.fontSize['4xl'],
-      fontWeight: typography.fontWeight.bold,
+      fontFamily: typography.fontFamily.section,
+      fontSize: typography.fontSize['2xl'], // 24px
+      fontWeight: typography.fontWeight.medium, // 500
       lineHeight: typography.lineHeight.tight,
       color: brandColors.charcoal,
+      '@media (min-width: 1024px)': {
+        fontSize: '2rem', // 32px desktop
+      },
     },
+
+    // H3 - Tertiary Headers / UI Labels (Inter, Semibold, 18-20px desktop / 16-18px mobile)
     h3: {
-      fontFamily: typography.fontFamily.primary,
-      fontSize: typography.fontSize['3xl'],
-      fontWeight: typography.fontWeight.medium,
+      fontFamily: typography.fontFamily.ui,
+      fontSize: typography.fontSize.lg, // 18px
+      fontWeight: typography.fontWeight.semibold, // 600
       lineHeight: typography.lineHeight.tight,
       color: brandColors.charcoal,
+      '@media (min-width: 1024px)': {
+        fontSize: typography.fontSize.xl, // 20px desktop
+      },
     },
+
+    // H4-H6 - Additional hierarchy levels using Inter
     h4: {
-      fontFamily: typography.fontFamily.primary,
-      fontSize: typography.fontSize['2xl'],
-      fontWeight: typography.fontWeight.medium,
+      fontFamily: typography.fontFamily.ui,
+      fontSize: typography.fontSize.base,
+      fontWeight: typography.fontWeight.semibold,
       lineHeight: typography.lineHeight.normal,
       color: brandColors.charcoal,
     },
     h5: {
-      fontFamily: typography.fontFamily.primary,
-      fontSize: typography.fontSize.xl,
-      fontWeight: typography.fontWeight.medium,
+      fontFamily: typography.fontFamily.ui,
+      fontSize: typography.fontSize.sm,
+      fontWeight: typography.fontWeight.semibold,
       lineHeight: typography.lineHeight.normal,
       color: brandColors.charcoal,
     },
     h6: {
-      fontFamily: typography.fontFamily.primary,
-      fontSize: typography.fontSize.lg,
-      fontWeight: typography.fontWeight.medium,
+      fontFamily: typography.fontFamily.ui,
+      fontSize: typography.fontSize.xs,
+      fontWeight: typography.fontWeight.semibold,
       lineHeight: typography.lineHeight.normal,
       color: brandColors.charcoal,
     },
 
-    // Body text - readable and warm
+    // Body text - Inter for readability
     body1: {
-      fontFamily: typography.fontFamily.primary,
+      fontFamily: typography.fontFamily.ui,
       fontSize: typography.fontSize.base,
       fontWeight: typography.fontWeight.regular,
       lineHeight: typography.lineHeight.relaxed,
       color: brandColors.charcoal,
     },
     body2: {
-      fontFamily: typography.fontFamily.primary,
+      fontFamily: typography.fontFamily.ui,
       fontSize: typography.fontSize.sm,
       fontWeight: typography.fontWeight.regular,
       lineHeight: typography.lineHeight.normal,
       color: brandColors.charcoal,
     },
 
-    // UI elements
+    // UI elements - Inter for clarity
     button: {
-      fontFamily: typography.fontFamily.primary,
+      fontFamily: typography.fontFamily.ui,
       fontSize: typography.fontSize.base,
       fontWeight: typography.fontWeight.medium,
       textTransform: 'none', // Keep natural casing
       letterSpacing: '0.01em',
     },
     caption: {
-      fontFamily: typography.fontFamily.primary,
+      fontFamily: typography.fontFamily.ui,
       fontSize: typography.fontSize.xs,
       fontWeight: typography.fontWeight.regular,
       lineHeight: typography.lineHeight.normal,
       color: '#666666',
     },
     overline: {
-      fontFamily: typography.fontFamily.primary,
+      fontFamily: typography.fontFamily.ui,
       fontSize: typography.fontSize.xs,
       fontWeight: typography.fontWeight.medium,
       textTransform: 'uppercase',
@@ -217,6 +232,7 @@ export const theme = createTheme({
         root: {
           borderRadius: borderRadius.lg,
           textTransform: 'none',
+          fontFamily: typography.fontFamily.ui, // Use Inter for buttons
           fontWeight: typography.fontWeight.medium,
           padding: `${spacing.sm}px ${spacing.lg}px`,
           fontSize: typography.fontSize.base,

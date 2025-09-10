@@ -1,6 +1,6 @@
 import { Analytics } from '@vercel/analytics/next';
 import type { Metadata } from 'next';
-import { Roboto, Space_Grotesk } from 'next/font/google';
+import { Roboto_Mono, Merriweather, Inter } from 'next/font/google';
 import localFont from 'next/font/local';
 
 import { ClientThemeProvider } from '@/components/ClientThemeProvider';
@@ -12,26 +12,35 @@ import NextAuthSessionProvider from '@/components/providers/session-provider';
 import '@fontsource/inter/300.css';
 import '@fontsource/inter/400.css';
 import '@fontsource/inter/500.css';
+import '@fontsource/inter/600.css';
 import '@fontsource/inter/700.css';
-import '@fontsource/space-grotesk/300.css';
-import '@fontsource/space-grotesk/400.css';
-import '@fontsource/space-grotesk/500.css';
-import '@fontsource/space-grotesk/700.css';
-import '@fontsource/syne-mono/400.css';
-import '@fontsource/special-elite/400.css';
+import '@fontsource/merriweather/300.css';
+import '@fontsource/merriweather/400.css';
+import '@fontsource/merriweather/700.css';
+import '@fontsource/merriweather/900.css';
+import '@fontsource/roboto-mono/300.css';
+import '@fontsource/roboto-mono/400.css';
+import '@fontsource/roboto-mono/500.css';
+import '@fontsource/roboto-mono/700.css';
 import '@/styles/vintage-fonts.css';
 import './globals.css';
 
-const roboto = Roboto({
-  weight: ['300', '400', '500', '700'],
+const merriweather = Merriweather({
+  weight: ['300', '400', '700', '900'],
   subsets: ['latin'],
-  variable: '--font-roboto',
+  variable: '--font-merriweather',
 });
 
-const spaceGrotesk = Space_Grotesk({
+const robotoMono = Roboto_Mono({
   weight: ['300', '400', '500', '700'],
   subsets: ['latin'],
-  variable: '--font-space-grotesk',
+  variable: '--font-roboto-mono',
+});
+
+const inter = Inter({
+  weight: ['300', '400', '500', '600', '700'],
+  subsets: ['latin'],
+  variable: '--font-inter',
 });
 
 const impactLabel = localFont({
@@ -76,7 +85,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${roboto.variable} ${spaceGrotesk.variable} ${impactLabel.variable}`}
+        className={`${merriweather.variable} ${robotoMono.variable} ${inter.variable} ${impactLabel.variable}`}
       >
         <NextAuthSessionProvider>
           <ClientThemeProvider>
