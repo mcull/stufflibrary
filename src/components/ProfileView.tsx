@@ -12,8 +12,6 @@ import {
   Stack,
   TextField,
   Typography,
-  Chip,
-  Autocomplete,
   CircularProgress,
   Alert,
 } from '@mui/material';
@@ -27,33 +25,9 @@ import { brandColors } from '@/theme/brandTokens';
 
 import { AddressAutocomplete } from './AddressAutocomplete';
 
-// Predefined interest options for autocomplete
-const INTEREST_OPTIONS = [
-  'Tools (power tools, hand tools)',
-  'Kitchen appliances',
-  'Sports equipment',
-  'Books and magazines',
-  'Games and puzzles',
-  'Camping gear',
-  'Photography equipment',
-  'Art supplies',
-  'Musical instruments',
-  'Exercise equipment',
-  'Garden tools',
-  'Party supplies',
-  'Seasonal decorations',
-  'Electronics',
-  'Home improvement supplies',
-  "Children's toys",
-  'Pet supplies',
-  'Cleaning equipment',
-];
-
 const profileSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   bio: z.string().optional(),
-  shareInterests: z.array(z.string()),
-  borrowInterests: z.array(z.string()),
   address: z.string().min(1, 'Address is required'),
 });
 
@@ -107,8 +81,6 @@ export function ProfileView({ user, currentAddress }: ProfileViewProps) {
     defaultValues: {
       name: user.name || '',
       bio: user.bio || '',
-      shareInterests: user.shareInterests || [],
-      borrowInterests: user.borrowInterests || [],
       address:
         currentAddress?.formattedAddress ||
         `${currentAddress?.address1 || ''}${currentAddress?.address2 ? ', ' + currentAddress.address2 : ''}, ${currentAddress?.city || ''}, ${currentAddress?.state || ''} ${currentAddress?.zip || ''}`
@@ -125,9 +97,6 @@ export function ProfileView({ user, currentAddress }: ProfileViewProps) {
     watch,
     formState: { errors, isDirty },
   } = form;
-
-  const shareInterests = watch('shareInterests');
-  const borrowInterests = watch('borrowInterests');
 
   const handleImageChange = async (
     event: React.ChangeEvent<HTMLInputElement>
@@ -223,11 +192,6 @@ export function ProfileView({ user, currentAddress }: ProfileViewProps) {
         const formData = new FormData();
         formData.append('name', data.name);
         formData.append('bio', data.bio || '');
-        formData.append('shareInterests', JSON.stringify(data.shareInterests));
-        formData.append(
-          'borrowInterests',
-          JSON.stringify(data.borrowInterests)
-        );
         formData.append('address', data.address);
         formData.append('profileImage', profileImage);
         if (parsedAddress) {
@@ -243,8 +207,6 @@ export function ProfileView({ user, currentAddress }: ProfileViewProps) {
         const requestBody = {
           name: data.name,
           bio: data.bio || '',
-          shareInterests: data.shareInterests,
-          borrowInterests: data.borrowInterests,
           address: data.address,
           parsedAddress: parsedAddress,
         };
@@ -415,91 +377,6 @@ export function ProfileView({ user, currentAddress }: ProfileViewProps) {
                 },
               }}
             />
-
-            {/* Share Interests */}
-            <Box>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                Things I can share
-              </Typography>
-              <Autocomplete
-                multiple
-                value={shareInterests}
-                onChange={(_, newValue) =>
-                  setValue('shareInterests', newValue, { shouldDirty: true })
-                }
-                options={INTEREST_OPTIONS}
-                freeSolo
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
-                    <Chip
-                      variant="outlined"
-                      label={option}
-                      {...getTagProps({ index })}
-                      key={index}
-                      sx={{
-                        borderColor: brandColors.inkBlue,
-                        color: brandColors.inkBlue,
-                      }}
-                    />
-                  ))
-                }
-                renderInput={(params) => (
-                  <TextField
-                    {...(params as any)}
-                    placeholder="Add items you're willing to share..."
-                    helperText="Type to add custom items or select from suggestions"
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                      },
-                    }}
-                  />
-                )}
-              />
-            </Box>
-
-            {/* Borrow Interests */}
-            <Box>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                Things I might borrow
-              </Typography>
-              <Autocomplete
-                multiple
-                value={borrowInterests}
-                onChange={(_, newValue) =>
-                  setValue('borrowInterests', newValue, { shouldDirty: true })
-                }
-                options={INTEREST_OPTIONS}
-                freeSolo
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
-                    <Chip
-                      variant="outlined"
-                      label={option}
-                      {...getTagProps({ index })}
-                      key={index}
-                      sx={{
-                        borderColor: brandColors.mustardYellow,
-                        color: brandColors.charcoal,
-                        backgroundColor: brandColors.mustardYellow,
-                      }}
-                    />
-                  ))
-                }
-                renderInput={(params) => (
-                  <TextField
-                    {...(params as any)}
-                    placeholder="Add items you might want to borrow..."
-                    helperText="This helps neighbors know what you're looking for"
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                      },
-                    }}
-                  />
-                )}
-              />
-            </Box>
 
             {/* Submit Button */}
             <Box sx={{ pt: 2 }}>

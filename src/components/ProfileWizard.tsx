@@ -31,8 +31,6 @@ const profileSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   address: z.string().min(1, 'Address is required to find your neighbors'),
   bio: z.string().optional(),
-  shareInterests: z.array(z.string()),
-  borrowInterests: z.array(z.string()),
   profilePicture: z
     .instanceof(File)
     .refine((file) => file instanceof File, 'Profile picture is required')
@@ -150,8 +148,6 @@ export function ProfileWizard({
       name: '',
       address: '',
       bio: undefined,
-      shareInterests: [],
-      borrowInterests: [],
       profilePictureUrl: undefined,
       agreedToHouseholdGoods: false,
       agreedToTrustAndCare: false,

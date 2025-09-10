@@ -11,7 +11,6 @@ import {
   FormControlLabel,
   Typography,
   CircularProgress,
-  Chip,
   Link,
 } from '@mui/material';
 import React from 'react';
@@ -43,8 +42,6 @@ export function ProfileStep3({
   const {
     name,
     bio,
-    shareInterests,
-    borrowInterests,
     profilePicture,
     profilePictureUrl,
     agreedToHouseholdGoods,
@@ -135,62 +132,6 @@ export function ProfileStep3({
                   )}
                 </Box>
               </Box>
-
-              {shareInterests?.length > 0 && (
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-                    Willing to share:
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {shareInterests.slice(0, 3).map((interest) => (
-                      <Chip
-                        key={interest}
-                        label={interest}
-                        size="small"
-                        color="primary"
-                        variant="filled"
-                        sx={{ fontSize: '0.75rem' }}
-                      />
-                    ))}
-                    {shareInterests.length > 3 && (
-                      <Chip
-                        label={`+${shareInterests.length - 3} more`}
-                        size="small"
-                        variant="outlined"
-                        sx={{ fontSize: '0.75rem' }}
-                      />
-                    )}
-                  </Box>
-                </Box>
-              )}
-
-              {borrowInterests?.length > 0 && (
-                <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-                    Looking to borrow:
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {borrowInterests.slice(0, 3).map((interest) => (
-                      <Chip
-                        key={interest}
-                        label={interest}
-                        size="small"
-                        color="secondary"
-                        variant="filled"
-                        sx={{ fontSize: '0.75rem' }}
-                      />
-                    ))}
-                    {borrowInterests.length > 3 && (
-                      <Chip
-                        label={`+${borrowInterests.length - 3} more`}
-                        size="small"
-                        variant="outlined"
-                        sx={{ fontSize: '0.75rem' }}
-                      />
-                    )}
-                  </Box>
-                </Box>
-              )}
             </CardContent>
           </Card>
 
