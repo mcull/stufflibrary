@@ -6,6 +6,7 @@ import localFont from 'next/font/local';
 import { ClientThemeProvider } from '@/components/ClientThemeProvider';
 import { ConditionalFooter } from '@/components/ConditionalFooter';
 import { ConditionalHeader } from '@/components/ConditionalHeader';
+import { MainContentArea } from '@/components/MainContentArea';
 import { ProfileDraftCleanup } from '@/components/ProfileDraftCleanup';
 import NextAuthSessionProvider from '@/components/providers/session-provider';
 
@@ -91,7 +92,7 @@ export default function RootLayout({
           <ClientThemeProvider>
             <ProfileDraftCleanup />
             <ConditionalHeader />
-            {children}
+            <MainContentArea>{children}</MainContentArea>
             <ConditionalFooter />
           </ClientThemeProvider>
         </NextAuthSessionProvider>
