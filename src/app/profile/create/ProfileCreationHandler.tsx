@@ -122,8 +122,6 @@ export function ProfileCreationHandler({
           name: data.name,
           address: data.address,
           bio: data.bio || null,
-          shareInterests: data.shareInterests,
-          borrowInterests: data.borrowInterests,
           image: imageUrl || data.profilePictureUrl || null,
           parsedAddress: data.parsedAddress,
         }),
