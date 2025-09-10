@@ -11,6 +11,15 @@ vi.mock('next/font/google', () => ({
   Space_Grotesk: () => ({
     variable: '--font-space-grotesk',
   }),
+  Merriweather: () => ({
+    variable: '--font-merriweather',
+  }),
+  Roboto_Mono: () => ({
+    variable: '--font-roboto-mono',
+  }),
+  Inter: () => ({
+    variable: '--font-inter',
+  }),
 }));
 
 vi.mock('next/font/local', () => ({
