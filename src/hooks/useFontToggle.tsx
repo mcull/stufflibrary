@@ -2,31 +2,69 @@
 
 import { useState, useEffect } from 'react';
 
-export type FontOption = 'inter' | 'syne-mono' | 'special-elite';
+export type FontOption = 'accessible' | 'large-print' | 'dyslexia-friendly';
 
-const fontConfigs = {
-  inter: {
-    name: 'Inter',
-    family:
-      'Inter, "Avenir Next", "Helvetica Neue", Helvetica, Arial, sans-serif',
-    weights: { light: 300, regular: 400, medium: 500, bold: 700 },
+interface FontConfig {
+  name: string;
+  family: string;
+  weights: {
+    light: number;
+    regular: number;
+    medium: number;
+    semibold: number;
+    bold: number;
+  };
+  description: string;
+  sizeMultiplier?: number;
+  letterSpacing?: string;
+  lineHeight?: number;
+}
+
+const fontConfigs: Record<FontOption, FontConfig> = {
+  accessible: {
+    name: 'Accessible (Default)',
+    family: 'var(--font-inter), "Helvetica Neue", Helvetica, Arial, sans-serif',
+    weights: {
+      light: 300,
+      regular: 400,
+      medium: 500,
+      semibold: 600,
+      bold: 700,
+    },
+    description: 'Clean, modern fonts optimized for readability',
   },
-  'syne-mono': {
-    name: 'Syne Mono',
-    family:
-      '"Syne Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-    weights: { light: 400, regular: 400, medium: 400, bold: 400 },
+  'large-print': {
+    name: 'Large Print',
+    family: 'var(--font-inter), "Helvetica Neue", Helvetica, Arial, sans-serif',
+    weights: {
+      light: 300,
+      regular: 400,
+      medium: 500,
+      semibold: 600,
+      bold: 700,
+    },
+    description: 'Larger text sizes for improved visibility',
+    sizeMultiplier: 1.25,
   },
-  'special-elite': {
-    name: 'Special Elite',
+  'dyslexia-friendly': {
+    name: 'Dyslexia Friendly',
     family:
-      '"Special Elite", "Courier New", Monaco, Consolas, "Liberation Mono", monospace',
-    weights: { light: 400, regular: 400, medium: 400, bold: 400 },
+      'var(--font-inter), OpenDyslexic, "Helvetica Neue", Helvetica, Arial, sans-serif',
+    weights: {
+      light: 300,
+      regular: 400,
+      medium: 500,
+      semibold: 600,
+      bold: 700,
+    },
+    description: 'Enhanced letter spacing and optimized for dyslexic readers',
+    letterSpacing: '0.05em',
+    lineHeight: 1.7,
   },
 };
 
 export function useFontToggle() {
-  const [currentFont, setCurrentFont] = useState<FontOption>('special-elite');
+  const [currentFont, setCurrentFont] = useState<FontOption>('accessible');
 
   useEffect(() => {
     const savedFont = localStorage.getItem(
@@ -40,15 +78,52 @@ export function useFontToggle() {
   useEffect(() => {
     const config = fontConfigs[currentFont];
 
-    // Apply font family to CSS custom property
+    // Apply accessibility enhancements
     document.documentElement.style.setProperty('--font-primary', config.family);
+
+    // Apply size multiplier for large print
+    if (config.sizeMultiplier) {
+      document.documentElement.style.setProperty(
+        '--font-size-multiplier',
+        config.sizeMultiplier.toString()
+      );
+    } else {
+      document.documentElement.style.setProperty('--font-size-multiplier', '1');
+    }
+
+    // Apply letter spacing for dyslexia-friendly mode
+    if (config.letterSpacing) {
+      document.documentElement.style.setProperty(
+        '--letter-spacing',
+        config.letterSpacing
+      );
+    } else {
+      document.documentElement.style.setProperty('--letter-spacing', 'normal');
+    }
+
+    // Apply line height for dyslexia-friendly mode
+    if (config.lineHeight) {
+      document.documentElement.style.setProperty(
+        '--line-height-multiplier',
+        config.lineHeight.toString()
+      );
+    } else {
+      document.documentElement.style.setProperty(
+        '--line-height-multiplier',
+        '1'
+      );
+    }
 
     // Save preference
     localStorage.setItem('font-preference', currentFont);
   }, [currentFont]);
 
   const toggleFont = () => {
-    const fonts: FontOption[] = ['inter', 'syne-mono', 'special-elite'];
+    const fonts: FontOption[] = [
+      'accessible',
+      'large-print',
+      'dyslexia-friendly',
+    ];
     const currentIndex = fonts.indexOf(currentFont);
     const nextIndex = (currentIndex + 1) % fonts.length;
     const nextFont = fonts[nextIndex];
