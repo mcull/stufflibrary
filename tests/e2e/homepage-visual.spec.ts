@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
 test('Homepage visual inspection', async ({ page }) => {
   // Navigate to the homepage
@@ -7,12 +7,9 @@ test('Homepage visual inspection', async ({ page }) => {
   // Wait for the page to load
   await page.waitForLoadState('networkidle');
 
-  // Take a full page screenshot for inspection
-  await page.screenshot({
-    path: 'homepage-screenshot.png',
-    fullPage: true,
-  });
+  // Verify key elements are present
+  await expect(page.locator('h1')).toContainText('Borrow, Lend, Belong.');
 
-  // Keep the page open for manual inspection
-  await page.waitForTimeout(30000); // Wait 30 seconds
+  // Take a full page screenshot for visual comparison
+  await expect(page).toHaveScreenshot('homepage-full.png');
 });
