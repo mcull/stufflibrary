@@ -32,29 +32,37 @@ export function BottomNav() {
   useEffect(() => {
     if (session?.user?.email) {
       fetch('/api/notifications/unread-count')
-        .then((res) => res.json())
+        .then((res) => {
+          if (!res.ok) {
+            // API doesn't exist yet, silently fail
+            return null;
+          }
+          return res.json();
+        })
         .then((data) => {
-          if (data.success) {
+          if (data?.success) {
             setNotificationCount(data.count || 0);
           }
         })
-        .catch((err) =>
-          console.error('Failed to fetch notification count:', err)
-        );
+        .catch(() => {
+          // Silently fail - API not implemented yet
+          setNotificationCount(0);
+        });
     }
   }, [session?.user?.email]);
 
   const navigationItems: NavigationItem[] = [
     {
-      label: '', // No label for Our Stuff
+      label: '', // No label
       value: 'lobby',
       icon: (
         <Box
           sx={{
-            position: 'relative',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            width: '32px',
+            height: '32px',
           }}
         >
           <img
@@ -71,15 +79,16 @@ export function BottomNav() {
       href: '/lobby',
     },
     {
-      label: 'Add Stuff',
+      label: '', // No label
       value: 'add-stuff',
       icon: (
         <Box
           sx={{
-            position: 'relative',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            width: '36px',
+            height: '36px',
           }}
         >
           <img
@@ -96,17 +105,18 @@ export function BottomNav() {
       href: '/add-item',
     },
     {
-      label: 'Message Center',
+      label: '', // No label
       value: 'notifications',
       icon:
         notificationCount > 0 ? (
           <Badge badgeContent={notificationCount} color="error">
             <Box
               sx={{
-                position: 'relative',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                width: '32px',
+                height: '32px',
               }}
             >
               <img
@@ -123,10 +133,11 @@ export function BottomNav() {
         ) : (
           <Box
             sx={{
-              position: 'relative',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              width: '32px',
+              height: '32px',
             }}
           >
             <img
@@ -182,103 +193,51 @@ export function BottomNav() {
         onChange={handleChange}
         sx={{
           backgroundColor: brandColors.white,
-          height: 72, // Taller for better proportion
+          height: 64,
           '& .MuiBottomNavigationAction-root': {
             color: brandColors.charcoal,
             minWidth: 'auto',
-            padding: '8px 12px 8px',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', // Josh W Comeau smooth easing
+            padding: '12px',
             position: 'relative',
-            overflow: 'visible',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flex: 1, // Equal distribution
 
-            // Selected state with hand-drawn highlight
+            // Selected state with SVG color change
             '&.Mui-selected': {
               color: brandColors.inkBlue,
               '& .MuiBottomNavigationAction-icon': {
-                '&::before': {
-                  content: '""',
-                  position: 'absolute',
-                  top: '-12px',
-                  left: '-12px',
-                  right: '-12px',
-                  bottom: '-12px',
-                  backgroundImage: 'url(/highlight2.png)', // Yellow highlight stroke
-                  backgroundSize: 'contain',
-                  backgroundRepeat: 'no-repeat',
-                  backgroundPosition: 'center',
-                  opacity: 0.7,
-                  transform: 'rotate(-2deg)', // Hand-drawn feel
-                  zIndex: -1,
-                  animation:
-                    'highlightFadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                },
                 '& img': {
                   filter: `brightness(0) saturate(100%) invert(23%) sepia(94%) saturate(1352%) hue-rotate(197deg) brightness(93%) contrast(88%) !important`, // Ink blue
-                  transform: 'translateY(-1px)', // Subtle lift
-                },
-              },
-            },
-
-            // Hover effects with personality
-            '&:hover:not(.Mui-selected)': {
-              '& .MuiBottomNavigationAction-icon': {
-                transform: 'translateY(-2px) scale(1.05)',
-                '& img': {
-                  filter: 'brightness(0) saturate(100%) opacity(0.8)',
                 },
               },
             },
 
             // Center "Add Stuff" button - SPECIAL STYLING
             '&[value="add-stuff"]': {
-              position: 'relative',
               '& .MuiBottomNavigationAction-icon': {
-                width: '68px', // Much bigger!
-                height: '68px',
-                padding: '12px',
+                width: '52px',
+                height: '52px',
+                padding: '8px',
                 borderRadius: '50%',
                 backgroundColor: brandColors.mustardYellow,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                marginBottom: '4px',
                 boxShadow:
-                  '0 4px 12px rgba(227, 181, 5, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1)',
-                transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)', // Bouncy easing
-                border: `3px solid ${brandColors.white}`,
+                  '0 2px 8px rgba(227, 181, 5, 0.3), 0 1px 3px rgba(0, 0, 0, 0.1)',
+                border: `2px solid ${brandColors.white}`,
 
                 '& img': {
-                  width: '36px !important', // Bigger icon inside
-                  height: '36px !important',
-                  filter: 'brightness(0) saturate(100%) !important', // Pure black for contrast
+                  width: '28px !important',
+                  height: '28px !important',
+                  filter: 'brightness(0) saturate(100%) !important',
                 },
-              },
-              '& .MuiBottomNavigationAction-label': {
-                color: brandColors.charcoal,
-                fontWeight: 600,
-                fontSize: '0.7rem',
-                marginTop: '2px',
               },
               '&.Mui-selected .MuiBottomNavigationAction-icon': {
                 backgroundColor: brandColors.mustardYellow,
-                transform: 'translateY(-3px) scale(1.05)',
-                boxShadow:
-                  '0 6px 20px rgba(227, 181, 5, 0.4), 0 4px 8px rgba(0, 0, 0, 0.15)',
-                '&::before': {
-                  backgroundImage: 'url(/highlight3.png)', // Different highlight for center
-                  transform: 'rotate(1deg) scale(1.2)',
-                  opacity: 0.8,
-                  top: '-16px',
-                  left: '-16px',
-                  right: '-16px',
-                  bottom: '-16px',
-                },
-              },
-              '&:hover .MuiBottomNavigationAction-icon': {
-                backgroundColor: '#C19E04', // Darker yellow on hover
-                transform: 'translateY(-4px) scale(1.08)',
-                boxShadow:
-                  '0 8px 25px rgba(227, 181, 5, 0.5), 0 4px 12px rgba(0, 0, 0, 0.2)',
               },
             },
           },
@@ -290,18 +249,6 @@ export function BottomNav() {
             '&.Mui-selected': {
               fontSize: '0.7rem',
               fontWeight: 600,
-            },
-          },
-
-          // Highlight animation keyframes
-          '@keyframes highlightFadeIn': {
-            '0%': {
-              opacity: 0,
-              transform: 'rotate(-2deg) scale(0.8)',
-            },
-            '100%': {
-              opacity: 0.7,
-              transform: 'rotate(-2deg) scale(1)',
             },
           },
         }}

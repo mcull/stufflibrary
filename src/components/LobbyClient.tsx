@@ -436,12 +436,12 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
   const tabs: TabItem[] = [
     {
       id: 'your-stuff',
-      label: 'Your Stuff',
+      label: 'My Items',
       content: yourStuffContent,
     },
     {
       id: 'others-stuff',
-      label: "Other's Stuff",
+      label: 'Browse',
       content: yourLibrariesContent,
     },
   ];
@@ -465,7 +465,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
         tabs={tabs}
         activeTab={activeTab}
         onChange={setActiveTab}
-        showAddButton={true}
+        showAddButton={false}
       />
 
       {/* Library Creation Modal */}

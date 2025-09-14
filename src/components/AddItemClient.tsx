@@ -937,10 +937,15 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
     >
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, flexShrink: 0 }}>
-        <IconButton onClick={() => router.back()} sx={{ mr: 1 }}>
+        <IconButton
+          onClick={() => router.back()}
+          sx={{
+            mr: 1,
+            display: { xs: 'none', md: 'flex' }, // Hide on mobile
+          }}
+        >
           <ArrowBackIcon />
         </IconButton>
-        <Typography variant="h6">Add Item</Typography>
       </Box>
 
       {/* Content */}

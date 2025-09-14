@@ -1,6 +1,9 @@
 'use client';
 
-import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
+import {
+  ArrowBack as ArrowBackIcon,
+  AddAPhotoTwoTone as AddIcon,
+} from '@mui/icons-material';
 import {
   AppBar,
   Toolbar,
@@ -143,7 +146,7 @@ export function GlobalHeader({
             )}
           </Box>
 
-          {/* Right Section - Notifications & User Avatar */}
+          {/* Right Section - Add Button, Notifications & User Avatar */}
           <Box
             sx={{
               display: 'flex',
@@ -152,6 +155,24 @@ export function GlobalHeader({
               flex: '0 0 auto',
             }}
           >
+            {/* Add Stuff Button - Desktop Only */}
+            <IconButton
+              component={Link}
+              href="/add-item"
+              sx={{
+                backgroundColor: brandColors.mustardYellow,
+                color: brandColors.charcoal,
+                width: 36,
+                height: 36,
+                display: { xs: 'none', md: 'flex' }, // Hide on mobile
+                '&:hover': {
+                  backgroundColor: '#C19E04',
+                },
+              }}
+            >
+              <AddIcon fontSize="small" />
+            </IconButton>
+
             {/* Notification Bell */}
             <NotificationBell />
 
