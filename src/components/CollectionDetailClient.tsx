@@ -171,7 +171,7 @@ export function CollectionDetailClient({
         setIsLoading(true);
         setError(null);
 
-        const response = await fetch(`/api/libraries/${collectionId}`);
+        const response = await fetch(`/api/collections/${collectionId}`);
         if (!response.ok) {
           throw new Error('Failed to load library');
         }

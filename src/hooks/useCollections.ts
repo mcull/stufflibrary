@@ -45,14 +45,14 @@ export function useCollections(): UseCollectionsReturn {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch('/api/libraries');
+      const response = await fetch('/api/collections');
 
       if (!response.ok) {
         throw new Error('Failed to fetch collections');
       }
 
       const data = await response.json();
-      setCollections(data.libraries || []);
+      setCollections(data.collections || []);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to load collections'
@@ -70,7 +70,7 @@ export function useCollections(): UseCollectionsReturn {
       location?: string;
       isPublic?: boolean;
     }): Promise<Collection> => {
-      const response = await fetch('/api/libraries', {
+      const response = await fetch('/api/collections', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -83,7 +83,7 @@ export function useCollections(): UseCollectionsReturn {
         throw new Error(errorData.error || 'Failed to create collection');
       }
 
-      const { library: collection } = await response.json();
+      const { collection } = await response.json();
 
       // Add the new collection to our local state
       setCollections((prev) => [collection, ...prev]);
@@ -95,7 +95,7 @@ export function useCollections(): UseCollectionsReturn {
 
   const joinCollection = useCallback(
     async (collectionId: string): Promise<Collection> => {
-      const response = await fetch(`/api/libraries/${collectionId}/join`, {
+      const response = await fetch(`/api/collections/${collectionId}/join`, {
         method: 'POST',
       });
 
@@ -104,7 +104,7 @@ export function useCollections(): UseCollectionsReturn {
         throw new Error(errorData.error || 'Failed to join collection');
       }
 
-      const { library: collection } = await response.json();
+      const { collection } = await response.json();
 
       // Add the collection to our local state
       setCollections((prev) => {
@@ -125,7 +125,7 @@ export function useCollections(): UseCollectionsReturn {
 
   const leaveCollection = useCallback(
     async (collectionId: string): Promise<void> => {
-      const response = await fetch(`/api/libraries/${collectionId}/join`, {
+      const response = await fetch(`/api/collections/${collectionId}/join`, {
         method: 'DELETE',
       });
 

@@ -17,77 +17,81 @@ import { useState, useEffect } from 'react';
 
 import { brandColors } from '@/theme/brandTokens';
 
-interface Library {
+interface Collection {
   id: string;
   name: string;
   description?: string;
   memberCount?: number;
 }
 
-interface LibrarySelectionModalProps {
+interface CollectionSelectionModalProps {
   open: boolean;
   itemName: string;
   itemId: string;
   onClose: () => void;
-  onComplete: (selectedLibraryIds: string[]) => void;
+  onComplete: (selectedCollectionIds: string[]) => void;
 }
 
-export function LibrarySelectionModal({
+export function CollectionSelectionModal({
   open,
   itemName,
   itemId,
   onClose,
   onComplete,
-}: LibrarySelectionModalProps) {
-  const [libraries, setLibraries] = useState<Library[]>([]);
-  const [selectedLibraryIds, setSelectedLibraryIds] = useState<string[]>([]);
+}: CollectionSelectionModalProps) {
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [selectedCollectionIds, setSelectedCollectionIds] = useState<string[]>(
+    []
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch user's libraries
+  // Fetch user's collections
   useEffect(() => {
     if (open) {
-      fetchLibraries();
+      fetchCollections();
     }
   }, [open]);
 
-  const fetchLibraries = async () => {
+  const fetchCollections = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch('/api/libraries');
+      const response = await fetch('/api/collections');
       if (!response.ok) {
-        throw new Error('Failed to fetch libraries');
+        throw new Error('Failed to fetch collections');
       }
 
       const data = await response.json();
-      const userLibraries = data.libraries || [];
+      const userCollections = data.collections || [];
 
-      setLibraries(userLibraries);
-      // Pre-select all libraries by default
-      if (userLibraries.length > 0) {
-        setSelectedLibraryIds(userLibraries.map((lib: Library) => lib.id));
+      setCollections(userCollections);
+      // Pre-select all collections by default
+      if (userCollections.length > 0) {
+        setSelectedCollectionIds(
+          userCollections.map((collection: Collection) => collection.id)
+        );
       }
     } catch (err) {
-      console.error('Error fetching libraries:', err);
-      setError('Failed to load your libraries');
+      console.error('Error fetching collections:', err);
+      setError('Failed to load your collections');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleLibraryToggle = (libraryId: string) => {
+  const handleCollectionToggle = (collectionId: string) => {
     setSelectedLibraryIds((prev) =>
-      prev.includes(libraryId)
-        ? prev.filter((id) => id !== libraryId)
-        : [...prev, libraryId]
+      prev.includes(collectionId)
+        ? prev.filter((id) => id !== collectionId)
+        : [...prev, collectionId]
     );
   };
 
   const handleSave = async () => {
-    if (selectedLibraryIds.length === 0) {
+    if (selectedCollectionIds.length === 0) {
       onComplete([]);
       return;
     }
@@ -96,23 +100,23 @@ export function LibrarySelectionModal({
     setError(null);
 
     try {
-      // Add item to selected libraries
+      // Add item to selected collections
       const response = await fetch(`/api/items/${itemId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ libraryIds: selectedLibraryIds }),
+        body: JSON.stringify({ collectionIds: selectedCollectionIds }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to add item to libraries');
+        throw new Error('Failed to add item to collections');
       }
 
-      onComplete(selectedLibraryIds);
+      onComplete(selectedCollectionIds);
     } catch (err) {
-      console.error('Error saving to library:', err);
-      setError('Failed to add item to library');
+      console.error('Error saving to collection:', err);
+      setError('Failed to add item to collection');
       setIsSaving(false);
     }
   };
@@ -134,7 +138,7 @@ export function LibrarySelectionModal({
             }}
           >
             <CircularProgress size={40} sx={{ mb: 2 }} />
-            <Typography>Loading your libraries...</Typography>
+            <Typography>Loading your collections...</Typography>
           </Box>
         </DialogContent>
       </Dialog>
@@ -144,7 +148,7 @@ export function LibrarySelectionModal({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ pb: 1, fontWeight: 600, fontSize: '1.5rem' }}>
-        Add &ldquo;{itemName}&rdquo; to Libraries
+        Add &ldquo;{itemName}&rdquo; to Collections
       </DialogTitle>
 
       <DialogContent>
@@ -154,7 +158,7 @@ export function LibrarySelectionModal({
           </Alert>
         )}
 
-        {libraries.length === 0 ? (
+        {collections.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 3 }}>
             <Typography
               variant="h6"
@@ -164,7 +168,7 @@ export function LibrarySelectionModal({
             </Typography>
             <Alert severity="info" sx={{ textAlign: 'left' }}>
               Your item was uploaded successfully, but it won&apos;t be visible
-              to friends and neighbors until you join or create a library and
+              to friends and neighbors until you join or create a collection and
               add it to the shelves.
             </Alert>
           </Box>
@@ -174,18 +178,18 @@ export function LibrarySelectionModal({
               variant="body1"
               sx={{ mb: 3, color: brandColors.charcoal }}
             >
-              Great! Your item was uploaded successfully. Choose which libraries
-              to add it to (you can select multiple):
+              Great! Your item was uploaded successfully. Choose which
+              collections to add it to (you can select multiple):
             </Typography>
 
             <Box sx={{ maxHeight: 300, overflowY: 'auto' }}>
-              {libraries.map((library) => (
+              {collections.map((collection) => (
                 <FormControlLabel
-                  key={library.id}
+                  key={collection.id}
                   control={
                     <Checkbox
-                      checked={selectedLibraryIds.includes(library.id)}
-                      onChange={() => handleLibraryToggle(library.id)}
+                      checked={selectedCollectionIds.includes(collection.id)}
+                      onChange={() => handleCollectionToggle(collection.id)}
                       sx={{
                         color: brandColors.inkBlue,
                         '&.Mui-checked': {
@@ -200,15 +204,15 @@ export function LibrarySelectionModal({
                         variant="body1"
                         sx={{ fontWeight: 500, wordWrap: 'break-word' }}
                       >
-                        {library.name}
+                        {collection.name}
                       </Typography>
-                      {library.description && (
+                      {collection.description && (
                         <Typography
                           variant="caption"
                           color="text.secondary"
                           sx={{ display: 'block' }}
                         >
-                          {library.description}
+                          {collection.description}
                         </Typography>
                       )}
                     </Box>
@@ -229,7 +233,7 @@ export function LibrarySelectionModal({
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 3 }}>
-        {libraries.length === 0 ? (
+        {collections.length === 0 ? (
           <Button
             onClick={handleSkip}
             variant="contained"
@@ -250,7 +254,7 @@ export function LibrarySelectionModal({
             <Button
               onClick={handleSave}
               variant="contained"
-              disabled={isSaving || selectedLibraryIds.length === 0}
+              disabled={isSaving || selectedCollectionIds.length === 0}
               sx={{
                 backgroundColor: brandColors.inkBlue,
                 '&:hover': {
@@ -263,10 +267,10 @@ export function LibrarySelectionModal({
                   <CircularProgress size={16} sx={{ mr: 1 }} />
                   Adding...
                 </>
-              ) : selectedLibraryIds.length > 0 ? (
-                `Add to ${selectedLibraryIds.length} ${selectedLibraryIds.length === 1 ? 'Library' : 'Libraries'}`
+              ) : selectedCollectionIds.length > 0 ? (
+                `Add to ${selectedCollectionIds.length} ${selectedCollectionIds.length === 1 ? 'Collection' : 'Collections'}`
               ) : (
-                'Select Libraries'
+                'Select Collections'
               )}
             </Button>
           </>

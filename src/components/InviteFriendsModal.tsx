@@ -60,7 +60,7 @@ export function InviteFriendsModal({
   const loadInvitations = useCallback(async () => {
     setLoadingInvitations(true);
     try {
-      const response = await fetch(`/api/libraries/${libraryId}/invitations`);
+      const response = await fetch(`/api/collections/${libraryId}/invitations`);
       if (response.ok) {
         const data = await response.json();
         setInvitations(data.invitations || []);
@@ -86,7 +86,7 @@ export function InviteFriendsModal({
     setSuccess(null);
 
     try {
-      const response = await fetch(`/api/libraries/${libraryId}/invite`, {
+      const response = await fetch(`/api/collections/${libraryId}/invite`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
