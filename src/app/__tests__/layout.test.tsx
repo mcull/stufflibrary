@@ -48,6 +48,12 @@ vi.mock('@/components/ConditionalHeader', () => ({
   ConditionalHeader: () => <div data-testid="header">Header</div>,
 }));
 
+vi.mock('@/components/MainContentArea', () => ({
+  MainContentArea: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="main-content">{children}</div>
+  ),
+}));
+
 vi.mock('@/components/ProfileDraftCleanup', () => ({
   ProfileDraftCleanup: () => (
     <div data-testid="profile-cleanup">Profile Cleanup</div>
