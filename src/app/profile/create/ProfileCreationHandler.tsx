@@ -136,7 +136,7 @@ export function ProfileCreationHandler({
       localStorage.removeItem('profile-wizard-draft');
 
       // Redirect to lobby with welcome message
-      router.push('/lobby?welcome=true');
+      router.push('/stacks?welcome=true');
       router.refresh(); // Refresh to update session data
     } catch (error) {
       alert(

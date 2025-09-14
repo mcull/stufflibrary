@@ -936,7 +936,7 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
             </Typography>
             <Button
               variant="contained"
-              onClick={() => router.push('/lobby')}
+              onClick={() => router.push('/stacks')}
               sx={{ borderRadius: 2 }}
             >
               Back to Lobby

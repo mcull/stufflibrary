@@ -45,7 +45,7 @@ The complete profile creation flow test covers:
    - Form validation
    - Step navigation
 
-3. **Profile Wizard - Step 2 (Photo & Bio)**  
+3. **Profile Wizard - Step 2 (Photo & Bio)**
    - Profile photo upload with synthetic test image
    - OpenAI image verification (if API key provided)
    - Bio text input with example text display
@@ -60,7 +60,7 @@ The complete profile creation flow test covers:
 5. **Profile Creation & Redirect**
    - Profile data submission to API
    - Database record creation verification
-   - Redirect to lobby with welcome message
+   - Redirect to stacks with welcome message
    - Authentication persistence
 
 6. **Additional Test Cases**

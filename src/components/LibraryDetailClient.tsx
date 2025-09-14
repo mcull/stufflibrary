@@ -353,7 +353,7 @@ export function LibraryDetailClient({ libraryId }: LibraryDetailClientProps) {
           }}
         >
           <Button
-            onClick={() => router.push('/lobby')}
+            onClick={() => router.push('/stacks')}
             startIcon={<ArrowBackIcon />}
             sx={{
               color: brandColors.inkBlue,
