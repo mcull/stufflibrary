@@ -28,6 +28,7 @@ import { useCollections } from '@/hooks/useCollections';
 import { useUserItems } from '@/hooks/useUserItems';
 import { brandColors, spacing } from '@/theme/brandTokens';
 
+import { CollectionCard, CreateCollectionCard } from './CollectionCard';
 import { CollectionCreationModal } from './CollectionCreationModal';
 import { TabbedFolderPane, type TabItem } from './TabbedFolderPane';
 import { UserItemCard, AddItemCard } from './UserItemCard';
@@ -608,127 +609,38 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
           </Box>
         ) : (
           <Box>
+            {/* Header with collection count */}
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ textAlign: 'center', mb: 3 }}
+            >
+              You&apos;re a member of {collections.length}{' '}
+              {collections.length === 1 ? 'collection' : 'collections'}
+            </Typography>
+
+            {/* Collections Grid */}
             <Box
               sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                mb: 3,
+                display: 'grid',
+                gridTemplateColumns: {
+                  xs: 'repeat(2, 1fr)',
+                  sm: 'repeat(2, 1fr)',
+                  md: 'repeat(3, 1fr)',
+                },
+                gap: spacing.md / 16,
               }}
             >
-              <Typography variant="body2" color="text.secondary">
-                You&apos;re a member of {collections.length}{' '}
-                {collections.length === 1 ? 'collection' : 'collections'}
-              </Typography>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<AddIcon />}
+              {/* Create Collection Card - Always first */}
+              <CreateCollectionCard
                 onClick={() => setIsCreateModalOpen(true)}
-                sx={{
-                  borderColor: brandColors.mustardYellow,
-                  color: brandColors.charcoal,
-                  textTransform: 'none',
-                  '&:hover': {
-                    borderColor: brandColors.inkBlue,
-                    backgroundColor: 'rgba(26, 47, 79, 0.04)',
-                  },
-                }}
-              >
-                Create Collection
-              </Button>
-            </Box>
-            <Stack spacing={3}>
+              />
+
+              {/* Collection Cards */}
               {collections.map((collection) => (
-                <Box
-                  key={collection.id}
-                  sx={{
-                    p: 3,
-                    borderRadius: 3,
-                    backgroundColor: brandColors.warmCream,
-                    border: `1px solid ${brandColors.softGray}`,
-                    transition: 'all 0.2s ease',
-                    '&:hover': {
-                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                      transform: 'translateY(-1px)',
-                    },
-                  }}
-                >
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      mb: 2,
-                    }}
-                  >
-                    <Box sx={{ flex: 1 }}>
-                      <Typography
-                        variant="subtitle1"
-                        sx={{ fontWeight: 600, mb: 0.5 }}
-                      >
-                        {collection.name}
-                      </Typography>
-                      {collection.description && (
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{ mb: 1 }}
-                        >
-                          {collection.description.length > 80
-                            ? `${collection.description.substring(0, 80)}...`
-                            : collection.description}
-                        </Typography>
-                      )}
-                      <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
-                        <Typography variant="caption" color="text.secondary">
-                          {collection.memberCount} members
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {collection.itemCount} items
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color:
-                              collection.role === 'owner'
-                                ? brandColors.inkBlue
-                                : 'text.secondary',
-                            fontWeight: collection.role === 'owner' ? 600 : 400,
-                          }}
-                        >
-                          {collection.role === 'owner'
-                            ? '👑 Owner'
-                            : `${collection.role}`}
-                        </Typography>
-                      </Stack>
-                    </Box>
-                    <Button
-                      size="small"
-                      component={Link}
-                      href={`/library/${collection.id}`}
-                      sx={{
-                        textTransform: 'none',
-                        borderRadius: 2,
-                        px: 2,
-                        backgroundColor: brandColors.white,
-                        '&:hover': {
-                          backgroundColor: brandColors.inkBlue,
-                          color: brandColors.white,
-                        },
-                      }}
-                    >
-                      View
-                    </Button>
-                  </Box>
-                  {collection.location && (
-                    <Typography variant="caption" color="text.secondary">
-                      📍 {collection.location}
-                    </Typography>
-                  )}
-                </Box>
+                <CollectionCard key={collection.id} collection={collection} />
               ))}
-            </Stack>
+            </Box>
           </Box>
         )}
       </CardContent>
