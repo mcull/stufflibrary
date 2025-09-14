@@ -329,7 +329,7 @@ export function AddItemCard() {
 
         {/* Single Info Lozenge */}
         <Chip
-          label="Add something to your shelf"
+          label="Add to shelf"
           size="small"
           sx={{
             backgroundColor: 'rgba(244, 187, 68, 0.2)',
