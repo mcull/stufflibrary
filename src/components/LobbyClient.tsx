@@ -10,6 +10,13 @@ import {
   Button,
   Stack,
   CircularProgress,
+  Chip,
+  FormControl,
+  Select,
+  MenuItem,
+  SelectChangeEvent,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -17,10 +24,11 @@ import { useState } from 'react';
 import { useBorrowRequests } from '@/hooks/useBorrowRequests';
 import { useLibraries } from '@/hooks/useLibraries';
 import { useUserItems } from '@/hooks/useUserItems';
-import { brandColors } from '@/theme/brandTokens';
+import { brandColors, spacing } from '@/theme/brandTokens';
 
 import { LibraryCreationModal } from './LibraryCreationModal';
 import { TabbedFolderPane, type TabItem } from './TabbedFolderPane';
+import { UserItemCard, AddItemCard } from './UserItemCard';
 
 interface User {
   id: string;
@@ -39,7 +47,11 @@ interface LobbyClientProps {
   showWelcome: boolean;
 }
 
+type FilterType = 'all' | 'ready-to-lend' | 'on-loan' | 'offline' | 'borrowed';
+
 export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { libraries, isLoading, createLibrary } = useLibraries();
   const {
     activeBorrows: _activeBorrows,
@@ -47,19 +59,97 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
     isLoading: _borrowsLoading,
   } = useBorrowRequests();
   const {
+    readyToLendItems,
+    onLoanItems,
+    offlineItems,
+    borrowedItems,
     readyToLendCount,
     onLoanCount,
+    offlineCount,
     borrowedCount,
     isLoading: itemsLoading,
   } = useUserItems();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('others-stuff');
+  const [itemFilter, setItemFilter] = useState<FilterType>('all');
 
   const handleCreateLibrary = (library: unknown) => {
     console.log('Library created:', library);
   };
 
-  // Your Stuff Tab Content
+  const handleFilterChange = (event: SelectChangeEvent) => {
+    setItemFilter(event.target.value as FilterType);
+  };
+
+  // Combine all items with their status
+  const allItems = [
+    ...readyToLendItems.map((item) => ({
+      ...item,
+      status: 'ready-to-lend' as const,
+    })),
+    ...onLoanItems.map((item) => ({ ...item, status: 'on-loan' as const })),
+    ...offlineItems.map((item) => ({ ...item, status: 'offline' as const })),
+    ...borrowedItems.map((item) => ({ ...item, status: 'borrowed' as const })),
+  ];
+
+  // Section component for grouped display
+  const ItemSection = ({
+    title,
+    items,
+    statusType,
+    showAddItem = false,
+  }: {
+    title: string;
+    items: any[];
+    statusType: string;
+    showAddItem?: boolean;
+  }) => {
+    if (items.length === 0 && !showAddItem) return null;
+
+    return (
+      <Box sx={{ mb: 4 }}>
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 600,
+            color: brandColors.charcoal,
+            mb: 2,
+            fontSize: { xs: '1.1rem', md: '1.25rem' },
+          }}
+        >
+          {title} ({items.length})
+        </Typography>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: 'repeat(2, 1fr)', // Always 2 columns on mobile
+              md: 'repeat(4, 1fr)', // 4 columns on medium screens
+              lg: 'repeat(5, 1fr)', // 5 columns on large screens
+              xl: 'repeat(6, 1fr)', // 6 columns on extra large screens
+            },
+            gap: spacing.md / 16,
+          }}
+        >
+          {showAddItem && <AddItemCard />}
+          {items.map((item) => (
+            <UserItemCard
+              key={`${statusType}-${item.id}`}
+              item={item}
+              status={item.status}
+            />
+          ))}
+        </Box>
+      </Box>
+    );
+  };
+
+  const filteredItems =
+    itemFilter === 'all'
+      ? allItems
+      : allItems.filter((item) => item.status === itemFilter);
+
+  // Your Shelf Tab Content
   const yourStuffContent = (
     <Card
       sx={{
@@ -73,177 +163,279 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
         },
       }}
     >
-      <CardContent sx={{ p: 4 }}>
+      <CardContent sx={{ p: { xs: 3, md: 4 } }}>
         {itemsLoading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
             <CircularProgress size={40} />
           </Box>
         ) : (
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' },
-              gap: 3,
-            }}
-          >
-            {/* Ready to Lend */}
-            <Box
-              sx={{
-                p: 3,
-                borderRadius: 3,
-                backgroundColor: brandColors.warmCream,
-                border: `1px solid ${brandColors.softGray}`,
-                transition: 'all 0.2s ease',
-                cursor: 'pointer',
-                '&:hover': {
-                  backgroundColor: '#F5F1E8',
-                  transform: 'translateY(-1px)',
-                },
-                textAlign: 'center',
-              }}
-            >
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-                Ready to Lend
-              </Typography>
-              <Typography
-                variant="h4"
-                sx={{
-                  fontWeight: 700,
-                  color: brandColors.inkBlue,
-                  mb: 1,
-                }}
-              >
-                {readyToLendCount}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                {readyToLendCount === 1 ? 'item available' : 'items available'}
-              </Typography>
-              <Button
-                component={Link}
-                href={`/stuff/m/${user.id}?filter=ready-to-lend`}
-                variant="contained"
-                size="small"
-                sx={{
-                  textTransform: 'none',
-                  borderRadius: 2,
-                  backgroundColor: brandColors.inkBlue,
-                  '&:hover': {
-                    backgroundColor: '#1a2f4f',
-                  },
-                }}
-              >
-                Manage
-              </Button>
+          <>
+            {/* Filter Control */}
+            <Box sx={{ mb: 3 }}>
+              {isMobile ? (
+                <FormControl size="small" sx={{ minWidth: 200 }}>
+                  <Select
+                    value={itemFilter}
+                    onChange={handleFilterChange}
+                    displayEmpty
+                    sx={{
+                      backgroundColor: brandColors.white,
+                      borderRadius: 2,
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: brandColors.softGray,
+                      },
+                      '&:hover .MuiOutlinedInput-notchedOutline': {
+                        borderColor: brandColors.inkBlue,
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: brandColors.inkBlue,
+                      },
+                    }}
+                  >
+                    <MenuItem value="all">
+                      All Items ({allItems.length})
+                    </MenuItem>
+                    <MenuItem value="ready-to-lend">
+                      Ready to Lend ({readyToLendCount})
+                    </MenuItem>
+                    <MenuItem value="on-loan">On Loan ({onLoanCount})</MenuItem>
+                    {offlineCount > 0 && (
+                      <MenuItem value="offline">
+                        Offline ({offlineCount})
+                      </MenuItem>
+                    )}
+                    <MenuItem value="borrowed">
+                      Borrowed ({borrowedCount})
+                    </MenuItem>
+                  </Select>
+                </FormControl>
+              ) : (
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{ flexWrap: 'wrap', gap: 1 }}
+                >
+                  <Chip
+                    label={`All (${allItems.length})`}
+                    onClick={() => setItemFilter('all')}
+                    sx={{
+                      backgroundColor:
+                        itemFilter === 'all' ? brandColors.inkBlue : '#E8F5E8',
+                      color:
+                        itemFilter === 'all' ? brandColors.white : '#2E7D32',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      '&:hover': {
+                        backgroundColor:
+                          itemFilter === 'all'
+                            ? '#1a2f4f'
+                            : brandColors.inkBlue,
+                        color: brandColors.white,
+                      },
+                    }}
+                  />
+                  <Chip
+                    label={`Ready to Lend (${readyToLendCount})`}
+                    onClick={() => setItemFilter('ready-to-lend')}
+                    sx={{
+                      backgroundColor:
+                        itemFilter === 'ready-to-lend'
+                          ? brandColors.inkBlue
+                          : '#E8F5E8',
+                      color:
+                        itemFilter === 'ready-to-lend'
+                          ? brandColors.white
+                          : '#2E7D32',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      '&:hover': {
+                        backgroundColor:
+                          itemFilter === 'ready-to-lend'
+                            ? '#1a2f4f'
+                            : brandColors.inkBlue,
+                        color: brandColors.white,
+                      },
+                    }}
+                  />
+                  <Chip
+                    label={`On Loan (${onLoanCount})`}
+                    onClick={() => setItemFilter('on-loan')}
+                    sx={{
+                      backgroundColor:
+                        itemFilter === 'on-loan'
+                          ? brandColors.inkBlue
+                          : '#E8F5E8',
+                      color:
+                        itemFilter === 'on-loan'
+                          ? brandColors.white
+                          : '#2E7D32',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      '&:hover': {
+                        backgroundColor:
+                          itemFilter === 'on-loan'
+                            ? '#1a2f4f'
+                            : brandColors.inkBlue,
+                        color: brandColors.white,
+                      },
+                    }}
+                  />
+                  {offlineCount > 0 && (
+                    <Chip
+                      label={`Offline (${offlineCount})`}
+                      onClick={() => setItemFilter('offline')}
+                      sx={{
+                        backgroundColor:
+                          itemFilter === 'offline'
+                            ? brandColors.inkBlue
+                            : '#E8F5E8',
+                        color:
+                          itemFilter === 'offline'
+                            ? brandColors.white
+                            : '#2E7D32',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        '&:hover': {
+                          backgroundColor:
+                            itemFilter === 'offline'
+                              ? '#1a2f4f'
+                              : brandColors.inkBlue,
+                          color: brandColors.white,
+                        },
+                      }}
+                    />
+                  )}
+                  <Chip
+                    label={`Borrowed (${borrowedCount})`}
+                    onClick={() => setItemFilter('borrowed')}
+                    sx={{
+                      backgroundColor:
+                        itemFilter === 'borrowed'
+                          ? brandColors.inkBlue
+                          : '#E8F5E8',
+                      color:
+                        itemFilter === 'borrowed'
+                          ? brandColors.white
+                          : '#2E7D32',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      '&:hover': {
+                        backgroundColor:
+                          itemFilter === 'borrowed'
+                            ? '#1a2f4f'
+                            : brandColors.inkBlue,
+                        color: brandColors.white,
+                      },
+                    }}
+                  />
+                </Stack>
+              )}
             </Box>
 
-            {/* On Loan */}
-            <Box
-              sx={{
-                p: 3,
-                borderRadius: 3,
-                backgroundColor: brandColors.warmCream,
-                border: `1px solid ${brandColors.softGray}`,
-                transition: 'all 0.2s ease',
-                cursor: 'pointer',
-                '&:hover': {
-                  backgroundColor: '#F5F1E8',
-                  transform: 'translateY(-1px)',
-                },
-                textAlign: 'center',
-              }}
-            >
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-                On Loan
-              </Typography>
-              <Typography
-                variant="h4"
-                sx={{
-                  fontWeight: 700,
-                  color: brandColors.mustardYellow,
-                  mb: 1,
-                }}
-              >
-                {onLoanCount}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                {onLoanCount === 1 ? 'item lent out' : 'items lent out'}
-              </Typography>
-              <Button
-                component={Link}
-                href={`/stuff/m/${user.id}?filter=on-loan`}
-                variant="outlined"
-                size="small"
-                sx={{
-                  textTransform: 'none',
-                  borderRadius: 2,
-                  borderColor: brandColors.charcoal,
-                  color: brandColors.charcoal,
-                  opacity: onLoanCount > 0 ? 1 : 0.5,
-                  '&:hover': {
-                    backgroundColor: brandColors.charcoal,
-                    color: brandColors.white,
-                  },
-                }}
-                disabled={onLoanCount === 0}
-              >
-                View Status
-              </Button>
-            </Box>
+            {/* Items Display */}
+            {allItems.length === 0 ? (
+              <Box sx={{ textAlign: 'center', py: 6 }}>
+                <Box
+                  sx={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: '50%',
+                    backgroundColor: brandColors.warmCream,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mx: 'auto',
+                    mb: 3,
+                  }}
+                >
+                  <Typography variant="h4" sx={{ color: brandColors.charcoal }}>
+                    📚
+                  </Typography>
+                </Box>
 
-            {/* Stuff I've Borrowed */}
-            <Box
-              sx={{
-                p: 3,
-                borderRadius: 3,
-                backgroundColor: brandColors.warmCream,
-                border: `1px solid ${brandColors.softGray}`,
-                transition: 'all 0.2s ease',
-                cursor: 'pointer',
-                '&:hover': {
-                  backgroundColor: '#F5F1E8',
-                  transform: 'translateY(-1px)',
-                },
-                textAlign: 'center',
-              }}
-            >
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-                Stuff I&apos;ve Borrowed
-              </Typography>
-              <Typography
-                variant="h4"
+                <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                  Your shelf is empty
+                </Typography>
+
+                <Typography
+                  variant="body1"
+                  color="text.secondary"
+                  sx={{ mb: 3, maxWidth: 400, mx: 'auto' }}
+                >
+                  Add your first item to start sharing with your community!
+                </Typography>
+
+                <Button
+                  component={Link}
+                  href="/add-item"
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  sx={{
+                    borderRadius: 3,
+                    px: 3,
+                    py: 1.5,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    backgroundColor: brandColors.inkBlue,
+                    '&:hover': {
+                      backgroundColor: '#1a2f4f',
+                    },
+                  }}
+                >
+                  Add Your First Item
+                </Button>
+              </Box>
+            ) : itemFilter === 'all' ? (
+              // Show all sections with headers when "All" is selected
+              <>
+                <ItemSection
+                  title="Ready to Lend"
+                  items={readyToLendItems}
+                  statusType="ready-to-lend"
+                  showAddItem={true}
+                />
+                <ItemSection
+                  title="On Loan"
+                  items={onLoanItems}
+                  statusType="on-loan"
+                />
+                <ItemSection
+                  title="Borrowed"
+                  items={borrowedItems}
+                  statusType="borrowed"
+                />
+                {offlineCount > 0 && (
+                  <ItemSection
+                    title="Offline"
+                    items={offlineItems}
+                    statusType="offline"
+                  />
+                )}
+              </>
+            ) : (
+              // Show filtered items in a single grid when specific filter is selected
+              <Box
                 sx={{
-                  fontWeight: 700,
-                  color: brandColors.tomatoRed,
-                  mb: 1,
-                }}
-              >
-                {borrowedCount}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                {borrowedCount === 1 ? 'item borrowed' : 'items borrowed'}
-              </Typography>
-              <Button
-                component={Link}
-                href={`/stuff/m/${user.id}?filter=borrowed`}
-                variant="outlined"
-                size="small"
-                sx={{
-                  textTransform: 'none',
-                  borderRadius: 2,
-                  borderColor: brandColors.tomatoRed,
-                  color: brandColors.tomatoRed,
-                  opacity: borrowedCount > 0 ? 1 : 0.5,
-                  '&:hover': {
-                    backgroundColor: brandColors.tomatoRed,
-                    color: brandColors.white,
+                  display: 'grid',
+                  gridTemplateColumns: {
+                    xs: 'repeat(2, 1fr)', // Always 2 columns on mobile
+                    md: 'repeat(4, 1fr)', // 4 columns on medium screens
+                    lg: 'repeat(5, 1fr)', // 5 columns on large screens
+                    xl: 'repeat(6, 1fr)', // 6 columns on extra large screens
                   },
+                  gap: spacing.md / 16,
                 }}
-                disabled={borrowedCount === 0}
               >
-                View & Return
-              </Button>
-            </Box>
-          </Box>
+                {filteredItems.map((item) => (
+                  <UserItemCard
+                    key={`${item.status}-${item.id}`}
+                    item={item}
+                    status={item.status}
+                  />
+                ))}
+              </Box>
+            )}
+          </>
         )}
       </CardContent>
     </Card>
