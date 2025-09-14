@@ -682,6 +682,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                   xl: 'repeat(6, 1fr)', // 6 columns on extra large screens - matches My Shelf
                 },
                 gap: spacing.md / 16,
+                mb: 4, // Match the bottom margin from My Shelf ItemSection components
               }}
             >
               {/* Create Collection Card - Always first */}
