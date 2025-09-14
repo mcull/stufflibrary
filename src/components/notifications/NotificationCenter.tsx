@@ -79,7 +79,10 @@ export function NotificationCenter() {
         <Button
           startIcon={<ArrowBackIcon />}
           onClick={() => router.back()}
-          sx={{ mb: 2 }}
+          sx={{
+            mb: 2,
+            display: { xs: 'none', md: 'flex' }, // Hide on mobile
+          }}
           variant="text"
         >
           Back

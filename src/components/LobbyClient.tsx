@@ -1,6 +1,6 @@
 'use client';
 
-import { Add as AddIcon, PhotoCamera as CameraIcon } from '@mui/icons-material';
+import { Add as AddIcon } from '@mui/icons-material';
 import {
   Box,
   Container,
@@ -20,7 +20,7 @@ import { useUserItems } from '@/hooks/useUserItems';
 import { brandColors } from '@/theme/brandTokens';
 
 import { LibraryCreationModal } from './LibraryCreationModal';
-import { TabbedPane, type TabItem } from './TabbedPane';
+import { TabbedFolderPane, type TabItem } from './TabbedFolderPane';
 
 interface User {
   id: string;
@@ -74,39 +74,6 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
       }}
     >
       <CardContent sx={{ p: 4 }}>
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            mb: 3,
-          }}
-        >
-          <Typography
-            variant="h5"
-            sx={{
-              fontWeight: 700,
-              color: brandColors.charcoal,
-            }}
-          >
-            Your Stuff
-          </Typography>
-          <Button
-            component={Link}
-            href="/add-item"
-            variant="text"
-            size="small"
-            startIcon={<CameraIcon />}
-            sx={{
-              textTransform: 'none',
-              color: brandColors.inkBlue,
-              fontSize: '0.875rem',
-            }}
-          >
-            Add
-          </Button>
-        </Box>
-
         {itemsLoading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
             <CircularProgress size={40} />
@@ -297,45 +264,6 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
       }}
     >
       <CardContent sx={{ p: 4 }}>
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            mb: 3,
-          }}
-        >
-          <Typography
-            variant="h5"
-            sx={{
-              fontWeight: 700,
-              color: brandColors.charcoal,
-            }}
-          >
-            Your Libraries
-          </Typography>
-          {libraries.length > 0 && (
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<AddIcon />}
-              onClick={() => setIsCreateModalOpen(true)}
-              sx={{
-                borderRadius: 2,
-                textTransform: 'none',
-                borderColor: brandColors.mustardYellow,
-                color: brandColors.charcoal,
-                '&:hover': {
-                  backgroundColor: brandColors.mustardYellow,
-                  borderColor: brandColors.mustardYellow,
-                },
-              }}
-            >
-              New
-            </Button>
-          )}
-        </Box>
-
         {isLoading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
             <CircularProgress size={40} />
@@ -508,12 +436,12 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
   const tabs: TabItem[] = [
     {
       id: 'your-stuff',
-      label: 'Your Stuff',
+      label: 'My Items',
       content: yourStuffContent,
     },
     {
-      id: 'your-libraries',
-      label: 'Your Libraries',
+      id: 'others-stuff',
+      label: 'Browse',
       content: yourLibrariesContent,
     },
   ];
@@ -532,12 +460,12 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
         </Box>
       )}
 
-      {/* Tabbed Content - Activity capsule is hidden as requested */}
-      <TabbedPane
+      {/* Tabbed Folder Content */}
+      <TabbedFolderPane
         tabs={tabs}
         activeTab={activeTab}
         onChange={setActiveTab}
-        variant="contained"
+        showAddButton={false}
       />
 
       {/* Library Creation Modal */}
