@@ -59,11 +59,11 @@ export function LibraryCreationModal({
     try {
       if (createLibrary) {
         // Use the provided createLibrary function
-        const branch = await createLibrary(formData);
-        onSuccess(branch);
+        const library = await createLibrary(formData);
+        onSuccess(library);
       } else {
         // Fallback to direct API call if createLibrary not provided
-        const response = await fetch('/api/branches', {
+        const response = await fetch('/api/libraries', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -73,16 +73,16 @@ export function LibraryCreationModal({
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to create branch');
+          throw new Error(errorData.error || 'Failed to create library');
         }
 
-        const { branch } = await response.json();
-        onSuccess(branch);
+        const { library } = await response.json();
+        onSuccess(library);
       }
 
       handleClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create branch');
+      setError(err instanceof Error ? err.message : 'Failed to create library');
     } finally {
       setIsSubmitting(false);
     }
