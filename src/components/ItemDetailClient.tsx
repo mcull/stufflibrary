@@ -40,7 +40,7 @@ import { useState, useEffect } from 'react';
 
 import { useBorrowHistory } from '@/hooks/useBorrowHistory';
 import { useBorrowRequests } from '@/hooks/useBorrowRequests';
-import { useLibraries } from '@/hooks/useLibraries';
+import { useCollections } from '@/hooks/useCollections';
 
 import { VintageCheckoutCard } from './VintageCheckoutCard';
 
@@ -131,7 +131,7 @@ export function ItemDetailClient({
   // Hooks
   const { data: borrowHistory } = useBorrowHistory(isNewItem ? '' : itemId);
   const { receivedRequests } = useBorrowRequests();
-  const { libraries } = useLibraries();
+  const { collections: _collections } = useCollections();
 
   // Filter pending requests for this specific item
   const pendingRequests = receivedRequests.filter(

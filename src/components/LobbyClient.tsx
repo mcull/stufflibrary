@@ -24,11 +24,11 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 import { useBorrowRequests } from '@/hooks/useBorrowRequests';
-import { useLibraries } from '@/hooks/useLibraries';
+import { useCollections } from '@/hooks/useCollections';
 import { useUserItems } from '@/hooks/useUserItems';
 import { brandColors, spacing } from '@/theme/brandTokens';
 
-import { LibraryCreationModal } from './LibraryCreationModal';
+import { CollectionCreationModal } from './CollectionCreationModal';
 import { TabbedFolderPane, type TabItem } from './TabbedFolderPane';
 import { UserItemCard, AddItemCard } from './UserItemCard';
 
@@ -54,7 +54,7 @@ type FilterType = 'all' | 'ready-to-lend' | 'on-loan' | 'offline' | 'borrowed';
 export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { libraries, isLoading, createLibrary } = useLibraries();
+  const { collections, isLoading, createCollection } = useCollections();
   const {
     activeBorrows: _activeBorrows,
     sentRequests: _sentRequests,
@@ -75,10 +75,10 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
   const [activeTab, setActiveTab] = useState('others-stuff');
   const [itemFilter, setItemFilter] = useState<FilterType>('all');
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
-  const [createdLibraryName, setCreatedLibraryName] = useState('');
+  const [createdCollectionName, setCreatedCollectionName] = useState('');
 
-  const handleCreateLibrary = (library: { name?: string }) => {
-    setCreatedLibraryName(library.name || 'Your library');
+  const handleCreateCollection = (collection: { name?: string }) => {
+    setCreatedCollectionName(collection.name || 'Your collection');
     setShowSuccessMessage(true);
 
     // Hide success message after 4 seconds
@@ -452,7 +452,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
   );
 
   // Your Libraries Tab Content
-  const yourLibrariesContent = (
+  const yourCollectionsContent = (
     <Card
       sx={{
         borderRadius: '24px',
@@ -470,7 +470,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
             <CircularProgress size={40} />
           </Box>
-        ) : libraries.length === 0 ? (
+        ) : collections.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Box
               sx={{
@@ -486,7 +486,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
               }}
             >
               <Typography variant="h3" sx={{ color: brandColors.charcoal }}>
-                📚
+                ➕
               </Typography>
             </Box>
 
@@ -498,7 +498,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                 mb: 2,
               }}
             >
-              Start Your First Library
+              Start Your First Collection
             </Typography>
 
             <Typography
@@ -506,7 +506,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
               color="text.secondary"
               sx={{ mb: 4, maxWidth: 500, mx: 'auto', lineHeight: 1.6 }}
             >
-              Libraries are private sharing circles where you and people you
+              Collections are private sharing circles where you and people you
               trust can lend and borrow items. Create one for your family,
               friend group, or neighbors.
             </Typography>
@@ -591,7 +591,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                 transition: 'all 0.2s ease',
               }}
             >
-              Create Your First Library
+              Create Your First Collection
             </Button>
           </Box>
         ) : (
@@ -605,8 +605,8 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
               }}
             >
               <Typography variant="body2" color="text.secondary">
-                You&apos;re a member of {libraries.length}{' '}
-                {libraries.length === 1 ? 'library' : 'libraries'}
+                You&apos;re a member of {collections.length}{' '}
+                {collections.length === 1 ? 'collection' : 'collections'}
               </Typography>
               <Button
                 variant="outlined"
@@ -623,13 +623,13 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                   },
                 }}
               >
-                Create Library
+                Create Collection
               </Button>
             </Box>
             <Stack spacing={3}>
-              {libraries.map((library) => (
+              {collections.map((collection) => (
                 <Box
-                  key={library.id}
+                  key={collection.id}
                   sx={{
                     p: 3,
                     borderRadius: 3,
@@ -655,46 +655,46 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                         variant="subtitle1"
                         sx={{ fontWeight: 600, mb: 0.5 }}
                       >
-                        {library.name}
+                        {collection.name}
                       </Typography>
-                      {library.description && (
+                      {collection.description && (
                         <Typography
                           variant="body2"
                           color="text.secondary"
                           sx={{ mb: 1 }}
                         >
-                          {library.description.length > 80
-                            ? `${library.description.substring(0, 80)}...`
-                            : library.description}
+                          {collection.description.length > 80
+                            ? `${collection.description.substring(0, 80)}...`
+                            : collection.description}
                         </Typography>
                       )}
                       <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
                         <Typography variant="caption" color="text.secondary">
-                          {library.memberCount} members
+                          {collection.memberCount} members
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          {library.itemCount} items
+                          {collection.itemCount} items
                         </Typography>
                         <Typography
                           variant="caption"
                           sx={{
                             color:
-                              library.role === 'owner'
+                              collection.role === 'owner'
                                 ? brandColors.inkBlue
                                 : 'text.secondary',
-                            fontWeight: library.role === 'owner' ? 600 : 400,
+                            fontWeight: collection.role === 'owner' ? 600 : 400,
                           }}
                         >
-                          {library.role === 'owner'
+                          {collection.role === 'owner'
                             ? '👑 Owner'
-                            : `${library.role}`}
+                            : `${collection.role}`}
                         </Typography>
                       </Stack>
                     </Box>
                     <Button
                       size="small"
                       component={Link}
-                      href={`/library/${library.id}`}
+                      href={`/library/${collection.id}`}
                       sx={{
                         textTransform: 'none',
                         borderRadius: 2,
@@ -709,9 +709,9 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                       View
                     </Button>
                   </Box>
-                  {library.location && (
+                  {collection.location && (
                     <Typography variant="caption" color="text.secondary">
-                      📍 {library.location}
+                      📍 {collection.location}
                     </Typography>
                   )}
                 </Box>
@@ -728,7 +728,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
     {
       id: 'others-stuff',
       label: 'Collections',
-      content: yourLibrariesContent,
+      content: yourCollectionsContent,
     },
     {
       id: 'your-stuff',
@@ -759,12 +759,12 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
         showAddButton={false}
       />
 
-      {/* Library Creation Modal */}
-      <LibraryCreationModal
+      {/* Collection Creation Modal */}
+      <CollectionCreationModal
         open={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onSuccess={handleCreateLibrary}
-        createLibrary={createLibrary}
+        onSuccess={handleCreateCollection}
+        createCollection={createCollection}
       />
 
       {/* Success Message */}
@@ -783,8 +783,8 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
             color: brandColors.white,
           }}
         >
-          🎉 <strong>&ldquo;{createdLibraryName}&rdquo;</strong> library created
-          successfully!
+          🎉 <strong>&ldquo;{createdCollectionName}&rdquo;</strong> collection
+          created successfully!
         </Alert>
       </Snackbar>
     </Container>
