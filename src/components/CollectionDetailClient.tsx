@@ -128,8 +128,8 @@ interface LibraryData {
   itemsByCategory: Record<string, LibraryItem[]>;
 }
 
-interface LibraryDetailClientProps {
-  libraryId: string;
+interface CollectionDetailClientProps {
+  collectionId: string;
 }
 
 // Category display names and icons
@@ -146,7 +146,9 @@ const CATEGORY_CONFIG = {
   other: { name: 'Other', icon: '📦' },
 };
 
-export function LibraryDetailClient({ libraryId }: LibraryDetailClientProps) {
+export function CollectionDetailClient({
+  collectionId,
+}: CollectionDetailClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = useSession();
@@ -169,7 +171,7 @@ export function LibraryDetailClient({ libraryId }: LibraryDetailClientProps) {
         setIsLoading(true);
         setError(null);
 
-        const response = await fetch(`/api/libraries/${libraryId}`);
+        const response = await fetch(`/api/libraries/${collectionId}`);
         if (!response.ok) {
           throw new Error('Failed to load library');
         }
@@ -184,7 +186,7 @@ export function LibraryDetailClient({ libraryId }: LibraryDetailClientProps) {
     };
 
     fetchLibrary();
-  }, [libraryId]);
+  }, [collectionId]);
 
   // Handle welcome banner for new members
   useEffect(() => {
@@ -224,15 +226,15 @@ export function LibraryDetailClient({ libraryId }: LibraryDetailClientProps) {
   const handleAddNewItem = useCallback(() => {
     handleAddMenuClose();
     const params = new URLSearchParams({
-      library: libraryId,
+      library: collectionId,
     });
     router.push(`/add-item?${params.toString()}`);
-  }, [handleAddMenuClose, libraryId, router]);
+  }, [handleAddMenuClose, collectionId, router]);
 
   const handleAddFromInventory = useCallback(() => {
     handleAddMenuClose();
-    router.push(`/stuff/m/add-to-library/${libraryId}`);
-  }, [handleAddMenuClose, libraryId, router]);
+    router.push(`/stuff/m/add-to-library/${collectionId}`);
+  }, [handleAddMenuClose, collectionId, router]);
 
   // Memoize map props at the top level
   const mapMembers = useMemo(() => {
@@ -262,7 +264,7 @@ export function LibraryDetailClient({ libraryId }: LibraryDetailClientProps) {
   const handleAddItem = (category?: string) => {
     // Navigate to camera-based add item flow
     const params = new URLSearchParams({
-      library: libraryId,
+      library: collectionId,
       ...(category && { category }),
     });
     router.push(`/add-item?${params.toString()}`);
@@ -839,7 +841,7 @@ export function LibraryDetailClient({ libraryId }: LibraryDetailClientProps) {
 
       {/* Invite Friends Modal */}
       <InviteFriendsModal
-        libraryId={libraryId}
+        libraryId={collectionId}
         libraryName={library?.name || ''}
         open={inviteModalOpen}
         onClose={() => setInviteModalOpen(false)}
