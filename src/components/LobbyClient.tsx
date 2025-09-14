@@ -609,14 +609,66 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
           </Box>
         ) : (
           <Box>
-            {/* Header with collection count */}
+            {/* Filter Control - matches My Shelf tab */}
+            <Box sx={{ mb: 3 }}>
+              {isMobile ? (
+                <FormControl size="small" sx={{ minWidth: 200 }}>
+                  <Select
+                    value="all"
+                    displayEmpty
+                    sx={{
+                      backgroundColor: brandColors.white,
+                      borderRadius: 2,
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: brandColors.softGray,
+                      },
+                      '&:hover .MuiOutlinedInput-notchedOutline': {
+                        borderColor: brandColors.inkBlue,
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: brandColors.inkBlue,
+                      },
+                    }}
+                  >
+                    <MenuItem value="all">
+                      All Collections ({collections.length})
+                    </MenuItem>
+                  </Select>
+                </FormControl>
+              ) : (
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{ flexWrap: 'wrap', gap: 1 }}
+                >
+                  <Chip
+                    label={`All (${collections.length})`}
+                    sx={{
+                      backgroundColor: brandColors.inkBlue,
+                      color: brandColors.white,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      '&:hover': {
+                        backgroundColor: '#1a2f4f',
+                        color: brandColors.white,
+                      },
+                    }}
+                  />
+                </Stack>
+              )}
+            </Box>
+
+            {/* Section Title - matches My Shelf sections */}
             <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ textAlign: 'center', mb: 3 }}
+              variant="h6"
+              sx={{
+                fontWeight: 600,
+                color: brandColors.charcoal,
+                mb: 2,
+                fontSize: { xs: '1.1rem', md: '1.25rem' },
+              }}
             >
-              You&apos;re a member of {collections.length}{' '}
-              {collections.length === 1 ? 'collection' : 'collections'}
+              My Collections ({collections.length})
             </Typography>
 
             {/* Collections Grid */}
@@ -624,9 +676,10 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
               sx={{
                 display: 'grid',
                 gridTemplateColumns: {
-                  xs: 'repeat(2, 1fr)',
-                  sm: 'repeat(2, 1fr)',
-                  md: 'repeat(3, 1fr)',
+                  xs: 'repeat(2, 1fr)', // Always 2 columns on mobile - matches My Shelf
+                  md: 'repeat(4, 1fr)', // 4 columns on medium screens - matches My Shelf
+                  lg: 'repeat(5, 1fr)', // 5 columns on large screens - matches My Shelf
+                  xl: 'repeat(6, 1fr)', // 6 columns on extra large screens - matches My Shelf
                 },
                 gap: spacing.md / 16,
               }}
