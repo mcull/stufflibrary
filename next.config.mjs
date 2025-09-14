@@ -18,7 +18,13 @@ const nextConfig = {
       },
     ],
   },
+  turbopack: {
+    resolveAlias: {
+      '@': path.resolve(process.cwd(), 'src'),
+    },
+  },
   webpack: (config) => {
+    // Only configure webpack when not using Turbopack
     config.resolve = config.resolve || {};
     config.resolve.alias = {
       ...(config.resolve.alias || {}),
