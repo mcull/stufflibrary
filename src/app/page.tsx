@@ -14,7 +14,7 @@ export default function Home() {
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user) {
-      router.replace('/lobby');
+      router.replace('/stacks');
     }
   }, [session, status, router]);
 

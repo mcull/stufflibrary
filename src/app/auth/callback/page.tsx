@@ -61,7 +61,7 @@ function AuthCallbackContent() {
 
         // Normal flow based on profile completion
         if (user?.profileCompleted) {
-          router.replace('/lobby');
+          router.replace('/stacks');
         } else {
           router.replace('/profile/create');
         }

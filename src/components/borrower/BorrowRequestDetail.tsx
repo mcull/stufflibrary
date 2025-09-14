@@ -193,7 +193,7 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Button
           component={Link}
-          href="/lobby"
+          href="/stacks"
           startIcon={<ArrowBack />}
           sx={{ mb: 2 }}
         >
@@ -238,10 +238,7 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
           Your Borrow Request
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-          <Chip
-            label={request.status}
-            color={statusColors[request.status]}
-          />
+          <Chip label={request.status} color={statusColors[request.status]} />
           {isOverdue && (
             <Chip
               icon={<WarningAmber />}
@@ -334,7 +331,7 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
             <Card sx={{ mb: 3 }}>
               <CardContent>
                 <Typography variant="h6" gutterBottom color="primary">
-                  {request.lender.name}'s Response
+                  {request.lender.name}&apos;s Response
                 </Typography>
                 <Typography variant="body1">
                   &quot;{request.lenderMessage}&quot;
@@ -345,7 +342,9 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
 
           {/* Return Instructions */}
           {isActive && (
-            <Card sx={{ mb: 3, bgcolor: 'info.light', color: 'info.contrastText' }}>
+            <Card
+              sx={{ mb: 3, bgcolor: 'info.light', color: 'info.contrastText' }}
+            >
               <CardContent>
                 <Typography variant="h6" gutterBottom>
                   Return Instructions
@@ -354,10 +353,15 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
                   When you&apos;re ready to return this item:
                 </Typography>
                 <Typography variant="body2" component="div" sx={{ ml: 2 }}>
-                  1. Return the item to {request.lender.name} in the same condition<br />
-                  2. Click &quot;Mark as Returned&quot; below<br />
-                  3. Add any notes about the condition or return process<br />
-                  4. {request.lender.name} will be notified and can confirm the return
+                  1. Return the item to {request.lender.name} in the same
+                  condition
+                  <br />
+                  2. Click &quot;Mark as Returned&quot; below
+                  <br />
+                  3. Add any notes about the condition or return process
+                  <br />
+                  4. {request.lender.name} will be notified and can confirm the
+                  return
                 </Typography>
               </CardContent>
             </Card>
@@ -365,15 +369,28 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
 
           {/* Return Confirmation */}
           {isReturned && (
-            <Card sx={{ mb: 3, bgcolor: 'success.light', color: 'success.contrastText' }}>
+            <Card
+              sx={{
+                mb: 3,
+                bgcolor: 'success.light',
+                color: 'success.contrastText',
+              }}
+            >
               <CardContent>
-                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                <Typography
+                  variant="h6"
+                  gutterBottom
+                  sx={{ display: 'flex', alignItems: 'center' }}
+                >
                   <CheckCircle sx={{ mr: 1 }} />
                   Item Returned
                 </Typography>
                 <Typography variant="body2">
-                  You marked this item as returned on {formatDistanceToNow(new Date(request.returnedAt!), { addSuffix: true })}.
-                  {request.lender.name} has been notified.
+                  You marked this item as returned on{' '}
+                  {formatDistanceToNow(new Date(request.returnedAt!), {
+                    addSuffix: true,
+                  })}
+                  .{request.lender.name} has been notified.
                 </Typography>
               </CardContent>
             </Card>
@@ -422,9 +439,9 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
               </Box>
 
               <Box sx={{ mb: 1 }}>
-                <Typography 
-                  variant="body2" 
-                  color={isOverdue ? "error" : "textSecondary"}
+                <Typography
+                  variant="body2"
+                  color={isOverdue ? 'error' : 'textSecondary'}
                   sx={{ fontWeight: isOverdue ? 600 : 400 }}
                 >
                   <AccessTime
@@ -460,7 +477,8 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
                   Ready to Return?
                 </Typography>
                 <Typography variant="body2" color="textSecondary" paragraph>
-                  Mark this item as returned when you&apos;ve given it back to {request.lender.name}.
+                  Mark this item as returned when you&apos;ve given it back to{' '}
+                  {request.lender.name}.
                 </Typography>
 
                 <Button
@@ -499,7 +517,7 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
 
         <DialogContent>
           <Typography variant="body2" color="textSecondary" paragraph>
-            Confirm that you have returned this item to {request.lender.name} 
+            Confirm that you have returned this item to {request.lender.name}
             in good condition. They will receive a notification.
           </Typography>
 
@@ -516,7 +534,8 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
 
           <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
             <Typography variant="caption" color="textSecondary">
-              ✓ {request.lender.name} will be notified that you've returned the item
+              ✓ {request.lender.name} will be notified that you&apos;ve returned
+              the item
             </Typography>
           </Box>
         </DialogContent>
@@ -528,7 +547,13 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
             variant="contained"
             color="success"
             disabled={returning}
-            startIcon={returning ? <CircularProgress size={20} /> : <AssignmentReturned />}
+            startIcon={
+              returning ? (
+                <CircularProgress size={20} />
+              ) : (
+                <AssignmentReturned />
+              )
+            }
           >
             {returning ? 'Marking as Returned...' : 'Mark as Returned'}
           </Button>

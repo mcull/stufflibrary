@@ -402,7 +402,7 @@ export function ItemDetailClient({
 
       // Navigate to lobby after saving new item
       if (isNewItem) {
-        router.push('/lobby');
+        router.push('/stacks');
       }
     } catch (err) {
       console.error('Error saving item:', err);
