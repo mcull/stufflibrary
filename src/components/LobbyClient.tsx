@@ -11,6 +11,12 @@ import {
   Stack,
   CircularProgress,
   Chip,
+  FormControl,
+  Select,
+  MenuItem,
+  SelectChangeEvent,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -44,6 +50,8 @@ interface LobbyClientProps {
 type FilterType = 'all' | 'ready-to-lend' | 'on-loan' | 'offline' | 'borrowed';
 
 export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { libraries, isLoading, createLibrary } = useLibraries();
   const {
     activeBorrows: _activeBorrows,
@@ -69,6 +77,10 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
     console.log('Library created:', library);
   };
 
+  const handleFilterChange = (event: SelectChangeEvent) => {
+    setItemFilter(event.target.value as FilterType);
+  };
+
   // Combine all items with their status
   const allItems = [
     ...readyToLendItems.map((item) => ({
@@ -79,6 +91,58 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
     ...offlineItems.map((item) => ({ ...item, status: 'offline' as const })),
     ...borrowedItems.map((item) => ({ ...item, status: 'borrowed' as const })),
   ];
+
+  // Section component for grouped display
+  const ItemSection = ({
+    title,
+    items,
+    statusType,
+    showAddItem = false,
+  }: {
+    title: string;
+    items: any[];
+    statusType: string;
+    showAddItem?: boolean;
+  }) => {
+    if (items.length === 0 && !showAddItem) return null;
+
+    return (
+      <Box sx={{ mb: 4 }}>
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 600,
+            color: brandColors.charcoal,
+            mb: 2,
+            fontSize: { xs: '1.1rem', md: '1.25rem' },
+          }}
+        >
+          {title} ({items.length})
+        </Typography>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: 'repeat(2, 1fr)', // Always 2 columns on mobile
+              md: 'repeat(4, 1fr)', // 4 columns on medium screens
+              lg: 'repeat(5, 1fr)', // 5 columns on large screens
+              xl: 'repeat(6, 1fr)', // 6 columns on extra large screens
+            },
+            gap: spacing.md / 16,
+          }}
+        >
+          {showAddItem && <AddItemCard />}
+          {items.map((item) => (
+            <UserItemCard
+              key={`${statusType}-${item.id}`}
+              item={item}
+              status={item.status}
+            />
+          ))}
+        </Box>
+      </Box>
+    );
+  };
 
   const filteredItems =
     itemFilter === 'all'
@@ -99,130 +163,176 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
         },
       }}
     >
-      <CardContent sx={{ p: 4 }}>
+      <CardContent sx={{ p: { xs: 3, md: 4 } }}>
         {itemsLoading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
             <CircularProgress size={40} />
           </Box>
         ) : (
           <>
-            {/* Filter Chips */}
+            {/* Filter Control */}
             <Box sx={{ mb: 3 }}>
-              <Stack
-                direction="row"
-                spacing={1}
-                sx={{ flexWrap: 'wrap', gap: 1 }}
-              >
-                <Chip
-                  label={`All (${allItems.length})`}
-                  onClick={() => setItemFilter('all')}
-                  sx={{
-                    backgroundColor:
-                      itemFilter === 'all' ? brandColors.inkBlue : '#E8F5E8',
-                    color: itemFilter === 'all' ? brandColors.white : '#2E7D32',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    '&:hover': {
-                      backgroundColor:
-                        itemFilter === 'all' ? '#1a2f4f' : brandColors.inkBlue,
-                      color: brandColors.white,
-                    },
-                  }}
-                />
-                <Chip
-                  label={`Ready to Lend (${readyToLendCount})`}
-                  onClick={() => setItemFilter('ready-to-lend')}
-                  sx={{
-                    backgroundColor:
-                      itemFilter === 'ready-to-lend'
-                        ? brandColors.inkBlue
-                        : '#E8F5E8',
-                    color:
-                      itemFilter === 'ready-to-lend'
-                        ? brandColors.white
-                        : '#2E7D32',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    '&:hover': {
-                      backgroundColor:
-                        itemFilter === 'ready-to-lend'
-                          ? '#1a2f4f'
-                          : brandColors.inkBlue,
-                      color: brandColors.white,
-                    },
-                  }}
-                />
-                <Chip
-                  label={`On Loan (${onLoanCount})`}
-                  onClick={() => setItemFilter('on-loan')}
-                  sx={{
-                    backgroundColor:
-                      itemFilter === 'on-loan'
-                        ? brandColors.inkBlue
-                        : '#E8F5E8',
-                    color:
-                      itemFilter === 'on-loan' ? brandColors.white : '#2E7D32',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    '&:hover': {
-                      backgroundColor:
-                        itemFilter === 'on-loan'
-                          ? '#1a2f4f'
-                          : brandColors.inkBlue,
-                      color: brandColors.white,
-                    },
-                  }}
-                />
-                {offlineCount > 0 && (
+              {isMobile ? (
+                <FormControl size="small" sx={{ minWidth: 200 }}>
+                  <Select
+                    value={itemFilter}
+                    onChange={handleFilterChange}
+                    displayEmpty
+                    sx={{
+                      backgroundColor: brandColors.white,
+                      borderRadius: 2,
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: brandColors.softGray,
+                      },
+                      '&:hover .MuiOutlinedInput-notchedOutline': {
+                        borderColor: brandColors.inkBlue,
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: brandColors.inkBlue,
+                      },
+                    }}
+                  >
+                    <MenuItem value="all">
+                      All Items ({allItems.length})
+                    </MenuItem>
+                    <MenuItem value="ready-to-lend">
+                      Ready to Lend ({readyToLendCount})
+                    </MenuItem>
+                    <MenuItem value="on-loan">On Loan ({onLoanCount})</MenuItem>
+                    {offlineCount > 0 && (
+                      <MenuItem value="offline">
+                        Offline ({offlineCount})
+                      </MenuItem>
+                    )}
+                    <MenuItem value="borrowed">
+                      Borrowed ({borrowedCount})
+                    </MenuItem>
+                  </Select>
+                </FormControl>
+              ) : (
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{ flexWrap: 'wrap', gap: 1 }}
+                >
                   <Chip
-                    label={`Offline (${offlineCount})`}
-                    onClick={() => setItemFilter('offline')}
+                    label={`All (${allItems.length})`}
+                    onClick={() => setItemFilter('all')}
                     sx={{
                       backgroundColor:
-                        itemFilter === 'offline'
-                          ? brandColors.inkBlue
-                          : '#E8F5E8',
+                        itemFilter === 'all' ? brandColors.inkBlue : '#E8F5E8',
                       color:
-                        itemFilter === 'offline'
-                          ? brandColors.white
-                          : '#2E7D32',
+                        itemFilter === 'all' ? brandColors.white : '#2E7D32',
                       fontWeight: 600,
                       cursor: 'pointer',
                       '&:hover': {
                         backgroundColor:
-                          itemFilter === 'offline'
+                          itemFilter === 'all'
                             ? '#1a2f4f'
                             : brandColors.inkBlue,
                         color: brandColors.white,
                       },
                     }}
                   />
-                )}
-                <Chip
-                  label={`Borrowed (${borrowedCount})`}
-                  onClick={() => setItemFilter('borrowed')}
-                  sx={{
-                    backgroundColor:
-                      itemFilter === 'borrowed'
-                        ? brandColors.inkBlue
-                        : '#E8F5E8',
-                    color:
-                      itemFilter === 'borrowed' ? brandColors.white : '#2E7D32',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    '&:hover': {
+                  <Chip
+                    label={`Ready to Lend (${readyToLendCount})`}
+                    onClick={() => setItemFilter('ready-to-lend')}
+                    sx={{
+                      backgroundColor:
+                        itemFilter === 'ready-to-lend'
+                          ? brandColors.inkBlue
+                          : '#E8F5E8',
+                      color:
+                        itemFilter === 'ready-to-lend'
+                          ? brandColors.white
+                          : '#2E7D32',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      '&:hover': {
+                        backgroundColor:
+                          itemFilter === 'ready-to-lend'
+                            ? '#1a2f4f'
+                            : brandColors.inkBlue,
+                        color: brandColors.white,
+                      },
+                    }}
+                  />
+                  <Chip
+                    label={`On Loan (${onLoanCount})`}
+                    onClick={() => setItemFilter('on-loan')}
+                    sx={{
+                      backgroundColor:
+                        itemFilter === 'on-loan'
+                          ? brandColors.inkBlue
+                          : '#E8F5E8',
+                      color:
+                        itemFilter === 'on-loan'
+                          ? brandColors.white
+                          : '#2E7D32',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      '&:hover': {
+                        backgroundColor:
+                          itemFilter === 'on-loan'
+                            ? '#1a2f4f'
+                            : brandColors.inkBlue,
+                        color: brandColors.white,
+                      },
+                    }}
+                  />
+                  {offlineCount > 0 && (
+                    <Chip
+                      label={`Offline (${offlineCount})`}
+                      onClick={() => setItemFilter('offline')}
+                      sx={{
+                        backgroundColor:
+                          itemFilter === 'offline'
+                            ? brandColors.inkBlue
+                            : '#E8F5E8',
+                        color:
+                          itemFilter === 'offline'
+                            ? brandColors.white
+                            : '#2E7D32',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        '&:hover': {
+                          backgroundColor:
+                            itemFilter === 'offline'
+                              ? '#1a2f4f'
+                              : brandColors.inkBlue,
+                          color: brandColors.white,
+                        },
+                      }}
+                    />
+                  )}
+                  <Chip
+                    label={`Borrowed (${borrowedCount})`}
+                    onClick={() => setItemFilter('borrowed')}
+                    sx={{
                       backgroundColor:
                         itemFilter === 'borrowed'
-                          ? '#1a2f4f'
-                          : brandColors.inkBlue,
-                      color: brandColors.white,
-                    },
-                  }}
-                />
-              </Stack>
+                          ? brandColors.inkBlue
+                          : '#E8F5E8',
+                      color:
+                        itemFilter === 'borrowed'
+                          ? brandColors.white
+                          : '#2E7D32',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      '&:hover': {
+                        backgroundColor:
+                          itemFilter === 'borrowed'
+                            ? '#1a2f4f'
+                            : brandColors.inkBlue,
+                        color: brandColors.white,
+                      },
+                    }}
+                  />
+                </Stack>
+              )}
             </Box>
 
-            {/* Items Grid */}
+            {/* Items Display */}
             {allItems.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 6 }}>
                 <Box
@@ -275,21 +385,47 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                   Add Your First Item
                 </Button>
               </Box>
+            ) : itemFilter === 'all' ? (
+              // Show all sections with headers when "All" is selected
+              <>
+                <ItemSection
+                  title="Ready to Lend"
+                  items={readyToLendItems}
+                  statusType="ready-to-lend"
+                  showAddItem={true}
+                />
+                <ItemSection
+                  title="On Loan"
+                  items={onLoanItems}
+                  statusType="on-loan"
+                />
+                <ItemSection
+                  title="Borrowed"
+                  items={borrowedItems}
+                  statusType="borrowed"
+                />
+                {offlineCount > 0 && (
+                  <ItemSection
+                    title="Offline"
+                    items={offlineItems}
+                    statusType="offline"
+                  />
+                )}
+              </>
             ) : (
+              // Show filtered items in a single grid when specific filter is selected
               <Box
                 sx={{
                   display: 'grid',
                   gridTemplateColumns: {
-                    xs: 'repeat(2, 1fr)', // 2 cards on mobile
-                    sm: 'repeat(3, 1fr)', // 3 cards on small tablets
-                    md: 'repeat(4, 1fr)', // 4 cards on medium screens
-                    lg: 'repeat(5, 1fr)', // 5 cards on large screens
-                    xl: 'repeat(6, 1fr)', // 6 cards on extra large screens
+                    xs: 'repeat(2, 1fr)', // Always 2 columns on mobile
+                    md: 'repeat(4, 1fr)', // 4 columns on medium screens
+                    lg: 'repeat(5, 1fr)', // 5 columns on large screens
+                    xl: 'repeat(6, 1fr)', // 6 columns on extra large screens
                   },
                   gap: spacing.md / 16,
                 }}
               >
-                {itemFilter === 'all' && <AddItemCard />}
                 {filteredItems.map((item) => (
                   <UserItemCard
                     key={`${item.status}-${item.id}`}
