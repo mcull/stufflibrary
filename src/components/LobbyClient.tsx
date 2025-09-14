@@ -17,16 +17,18 @@ import {
   SelectChangeEvent,
   useMediaQuery,
   useTheme,
+  Alert,
+  Snackbar,
 } from '@mui/material';
 import Link from 'next/link';
 import { useState } from 'react';
 
 import { useBorrowRequests } from '@/hooks/useBorrowRequests';
-import { useLibraries } from '@/hooks/useLibraries';
+import { useCollections } from '@/hooks/useCollections';
 import { useUserItems } from '@/hooks/useUserItems';
 import { brandColors, spacing } from '@/theme/brandTokens';
 
-import { LibraryCreationModal } from './LibraryCreationModal';
+import { CollectionCreationModal } from './CollectionCreationModal';
 import { TabbedFolderPane, type TabItem } from './TabbedFolderPane';
 import { UserItemCard, AddItemCard } from './UserItemCard';
 
@@ -52,7 +54,7 @@ type FilterType = 'all' | 'ready-to-lend' | 'on-loan' | 'offline' | 'borrowed';
 export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { libraries, isLoading, createLibrary } = useLibraries();
+  const { collections, isLoading, createCollection } = useCollections();
   const {
     activeBorrows: _activeBorrows,
     sentRequests: _sentRequests,
@@ -72,9 +74,17 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('others-stuff');
   const [itemFilter, setItemFilter] = useState<FilterType>('all');
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [createdCollectionName, setCreatedCollectionName] = useState('');
 
-  const handleCreateLibrary = (library: unknown) => {
-    console.log('Library created:', library);
+  const handleCreateCollection = (collection: { name?: string }) => {
+    setCreatedCollectionName(collection.name || 'Your collection');
+    setShowSuccessMessage(true);
+
+    // Hide success message after 4 seconds
+    setTimeout(() => {
+      setShowSuccessMessage(false);
+    }, 4000);
   };
 
   const handleFilterChange = (event: SelectChangeEvent) => {
@@ -100,7 +110,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
     showAddItem = false,
   }: {
     title: string;
-    items: any[];
+    items: Array<{ id: string; status: string }>;
     statusType: string;
     showAddItem?: boolean;
   }) => {
@@ -136,7 +146,13 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
             <UserItemCard
               key={`${statusType}-${item.id}`}
               item={item}
-              status={item.status}
+              status={
+                item.status as
+                  | 'ready-to-lend'
+                  | 'on-loan'
+                  | 'offline'
+                  | 'borrowed'
+              }
             />
           ))}
         </Box>
@@ -430,7 +446,13 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                   <UserItemCard
                     key={`${item.status}-${item.id}`}
                     item={item}
-                    status={item.status}
+                    status={
+                      item.status as
+                        | 'ready-to-lend'
+                        | 'on-loan'
+                        | 'offline'
+                        | 'borrowed'
+                    }
                   />
                 ))}
               </Box>
@@ -442,7 +464,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
   );
 
   // Your Libraries Tab Content
-  const yourLibrariesContent = (
+  const yourCollectionsContent = (
     <Card
       sx={{
         borderRadius: '24px',
@@ -460,12 +482,12 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
             <CircularProgress size={40} />
           </Box>
-        ) : libraries.length === 0 ? (
+        ) : collections.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Box
               sx={{
-                width: 80,
-                height: 80,
+                width: 100,
+                height: 100,
                 borderRadius: '50%',
                 backgroundColor: brandColors.mustardYellow,
                 display: 'flex',
@@ -475,49 +497,151 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                 mb: 3,
               }}
             >
-              <Typography variant="h4" sx={{ color: brandColors.charcoal }}>
-                🏠
+              <Typography variant="h3" sx={{ color: brandColors.charcoal }}>
+                ➕
               </Typography>
             </Box>
 
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-              Collections of stuff shared among friends and neighbors.
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: 600,
+                color: brandColors.charcoal,
+                mb: 2,
+              }}
+            >
+              Start Your First Collection
             </Typography>
+
+            <Typography
+              variant="body1"
+              color="text.secondary"
+              sx={{ mb: 4, maxWidth: 500, mx: 'auto', lineHeight: 1.6 }}
+            >
+              Collections are private sharing circles where you and people you
+              trust can lend and borrow items. Create one for your family,
+              friend group, or neighbors.
+            </Typography>
+
+            <Box sx={{ mb: 4, maxWidth: 600, mx: 'auto' }}>
+              <Typography
+                variant="subtitle2"
+                sx={{
+                  fontWeight: 600,
+                  color: brandColors.inkBlue,
+                  mb: 2,
+                }}
+              >
+                Examples:
+              </Typography>
+              <Stack spacing={1.5} sx={{ textAlign: 'left' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Box
+                    sx={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      backgroundColor: brandColors.mustardYellow,
+                    }}
+                  />
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>&ldquo;Smith Family&rdquo;</strong> - Share tools,
+                    books, and games between relatives
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Box
+                    sx={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      backgroundColor: brandColors.mustardYellow,
+                    }}
+                  />
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>&ldquo;Oak Street Neighbors&rdquo;</strong> - Lend
+                    lawn equipment and household items
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Box
+                    sx={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      backgroundColor: brandColors.mustardYellow,
+                    }}
+                  />
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>&ldquo;College Friends&rdquo;</strong> - Share
+                    textbooks, electronics, and camping gear
+                  </Typography>
+                </Box>
+              </Stack>
+            </Box>
 
             <Button
               variant="contained"
+              size="large"
               startIcon={<AddIcon />}
               onClick={() => setIsCreateModalOpen(true)}
               sx={{
                 borderRadius: 3,
-                px: 3,
-                py: 1.5,
+                px: 4,
+                py: 2,
                 textTransform: 'none',
                 fontWeight: 600,
+                fontSize: '1.1rem',
                 backgroundColor: brandColors.mustardYellow,
                 color: brandColors.charcoal,
+                boxShadow: '0 4px 12px rgba(244, 187, 68, 0.3)',
                 '&:hover': {
                   backgroundColor: '#C19E04',
+                  boxShadow: '0 6px 16px rgba(244, 187, 68, 0.4)',
+                  transform: 'translateY(-1px)',
                 },
+                transition: 'all 0.2s ease',
               }}
             >
-              Create Library
+              Create Your First Collection
             </Button>
           </Box>
         ) : (
           <Box>
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ textAlign: 'center', mb: 3 }}
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                mb: 3,
+              }}
             >
-              You&apos;re a member of {libraries.length}{' '}
-              {libraries.length === 1 ? 'library' : 'libraries'}
-            </Typography>
+              <Typography variant="body2" color="text.secondary">
+                You&apos;re a member of {collections.length}{' '}
+                {collections.length === 1 ? 'collection' : 'collections'}
+              </Typography>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<AddIcon />}
+                onClick={() => setIsCreateModalOpen(true)}
+                sx={{
+                  borderColor: brandColors.mustardYellow,
+                  color: brandColors.charcoal,
+                  textTransform: 'none',
+                  '&:hover': {
+                    borderColor: brandColors.inkBlue,
+                    backgroundColor: 'rgba(26, 47, 79, 0.04)',
+                  },
+                }}
+              >
+                Create Collection
+              </Button>
+            </Box>
             <Stack spacing={3}>
-              {libraries.slice(0, 3).map((library) => (
+              {collections.map((collection) => (
                 <Box
-                  key={library.id}
+                  key={collection.id}
                   sx={{
                     p: 3,
                     borderRadius: 3,
@@ -543,46 +667,46 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                         variant="subtitle1"
                         sx={{ fontWeight: 600, mb: 0.5 }}
                       >
-                        {library.name}
+                        {collection.name}
                       </Typography>
-                      {library.description && (
+                      {collection.description && (
                         <Typography
                           variant="body2"
                           color="text.secondary"
                           sx={{ mb: 1 }}
                         >
-                          {library.description.length > 80
-                            ? `${library.description.substring(0, 80)}...`
-                            : library.description}
+                          {collection.description.length > 80
+                            ? `${collection.description.substring(0, 80)}...`
+                            : collection.description}
                         </Typography>
                       )}
                       <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
                         <Typography variant="caption" color="text.secondary">
-                          {library.memberCount} members
+                          {collection.memberCount} members
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          {library.itemCount} items
+                          {collection.itemCount} items
                         </Typography>
                         <Typography
                           variant="caption"
                           sx={{
                             color:
-                              library.role === 'owner'
+                              collection.role === 'owner'
                                 ? brandColors.inkBlue
                                 : 'text.secondary',
-                            fontWeight: library.role === 'owner' ? 600 : 400,
+                            fontWeight: collection.role === 'owner' ? 600 : 400,
                           }}
                         >
-                          {library.role === 'owner'
+                          {collection.role === 'owner'
                             ? '👑 Owner'
-                            : `${library.role}`}
+                            : `${collection.role}`}
                         </Typography>
                       </Stack>
                     </Box>
                     <Button
                       size="small"
                       component={Link}
-                      href={`/library/${library.id}`}
+                      href={`/library/${collection.id}`}
                       sx={{
                         textTransform: 'none',
                         borderRadius: 2,
@@ -597,26 +721,13 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                       View
                     </Button>
                   </Box>
-                  {library.location && (
+                  {collection.location && (
                     <Typography variant="caption" color="text.secondary">
-                      📍 {library.location}
+                      📍 {collection.location}
                     </Typography>
                   )}
                 </Box>
               ))}
-              {libraries.length > 3 && (
-                <Button
-                  variant="text"
-                  size="small"
-                  sx={{
-                    textTransform: 'none',
-                    color: brandColors.inkBlue,
-                    fontSize: '0.875rem',
-                  }}
-                >
-                  View all {libraries.length} libraries →
-                </Button>
-              )}
             </Stack>
           </Box>
         )}
@@ -629,7 +740,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
     {
       id: 'others-stuff',
       label: 'Collections',
-      content: yourLibrariesContent,
+      content: yourCollectionsContent,
     },
     {
       id: 'your-stuff',
@@ -660,13 +771,34 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
         showAddButton={false}
       />
 
-      {/* Library Creation Modal */}
-      <LibraryCreationModal
+      {/* Collection Creation Modal */}
+      <CollectionCreationModal
         open={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onSuccess={handleCreateLibrary}
-        createLibrary={createLibrary}
+        onSuccess={handleCreateCollection}
+        createCollection={createCollection}
       />
+
+      {/* Success Message */}
+      <Snackbar
+        open={showSuccessMessage}
+        autoHideDuration={4000}
+        onClose={() => setShowSuccessMessage(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setShowSuccessMessage(false)}
+          severity="success"
+          variant="filled"
+          sx={{
+            backgroundColor: brandColors.inkBlue,
+            color: brandColors.white,
+          }}
+        >
+          🎉 <strong>&ldquo;{createdCollectionName}&rdquo;</strong> collection
+          created successfully!
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }

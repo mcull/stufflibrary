@@ -40,7 +40,7 @@ import { useState, useEffect } from 'react';
 
 import { useBorrowHistory } from '@/hooks/useBorrowHistory';
 import { useBorrowRequests } from '@/hooks/useBorrowRequests';
-import { useLibraries } from '@/hooks/useLibraries';
+import { useCollections } from '@/hooks/useCollections';
 
 import { VintageCheckoutCard } from './VintageCheckoutCard';
 
@@ -131,7 +131,7 @@ export function ItemDetailClient({
   // Hooks
   const { data: borrowHistory } = useBorrowHistory(isNewItem ? '' : itemId);
   const { receivedRequests } = useBorrowRequests();
-  const { libraries } = useLibraries();
+  const { collections } = useCollections();
 
   // Filter pending requests for this specific item
   const pendingRequests = receivedRequests.filter(
@@ -1295,7 +1295,7 @@ export function ItemDetailClient({
             {/* Library Membership (heading aligned left, checkboxes aligned right on desktop) */}
             {!isNewItem &&
               item?.owner.id === currentUserId &&
-              libraries.length > 0 && (
+              collections.length > 0 && (
                 <Box sx={{ mt: { xs: 8, md: 3 } }}>
                   <Typography
                     variant="h6"
@@ -1324,17 +1324,19 @@ export function ItemDetailClient({
                       )}
 
                       <FormGroup sx={{ ml: 1 }}>
-                        {libraries.map((library) => (
+                        {collections.map((collection) => (
                           <FormControlLabel
-                            key={library.id}
+                            key={collection.id}
                             control={
                               <Checkbox
-                                checked={selectedLibraries.includes(library.id)}
+                                checked={selectedLibraries.includes(
+                                  collection.id
+                                )}
                                 onChange={(e) => {
                                   const newSelectedLibraries = e.target.checked
-                                    ? [...selectedLibraries, library.id]
+                                    ? [...selectedLibraries, collection.id]
                                     : selectedLibraries.filter(
-                                        (id) => id !== library.id
+                                        (id) => id !== collection.id
                                       );
 
                                   setSelectedLibraries(newSelectedLibraries);
@@ -1362,9 +1364,9 @@ export function ItemDetailClient({
                                       : 'text.primary',
                                   }}
                                 >
-                                  {library.name}
+                                  {collection.name}
                                 </Typography>
-                                {library.location && (
+                                {collection.location && (
                                   <Typography
                                     variant="caption"
                                     sx={{
@@ -1373,7 +1375,7 @@ export function ItemDetailClient({
                                         : 'text.secondary',
                                     }}
                                   >
-                                    📍 {library.location}
+                                    📍 {collection.location}
                                   </Typography>
                                 )}
                               </Box>

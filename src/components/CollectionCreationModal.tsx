@@ -17,11 +17,11 @@ import { useState } from 'react';
 
 import { brandColors } from '@/theme/brandTokens';
 
-interface LibraryCreationModalProps {
+interface CollectionCreationModalProps {
   open: boolean;
   onClose: () => void;
-  onSuccess: (library: unknown) => void;
-  createLibrary?: (libraryData: {
+  onSuccess: (collection: { name?: string }) => void;
+  createCollection?: (collectionData: {
     name: string;
     description?: string;
     location?: string;
@@ -29,12 +29,12 @@ interface LibraryCreationModalProps {
   }) => Promise<unknown>;
 }
 
-export function LibraryCreationModal({
+export function CollectionCreationModal({
   open,
   onClose,
   onSuccess,
-  createLibrary,
-}: LibraryCreationModalProps) {
+  createCollection,
+}: CollectionCreationModalProps) {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -57,13 +57,13 @@ export function LibraryCreationModal({
     setIsSubmitting(true);
 
     try {
-      if (createLibrary) {
-        // Use the provided createLibrary function
-        const branch = await createLibrary(formData);
-        onSuccess(branch);
+      if (createCollection) {
+        // Use the provided createCollection function
+        const collection = await createCollection(formData);
+        onSuccess(collection as { name?: string });
       } else {
-        // Fallback to direct API call if createLibrary not provided
-        const response = await fetch('/api/branches', {
+        // Fallback to direct API call if createCollection not provided
+        const response = await fetch('/api/libraries', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -73,16 +73,18 @@ export function LibraryCreationModal({
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to create branch');
+          throw new Error(errorData.error || 'Failed to create collection');
         }
 
-        const { branch } = await response.json();
-        onSuccess(branch);
+        const { library: collection } = await response.json();
+        onSuccess(collection as { name?: string });
       }
 
       handleClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create branch');
+      setError(
+        err instanceof Error ? err.message : 'Failed to create collection'
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -122,7 +124,7 @@ export function LibraryCreationModal({
             component="h2"
             sx={{ fontWeight: 600, color: brandColors.inkBlue }}
           >
-            Create Your Library
+            Create Your Collection
           </Typography>
           <IconButton
             onClick={handleClose}
@@ -145,11 +147,11 @@ export function LibraryCreationModal({
             </Alert>
           )}
 
-          {/* Library Name */}
+          {/* Collection Name */}
           <TextField
             fullWidth
-            label="Library Name"
-            placeholder="e.g., Family Sharing Circle, Neighbors Tool Library"
+            label="Collection Name"
+            placeholder="e.g., Family Sharing Circle, Neighbors Tool Collection"
             value={formData.name}
             onChange={(e) => handleInputChange('name', e.target.value)}
             error={formData.name.length > 100}
@@ -170,7 +172,7 @@ export function LibraryCreationModal({
             multiline
             rows={3}
             label="Description"
-            placeholder="Tell people what your library is about, what kinds of items you share, or any special focus..."
+            placeholder="Tell people what your collection is about, what kinds of items you share, or any special focus..."
             value={formData.description}
             onChange={(e) => handleInputChange('description', e.target.value)}
             disabled={isSubmitting}
@@ -193,7 +195,7 @@ export function LibraryCreationModal({
               '&:disabled': { bgcolor: 'grey.300' },
             }}
           >
-            {isSubmitting ? 'Creating...' : 'Create Library'}
+            {isSubmitting ? 'Creating...' : 'Create Collection'}
           </Button>
         </DialogActions>
       </form>
