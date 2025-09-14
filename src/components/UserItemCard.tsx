@@ -77,10 +77,16 @@ export function UserItemCard({ item, status }: ItemCardProps) {
 
   const config = getStatusConfig();
 
+  const truncateText = (text: string, maxLength: number = 18) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength).trim() + '...';
+  };
+
   const getInfoLozengeContent = () => {
     switch (status) {
       case 'ready-to-lend':
-        return item.location || 'No location';
+        const location = item.location || 'No location';
+        return truncateText(location);
       case 'on-loan':
         const borrower = item.borrower?.name || 'Unknown';
         const lentDate = item.requestedAt
@@ -327,17 +333,7 @@ export function AddItemCard() {
           Add Item
         </Typography>
 
-        {/* Single Info Lozenge */}
-        <Chip
-          label="Add to shelf"
-          size="small"
-          sx={{
-            backgroundColor: 'rgba(244, 187, 68, 0.2)',
-            color: brandColors.charcoal,
-            fontSize: '0.7rem',
-            alignSelf: 'flex-start',
-          }}
-        />
+        {/* No chip needed for AddItem card */}
       </CardContent>
     </Card>
   );
