@@ -82,7 +82,16 @@ export async function POST(request: Request) {
       );
     }
   } catch (error) {
-    console.error('Analytics export error:', error);
+    // Don't log expected auth errors during tests
+    if (
+      !(
+        error instanceof Error &&
+        error.message === 'Unauthorized' &&
+        process.env.NODE_ENV === 'test'
+      )
+    ) {
+      console.error('Analytics export error:', error);
+    }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Export failed' },
       { status: 500 }

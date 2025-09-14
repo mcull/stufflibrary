@@ -68,7 +68,16 @@ export async function GET(request: Request) {
 
     return NextResponse.json(responseData);
   } catch (error) {
-    console.error('Analytics engagement fetch error:', error);
+    // Don't log expected auth errors during tests
+    if (
+      !(
+        error instanceof Error &&
+        error.message === 'Unauthorized' &&
+        process.env.NODE_ENV === 'test'
+      )
+    ) {
+      console.error('Analytics engagement fetch error:', error);
+    }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Access denied' },
       { status: 401 }
