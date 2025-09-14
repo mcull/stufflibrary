@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 
-import { LibraryDetailClient } from '@/components/LibraryDetailClient';
+import { CollectionDetailClient } from '@/components/CollectionDetailClient';
 import { authOptions } from '@/lib/auth';
 
 interface LibraryPageProps {
@@ -17,5 +17,5 @@ export default async function LibraryPage({ params }: LibraryPageProps) {
 
   const { id: libraryId } = await params;
 
-  return <LibraryDetailClient libraryId={libraryId} />;
+  return <CollectionDetailClient collectionId={libraryId} />;
 }

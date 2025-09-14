@@ -83,7 +83,7 @@ export function CollectionSelectionModal({
   };
 
   const handleCollectionToggle = (collectionId: string) => {
-    setSelectedLibraryIds((prev) =>
+    setSelectedCollectionIds((prev) =>
       prev.includes(collectionId)
         ? prev.filter((id) => id !== collectionId)
         : [...prev, collectionId]
