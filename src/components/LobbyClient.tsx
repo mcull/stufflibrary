@@ -478,7 +478,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
         },
       }}
     >
-      <CardContent sx={{ p: 4 }}>
+      <CardContent sx={{ p: { xs: 3, md: 4 } }}>
         {isLoading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
             <CircularProgress size={40} />
