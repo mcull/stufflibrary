@@ -22,7 +22,7 @@ export function CollectionCard({ collection }: CollectionCardProps) {
   const router = useRouter();
 
   const handleClick = () => {
-    router.push(`/library/${collection.id}`);
+    router.push(`/collection/${collection.id}`);
   };
 
   const getStatusConfig = () => {
