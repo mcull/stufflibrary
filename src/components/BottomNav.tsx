@@ -31,7 +31,7 @@ export function BottomNav() {
   // Fetch notification count for badge
   useEffect(() => {
     if (session?.user?.email) {
-      fetch('/api/notifications/unread-count')
+      fetch('/api/notifications/count')
         .then((res) => {
           if (!res.ok) {
             // API doesn't exist yet, silently fail
@@ -40,8 +40,8 @@ export function BottomNav() {
           return res.json();
         })
         .then((data) => {
-          if (data?.success) {
-            setNotificationCount(data.count || 0);
+          if (data && typeof data.count === 'number') {
+            setNotificationCount(data.count);
           }
         })
         .catch(() => {

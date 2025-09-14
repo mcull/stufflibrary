@@ -22,7 +22,7 @@ import { useRef, useState, useCallback, useEffect } from 'react';
 
 import { brandColors } from '@/theme/brandTokens';
 
-import { LibrarySelectionModal } from './LibrarySelectionModal';
+import { CollectionSelectionModal } from './CollectionSelectionModal';
 
 // Animated "Illustrating item..." overlay component
 function IllustratingOverlay() {
@@ -966,7 +966,7 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
 
       {/* Library Selection Modal */}
       {uploadedItem && (
-        <LibrarySelectionModal
+        <CollectionSelectionModal
           open={showLibraryModal}
           itemName={uploadedItem.name}
           itemId={uploadedItem.id}

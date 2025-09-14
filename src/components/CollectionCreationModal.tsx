@@ -63,7 +63,7 @@ export function CollectionCreationModal({
         onSuccess(collection as { name?: string });
       } else {
         // Fallback to direct API call if createCollection not provided
-        const response = await fetch('/api/libraries', {
+        const response = await fetch('/api/collections', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -76,7 +76,7 @@ export function CollectionCreationModal({
           throw new Error(errorData.error || 'Failed to create collection');
         }
 
-        const { library: collection } = await response.json();
+        const { collection } = await response.json();
         onSuccess(collection as { name?: string });
       }
 

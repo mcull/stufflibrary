@@ -26,19 +26,19 @@ import { useState, useEffect } from 'react';
 import { useUserItems } from '@/hooks/useUserItems';
 import { brandColors } from '@/theme/brandTokens';
 
-interface LibraryInfo {
+interface CollectionInfo {
   id: string;
   name: string;
   description?: string;
 }
 
-export default function AddToLibraryPage() {
+export default function AddToCollectionPage() {
   const params = useParams();
   const router = useRouter();
   const { data: session } = useSession();
-  const libraryId = params.libraryId as string;
+  const collectionId = params.collectionId as string;
 
-  const [library, setLibrary] = useState<LibraryInfo | null>(null);
+  const [collection, setCollection] = useState<CollectionInfo | null>(null);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,28 +49,28 @@ export default function AddToLibraryPage() {
     error: itemsError,
   } = useUserItems();
 
-  // Fetch library info
+  // Fetch collection info
   useEffect(() => {
-    const fetchLibrary = async () => {
+    const fetchCollection = async () => {
       try {
-        const response = await fetch(`/api/libraries/${libraryId}`);
+        const response = await fetch(`/api/collections/${collectionId}`);
         if (!response.ok) {
-          throw new Error('Failed to load library');
+          throw new Error('Failed to load collection');
         }
         const data = await response.json();
-        setLibrary(data.library);
+        setCollection(data.collection);
       } catch (err) {
-        console.error('Error fetching library:', err);
-        setError('Failed to load library information');
+        console.error('Error fetching collection:', err);
+        setError('Failed to load collection information');
       }
     };
 
-    if (libraryId) {
-      fetchLibrary();
+    if (collectionId) {
+      fetchCollection();
     }
-  }, [libraryId]);
+  }, [collectionId]);
 
-  // Available items (those not currently in the library and available for sharing)
+  // Available items (those not currently in the collection and available for sharing)
   const availableItems = [...readyToLendItems].filter(
     (item) => !(item as any).currentBorrowRequestId
   );
@@ -92,7 +92,7 @@ export default function AddToLibraryPage() {
     setError(null);
 
     try {
-      // Add selected items to the library
+      // Add selected items to the collection
       const promises = Array.from(selectedItems).map((itemId) =>
         fetch(`/api/items/${itemId}`, {
           method: 'PATCH',
@@ -100,20 +100,20 @@ export default function AddToLibraryPage() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            libraryIds: [libraryId], // Add to this library
+            collectionIds: [collectionId], // Add to this collection
           }),
         })
       );
 
       await Promise.all(promises);
 
-      // Navigate back to library with success message
+      // Navigate back to collection with success message
       router.push(
-        `/library/${libraryId}?message=items_added&count=${selectedItems.size}`
+        `/collection/${collectionId}?message=items_added&count=${selectedItems.size}`
       );
     } catch (err) {
-      console.error('Error adding items to library:', err);
-      setError('Failed to add items to library');
+      console.error('Error adding items to collection:', err);
+      setError('Failed to add items to collection');
     } finally {
       setIsSubmitting(false);
     }
@@ -124,7 +124,7 @@ export default function AddToLibraryPage() {
     return null;
   }
 
-  if (itemsLoading || !library) {
+  if (itemsLoading || !collection) {
     return (
       <Container maxWidth="lg" sx={{ py: 4, textAlign: 'center' }}>
         <CircularProgress size={48} />
@@ -151,19 +151,19 @@ export default function AddToLibraryPage() {
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
         <Button
           startIcon={<ArrowBackIcon />}
-          onClick={() => router.push(`/library/${libraryId}`)}
+          onClick={() => router.push(`/collection/${collectionId}`)}
           sx={{ mr: 2 }}
         >
-          Back to {library.name}
+          Back to {collection.name}
         </Button>
       </Box>
 
       <Typography variant="h4" component="h1" gutterBottom>
-        Add Items to {library.name}
+        Add Items to {collection.name}
       </Typography>
 
       <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-        Select items from your inventory to share in this library. Only
+        Select items from your inventory to share in this collection. Only
         available items can be added.
       </Typography>
 
@@ -188,9 +188,9 @@ export default function AddToLibraryPage() {
             </Button>
             <Button
               variant="outlined"
-              onClick={() => router.push(`/library/${libraryId}`)}
+              onClick={() => router.push(`/collection/${collectionId}`)}
             >
-              Back to Library
+              Back to Collection
             </Button>
           </Stack>
         </Box>
@@ -317,7 +317,7 @@ export default function AddToLibraryPage() {
           >
             <Button
               variant="outlined"
-              onClick={() => router.push(`/library/${libraryId}`)}
+              onClick={() => router.push(`/collection/${collectionId}`)}
             >
               Cancel
             </Button>
