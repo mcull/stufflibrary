@@ -72,7 +72,9 @@ export function ContextToolbar({
             size={action.size === 'large' ? 'medium' : 'small'}
             variant={action.variant === 'outlined' ? 'outlined' : 'filled'}
             color={action.color || 'default'}
-            icon={action.startIcon as React.ReactElement | undefined}
+            {...(action.startIcon && {
+              icon: action.startIcon as React.ReactElement,
+            })}
             sx={{
               fontWeight: 500,
             }}
