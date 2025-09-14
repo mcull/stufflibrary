@@ -53,7 +53,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
     isLoading: itemsLoading,
   } = useUserItems();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('your-stuff');
+  const [activeTab, setActiveTab] = useState('others-stuff');
 
   const handleCreateLibrary = (library: unknown) => {
     console.log('Library created:', library);
@@ -435,14 +435,14 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
   // Define tabs
   const tabs: TabItem[] = [
     {
-      id: 'your-stuff',
-      label: 'My Items',
-      content: yourStuffContent,
+      id: 'others-stuff',
+      label: 'Collections',
+      content: yourLibrariesContent,
     },
     {
-      id: 'others-stuff',
-      label: 'Browse',
-      content: yourLibrariesContent,
+      id: 'your-stuff',
+      label: 'My Shelf',
+      content: yourStuffContent,
     },
   ];
 
