@@ -146,7 +146,13 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
             <UserItemCard
               key={`${statusType}-${item.id}`}
               item={item}
-              status={item.status}
+              status={
+                item.status as
+                  | 'ready-to-lend'
+                  | 'on-loan'
+                  | 'offline'
+                  | 'borrowed'
+              }
             />
           ))}
         </Box>
@@ -440,7 +446,13 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                   <UserItemCard
                     key={`${item.status}-${item.id}`}
                     item={item}
-                    status={item.status}
+                    status={
+                      item.status as
+                        | 'ready-to-lend'
+                        | 'on-loan'
+                        | 'offline'
+                        | 'borrowed'
+                    }
                   />
                 ))}
               </Box>
