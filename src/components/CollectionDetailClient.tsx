@@ -490,8 +490,8 @@ export function CollectionDetailClient({
             `A community library with ${library.memberCount} members sharing ${library.itemCount} items.`}
         </Typography>
 
-        {/* Action Toolbar */}
-        {library.userRole && (
+        {/* Action Toolbar - Hidden */}
+        {false && library.userRole && (
           <Box
             sx={{
               display: 'flex',
@@ -550,141 +550,145 @@ export function CollectionDetailClient({
           </Box>
         )}
 
-        {/* Community Activity Stats - Redesigned for better hierarchy */}
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: {
-              xs: 'repeat(2, 1fr)',
-              sm: 'repeat(4, 1fr)',
-            },
-            gap: { xs: 2, sm: 3 },
-            p: 2,
-            bgcolor: 'rgba(255, 255, 255, 0.6)',
-            borderRadius: 2,
-            border: '1px solid rgba(0, 0, 0, 0.08)',
-            mb: spacing.md / 16,
-          }}
-        >
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography
-              variant="h3"
-              sx={{
-                fontWeight: 700,
-                color: brandColors.inkBlue,
-                mb: 0.5,
-                fontSize: { xs: '1.75rem', sm: '2rem' },
-              }}
-            >
-              {library.memberCount}
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                color: brandColors.charcoal,
-                opacity: 0.7,
-                fontWeight: 500,
-                fontSize: '0.875rem',
-              }}
-            >
-              Members
-            </Typography>
+        {/* Community Activity Stats - Hidden */}
+        {false && (
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: 'repeat(2, 1fr)',
+                sm: 'repeat(4, 1fr)',
+              },
+              gap: { xs: 2, sm: 3 },
+              p: 2,
+              bgcolor: 'rgba(255, 255, 255, 0.6)',
+              borderRadius: 2,
+              border: '1px solid rgba(0, 0, 0, 0.08)',
+              mb: spacing.md / 16,
+            }}
+          >
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography
+                variant="h3"
+                sx={{
+                  fontWeight: 700,
+                  color: brandColors.inkBlue,
+                  mb: 0.5,
+                  fontSize: { xs: '1.75rem', sm: '2rem' },
+                }}
+              >
+                {library.memberCount}
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: brandColors.charcoal,
+                  opacity: 0.7,
+                  fontWeight: 500,
+                  fontSize: '0.875rem',
+                }}
+              >
+                Members
+              </Typography>
+            </Box>
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography
+                variant="h3"
+                sx={{
+                  fontWeight: 700,
+                  color: brandColors.inkBlue,
+                  mb: 0.5,
+                  fontSize: { xs: '1.75rem', sm: '2rem' },
+                }}
+              >
+                {library.itemCount}
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: brandColors.charcoal,
+                  opacity: 0.7,
+                  fontWeight: 500,
+                  fontSize: '0.875rem',
+                }}
+              >
+                Total Items
+              </Typography>
+            </Box>
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography
+                variant="h3"
+                sx={{
+                  fontWeight: 700,
+                  color: brandColors.mustardYellow,
+                  mb: 0.5,
+                  fontSize: { xs: '1.75rem', sm: '2rem' },
+                }}
+              >
+                {library.items?.filter(
+                  (item) =>
+                    item.currentBorrow &&
+                    item.currentBorrow.borrower.id !==
+                      item.currentBorrow.lender.id // Exclude self-borrows
+                ).length || 0}
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: brandColors.charcoal,
+                  opacity: 0.7,
+                  fontWeight: 500,
+                  fontSize: '0.875rem',
+                }}
+              >
+                On Loan Now
+              </Typography>
+            </Box>
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography
+                variant="h3"
+                sx={{
+                  fontWeight: 700,
+                  color: '#2E7D32',
+                  mb: 0.5,
+                  fontSize: { xs: '1.75rem', sm: '2rem' },
+                }}
+              >
+                {library.items?.filter(
+                  (item) => item.isAvailable && !item.currentBorrow
+                ).length || 0}
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: brandColors.charcoal,
+                  opacity: 0.7,
+                  fontWeight: 500,
+                  fontSize: '0.875rem',
+                }}
+              >
+                Available
+              </Typography>
+            </Box>
           </Box>
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography
-              variant="h3"
-              sx={{
-                fontWeight: 700,
-                color: brandColors.inkBlue,
-                mb: 0.5,
-                fontSize: { xs: '1.75rem', sm: '2rem' },
-              }}
-            >
-              {library.itemCount}
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                color: brandColors.charcoal,
-                opacity: 0.7,
-                fontWeight: 500,
-                fontSize: '0.875rem',
-              }}
-            >
-              Total Items
-            </Typography>
-          </Box>
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography
-              variant="h3"
-              sx={{
-                fontWeight: 700,
-                color: brandColors.mustardYellow,
-                mb: 0.5,
-                fontSize: { xs: '1.75rem', sm: '2rem' },
-              }}
-            >
-              {library.items?.filter(
-                (item) =>
-                  item.currentBorrow &&
-                  item.currentBorrow.borrower.id !==
-                    item.currentBorrow.lender.id // Exclude self-borrows
-              ).length || 0}
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                color: brandColors.charcoal,
-                opacity: 0.7,
-                fontWeight: 500,
-                fontSize: '0.875rem',
-              }}
-            >
-              On Loan Now
-            </Typography>
-          </Box>
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography
-              variant="h3"
-              sx={{
-                fontWeight: 700,
-                color: '#2E7D32',
-                mb: 0.5,
-                fontSize: { xs: '1.75rem', sm: '2rem' },
-              }}
-            >
-              {library.items?.filter(
-                (item) => item.isAvailable && !item.currentBorrow
-              ).length || 0}
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                color: brandColors.charcoal,
-                opacity: 0.7,
-                fontWeight: 500,
-                fontSize: '0.875rem',
-              }}
-            >
-              Available
-            </Typography>
-          </Box>
-        </Box>
+        )}
       </Box>
 
       {/* Collection Map */}
       <Box sx={{ mb: 4 }}>
-        <Typography
-          variant="h5"
-          sx={{
-            fontWeight: 600,
-            color: brandColors.charcoal,
-            mb: spacing.md / 16,
-            fontSize: '1.25rem',
-          }}
-        >
-          Collection Map
-        </Typography>
+        {false && (
+          <Typography
+            variant="h5"
+            sx={{
+              fontWeight: 600,
+              color: brandColors.charcoal,
+              mb: spacing.md / 16,
+              fontSize: '1.25rem',
+            }}
+          >
+            Collection Map
+          </Typography>
+        )}
         <Box
           sx={{
             height: { xs: '250px', sm: '300px', md: '350px' },
