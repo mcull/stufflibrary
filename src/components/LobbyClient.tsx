@@ -195,7 +195,15 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
     showCreateCard = false,
   }: {
     title: string;
-    collections: Array<{ id: string; role: string }>;
+    collections: Array<{
+      id: string;
+      name: string;
+      description?: string | null;
+      location?: string | null;
+      memberCount: number;
+      itemCount: number;
+      role: string;
+    }>;
     showCreateCard?: boolean;
   }) => {
     if (sectionCollections.length === 0 && !showCreateCard) return null;
