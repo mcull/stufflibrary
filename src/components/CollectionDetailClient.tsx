@@ -33,6 +33,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 
 import { brandColors, spacing } from '@/theme/brandTokens';
 
+import { CollectionSettingsModal } from './CollectionSettingsModal';
 import { EditCollectionModal } from './EditCollectionModal';
 import { ExpandableText } from './ExpandableText';
 import { InviteFriendsModal } from './InviteFriendsModal';
@@ -170,6 +171,7 @@ export function CollectionDetailClient({
   const [settingsMenuAnchor, setSettingsMenuAnchor] =
     useState<HTMLElement | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [manageMembersModalOpen, setManageMembersModalOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [addMenuAnchor, setAddMenuAnchor] = useState<null | HTMLElement>(null);
@@ -256,12 +258,18 @@ export function CollectionDetailClient({
 
   const handleCollectionSettings = useCallback(() => {
     handleSettingsMenuClose();
-    // TODO: Open advanced settings modal
-    console.log('Collection settings');
+    setSettingsModalOpen(true);
   }, [handleSettingsMenuClose]);
 
   const handleSaveCollection = useCallback(
-    async (updatedCollection: any) => {
+    async (
+      updatedCollection: Partial<{
+        name: string;
+        description: string;
+        location: string;
+        isPublic: boolean;
+      }>
+    ) => {
       if (!library) return;
 
       console.log('Saving collection changes:', updatedCollection);
@@ -348,12 +356,69 @@ export function CollectionDetailClient({
 
   const mapCurrentUser = useMemo(
     () => ({
-      id: (session?.user as any)?.id || '',
+      id: (session?.user as { id?: string })?.id || '',
       latitude: library?.owner.addresses?.[0]?.latitude,
       longitude: library?.owner.addresses?.[0]?.longitude,
     }),
     [session?.user, library?.owner.addresses]
   );
+
+  const handleToggleVisibility = useCallback(
+    async (isPublic: boolean) => {
+      if (!library) return;
+
+      await handleSaveCollection({ isPublic });
+    },
+    [library, handleSaveCollection]
+  );
+
+  const handleFromSettingsEditCollection = useCallback(() => {
+    setSettingsModalOpen(false);
+    setEditModalOpen(true);
+  }, []);
+
+  const handleFromSettingsManageMembers = useCallback(() => {
+    setSettingsModalOpen(false);
+    setManageMembersModalOpen(true);
+  }, []);
+
+  const handleArchiveCollection = useCallback(async () => {
+    if (!library) return;
+
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      `Are you sure you want to archive "${library.name}"?\n\n` +
+        'This will:\n' +
+        '• Hide the collection from your active collections\n' +
+        '• Preserve all items and member data\n' +
+        '• Allow you to unarchive it later\n\n' +
+        'This action can be undone.'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(`/api/collections/${library.id}/archive`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to archive collection');
+      }
+
+      await response.json();
+
+      // Show success message and redirect
+      alert(`Collection "${library.name}" has been archived successfully.`);
+      router.push('/stacks');
+    } catch (error) {
+      console.error('Error archiving collection:', error);
+      alert(
+        error instanceof Error ? error.message : 'Failed to archive collection'
+      );
+    }
+  }, [library, router]);
 
   if (isLoading) {
     return (
@@ -1277,6 +1342,26 @@ export function CollectionDetailClient({
         open={manageMembersModalOpen}
         onClose={() => setManageMembersModalOpen(false)}
         onMembershipChanged={handleMembershipChanged}
+      />
+
+      <CollectionSettingsModal
+        open={settingsModalOpen}
+        onClose={() => setSettingsModalOpen(false)}
+        collection={{
+          id: library.id,
+          name: library.name,
+          description: library.description || undefined,
+          location: library.location || undefined,
+          isPublic: library.isPublic,
+          memberCount: library.memberCount || 0,
+          itemCount: library.items?.length || 0,
+          isOwner: library.userRole === 'owner',
+          isAdmin: library.userRole === 'admin',
+        }}
+        onEditCollection={handleFromSettingsEditCollection}
+        onManageMembers={handleFromSettingsManageMembers}
+        onToggleVisibility={handleToggleVisibility}
+        onArchiveCollection={handleArchiveCollection}
       />
     </Container>
   );

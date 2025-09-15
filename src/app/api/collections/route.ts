@@ -13,10 +13,7 @@ export async function GET() {
     }
 
     // Get user ID
-    const userId =
-      (session.user as any).id ||
-      (session as any).user?.id ||
-      (session as any).userId;
+    const userId = (session.user as { id?: string }).id;
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
@@ -27,6 +24,9 @@ export async function GET() {
       where: { id: userId },
       select: {
         ownedCollections: {
+          where: {
+            isArchived: false,
+          },
           select: {
             id: true,
             name: true,
@@ -60,7 +60,12 @@ export async function GET() {
           },
         },
         collectionMemberships: {
-          where: { isActive: true },
+          where: {
+            isActive: true,
+            collection: {
+              isArchived: false,
+            },
+          },
           select: {
             role: true,
             joinedAt: true,
@@ -103,7 +108,7 @@ export async function GET() {
     // Format the response
     const collections = [
       // Owned collections
-      ...userLibraries.ownedCollections.map((library: any) => ({
+      ...userLibraries.ownedCollections.map((library) => ({
         id: library.id,
         name: library.name,
         description: library.description,
@@ -121,7 +126,7 @@ export async function GET() {
         members: library.members,
       })),
       // Member collections
-      ...userLibraries.collectionMemberships.map((membership: any) => ({
+      ...userLibraries.collectionMemberships.map((membership) => ({
         id: membership.collection.id,
         name: membership.collection.name,
         description: membership.collection.description,
@@ -154,10 +159,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user ID
-    const userId =
-      (session.user as any).id ||
-      (session as any).user?.id ||
-      (session as any).userId;
+    const userId = (session.user as { id?: string }).id;
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
