@@ -41,8 +41,8 @@ test.describe('Magic Link Invitation Flow', () => {
     });
     libraryOwnerId = libraryOwner.id;
 
-    // Create test library
-    const testLibrary = await db.library.create({
+    // Create test collection (library)
+    const testLibrary = await db.collection.create({
       data: {
         name: 'E2E Test Library',
         description: 'Library for E2E magic link testing',
@@ -114,10 +114,10 @@ test.describe('Magic Link Invitation Flow', () => {
     expect(createdUser).toBeTruthy();
 
     // Step 7: Verify library membership was created
-    const membership = await db.libraryMember.findFirst({
+    const membership = await db.collectionMember.findFirst({
       where: {
         userId: createdUser!.id,
-        libraryId: testLibraryId,
+        collectionId: testLibraryId,
         isActive: true,
       },
     });
@@ -160,10 +160,10 @@ test.describe('Magic Link Invitation Flow', () => {
     await expect(page).toHaveURL(/auto=true/);
 
     // Step 5: Verify library membership was created for existing user
-    const membership = await db.libraryMember.findFirst({
+    const membership = await db.collectionMember.findFirst({
       where: {
         userId: existingUser.id,
-        libraryId: testLibraryId,
+        collectionId: testLibraryId,
         isActive: true,
       },
     });
@@ -217,10 +217,10 @@ test.describe('Magic Link Invitation Flow', () => {
     });
 
     // Create existing membership
-    await db.libraryMember.create({
+    await db.collectionMember.create({
       data: {
         userId: user.id,
-        libraryId: testLibraryId,
+        collectionId: testLibraryId,
         role: 'member',
         isActive: true,
       },
