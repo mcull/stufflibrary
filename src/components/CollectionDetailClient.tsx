@@ -18,7 +18,6 @@ import {
   IconButton,
   CircularProgress,
   Alert,
-  Paper,
   Menu,
   MenuItem,
   ListItemIcon,
@@ -345,15 +344,8 @@ export function CollectionDetailClient({
 
       {/* Header */}
       <Box sx={{ mb: spacing.xl / 16 }}>
-        {/* Top Navigation Row */}
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            mb: spacing.md / 16,
-          }}
-        >
+        {/* Navigation */}
+        <Box sx={{ mb: spacing.lg / 16 }}>
           <Button
             onClick={() => router.push('/stacks')}
             startIcon={<ArrowBackIcon />}
@@ -364,148 +356,227 @@ export function CollectionDetailClient({
           >
             Back to Lobby
           </Button>
-
-          {/* Action Icons Row */}
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-            {library.userRole && (
-              <IconButton
-                onClick={handleAddMenuClick}
-                sx={{
-                  bgcolor: 'rgba(25, 118, 210, 0.08)',
-                  color: brandColors.inkBlue,
-                  '&:hover': {
-                    bgcolor: 'rgba(25, 118, 210, 0.12)',
-                  },
-                }}
-                title="Add Items"
-              >
-                <AddIcon />
-              </IconButton>
-            )}
-            {(library.userRole === 'owner' || library.userRole === 'admin') && (
-              <IconButton
-                onClick={() => setInviteModalOpen(true)}
-                sx={{
-                  bgcolor: 'rgba(25, 118, 210, 0.08)',
-                  color: brandColors.inkBlue,
-                  '&:hover': {
-                    bgcolor: 'rgba(25, 118, 210, 0.12)',
-                  },
-                }}
-                title="Invite Friends"
-              >
-                <PersonAddIcon />
-              </IconButton>
-            )}
-          </Box>
         </Box>
 
-        {/* Owner/Private Chips */}
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-            mb: spacing.xs / 16,
-          }}
-        >
-          <Chip
-            label={library.userRole || 'member'}
-            size="small"
-            color={library.userRole === 'owner' ? 'primary' : 'default'}
-          />
-          {!library.isPublic && (
-            <Chip label="Private" size="small" variant="outlined" />
-          )}
-        </Box>
-
-        {/* Library Title */}
+        {/* Collection Name - Visual Hero */}
         <Typography
-          variant="h2"
+          variant="h1"
           sx={{
-            fontSize: { xs: '2rem', md: '2.5rem' },
-            fontWeight: 700,
+            fontSize: { xs: '2.5rem', sm: '3rem', md: '3.5rem' },
+            fontWeight: 800,
             color: brandColors.charcoal,
             mb: spacing.sm / 16,
+            lineHeight: 1.1,
           }}
         >
           {library.name}
         </Typography>
 
+        {/* Metadata Group - Muted and smaller */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+            flexWrap: 'wrap',
+            mb: spacing.md / 16,
+          }}
+        >
+          <Chip
+            label={library.userRole || 'member'}
+            size="small"
+            sx={{
+              bgcolor:
+                library.userRole === 'owner' ? brandColors.inkBlue : '#E0E0E0',
+              color:
+                library.userRole === 'owner' ? 'white' : brandColors.charcoal,
+              fontSize: '0.75rem',
+            }}
+          />
+          {!library.isPublic && (
+            <Chip
+              label="Private"
+              size="small"
+              variant="outlined"
+              sx={{ fontSize: '0.75rem' }}
+            />
+          )}
+          <Typography
+            variant="body2"
+            sx={{
+              color: brandColors.charcoal,
+              opacity: 0.6,
+              fontSize: '0.875rem',
+            }}
+          >
+            Since{' '}
+            {new Date(library.createdAt).toLocaleDateString('en-US', {
+              month: 'long',
+              year: 'numeric',
+            })}
+          </Typography>
+          {library.location && (
+            <Typography
+              variant="body2"
+              sx={{
+                color: brandColors.charcoal,
+                opacity: 0.6,
+                fontSize: '0.875rem',
+              }}
+            >
+              📍 {library.location}
+            </Typography>
+          )}
+        </Box>
+
+        {/* Description */}
         <Typography
           variant="body1"
           sx={{
             color: brandColors.charcoal,
             opacity: 0.8,
             maxWidth: '600px',
-            mb: spacing.xs / 16,
+            mb: spacing.lg / 16,
+            fontSize: { xs: '1rem', md: '1.125rem' },
           }}
         >
           {library.description ||
             `A community library with ${library.memberCount} members sharing ${library.itemCount} items.`}
         </Typography>
 
-        {/* Since date */}
-        <Typography
-          variant="body2"
-          sx={{
-            color: brandColors.charcoal,
-            opacity: 0.6,
-            fontStyle: 'italic',
-            mb: spacing.md / 16,
-          }}
-        >
-          Since{' '}
-          {new Date(library.createdAt).toLocaleDateString('en-US', {
-            month: 'long',
-            year: 'numeric',
-          })}
-        </Typography>
+        {/* Action Toolbar */}
+        {library.userRole && (
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 1,
+              alignItems: 'center',
+              p: 1.5,
+              bgcolor: 'rgba(25, 118, 210, 0.04)',
+              borderRadius: 2,
+              border: '1px solid rgba(25, 118, 210, 0.12)',
+              mb: spacing.md / 16,
+            }}
+          >
+            <Typography
+              variant="body2"
+              sx={{
+                color: brandColors.charcoal,
+                opacity: 0.7,
+                fontWeight: 500,
+                mr: 1,
+              }}
+            >
+              Quick Actions:
+            </Typography>
+            <IconButton
+              onClick={handleAddMenuClick}
+              size="small"
+              sx={{
+                bgcolor: 'white',
+                color: brandColors.inkBlue,
+                border: '1px solid rgba(25, 118, 210, 0.2)',
+                '&:hover': {
+                  bgcolor: 'rgba(25, 118, 210, 0.08)',
+                },
+              }}
+              title="Add Items"
+            >
+              <AddIcon fontSize="small" />
+            </IconButton>
+            {(library.userRole === 'owner' || library.userRole === 'admin') && (
+              <IconButton
+                onClick={() => setInviteModalOpen(true)}
+                size="small"
+                sx={{
+                  bgcolor: 'white',
+                  color: brandColors.inkBlue,
+                  border: '1px solid rgba(25, 118, 210, 0.2)',
+                  '&:hover': {
+                    bgcolor: 'rgba(25, 118, 210, 0.08)',
+                  },
+                }}
+                title="Invite Friends"
+              >
+                <PersonAddIcon fontSize="small" />
+              </IconButton>
+            )}
+          </Box>
+        )}
 
-        {/* Community Activity Stats */}
+        {/* Community Activity Stats - Redesigned for better hierarchy */}
         <Box
           sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 3,
-            flexWrap: 'wrap',
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: 'repeat(2, 1fr)',
+              sm: 'repeat(4, 1fr)',
+            },
+            gap: { xs: 2, sm: 3 },
+            p: 2,
+            bgcolor: 'rgba(255, 255, 255, 0.6)',
+            borderRadius: 2,
+            border: '1px solid rgba(0, 0, 0, 0.08)',
             mb: spacing.md / 16,
           }}
         >
           <Box sx={{ textAlign: 'center' }}>
             <Typography
-              variant="h4"
-              sx={{ fontWeight: 700, color: brandColors.inkBlue, mb: 0 }}
+              variant="h3"
+              sx={{
+                fontWeight: 700,
+                color: brandColors.inkBlue,
+                mb: 0.5,
+                fontSize: { xs: '1.75rem', sm: '2rem' },
+              }}
             >
               {library.memberCount}
             </Typography>
             <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ fontWeight: 600 }}
+              variant="body2"
+              sx={{
+                color: brandColors.charcoal,
+                opacity: 0.7,
+                fontWeight: 500,
+                fontSize: '0.875rem',
+              }}
             >
               Members
             </Typography>
           </Box>
           <Box sx={{ textAlign: 'center' }}>
             <Typography
-              variant="h4"
-              sx={{ fontWeight: 700, color: brandColors.inkBlue, mb: 0 }}
+              variant="h3"
+              sx={{
+                fontWeight: 700,
+                color: brandColors.inkBlue,
+                mb: 0.5,
+                fontSize: { xs: '1.75rem', sm: '2rem' },
+              }}
             >
               {library.itemCount}
             </Typography>
             <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ fontWeight: 600 }}
+              variant="body2"
+              sx={{
+                color: brandColors.charcoal,
+                opacity: 0.7,
+                fontWeight: 500,
+                fontSize: '0.875rem',
+              }}
             >
               Total Items
             </Typography>
           </Box>
           <Box sx={{ textAlign: 'center' }}>
             <Typography
-              variant="h4"
-              sx={{ fontWeight: 700, color: brandColors.mustardYellow, mb: 0 }}
+              variant="h3"
+              sx={{
+                fontWeight: 700,
+                color: brandColors.mustardYellow,
+                mb: 0.5,
+                fontSize: { xs: '1.75rem', sm: '2rem' },
+              }}
             >
               {library.items?.filter(
                 (item) =>
@@ -515,54 +586,73 @@ export function CollectionDetailClient({
               ).length || 0}
             </Typography>
             <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ fontWeight: 600 }}
+              variant="body2"
+              sx={{
+                color: brandColors.charcoal,
+                opacity: 0.7,
+                fontWeight: 500,
+                fontSize: '0.875rem',
+              }}
             >
               On Loan Now
             </Typography>
           </Box>
           <Box sx={{ textAlign: 'center' }}>
             <Typography
-              variant="h4"
-              sx={{ fontWeight: 700, color: '#2E7D32', mb: 0 }}
+              variant="h3"
+              sx={{
+                fontWeight: 700,
+                color: '#2E7D32',
+                mb: 0.5,
+                fontSize: { xs: '1.75rem', sm: '2rem' },
+              }}
             >
               {library.items?.filter(
                 (item) => item.isAvailable && !item.currentBorrow
               ).length || 0}
             </Typography>
             <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ fontWeight: 600 }}
+              variant="body2"
+              sx={{
+                color: brandColors.charcoal,
+                opacity: 0.7,
+                fontWeight: 500,
+                fontSize: '0.875rem',
+              }}
             >
               Available
             </Typography>
           </Box>
-          {library.location && (
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.5,
-                ml: 'auto',
-              }}
-            >
-              <Typography variant="body2" color="text.secondary">
-                📍 {library.location}
-              </Typography>
-            </Box>
-          )}
         </Box>
       </Box>
 
-      {/* Library Members Map */}
+      {/* Collection Map */}
       <Box sx={{ mb: 4 }}>
-        <LibraryMap
-          libraryName={library.name}
-          members={mapMembers}
-          currentUser={mapCurrentUser}
-        />
+        <Typography
+          variant="h5"
+          sx={{
+            fontWeight: 600,
+            color: brandColors.charcoal,
+            mb: spacing.md / 16,
+            fontSize: '1.25rem',
+          }}
+        >
+          Collection Map
+        </Typography>
+        <Box
+          sx={{
+            height: { xs: '250px', sm: '300px', md: '350px' },
+            overflow: 'hidden',
+            borderRadius: 2,
+            border: '1px solid rgba(0, 0, 0, 0.08)',
+          }}
+        >
+          <LibraryMap
+            libraryName={library.name}
+            members={mapMembers}
+            currentUser={mapCurrentUser}
+          />
+        </Box>
       </Box>
 
       {/* Filter Chips - moved below map */}
@@ -764,28 +854,112 @@ export function CollectionDetailClient({
               })()}
         </Box>
       ) : (
-        // Empty State
-        <Paper sx={{ p: 6, textAlign: 'center' }}>
-          <Typography variant="h5" gutterBottom>
-            No items in {library.name} yet
+        // Empty State - Warmer Design
+        <Box
+          sx={{
+            textAlign: 'center',
+            py: 8,
+            px: 4,
+            background: `linear-gradient(135deg, ${brandColors.warmCream} 0%, rgba(255, 248, 230, 0.8) 100%)`,
+            borderRadius: 3,
+            border: `2px dashed ${brandColors.mustardYellow}`,
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Decorative background elements */}
+          <Box
+            sx={{
+              position: 'absolute',
+              top: -20,
+              right: -20,
+              width: 80,
+              height: 80,
+              borderRadius: '50%',
+              bgcolor: 'rgba(244, 187, 68, 0.1)',
+            }}
+          />
+          <Box
+            sx={{
+              position: 'absolute',
+              bottom: -15,
+              left: -15,
+              width: 60,
+              height: 60,
+              borderRadius: '50%',
+              bgcolor: 'rgba(244, 187, 68, 0.15)',
+            }}
+          />
+
+          {/* Main illustration */}
+          <Typography
+            variant="h1"
+            sx={{
+              fontSize: '4rem',
+              mb: 2,
+              filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))',
+            }}
+          >
+            📚✨
           </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-            Be the first to add items for your community to share!
+
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 600,
+              color: brandColors.charcoal,
+              mb: 2,
+              fontSize: { xs: '1.5rem', md: '2rem' },
+            }}
+          >
+            Your collection is waiting to come alive! 🌱
           </Typography>
+
+          <Typography
+            variant="body1"
+            sx={{
+              color: brandColors.charcoal,
+              opacity: 0.8,
+              mb: 4,
+              maxWidth: '500px',
+              mx: 'auto',
+              fontSize: '1.1rem',
+              lineHeight: 1.6,
+            }}
+          >
+            {library.userRole
+              ? `${library.name} is ready for its first treasures! Add items to start building a community where neighbors share, discover, and connect.`
+              : `${library.name} is just getting started! Once members add items, you'll see all the wonderful things available to borrow here.`}
+          </Typography>
+
           {library.userRole && (
             <Button
               variant="contained"
+              size="large"
               startIcon={<AddIcon />}
               onClick={() => handleAddItem()}
               sx={{
-                bgcolor: brandColors.inkBlue,
-                '&:hover': { bgcolor: '#1a2f4f' },
+                bgcolor: brandColors.mustardYellow,
+                color: brandColors.charcoal,
+                fontWeight: 600,
+                px: 4,
+                py: 1.5,
+                borderRadius: 2,
+                textTransform: 'none',
+                fontSize: '1.1rem',
+                boxShadow: '0 4px 12px rgba(244, 187, 68, 0.3)',
+                '&:hover': {
+                  bgcolor: '#E6A645',
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 6px 20px rgba(244, 187, 68, 0.4)',
+                },
+                transition: 'all 0.3s ease',
               }}
             >
-              Add First Item
+              Add Your First Item
             </Button>
           )}
-        </Paper>
+        </Box>
       )}
 
       {/* Vintage Checkout Card Dialog */}
