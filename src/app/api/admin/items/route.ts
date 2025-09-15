@@ -102,12 +102,14 @@ export async function GET(request: NextRequest) {
     });
 
     // Enrich items with computed fields
-    const enrichedItems = items.map((item) => ({
+    const enrichedItems = items.map((item: any) => ({
       ...item,
       isAvailable: !item.currentBorrowRequestId,
-      currentBorrower: item.borrowRequests[0]?.borrower || null,
-      totalBorrowRequests: item._count.borrowRequests,
-      libraries: item.collections.map((ic) => ic.collection),
+      currentBorrower: item.borrowRequests?.[0]?.borrower || null,
+      totalBorrowRequests: item._count?.borrowRequests ?? 0,
+      libraries: item.collections
+        ? item.collections.map((ic: any) => ic.collection)
+        : (item.libraries?.map((il: any) => il.library) ?? []),
     }));
 
     return NextResponse.json({
