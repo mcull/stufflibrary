@@ -594,7 +594,7 @@ export function CollectionDetailClient({
               lineHeight: 1.1,
             }}
           >
-            {library.name}
+            {library?.name}
           </Typography>
         </Box>
 
@@ -609,17 +609,17 @@ export function CollectionDetailClient({
           }}
         >
           <Chip
-            label={library.userRole || 'member'}
+            label={library?.userRole || 'member'}
             size="small"
             sx={{
               bgcolor:
-                library.userRole === 'owner' ? brandColors.inkBlue : '#E0E0E0',
+                library?.userRole === 'owner' ? brandColors.inkBlue : '#E0E0E0',
               color:
-                library.userRole === 'owner' ? 'white' : brandColors.charcoal,
+                library?.userRole === 'owner' ? 'white' : brandColors.charcoal,
               fontSize: '0.75rem',
             }}
           />
-          {!library.isPublic && (
+          {!library?.isPublic && (
             <Chip
               label="Private"
               size="small"
@@ -636,12 +636,12 @@ export function CollectionDetailClient({
             }}
           >
             Since{' '}
-            {new Date(library.createdAt).toLocaleDateString('en-US', {
+            {new Date(library?.createdAt || '').toLocaleDateString('en-US', {
               month: 'long',
               year: 'numeric',
             })}
           </Typography>
-          {library.location && (
+          {library?.location && (
             <Typography
               variant="body2"
               sx={{
@@ -673,7 +673,7 @@ export function CollectionDetailClient({
         />
 
         {/* Action Toolbar - Hidden */}
-        {false && library.userRole && (
+        {false && library?.userRole && (
           <Box
             sx={{
               display: 'flex',
@@ -712,7 +712,8 @@ export function CollectionDetailClient({
             >
               <AddIcon fontSize="small" />
             </IconButton>
-            {(library.userRole === 'owner' || library.userRole === 'admin') && (
+            {(library?.userRole === 'owner' ||
+              library?.userRole === 'admin') && (
               <IconButton
                 onClick={() => setInviteModalOpen(true)}
                 size="small"
@@ -759,7 +760,7 @@ export function CollectionDetailClient({
                   fontSize: { xs: '1.75rem', sm: '2rem' },
                 }}
               >
-                {library.memberCount}
+                {library?.memberCount}
               </Typography>
               <Typography
                 variant="body2"
@@ -783,7 +784,7 @@ export function CollectionDetailClient({
                   fontSize: { xs: '1.75rem', sm: '2rem' },
                 }}
               >
-                {library.itemCount}
+                {library?.itemCount}
               </Typography>
               <Typography
                 variant="body2"
@@ -807,7 +808,7 @@ export function CollectionDetailClient({
                   fontSize: { xs: '1.75rem', sm: '2rem' },
                 }}
               >
-                {library.items?.filter(
+                {library?.items?.filter(
                   (item) =>
                     item.currentBorrow &&
                     item.currentBorrow.borrower.id !==
@@ -836,7 +837,7 @@ export function CollectionDetailClient({
                   fontSize: { xs: '1.75rem', sm: '2rem' },
                 }}
               >
-                {library.items?.filter(
+                {library?.items?.filter(
                   (item) => item.isAvailable && !item.currentBorrow
                 ).length || 0}
               </Typography>
