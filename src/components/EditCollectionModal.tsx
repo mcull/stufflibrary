@@ -83,21 +83,9 @@ export function EditCollectionModal({
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
 
-    // Name validation
+    // Name validation - only check if empty since we truncate on input
     if (!formData.name.trim()) {
       newErrors.name = 'Collection name is required';
-    } else if (formData.name.trim().length > 30) {
-      newErrors.name = 'Collection name must be 30 characters or less';
-    }
-
-    // Description validation
-    if (formData.description.length > 500) {
-      newErrors.description = 'Description must be 500 characters or less';
-    }
-
-    // Location validation
-    if (formData.location.length > 25) {
-      newErrors.location = 'Location must be 25 characters or less';
     }
 
     setErrors(newErrors);
@@ -106,8 +94,18 @@ export function EditCollectionModal({
 
   const handleInputChange =
     (field: keyof FormData) => (event: React.ChangeEvent<HTMLInputElement>) => {
-      const value =
+      let value =
         field === 'isPublic' ? event.target.checked : event.target.value;
+
+      // Truncate input based on field limits
+      if (field === 'name' && typeof value === 'string') {
+        value = value.slice(0, 30);
+      } else if (field === 'description' && typeof value === 'string') {
+        value = value.slice(0, 500);
+      } else if (field === 'location' && typeof value === 'string') {
+        value = value.slice(0, 25);
+      }
+
       setFormData((prev) => ({ ...prev, [field]: value }));
       setIsDirty(true);
 
@@ -243,7 +241,21 @@ export function EditCollectionModal({
             onChange={handleInputChange('name')}
             onKeyDown={handleKeyDown}
             error={!!errors.name}
-            helperText={errors.name || `${formData.name.length}/30 characters`}
+            helperText={
+              errors.name || (
+                <span
+                  style={{
+                    fontWeight: formData.name.length === 30 ? 'bold' : 'normal',
+                    color:
+                      formData.name.length === 30
+                        ? '#d32f2f'
+                        : 'rgba(0, 0, 0, 0.6)',
+                  }}
+                >
+                  {formData.name.length}/30 characters
+                </span>
+              )
+            }
             disabled={isLoading}
             required
             fullWidth
@@ -257,8 +269,20 @@ export function EditCollectionModal({
             onChange={handleInputChange('description')}
             error={!!errors.description}
             helperText={
-              errors.description ||
-              `${formData.description.length}/500 characters`
+              errors.description || (
+                <span
+                  style={{
+                    fontWeight:
+                      formData.description.length === 500 ? 'bold' : 'normal',
+                    color:
+                      formData.description.length === 500
+                        ? '#d32f2f'
+                        : 'rgba(0, 0, 0, 0.6)',
+                  }}
+                >
+                  {formData.description.length}/500 characters
+                </span>
+              )
             }
             disabled={isLoading}
             multiline
@@ -275,7 +299,20 @@ export function EditCollectionModal({
             onKeyDown={handleKeyDown}
             error={!!errors.location}
             helperText={
-              errors.location || `${formData.location.length}/25 characters`
+              errors.location || (
+                <span
+                  style={{
+                    fontWeight:
+                      formData.location.length === 25 ? 'bold' : 'normal',
+                    color:
+                      formData.location.length === 25
+                        ? '#d32f2f'
+                        : 'rgba(0, 0, 0, 0.6)',
+                  }}
+                >
+                  {formData.location.length}/25 characters
+                </span>
+              )
             }
             disabled={isLoading}
             fullWidth
