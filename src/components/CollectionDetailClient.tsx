@@ -6,6 +6,11 @@ import {
   PhotoCamera as PhotoCameraIcon,
   Inventory as InventoryIcon,
   PersonAdd as PersonAddIcon,
+  MoreVert as MoreVertIcon,
+  Edit as EditIcon,
+  People as PeopleIcon,
+  Settings as SettingsIcon,
+  Archive as ArchiveIcon,
 } from '@mui/icons-material';
 import {
   Box,
@@ -159,6 +164,8 @@ export function CollectionDetailClient({
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
   const [currentUserName, setCurrentUserName] = useState<string | null>(null);
+  const [settingsMenuAnchor, setSettingsMenuAnchor] =
+    useState<HTMLElement | null>(null);
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [addMenuAnchor, setAddMenuAnchor] = useState<null | HTMLElement>(null);
   const addMenuOpen = Boolean(addMenuAnchor);
@@ -220,6 +227,35 @@ export function CollectionDetailClient({
   const handleAddMenuClose = useCallback(() => {
     setAddMenuAnchor(null);
   }, []);
+
+  const handleSettingsMenuClick = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      setSettingsMenuAnchor(event.currentTarget);
+    },
+    []
+  );
+
+  const handleSettingsMenuClose = useCallback(() => {
+    setSettingsMenuAnchor(null);
+  }, []);
+
+  const handleEditCollection = useCallback(() => {
+    handleSettingsMenuClose();
+    // TODO: Open edit collection modal/form
+    console.log('Edit collection details');
+  }, [handleSettingsMenuClose]);
+
+  const handleManageMembers = useCallback(() => {
+    handleSettingsMenuClose();
+    // TODO: Open member management modal
+    console.log('Manage members');
+  }, [handleSettingsMenuClose]);
+
+  const handleCollectionSettings = useCallback(() => {
+    handleSettingsMenuClose();
+    // TODO: Open advanced settings modal
+    console.log('Collection settings');
+  }, [handleSettingsMenuClose]);
 
   const handleAddNewItem = useCallback(() => {
     handleAddMenuClose();
@@ -405,18 +441,47 @@ export function CollectionDetailClient({
         </Box>
 
         {/* Collection Name - Visual Hero */}
-        <Typography
-          variant="h1"
+        <Box
           sx={{
-            fontSize: { xs: '2.5rem', sm: '3rem', md: '3.5rem' },
-            fontWeight: 800,
-            color: brandColors.charcoal,
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 2,
             mb: spacing.sm / 16,
-            lineHeight: 1.1,
           }}
         >
-          {library.name}
-        </Typography>
+          <Typography
+            variant="h1"
+            sx={{
+              fontSize: { xs: '2.5rem', sm: '3rem', md: '3.5rem' },
+              fontWeight: 800,
+              color: brandColors.charcoal,
+              lineHeight: 1.1,
+              flex: 1,
+            }}
+          >
+            {library.name}
+          </Typography>
+
+          {/* Collection Settings Menu - Owner/Admin Only */}
+          {(library.userRole === 'owner' || library.userRole === 'admin') && (
+            <IconButton
+              onClick={handleSettingsMenuClick}
+              size="medium"
+              sx={{
+                color: brandColors.charcoal,
+                opacity: 0.6,
+                mt: 1,
+                '&:hover': {
+                  opacity: 1,
+                  backgroundColor: 'rgba(30, 58, 95, 0.08)',
+                },
+              }}
+              title="Collection Settings"
+            >
+              <MoreVertIcon />
+            </IconButton>
+          )}
+        </Box>
 
         {/* Metadata Group - Muted and smaller */}
         <Box
@@ -1061,6 +1126,71 @@ export function CollectionDetailClient({
             secondary="Select from your existing items"
           />
         </MenuItem>
+      </Menu>
+
+      {/* Collection Settings Menu - Owner/Admin Only */}
+      <Menu
+        anchorEl={settingsMenuAnchor}
+        open={Boolean(settingsMenuAnchor)}
+        onClose={handleSettingsMenuClose}
+        disablePortal={false}
+        MenuListProps={{
+          'aria-labelledby': 'collection-settings-button',
+        }}
+        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+        slotProps={{
+          paper: {
+            sx: {
+              zIndex: 9999,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              borderRadius: 2,
+              minWidth: 220,
+            },
+          },
+        }}
+      >
+        <MenuItem onClick={handleEditCollection}>
+          <ListItemIcon>
+            <EditIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText
+            primary="Edit Collection"
+            secondary="Update name, description, and location"
+          />
+        </MenuItem>
+        <MenuItem onClick={handleManageMembers}>
+          <ListItemIcon>
+            <PeopleIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText
+            primary="Manage Members"
+            secondary="Add, remove, or change member roles"
+          />
+        </MenuItem>
+        <MenuItem onClick={handleCollectionSettings}>
+          <ListItemIcon>
+            <SettingsIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText
+            primary="Collection Settings"
+            secondary="Privacy, permissions, and advanced options"
+          />
+        </MenuItem>
+        {library?.userRole === 'owner' && (
+          <MenuItem
+            onClick={handleSettingsMenuClose}
+            sx={{ color: 'error.main' }}
+          >
+            <ListItemIcon>
+              <ArchiveIcon fontSize="small" sx={{ color: 'error.main' }} />
+            </ListItemIcon>
+            <ListItemText
+              primary="Archive Collection"
+              secondary="Hide from public view"
+            />
+          </MenuItem>
+        )}
       </Menu>
 
       {/* Invite Friends Modal */}
