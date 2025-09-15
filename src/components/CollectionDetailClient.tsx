@@ -2,7 +2,6 @@
 
 import {
   Add as AddIcon,
-  ArrowBack as ArrowBackIcon,
   Close as CloseIcon,
   PhotoCamera as PhotoCameraIcon,
   Inventory as InventoryIcon,
@@ -285,9 +284,7 @@ export function CollectionDetailClient({
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
         </Alert>
-        <Button startIcon={<ArrowBackIcon />} onClick={() => router.back()}>
-          Go Back
-        </Button>
+        <Button onClick={() => router.push('/stacks')}>Return to Lobby</Button>
       </Container>
     );
   }
@@ -344,20 +341,6 @@ export function CollectionDetailClient({
 
       {/* Header */}
       <Box sx={{ mb: spacing.xl / 16 }}>
-        {/* Navigation */}
-        <Box sx={{ mb: spacing.lg / 16 }}>
-          <Button
-            onClick={() => router.push('/stacks')}
-            startIcon={<ArrowBackIcon />}
-            sx={{
-              color: brandColors.inkBlue,
-              textTransform: 'none',
-            }}
-          >
-            Back to Lobby
-          </Button>
-        </Box>
-
         {/* Collection Name - Visual Hero */}
         <Typography
           variant="h1"
