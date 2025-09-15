@@ -35,9 +35,9 @@ export async function GET(
             iconPath: true,
           },
         },
-        libraries: {
+        collections: {
           select: {
-            library: {
+            collection: {
               select: {
                 id: true,
                 name: true,
@@ -101,7 +101,7 @@ export async function GET(
       updatedAt: item.updatedAt,
       owner: item.owner,
       stuffType: item.stuffType,
-      libraries: item.libraries.map((il) => il.library),
+      libraries: item.collections.map((ic) => ic.collection),
       currentActiveBorrow: activeBorrowRequest,
     };
 
@@ -219,9 +219,9 @@ export async function PUT(
             iconPath: true,
           },
         },
-        libraries: {
+        collections: {
           select: {
-            library: {
+            collection: {
               select: {
                 id: true,
                 name: true,
@@ -247,7 +247,7 @@ export async function PUT(
       updatedAt: updatedItem.updatedAt,
       owner: updatedItem.owner,
       stuffType: updatedItem.stuffType,
-      libraries: updatedItem.libraries?.map((il) => il.library) || [],
+      libraries: updatedItem.collections?.map((ic) => ic.collection) || [],
     };
 
     return NextResponse.json({ item: formattedItem });
@@ -401,9 +401,9 @@ export async function PATCH(
             iconPath: true,
           },
         },
-        libraries: {
+        collections: {
           include: {
-            library: {
+            collection: {
               select: {
                 id: true,
                 name: true,
@@ -439,7 +439,7 @@ export async function PATCH(
     // Handle library assignments if provided
     if (libraryIds && Array.isArray(libraryIds)) {
       // Delete existing library relationships
-      await db.itemLibrary.deleteMany({
+      await db.itemCollection.deleteMany({
         where: { itemId },
       });
 
@@ -447,10 +447,10 @@ export async function PATCH(
       if (libraryIds.length > 0) {
         await db.$transaction(
           libraryIds.map((libraryId: string) =>
-            db.itemLibrary.create({
+            db.itemCollection.create({
               data: {
                 itemId,
-                libraryId,
+                collectionId: libraryId,
               },
             })
           )
@@ -475,9 +475,9 @@ export async function PATCH(
               iconPath: true,
             },
           },
-          libraries: {
+          collections: {
             include: {
-              library: {
+              collection: {
                 select: {
                   id: true,
                   name: true,
@@ -527,7 +527,7 @@ export async function PATCH(
         updatedAt: itemWithLibraries!.updatedAt,
         owner: itemWithLibraries!.owner,
         stuffType: itemWithLibraries!.stuffType,
-        libraries: itemWithLibraries!.libraries.map((il) => il.library),
+        libraries: itemWithLibraries!.collections.map((ic) => ic.collection),
         currentActiveBorrow: activeBorrowRequestWithLibraries,
       };
 
@@ -553,7 +553,7 @@ export async function PATCH(
       updatedAt: updatedItem!.updatedAt,
       owner: updatedItem!.owner,
       stuffType: updatedItem!.stuffType,
-      libraries: updatedItem!.libraries.map((il) => il.library),
+      libraries: updatedItem!.collections.map((ic) => ic.collection),
       currentActiveBorrow: activeBorrowRequest,
     };
 

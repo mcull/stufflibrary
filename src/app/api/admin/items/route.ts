@@ -69,9 +69,9 @@ export async function GET(request: NextRequest) {
             iconPath: true,
           },
         },
-        libraries: {
+        collections: {
           include: {
-            library: {
+            collection: {
               select: {
                 id: true,
                 name: true,
@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
       isAvailable: !item.currentBorrowRequestId,
       currentBorrower: item.borrowRequests[0]?.borrower || null,
       totalBorrowRequests: item._count.borrowRequests,
-      libraries: item.libraries.map((il) => il.library),
+      libraries: item.collections.map((ic) => ic.collection),
     }));
 
     return NextResponse.json({

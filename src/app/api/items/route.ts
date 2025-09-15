@@ -129,9 +129,9 @@ export async function POST(request: NextRequest) {
             iconPath: true,
           },
         },
-        libraries: {
+        collections: {
           include: {
-            library: {
+            collection: {
               select: {
                 id: true,
                 name: true,
@@ -146,10 +146,10 @@ export async function POST(request: NextRequest) {
     if (libraryIds.length > 0) {
       await db.$transaction(
         libraryIds.map((libraryId) =>
-          db.itemLibrary.create({
+          db.itemCollection.create({
             data: {
               itemId: item.id,
-              libraryId: libraryId,
+              collectionId: libraryId,
             },
           })
         )
@@ -174,9 +174,9 @@ export async function POST(request: NextRequest) {
             iconPath: true,
           },
         },
-        libraries: {
+        collections: {
           include: {
-            library: {
+            collection: {
               select: {
                 id: true,
                 name: true,
@@ -232,7 +232,7 @@ export async function POST(request: NextRequest) {
         createdAt: itemWithLibraries!.createdAt,
         owner: itemWithLibraries!.owner,
         stuffType: itemWithLibraries!.stuffType,
-        libraries: itemWithLibraries!.libraries.map((il) => il.library),
+        libraries: itemWithLibraries!.collections.map((ic) => ic.collection),
       },
     });
   } catch (error) {
