@@ -395,21 +395,25 @@ export function ManageMembersModal({
                             </Box>
                           }
                           secondary={
-                            <Box>
+                            <>
                               <Typography
                                 variant="body2"
                                 color="text.secondary"
+                                component="span"
+                                sx={{ display: 'block' }}
                               >
                                 {member.user.email}
                               </Typography>
                               <Typography
                                 variant="caption"
                                 color="text.secondary"
+                                component="span"
+                                sx={{ display: 'block' }}
                               >
                                 Joined{' '}
                                 {new Date(member.joinedAt).toLocaleDateString()}
                               </Typography>
-                            </Box>
+                            </>
                           }
                         />
                       </Box>
@@ -474,8 +478,13 @@ export function ManageMembersModal({
                       <ListItemText
                         primary={invitation.email}
                         secondary={
-                          <Box>
-                            <Typography variant="body2" color="text.secondary">
+                          <>
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              component="span"
+                              sx={{ display: 'block' }}
+                            >
                               {invitation.sentAt
                                 ? `Sent ${new Date(invitation.sentAt).toLocaleDateString()}`
                                 : `Created ${new Date(invitation.createdAt).toLocaleDateString()}`}
@@ -484,11 +493,13 @@ export function ManageMembersModal({
                               <Typography
                                 variant="caption"
                                 color="text.secondary"
+                                component="span"
+                                sx={{ display: 'block' }}
                               >
                                 Sent by {invitation.sender.name}
                               </Typography>
                             )}
-                          </Box>
+                          </>
                         }
                       />
                       <Chip

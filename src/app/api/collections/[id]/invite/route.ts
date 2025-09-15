@@ -75,7 +75,7 @@ export async function POST(
     // Check if user is already a member
     const existingMember = await db.collectionMember.findFirst({
       where: {
-        libraryId,
+        collectionId: libraryId,
         user: { email },
       },
     });
@@ -143,7 +143,7 @@ export async function POST(
         expiresAt,
       },
       include: {
-        library: {
+        collection: {
           select: { name: true, location: true },
         },
         sender: {
@@ -160,7 +160,7 @@ export async function POST(
       await resend.emails.send({
         from: 'StuffLibrary <invites@stufflibrary.org>',
         to: [email],
-        subject: `You're invited to join ${invitation.library?.name} on StuffLibrary!`,
+        subject: `You're invited to join ${invitation.collection?.name} on StuffLibrary!`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
@@ -169,7 +169,7 @@ export async function POST(
             </div>
             
             <h2 style="color: #1f2937; font-size: 24px; margin-bottom: 20px;">
-              You're invited to join ${invitation.library?.name}!
+              You're invited to join ${invitation.collection?.name}!
             </h2>
             
             <p style="font-size: 16px; line-height: 1.5; color: #374151; margin-bottom: 20px;">
@@ -177,14 +177,14 @@ export async function POST(
             </p>
             
             <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
-              <h3 style="margin: 0 0 10px 0; color: #1f2937; font-size: 18px;">${invitation.library?.name}</h3>
-              ${invitation.library?.location ? `<p style="margin: 0; color: #6b7280;">📍 ${invitation.library.location}</p>` : ''}
+              <h3 style="margin: 0 0 10px 0; color: #1f2937; font-size: 18px;">${invitation.collection?.name}</h3>
+              ${invitation.collection?.location ? `<p style="margin: 0; color: #6b7280;">📍 ${invitation.collection.location}</p>` : ''}
             </div>
             
             <div style="text-align: center; margin: 30px 0;">
               <a href="${magicLink}" 
                  style="background-color: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; display: inline-block;">
-                Join ${invitation.library?.name}
+                Join ${invitation.collection?.name}
               </a>
             </div>
             

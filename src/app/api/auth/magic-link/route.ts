@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
         status: { in: ['PENDING', 'SENT'] },
       },
       include: {
-        library: { select: { id: true, name: true } },
+        collection: { select: { id: true, name: true } },
       },
     });
 
@@ -58,20 +58,20 @@ export async function GET(request: NextRequest) {
     });
 
     // Create library membership if needed
-    const existingMembership = await db.libraryMember.findFirst({
+    const existingMembership = await db.collectionMember.findFirst({
       where: {
         userId: user.id,
-        libraryId: invitation.libraryId!,
+        collectionId: invitation.libraryId!,
         isActive: true,
       },
     });
 
     if (!existingMembership) {
       await db.$transaction([
-        db.libraryMember.create({
+        db.collectionMember.create({
           data: {
             userId: user.id,
-            libraryId: invitation.libraryId!,
+            collectionId: invitation.libraryId!,
             role: 'member',
             isActive: true,
           },

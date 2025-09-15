@@ -34,7 +34,7 @@ export async function POST(
         status: { in: ['PENDING', 'SENT'] },
       },
       include: {
-        library: {
+        collection: {
           select: {
             id: true,
             name: true,
@@ -83,10 +83,10 @@ export async function POST(
     }
 
     // Check if user is already a member
-    const existingMembership = await db.libraryMember.findFirst({
+    const existingMembership = await db.collectionMember.findFirst({
       where: {
         userId,
-        libraryId: invitation.libraryId!,
+        collectionId: invitation.libraryId!,
         isActive: true,
       },
     });
@@ -106,8 +106,8 @@ export async function POST(
         success: true,
         message: 'You are already a member of this library',
         library: {
-          id: invitation.library!.id,
-          name: invitation.library!.name,
+          id: invitation.collection!.id,
+          name: invitation.collection!.name,
           role: existingMembership.role,
         },
       });
@@ -115,10 +115,10 @@ export async function POST(
 
     // Create library membership and mark invitation as accepted
     const [libraryMember] = await db.$transaction([
-      db.libraryMember.create({
+      db.collectionMember.create({
         data: {
           userId,
-          libraryId: invitation.libraryId!,
+          collectionId: invitation.libraryId!,
           role: 'member',
           isActive: true,
         },
@@ -143,9 +143,9 @@ export async function POST(
     return NextResponse.json({
       success: true,
       library: {
-        id: invitation.library!.id,
-        name: invitation.library!.name,
-        location: invitation.library!.location,
+        id: invitation.collection!.id,
+        name: invitation.collection!.name,
+        location: invitation.collection!.location,
         role: libraryMember.role,
       },
       user: {
