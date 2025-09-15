@@ -42,7 +42,7 @@ export async function POST(
     }
 
     // Check if user is library owner or admin
-    const library = await db.library.findFirst({
+    const library = await db.collection.findFirst({
       where: {
         id: libraryId,
         OR: [
@@ -73,7 +73,7 @@ export async function POST(
     }
 
     // Check if user is already a member
-    const existingMember = await db.libraryMember.findFirst({
+    const existingMember = await db.collectionMember.findFirst({
       where: {
         libraryId,
         user: { email },

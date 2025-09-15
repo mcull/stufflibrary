@@ -38,6 +38,7 @@ import { ExpandableText } from './ExpandableText';
 import { InviteFriendsModal } from './InviteFriendsModal';
 import { LibraryItemCard } from './LibraryItemCard';
 import { LibraryMap } from './LibraryMap';
+import { ManageMembersModal } from './ManageMembersModal';
 import { VintageCheckoutCardDialog } from './VintageCheckoutCardDialog';
 
 // Types
@@ -169,6 +170,7 @@ export function CollectionDetailClient({
   const [settingsMenuAnchor, setSettingsMenuAnchor] =
     useState<HTMLElement | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [manageMembersModalOpen, setManageMembersModalOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [addMenuAnchor, setAddMenuAnchor] = useState<null | HTMLElement>(null);
   const addMenuOpen = Boolean(addMenuAnchor);
@@ -185,7 +187,7 @@ export function CollectionDetailClient({
         }
 
         const data = await response.json();
-        setLibrary(data.library);
+        setLibrary(data.collection);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load library');
       } finally {
@@ -249,8 +251,7 @@ export function CollectionDetailClient({
 
   const handleManageMembers = useCallback(() => {
     handleSettingsMenuClose();
-    // TODO: Open member management modal
-    console.log('Manage members');
+    setManageMembersModalOpen(true);
   }, [handleSettingsMenuClose]);
 
   const handleCollectionSettings = useCallback(() => {
@@ -297,6 +298,25 @@ export function CollectionDetailClient({
     [library]
   );
 
+  const handleMembershipChanged = useCallback(() => {
+    // Refresh the collection data when membership changes
+    const fetchLibrary = async () => {
+      try {
+        const response = await fetch(`/api/collections/${collectionId}`);
+        if (!response.ok) {
+          throw new Error('Failed to load library');
+        }
+
+        const data = await response.json();
+        setLibrary(data.collection);
+      } catch (err) {
+        console.error('Error refreshing collection:', err);
+      }
+    };
+
+    fetchLibrary();
+  }, [collectionId]);
+
   const handleAddNewItem = useCallback(() => {
     handleAddMenuClose();
     const params = new URLSearchParams({
@@ -307,7 +327,7 @@ export function CollectionDetailClient({
 
   const handleAddFromInventory = useCallback(() => {
     handleAddMenuClose();
-    router.push(`/stuff/m/add-to-library/${collectionId}`);
+    router.push(`/stuff/m/add-to-collection/${collectionId}`);
   }, [handleAddMenuClose, collectionId, router]);
 
   // Memoize map props at the top level
@@ -334,15 +354,6 @@ export function CollectionDetailClient({
     }),
     [session?.user, library?.owner.addresses]
   );
-
-  const handleAddItem = (category?: string) => {
-    // Navigate to camera-based add item flow
-    const params = new URLSearchParams({
-      library: collectionId,
-      ...(category && { category }),
-    });
-    router.push(`/add-item?${params.toString()}`);
-  };
 
   if (isLoading) {
     return (
@@ -1056,7 +1067,7 @@ export function CollectionDetailClient({
               filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))',
             }}
           >
-            📚✨
+            🔨🪜⛺
           </Typography>
 
           <Typography
@@ -1093,7 +1104,7 @@ export function CollectionDetailClient({
               variant="contained"
               size="large"
               startIcon={<AddIcon />}
-              onClick={() => handleAddItem()}
+              onClick={handleAddFromInventory}
               sx={{
                 bgcolor: brandColors.mustardYellow,
                 color: brandColors.charcoal,
@@ -1256,6 +1267,16 @@ export function CollectionDetailClient({
         libraryName={library?.name || ''}
         open={inviteModalOpen}
         onClose={() => setInviteModalOpen(false)}
+      />
+
+      {/* Manage Members Modal */}
+      <ManageMembersModal
+        collectionId={collectionId}
+        collectionName={library?.name || ''}
+        userRole={library?.userRole || null}
+        open={manageMembersModalOpen}
+        onClose={() => setManageMembersModalOpen(false)}
+        onMembershipChanged={handleMembershipChanged}
       />
     </Container>
   );

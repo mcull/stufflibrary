@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get public libraries that the user isn't already a member of
-    const publicLibraries = await db.library.findMany({
+    const publicLibraries = await db.collection.findMany({
       where: whereClause,
       include: {
         owner: {

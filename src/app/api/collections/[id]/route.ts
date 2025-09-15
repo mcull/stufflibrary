@@ -18,7 +18,7 @@ export async function GET(
     const { id: libraryId } = await params;
 
     // Get library details
-    const library = await db.library.findUnique({
+    const library = await db.collection.findUnique({
       where: { id: libraryId },
       include: {
         owner: {
@@ -84,9 +84,9 @@ export async function GET(
     // Get library items (only active items)
     const items = await db.item.findMany({
       where: {
-        libraries: {
+        collections: {
           some: {
-            libraryId: libraryId,
+            collectionId: libraryId,
           },
         },
         active: true, // Only show active items
@@ -263,7 +263,7 @@ export async function GET(
       ),
     };
 
-    return NextResponse.json({ library: formattedLibrary });
+    return NextResponse.json({ collection: formattedLibrary });
   } catch (error) {
     console.error('Error fetching library:', error);
     return NextResponse.json(
@@ -298,7 +298,7 @@ export async function PUT(
     const { name, description, location, isPublic } = body;
 
     // Check if user is the owner or admin
-    const library = await db.library.findUnique({
+    const library = await db.collection.findUnique({
       where: { id: libraryId },
       include: {
         members: {
@@ -341,7 +341,7 @@ export async function PUT(
     }
 
     // Update library
-    const updatedLibrary = await db.library.update({
+    const updatedLibrary = await db.collection.update({
       where: { id: libraryId },
       data: {
         ...(name !== undefined && { name: name.trim() }),
@@ -386,7 +386,7 @@ export async function PUT(
       itemCount: updatedLibrary._count.items,
     };
 
-    return NextResponse.json({ library: formattedLibrary });
+    return NextResponse.json({ collection: formattedLibrary });
   } catch (error) {
     console.error('Error updating library:', error);
     return NextResponse.json(
@@ -419,7 +419,7 @@ export async function DELETE(
     const { id: libraryId } = await params;
 
     // Check if user is the owner
-    const library = await db.library.findUnique({
+    const library = await db.collection.findUnique({
       where: { id: libraryId },
       select: {
         ownerId: true,
@@ -455,7 +455,7 @@ export async function DELETE(
     }
 
     // Delete the library
-    await db.library.delete({
+    await db.collection.delete({
       where: { id: libraryId },
     });
 
@@ -492,7 +492,7 @@ export async function PATCH(
     const { id: libraryId } = await params;
 
     // Check if user has permission to edit (owner or admin)
-    const library = await db.library.findUnique({
+    const library = await db.collection.findUnique({
       where: { id: libraryId },
       select: {
         ownerId: true,
@@ -511,7 +511,7 @@ export async function PATCH(
     // Check if user is an admin member (if not owner)
     let isAdmin = false;
     if (!isOwner) {
-      const membership = await db.libraryMember.findUnique({
+      const membership = await db.collectionMember.findUnique({
         where: {
           userId_libraryId: {
             userId,
@@ -599,7 +599,7 @@ export async function PATCH(
 
     // If no valid updates, return success without making changes
     if (Object.keys(updates).length === 0) {
-      const library = await db.library.findUnique({
+      const library = await db.collection.findUnique({
         where: { id: libraryId },
         select: {
           id: true,
@@ -614,7 +614,7 @@ export async function PATCH(
     }
 
     // Update the library
-    const updatedLibrary = await db.library.update({
+    const updatedLibrary = await db.collection.update({
       where: { id: libraryId },
       data: updates,
       select: {
