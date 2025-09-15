@@ -22,7 +22,7 @@ export async function GET() {
       return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
     }
 
-    // Get user's libraries (both owned and member)
+    // Get user's collections (both owned and member)
     const userLibraries = await db.user.findUnique({
       where: { id: userId },
       select: {
@@ -97,12 +97,12 @@ export async function GET() {
     });
 
     if (!userLibraries) {
-      return NextResponse.json({ libraries: [] });
+      return NextResponse.json({ collections: [] });
     }
 
     // Format the response
-    const libraries = [
-      // Owned libraries
+    const collections = [
+      // Owned collections
       ...userLibraries.ownedLibraries.map((library: any) => ({
         id: library.id,
         name: library.name,
@@ -120,7 +120,7 @@ export async function GET() {
         },
         members: library.members,
       })),
-      // Member libraries
+      // Member collections
       ...userLibraries.libraryMemberships.map((membership: any) => ({
         id: membership.library.id,
         name: membership.library.name,
@@ -135,11 +135,11 @@ export async function GET() {
       })),
     ];
 
-    return NextResponse.json({ libraries });
+    return NextResponse.json({ collections });
   } catch (error) {
-    console.error('Error fetching libraries:', error);
+    console.error('Error fetching collections:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch libraries' },
+      { error: 'Failed to fetch collections' },
       { status: 500 }
     );
   }
@@ -169,19 +169,19 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     if (!name || name.trim().length === 0) {
       return NextResponse.json(
-        { error: 'Library name is required' },
+        { error: 'Collection name is required' },
         { status: 400 }
       );
     }
 
     if (name.length > 100) {
       return NextResponse.json(
-        { error: 'Library name must be 100 characters or less' },
+        { error: 'Collection name must be 100 characters or less' },
         { status: 400 }
       );
     }
 
-    // Create the library
+    // Create the collection
     const library = await db.library.create({
       data: {
         name: name.trim(),
@@ -222,11 +222,11 @@ export async function POST(request: NextRequest) {
       createdAt: library.createdAt,
     };
 
-    return NextResponse.json({ library: formattedLibrary }, { status: 201 });
+    return NextResponse.json({ collection: formattedLibrary }, { status: 201 });
   } catch (error) {
-    console.error('Error creating library:', error);
+    console.error('Error creating collection:', error);
     return NextResponse.json(
-      { error: 'Failed to create library' },
+      { error: 'Failed to create collection' },
       { status: 500 }
     );
   }

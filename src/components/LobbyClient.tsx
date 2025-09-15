@@ -26,7 +26,7 @@ import { useState } from 'react';
 import { useBorrowRequests } from '@/hooks/useBorrowRequests';
 import { useCollections } from '@/hooks/useCollections';
 import { useUserItems } from '@/hooks/useUserItems';
-import { brandColors, spacing } from '@/theme/brandTokens';
+import { brandColors } from '@/theme/brandTokens';
 
 import { CollectionCard, CreateCollectionCard } from './CollectionCard';
 import { CollectionCreationModal } from './CollectionCreationModal';
@@ -51,6 +51,7 @@ interface LobbyClientProps {
 }
 
 type FilterType = 'all' | 'ready-to-lend' | 'on-loan' | 'offline' | 'borrowed';
+type CollectionFilterType = 'all' | 'started' | 'joined';
 
 export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
   const theme = useTheme();
@@ -75,6 +76,8 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('others-stuff');
   const [itemFilter, setItemFilter] = useState<FilterType>('all');
+  const [collectionFilter, setCollectionFilter] =
+    useState<CollectionFilterType>('all');
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [createdCollectionName, setCreatedCollectionName] = useState('');
 
@@ -90,6 +93,10 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
 
   const handleFilterChange = (event: SelectChangeEvent) => {
     setItemFilter(event.target.value as FilterType);
+  };
+
+  const handleCollectionFilterChange = (event: SelectChangeEvent) => {
+    setCollectionFilter(event.target.value as CollectionFilterType);
   };
 
   // Combine all items with their status
@@ -139,7 +146,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
               lg: 'repeat(5, 1fr)', // 5 columns on large screens
               xl: 'repeat(6, 1fr)', // 6 columns on extra large screens
             },
-            gap: spacing.md / 16,
+            gap: 1,
           }}
         >
           {showAddItem && <AddItemCard />}
@@ -165,6 +172,77 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
     itemFilter === 'all'
       ? allItems
       : allItems.filter((item) => item.status === itemFilter);
+
+  // Collection filtering and counts
+  const startedCollections = collections.filter(
+    (collection) => collection.role === 'owner'
+  );
+  const joinedCollections = collections.filter(
+    (collection) => collection.role !== 'owner'
+  );
+
+  const filteredCollections =
+    collectionFilter === 'all'
+      ? collections
+      : collectionFilter === 'started'
+        ? startedCollections
+        : joinedCollections;
+
+  // Collection section component
+  const CollectionSection = ({
+    title,
+    collections: sectionCollections,
+    showCreateCard = false,
+  }: {
+    title: string;
+    collections: Array<{
+      id: string;
+      name: string;
+      description?: string | null;
+      location?: string | null;
+      memberCount: number;
+      itemCount: number;
+      role: string;
+    }>;
+    showCreateCard?: boolean;
+  }) => {
+    if (sectionCollections.length === 0 && !showCreateCard) return null;
+
+    return (
+      <Box sx={{ mb: 4 }}>
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 600,
+            color: brandColors.charcoal,
+            mb: 2,
+            fontSize: { xs: '1.1rem', md: '1.25rem' },
+          }}
+        >
+          {title} ({sectionCollections.length})
+        </Typography>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: 'repeat(2, 1fr)', // Always 2 columns on mobile - matches My Shelf
+              md: 'repeat(4, 1fr)', // 4 columns on medium screens - matches My Shelf
+              lg: 'repeat(5, 1fr)', // 5 columns on large screens - matches My Shelf
+              xl: 'repeat(6, 1fr)', // 6 columns on extra large screens - matches My Shelf
+            },
+            gap: 1,
+          }}
+        >
+          {showCreateCard && (
+            <CreateCollectionCard onClick={() => setIsCreateModalOpen(true)} />
+          )}
+          {sectionCollections.map((collection) => (
+            <CollectionCard key={collection.id} collection={collection} />
+          ))}
+        </Box>
+      </Box>
+    );
+  };
 
   // Your Shelf Tab Content
   const yourStuffContent = (
@@ -440,7 +518,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                     lg: 'repeat(5, 1fr)', // 5 columns on large screens
                     xl: 'repeat(6, 1fr)', // 6 columns on extra large screens
                   },
-                  gap: spacing.md / 16,
+                  gap: 1,
                 }}
               >
                 {filteredItems.map((item) => (
@@ -478,7 +556,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
         },
       }}
     >
-      <CardContent sx={{ p: 4 }}>
+      <CardContent sx={{ p: { xs: 3, md: 4 } }}>
         {isLoading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
             <CircularProgress size={40} />
@@ -609,38 +687,152 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
           </Box>
         ) : (
           <Box>
-            {/* Header with collection count */}
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ textAlign: 'center', mb: 3 }}
-            >
-              You&apos;re a member of {collections.length}{' '}
-              {collections.length === 1 ? 'collection' : 'collections'}
-            </Typography>
-
-            {/* Collections Grid */}
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: {
-                  xs: 'repeat(2, 1fr)',
-                  sm: 'repeat(2, 1fr)',
-                  md: 'repeat(3, 1fr)',
-                },
-                gap: spacing.md / 16,
-              }}
-            >
-              {/* Create Collection Card - Always first */}
-              <CreateCollectionCard
-                onClick={() => setIsCreateModalOpen(true)}
-              />
-
-              {/* Collection Cards */}
-              {collections.map((collection) => (
-                <CollectionCard key={collection.id} collection={collection} />
-              ))}
+            {/* Filter Control - matches My Shelf tab */}
+            <Box sx={{ mb: 3 }}>
+              {isMobile ? (
+                <FormControl size="small" sx={{ minWidth: 200 }}>
+                  <Select
+                    value={collectionFilter}
+                    onChange={handleCollectionFilterChange}
+                    displayEmpty
+                    sx={{
+                      backgroundColor: brandColors.white,
+                      borderRadius: 2,
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: brandColors.softGray,
+                      },
+                      '&:hover .MuiOutlinedInput-notchedOutline': {
+                        borderColor: brandColors.inkBlue,
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: brandColors.inkBlue,
+                      },
+                    }}
+                  >
+                    <MenuItem value="all">
+                      All Collections ({collections.length})
+                    </MenuItem>
+                    {startedCollections.length > 0 && (
+                      <MenuItem value="started">
+                        Collections I Started ({startedCollections.length})
+                      </MenuItem>
+                    )}
+                    {joinedCollections.length > 0 && (
+                      <MenuItem value="joined">
+                        Collections I Joined ({joinedCollections.length})
+                      </MenuItem>
+                    )}
+                  </Select>
+                </FormControl>
+              ) : (
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{ flexWrap: 'wrap', gap: 1 }}
+                >
+                  <Chip
+                    label={`All (${collections.length})`}
+                    onClick={() => setCollectionFilter('all')}
+                    sx={{
+                      backgroundColor:
+                        collectionFilter === 'all'
+                          ? brandColors.inkBlue
+                          : '#E8F5E8',
+                      color:
+                        collectionFilter === 'all'
+                          ? brandColors.white
+                          : '#2E7D32',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      '&:hover': {
+                        backgroundColor:
+                          collectionFilter === 'all'
+                            ? '#1a2f4f'
+                            : brandColors.inkBlue,
+                        color: brandColors.white,
+                      },
+                    }}
+                  />
+                  {startedCollections.length > 0 && (
+                    <Chip
+                      label={`Started (${startedCollections.length})`}
+                      onClick={() => setCollectionFilter('started')}
+                      sx={{
+                        backgroundColor:
+                          collectionFilter === 'started'
+                            ? brandColors.inkBlue
+                            : '#E8F5E8',
+                        color:
+                          collectionFilter === 'started'
+                            ? brandColors.white
+                            : '#2E7D32',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        '&:hover': {
+                          backgroundColor:
+                            collectionFilter === 'started'
+                              ? '#1a2f4f'
+                              : brandColors.inkBlue,
+                          color: brandColors.white,
+                        },
+                      }}
+                    />
+                  )}
+                  {joinedCollections.length > 0 && (
+                    <Chip
+                      label={`Joined (${joinedCollections.length})`}
+                      onClick={() => setCollectionFilter('joined')}
+                      sx={{
+                        backgroundColor:
+                          collectionFilter === 'joined'
+                            ? brandColors.inkBlue
+                            : '#E8F5E8',
+                        color:
+                          collectionFilter === 'joined'
+                            ? brandColors.white
+                            : '#2E7D32',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        '&:hover': {
+                          backgroundColor:
+                            collectionFilter === 'joined'
+                              ? '#1a2f4f'
+                              : brandColors.inkBlue,
+                          color: brandColors.white,
+                        },
+                      }}
+                    />
+                  )}
+                </Stack>
+              )}
             </Box>
+
+            {/* Collections Sections */}
+            {collectionFilter === 'all' ? (
+              <>
+                {/* Show sections when viewing all */}
+                <CollectionSection
+                  title="Collections I Started"
+                  collections={startedCollections}
+                  showCreateCard={true}
+                />
+                <CollectionSection
+                  title="Collections I Joined"
+                  collections={joinedCollections}
+                />
+              </>
+            ) : (
+              /* Show single filtered section */
+              <CollectionSection
+                title={
+                  collectionFilter === 'started'
+                    ? 'Collections I Started'
+                    : 'Collections I Joined'
+                }
+                collections={filteredCollections}
+                showCreateCard={collectionFilter === 'started'}
+              />
+            )}
           </Box>
         )}
       </CardContent>
