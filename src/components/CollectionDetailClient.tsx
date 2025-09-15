@@ -341,6 +341,69 @@ export function CollectionDetailClient({
 
       {/* Header */}
       <Box sx={{ mb: spacing.xl / 16 }}>
+        {/* Breadcrumb Navigation */}
+        <Box sx={{ mb: spacing.md / 16 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: brandColors.charcoal,
+              opacity: 0.6,
+              fontSize: '0.875rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5,
+            }}
+          >
+            <Typography
+              component="span"
+              onClick={() => router.push('/stacks')}
+              sx={{
+                cursor: 'pointer',
+                '&:hover': {
+                  opacity: 1,
+                  textDecoration: 'underline',
+                },
+                transition: 'all 0.2s ease',
+              }}
+            >
+              Home
+            </Typography>
+            <Typography component="span" sx={{ opacity: 0.4 }}>
+              /
+            </Typography>
+            <Typography
+              component="span"
+              onClick={() => router.push('/stacks')}
+              sx={{
+                cursor: 'pointer',
+                '&:hover': {
+                  opacity: 1,
+                  textDecoration: 'underline',
+                },
+                transition: 'all 0.2s ease',
+              }}
+            >
+              Collections
+            </Typography>
+            <Typography component="span" sx={{ opacity: 0.4 }}>
+              /
+            </Typography>
+            <Typography
+              component="span"
+              sx={{
+                fontWeight: 500,
+                opacity: 0.8,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                maxWidth: { xs: '120px', sm: '200px', md: 'none' },
+              }}
+            >
+              {library.name}
+            </Typography>
+          </Typography>
+        </Box>
+
         {/* Collection Name - Visual Hero */}
         <Typography
           variant="h1"
