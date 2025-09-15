@@ -546,9 +546,9 @@ export async function PATCH(
           { status: 400 }
         );
       }
-      if (name.trim().length > 100) {
+      if (name.trim().length > 30) {
         return NextResponse.json(
-          { error: 'Collection name must be 100 characters or less' },
+          { error: 'Collection name must be 30 characters or less' },
           { status: 400 }
         );
       }
@@ -578,9 +578,9 @@ export async function PATCH(
           { status: 400 }
         );
       }
-      if (location.length > 100) {
+      if (location.length > 25) {
         return NextResponse.json(
-          { error: 'Location must be 100 characters or less' },
+          { error: 'Location must be 25 characters or less' },
           { status: 400 }
         );
       }

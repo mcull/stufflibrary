@@ -86,8 +86,8 @@ export function EditCollectionModal({
     // Name validation
     if (!formData.name.trim()) {
       newErrors.name = 'Collection name is required';
-    } else if (formData.name.trim().length > 100) {
-      newErrors.name = 'Collection name must be 100 characters or less';
+    } else if (formData.name.trim().length > 30) {
+      newErrors.name = 'Collection name must be 30 characters or less';
     }
 
     // Description validation
@@ -96,8 +96,8 @@ export function EditCollectionModal({
     }
 
     // Location validation
-    if (formData.location.length > 100) {
-      newErrors.location = 'Location must be 100 characters or less';
+    if (formData.location.length > 25) {
+      newErrors.location = 'Location must be 25 characters or less';
     }
 
     setErrors(newErrors);
@@ -243,7 +243,7 @@ export function EditCollectionModal({
             onChange={handleInputChange('name')}
             onKeyDown={handleKeyDown}
             error={!!errors.name}
-            helperText={errors.name || `${formData.name.length}/100 characters`}
+            helperText={errors.name || `${formData.name.length}/30 characters`}
             disabled={isLoading}
             required
             fullWidth
@@ -275,11 +275,11 @@ export function EditCollectionModal({
             onKeyDown={handleKeyDown}
             error={!!errors.location}
             helperText={
-              errors.location || `${formData.location.length}/100 characters`
+              errors.location || `${formData.location.length}/25 characters`
             }
             disabled={isLoading}
             fullWidth
-            placeholder="e.g., Downtown Seattle, Building A"
+            placeholder="e.g., Downtown, Bldg A"
           />
 
           {/* Privacy Setting */}
