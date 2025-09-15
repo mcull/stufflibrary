@@ -23,12 +23,12 @@ export async function getUserCount() {
   }
 }
 
-export async function getLibraryCount() {
+export async function getCollectionCount() {
   try {
-    const count = await db.library.count();
+    const count = await db.collection.count();
     return count;
   } catch (error) {
-    console.error('Error getting library count:', error);
+    console.error('Error getting collection count:', error);
     throw error;
   }
 }

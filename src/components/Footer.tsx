@@ -36,15 +36,23 @@ const footerSections = [
   },
 ];
 
-export function Footer() {
+interface FooterProps {
+  isLoggedIn?: boolean;
+}
+
+export function Footer({ isLoggedIn = false }: FooterProps) {
   return (
     <Box
       component="footer"
       sx={{
-        backgroundColor: brandColors.charcoal,
+        backgroundColor: isLoggedIn
+          ? 'rgba(80, 88, 100, 0.6)'
+          : brandColors.charcoal,
         color: brandColors.white,
-        pt: { xs: spacing.sm, md: spacing.md },
+        pt: { xs: spacing.sm, md: isLoggedIn ? spacing.sm : spacing.md },
         pb: { xs: spacing.xs, md: spacing.sm },
+        backdropFilter: isLoggedIn ? 'blur(10px)' : 'none',
+        borderTop: isLoggedIn ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
       }}
     >
       <Container maxWidth="lg">
@@ -54,6 +62,7 @@ export function Footer() {
             display: 'grid',
             gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr 1fr' },
             gap: { xs: 2, md: 3 },
+            opacity: isLoggedIn ? 0.8 : 1,
           }}
         >
           {/* Brand Column */}

@@ -69,9 +69,9 @@ export async function GET(request: NextRequest) {
             iconPath: true,
           },
         },
-        libraries: {
+        collections: {
           include: {
-            library: {
+            collection: {
               select: {
                 id: true,
                 name: true,
@@ -102,12 +102,14 @@ export async function GET(request: NextRequest) {
     });
 
     // Enrich items with computed fields
-    const enrichedItems = items.map((item) => ({
+    const enrichedItems = items.map((item: any) => ({
       ...item,
       isAvailable: !item.currentBorrowRequestId,
-      currentBorrower: item.borrowRequests[0]?.borrower || null,
-      totalBorrowRequests: item._count.borrowRequests,
-      libraries: item.libraries.map((il) => il.library),
+      currentBorrower: item.borrowRequests?.[0]?.borrower || null,
+      totalBorrowRequests: item._count?.borrowRequests ?? 0,
+      libraries: item.collections
+        ? item.collections.map((ic: any) => ic.collection)
+        : (item.libraries?.map((il: any) => il.library) ?? []),
     }));
 
     return NextResponse.json({

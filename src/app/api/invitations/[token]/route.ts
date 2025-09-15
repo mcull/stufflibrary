@@ -24,7 +24,7 @@ export async function GET(
         status: { in: ['PENDING', 'SENT', 'ACCEPTED'] },
       },
       include: {
-        library: {
+        collection: {
           select: {
             id: true,
             name: true,
@@ -61,9 +61,9 @@ export async function GET(
     const existingUser = await db.user.findFirst({
       where: { email: invitation.email },
       include: {
-        libraryMemberships: {
+        collectionMemberships: {
           where: {
-            libraryId: invitation.libraryId!,
+            collectionId: invitation.libraryId!,
             isActive: true,
           },
         },
@@ -72,12 +72,12 @@ export async function GET(
 
     // Only redirect if they're already a member of THIS specific library
     if (
-      existingUser?.libraryMemberships &&
-      existingUser.libraryMemberships.length > 0
+      existingUser?.collectionMemberships &&
+      existingUser.collectionMemberships.length > 0
     ) {
       return NextResponse.redirect(
         new URL(
-          `/library/${invitation.libraryId}?message=already_member`,
+          `/collection/${invitation.libraryId}?message=already_member`,
           request.url
         )
       );

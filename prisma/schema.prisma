@@ -66,8 +66,8 @@ model User {
   addresses           Address[]
   borrowRequests      BorrowRequest[]
   lentItems           BorrowRequest[] @relation("Lender")
-  libraryMemberships  LibraryMember[]
-  ownedLibraries      Library[]       @relation("LibraryOwner")
+  collectionMemberships CollectionMember[]
+  ownedCollections      Collection[]       @relation("CollectionOwner")
   receivedInvitations Invitation[]    @relation("InvitationReceiver")
   sentInvitations     Invitation[]    @relation("InvitationSender")
   items               Item[]
@@ -106,7 +106,7 @@ model Invitation {
   acceptedAt     DateTime?
   expiresAt      DateTime
   address        Address?         @relation(fields: [addressId], references: [id])
-  library        Library?         @relation(fields: [libraryId], references: [id], onDelete: Cascade)
+  collection     Collection?      @relation(fields: [libraryId], references: [id], onDelete: Cascade)
   receiver       User?            @relation("InvitationReceiver", fields: [receiverId], references: [id])
   sender         User?            @relation("InvitationSender", fields: [senderId], references: [id])
 
@@ -137,36 +137,38 @@ model SignupApplication {
   @@map("signup_applications")
 }
 
-model Library {
-  id          String          @id @default(cuid())
+model Collection {
+  id          String             @id @default(cuid())
   name        String
   description String?
   location    String?
   rules       Json?
-  isPublic    Boolean         @default(false)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  isPublic    Boolean            @default(false)
+  isArchived  Boolean            @default(false)
+  archivedAt  DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
   ownerId     String
-  members     LibraryMember[]
-  owner       User            @relation("LibraryOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members     CollectionMember[]
+  owner       User               @relation("CollectionOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   invitations Invitation[]
-  items       ItemLibrary[]
+  items       ItemCollection[]
   reports     UserReport[]
 
   @@map("libraries")
 }
 
-model LibraryMember {
-  id        String  @id @default(cuid())
-  joinedAt  DateTime @default(now())
-  role      String   @default("member")
-  isActive  Boolean  @default(true)
-  userId    String
-  libraryId String
-  library   Library  @relation(fields: [libraryId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+model CollectionMember {
+  id           String     @id @default(cuid())
+  joinedAt     DateTime   @default(now())
+  role         String     @default("member")
+  isActive     Boolean    @default(true)
+  userId       String
+  collectionId String     @map("libraryId")
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, libraryId])
+  @@unique([userId, collectionId])
   @@map("library_members")
 }
 
@@ -207,7 +209,7 @@ model Item {
   borrowRequests         BorrowRequest[]
   owner                  User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   stuffType              StuffType?      @relation(fields: [stuffTypeId], references: [id])
-  libraries              ItemLibrary[]
+  collections            ItemCollection[]
   reports                UserReport[]
   disputes               Dispute[]
 
@@ -301,15 +303,15 @@ model AuthCode {
   @@map("auth_codes")
 }
 
-model ItemLibrary {
-  id        String   @id @default(cuid())
-  itemId    String
-  libraryId String
-  addedAt   DateTime @default(now())
-  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  library   Library  @relation(fields: [libraryId], references: [id], onDelete: Cascade)
+model ItemCollection {
+  id           String     @id @default(cuid())
+  itemId       String
+  collectionId String     @map("libraryId")
+  addedAt      DateTime   @default(now())
+  item         Item       @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
 
-  @@unique([itemId, libraryId])
+  @@unique([itemId, collectionId])
   @@map("item_libraries")
 }
 
@@ -374,7 +376,7 @@ model UserReport {
   reporter    User             @relation("ReporterUser", fields: [reporterId], references: [id])
   reported    User             @relation("ReportedUser", fields: [reportedId], references: [id])
   item        Item?            @relation(fields: [itemId], references: [id])
-  library     Library?         @relation(fields: [libraryId], references: [id])
+  collection  Collection?      @relation(fields: [libraryId], references: [id])
 
   @@index([status])
   @@index([priority])

@@ -12,7 +12,7 @@ export async function GET() {
       totalUsers,
       activeUsers,
       totalItems,
-      totalLibraries,
+      totalCollections,
       pendingRequests,
       suspendedUsers,
       recentUsers,
@@ -29,8 +29,8 @@ export async function GET() {
       // Total items
       db.item.count(),
 
-      // Total libraries
-      db.library.count(),
+      // Total collections
+      db.collection.count(),
 
       // Pending borrow requests
       db.borrowRequest.count({
@@ -66,7 +66,7 @@ export async function GET() {
         totalUsers,
         activeUsers,
         totalItems,
-        totalLibraries,
+        totalCollections,
         pendingRequests,
         suspendedUsers,
         recentUsers,

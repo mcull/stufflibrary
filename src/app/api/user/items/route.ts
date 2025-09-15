@@ -35,9 +35,9 @@ export async function GET(_request: NextRequest) {
             category: true,
           },
         },
-        libraries: {
+        collections: {
           include: {
-            library: {
+            collection: {
               select: {
                 id: true,
                 name: true,
@@ -96,7 +96,8 @@ export async function GET(_request: NextRequest) {
       location: item.location,
       createdAt: item.createdAt,
       stuffType: item.stuffType || null,
-      libraries: (item as any).libraries?.map((il: any) => il.library) || [],
+      libraries:
+        (item as any).collections?.map((il: any) => il.collection) || [],
       owner: (item as any).owner || null,
       isOnLoan: !!item.currentBorrowRequestId,
       activeBorrower: item.borrowRequests[0]?.borrower || null,

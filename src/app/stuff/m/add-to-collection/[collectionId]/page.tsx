@@ -100,7 +100,7 @@ export default function AddToCollectionPage() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            collectionIds: [collectionId], // Add to this collection
+            libraryIds: [collectionId], // Add to this collection
           }),
         })
       );

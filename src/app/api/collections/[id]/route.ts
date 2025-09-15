@@ -18,7 +18,7 @@ export async function GET(
     const { id: libraryId } = await params;
 
     // Get library details
-    const library = await db.library.findUnique({
+    const library = await db.collection.findUnique({
       where: { id: libraryId },
       include: {
         owner: {
@@ -84,9 +84,9 @@ export async function GET(
     // Get library items (only active items)
     const items = await db.item.findMany({
       where: {
-        libraries: {
+        collections: {
           some: {
-            libraryId: libraryId,
+            collectionId: libraryId,
           },
         },
         active: true, // Only show active items
@@ -263,7 +263,7 @@ export async function GET(
       ),
     };
 
-    return NextResponse.json({ library: formattedLibrary });
+    return NextResponse.json({ collection: formattedLibrary });
   } catch (error) {
     console.error('Error fetching library:', error);
     return NextResponse.json(
@@ -298,7 +298,7 @@ export async function PUT(
     const { name, description, location, isPublic } = body;
 
     // Check if user is the owner or admin
-    const library = await db.library.findUnique({
+    const library = await db.collection.findUnique({
       where: { id: libraryId },
       include: {
         members: {
@@ -341,7 +341,7 @@ export async function PUT(
     }
 
     // Update library
-    const updatedLibrary = await db.library.update({
+    const updatedLibrary = await db.collection.update({
       where: { id: libraryId },
       data: {
         ...(name !== undefined && { name: name.trim() }),
@@ -386,7 +386,7 @@ export async function PUT(
       itemCount: updatedLibrary._count.items,
     };
 
-    return NextResponse.json({ library: formattedLibrary });
+    return NextResponse.json({ collection: formattedLibrary });
   } catch (error) {
     console.error('Error updating library:', error);
     return NextResponse.json(
@@ -419,7 +419,7 @@ export async function DELETE(
     const { id: libraryId } = await params;
 
     // Check if user is the owner
-    const library = await db.library.findUnique({
+    const library = await db.collection.findUnique({
       where: { id: libraryId },
       select: {
         ownerId: true,
@@ -455,7 +455,7 @@ export async function DELETE(
     }
 
     // Delete the library
-    await db.library.delete({
+    await db.collection.delete({
       where: { id: libraryId },
     });
 
@@ -464,6 +464,178 @@ export async function DELETE(
     console.error('Error deleting library:', error);
     return NextResponse.json(
       { error: 'Failed to delete library' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const userId =
+      (session.user as any).id ||
+      (session as any).user?.id ||
+      (session as any).userId;
+
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
+    }
+
+    const { id: libraryId } = await params;
+
+    // Check if user has permission to edit (owner or admin)
+    const library = await db.collection.findUnique({
+      where: { id: libraryId },
+      select: {
+        ownerId: true,
+      },
+    });
+
+    if (!library) {
+      return NextResponse.json(
+        { error: 'Collection not found' },
+        { status: 404 }
+      );
+    }
+
+    const isOwner = library.ownerId === userId;
+
+    // Check if user is an admin member (if not owner)
+    let isAdmin = false;
+    if (!isOwner) {
+      const membership = await db.collectionMember.findUnique({
+        where: {
+          userId_collectionId: {
+            userId,
+            collectionId: libraryId,
+          },
+        },
+        select: {
+          role: true,
+        },
+      });
+      isAdmin = membership?.role === 'admin';
+    }
+
+    if (!isOwner && !isAdmin) {
+      return NextResponse.json(
+        { error: 'Only library owners and admins can edit collections' },
+        { status: 403 }
+      );
+    }
+
+    // Parse request body
+    const body = await request.json();
+    const { name, description, location, isPublic } = body;
+
+    // Validation
+    const updates: any = {};
+
+    if (name !== undefined) {
+      if (typeof name !== 'string' || name.trim().length === 0) {
+        return NextResponse.json(
+          { error: 'Collection name is required and must be a string' },
+          { status: 400 }
+        );
+      }
+      if (name.trim().length > 30) {
+        return NextResponse.json(
+          { error: 'Collection name must be 30 characters or less' },
+          { status: 400 }
+        );
+      }
+      updates.name = name.trim();
+    }
+
+    if (description !== undefined) {
+      if (typeof description !== 'string') {
+        return NextResponse.json(
+          { error: 'Description must be a string' },
+          { status: 400 }
+        );
+      }
+      if (description.length > 500) {
+        return NextResponse.json(
+          { error: 'Description must be 500 characters or less' },
+          { status: 400 }
+        );
+      }
+      updates.description = description || null;
+    }
+
+    if (location !== undefined) {
+      if (typeof location !== 'string') {
+        return NextResponse.json(
+          { error: 'Location must be a string' },
+          { status: 400 }
+        );
+      }
+      if (location.length > 25) {
+        return NextResponse.json(
+          { error: 'Location must be 25 characters or less' },
+          { status: 400 }
+        );
+      }
+      updates.location = location || null;
+    }
+
+    if (isPublic !== undefined) {
+      if (typeof isPublic !== 'boolean') {
+        return NextResponse.json(
+          { error: 'isPublic must be a boolean' },
+          { status: 400 }
+        );
+      }
+      updates.isPublic = isPublic;
+    }
+
+    // If no valid updates, return success without making changes
+    if (Object.keys(updates).length === 0) {
+      const library = await db.collection.findUnique({
+        where: { id: libraryId },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          location: true,
+          isPublic: true,
+        },
+      });
+
+      return NextResponse.json({ collection: library });
+    }
+
+    // Update the library
+    const updatedLibrary = await db.collection.update({
+      where: { id: libraryId },
+      data: updates,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        location: true,
+        isPublic: true,
+        updatedAt: true,
+      },
+    });
+
+    return NextResponse.json({ collection: updatedLibrary });
+  } catch (error) {
+    console.error('Error updating library:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    return NextResponse.json(
+      { error: 'Failed to update library' },
       { status: 500 }
     );
   }

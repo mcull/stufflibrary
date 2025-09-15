@@ -146,8 +146,8 @@ export async function POST(request: NextRequest) {
     if (libraryIds.length > 0) {
       await db.$transaction(
         libraryIds.map((libraryId) =>
-          db.itemLibrary.create({
-            data: { itemId: item.id, libraryId: libraryId },
+          db.itemCollection.create({
+            data: { itemId: item.id, collectionId: libraryId },
           })
         )
       );
@@ -184,9 +184,9 @@ export async function POST(request: NextRequest) {
             stuffType: {
               select: { displayName: true, category: true, iconPath: true },
             },
-            libraries: {
+            collections: {
               include: {
-                library: { select: { id: true, name: true } },
+                collection: { select: { id: true, name: true } },
               },
             },
           },
@@ -207,9 +207,9 @@ export async function POST(request: NextRequest) {
             stuffType: {
               select: { displayName: true, category: true, iconPath: true },
             },
-            libraries: {
+            collections: {
               include: {
-                library: { select: { id: true, name: true } },
+                collection: { select: { id: true, name: true } },
               },
             },
           },
@@ -224,9 +224,9 @@ export async function POST(request: NextRequest) {
           stuffType: {
             select: { displayName: true, category: true, iconPath: true },
           },
-          libraries: {
+          collections: {
             include: {
-              library: { select: { id: true, name: true } },
+              collection: { select: { id: true, name: true } },
             },
           },
         },
@@ -251,7 +251,7 @@ export async function POST(request: NextRequest) {
         createdAt: finalItem.createdAt,
         owner: finalItem.owner,
         stuffType: finalItem.stuffType,
-        libraries: finalItem.libraries.map((il: any) => il.library),
+        libraries: finalItem.collections.map((ic: any) => ic.collection),
       },
       analysisResult,
     });

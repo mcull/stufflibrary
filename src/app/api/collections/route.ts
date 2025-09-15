@@ -13,10 +13,7 @@ export async function GET() {
     }
 
     // Get user ID
-    const userId =
-      (session.user as any).id ||
-      (session as any).user?.id ||
-      (session as any).userId;
+    const userId = (session.user as { id?: string }).id;
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
@@ -26,7 +23,10 @@ export async function GET() {
     const userLibraries = await db.user.findUnique({
       where: { id: userId },
       select: {
-        ownedLibraries: {
+        ownedCollections: {
+          where: {
+            isArchived: false,
+          },
           select: {
             id: true,
             name: true,
@@ -59,12 +59,17 @@ export async function GET() {
             },
           },
         },
-        libraryMemberships: {
-          where: { isActive: true },
+        collectionMemberships: {
+          where: {
+            isActive: true,
+            collection: {
+              isArchived: false,
+            },
+          },
           select: {
             role: true,
             joinedAt: true,
-            library: {
+            collection: {
               select: {
                 id: true,
                 name: true,
@@ -103,7 +108,7 @@ export async function GET() {
     // Format the response
     const collections = [
       // Owned collections
-      ...userLibraries.ownedLibraries.map((library: any) => ({
+      ...userLibraries.ownedCollections.map((library) => ({
         id: library.id,
         name: library.name,
         description: library.description,
@@ -121,17 +126,17 @@ export async function GET() {
         members: library.members,
       })),
       // Member collections
-      ...userLibraries.libraryMemberships.map((membership: any) => ({
-        id: membership.library.id,
-        name: membership.library.name,
-        description: membership.library.description,
-        location: membership.library.location,
-        isPublic: membership.library.isPublic,
+      ...userLibraries.collectionMemberships.map((membership) => ({
+        id: membership.collection.id,
+        name: membership.collection.name,
+        description: membership.collection.description,
+        location: membership.collection.location,
+        isPublic: membership.collection.isPublic,
         role: membership.role,
-        memberCount: membership.library._count.members + 1, // +1 for owner
-        itemCount: membership.library._count.items,
+        memberCount: membership.collection._count.members + 1, // +1 for owner
+        itemCount: membership.collection._count.items,
         joinedAt: membership.joinedAt,
-        owner: membership.library.owner,
+        owner: membership.collection.owner,
       })),
     ];
 
@@ -154,10 +159,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user ID
-    const userId =
-      (session.user as any).id ||
-      (session as any).user?.id ||
-      (session as any).userId;
+    const userId = (session.user as { id?: string }).id;
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
@@ -182,7 +184,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the collection
-    const library = await db.library.create({
+    const library = await db.collection.create({
       data: {
         name: name.trim(),
         description: description?.trim() || null,

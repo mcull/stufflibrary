@@ -24,11 +24,11 @@ export async function POST(
       return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
     }
 
-    const { id: libraryId } = await params;
+    const { id: collectionId } = await params;
 
-    // Check if library exists and is joinable
-    const library = await db.library.findUnique({
-      where: { id: libraryId },
+    // Check if collection exists and is joinable
+    const collection = await db.collection.findUnique({
+      where: { id: collectionId },
       select: {
         id: true,
         name: true,
@@ -37,33 +37,36 @@ export async function POST(
       },
     });
 
-    if (!library) {
-      return NextResponse.json({ error: 'Library not found' }, { status: 404 });
+    if (!collection) {
+      return NextResponse.json(
+        { error: 'Collection not found' },
+        { status: 404 }
+      );
     }
 
     // Check if user is already the owner
-    if (library.ownerId === userId) {
+    if (collection.ownerId === userId) {
       return NextResponse.json(
-        { error: 'You are already the owner of this library' },
+        { error: 'You are already the owner of this collection' },
         { status: 400 }
       );
     }
 
-    // For now, only allow joining public libraries
-    // TODO: Add invitation system for private libraries
-    if (!library.isPublic) {
+    // For now, only allow joining public collections
+    // TODO: Add invitation system for private collections
+    if (!collection.isPublic) {
       return NextResponse.json(
-        { error: 'This library is private and requires an invitation' },
+        { error: 'This collection is private and requires an invitation' },
         { status: 403 }
       );
     }
 
     // Check if user is already a member
-    const existingMembership = await db.libraryMember.findUnique({
+    const existingMembership = await db.collectionMember.findUnique({
       where: {
-        userId_libraryId: {
+        userId_collectionId: {
           userId,
-          libraryId,
+          collectionId,
         },
       },
     });
@@ -71,12 +74,12 @@ export async function POST(
     if (existingMembership) {
       if (existingMembership.isActive) {
         return NextResponse.json(
-          { error: 'You are already a member of this library' },
+          { error: 'You are already a member of this collection' },
           { status: 400 }
         );
       } else {
         // Reactivate membership
-        await db.libraryMember.update({
+        await db.collectionMember.update({
           where: { id: existingMembership.id },
           data: {
             isActive: true,
@@ -86,19 +89,19 @@ export async function POST(
       }
     } else {
       // Create new membership
-      await db.libraryMember.create({
+      await db.collectionMember.create({
         data: {
           userId,
-          libraryId,
+          collectionId,
           role: 'member',
           isActive: true,
         },
       });
     }
 
-    // Get updated library info
-    const updatedLibrary = await db.library.findUnique({
-      where: { id: libraryId },
+    // Get updated collection info
+    const updatedCollection = await db.collection.findUnique({
+      where: { id: collectionId },
       include: {
         owner: {
           select: {
@@ -116,30 +119,30 @@ export async function POST(
       },
     });
 
-    const formattedLibrary = {
-      id: updatedLibrary!.id,
-      name: updatedLibrary!.name,
-      description: updatedLibrary!.description,
-      location: updatedLibrary!.location,
-      isPublic: updatedLibrary!.isPublic,
+    const formattedCollection = {
+      id: updatedCollection!.id,
+      name: updatedCollection!.name,
+      description: updatedCollection!.description,
+      location: updatedCollection!.location,
+      isPublic: updatedCollection!.isPublic,
       role: 'member',
-      memberCount: updatedLibrary!._count.members + 1, // +1 for owner
-      itemCount: updatedLibrary!._count.items,
+      memberCount: updatedCollection!._count.members + 1, // +1 for owner
+      itemCount: updatedCollection!._count.items,
       joinedAt: new Date(),
-      owner: updatedLibrary!.owner,
+      owner: updatedCollection!.owner,
     };
 
     return NextResponse.json(
       {
-        message: 'Successfully joined library',
-        library: formattedLibrary,
+        message: 'Successfully joined collection',
+        collection: formattedCollection,
       },
       { status: 201 }
     );
   } catch (error) {
-    console.error('Error joining library:', error);
+    console.error('Error joining collection:', error);
     return NextResponse.json(
-      { error: 'Failed to join library' },
+      { error: 'Failed to join collection' },
       { status: 500 }
     );
   }
@@ -165,11 +168,11 @@ export async function DELETE(
       return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
     }
 
-    const { id: libraryId } = await params;
+    const { id: collectionId } = await params;
 
-    // Check if library exists
-    const library = await db.library.findUnique({
-      where: { id: libraryId },
+    // Check if collection exists
+    const collection = await db.collection.findUnique({
+      where: { id: collectionId },
       select: {
         id: true,
         ownerId: true,
@@ -177,64 +180,67 @@ export async function DELETE(
       },
     });
 
-    if (!library) {
-      return NextResponse.json({ error: 'Library not found' }, { status: 404 });
+    if (!collection) {
+      return NextResponse.json(
+        { error: 'Collection not found' },
+        { status: 404 }
+      );
     }
 
-    // Owners cannot leave their own library
-    if (library.ownerId === userId) {
+    // Owners cannot leave their own collection
+    if (collection.ownerId === userId) {
       return NextResponse.json(
         {
           error:
-            'Library owners cannot leave their own library. Transfer ownership or delete the library instead.',
+            'Collection owners cannot leave their own collection. Transfer ownership or delete the collection instead.',
         },
         { status: 400 }
       );
     }
 
     // Find and deactivate membership
-    const membership = await db.libraryMember.findUnique({
+    const membership = await db.collectionMember.findUnique({
       where: {
-        userId_libraryId: {
+        userId_collectionId: {
           userId,
-          libraryId,
+          collectionId,
         },
       },
     });
 
     if (!membership) {
       return NextResponse.json(
-        { error: 'You are not a member of this library' },
+        { error: 'You are not a member of this collection' },
         { status: 400 }
       );
     }
 
     if (!membership.isActive) {
       return NextResponse.json(
-        { error: 'You have already left this library' },
+        { error: 'You have already left this collection' },
         { status: 400 }
       );
     }
 
-    // TODO: Check if user has active borrows in this library
+    // TODO: Check if user has active borrows in this collection
     // For now, we'll allow leaving but in production you'd want to:
     // 1. Check for active borrow requests
     // 2. Check for items being borrowed from this user
     // 3. Require resolution before leaving
 
     // Deactivate membership
-    await db.libraryMember.update({
+    await db.collectionMember.update({
       where: { id: membership.id },
       data: {
         isActive: false,
       },
     });
 
-    return NextResponse.json({ message: 'Successfully left library' });
+    return NextResponse.json({ message: 'Successfully left collection' });
   } catch (error) {
-    console.error('Error leaving library:', error);
+    console.error('Error leaving collection:', error);
     return NextResponse.json(
-      { error: 'Failed to leave library' },
+      { error: 'Failed to leave collection' },
       { status: 500 }
     );
   }

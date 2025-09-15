@@ -25,9 +25,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         id: true,
         name: true,
         ownerId: true,
-        libraries: {
+        collections: {
           select: {
-            library: {
+            collection: {
               select: {
                 id: true,
               },
@@ -53,13 +53,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         id: userId,
         OR: [
           { id: item.ownerId }, // User is the owner
-          ...(item.libraries.length > 0
+          ...(item.collections.length > 0
             ? [
                 {
-                  libraryMemberships: {
+                  collectionMemberships: {
                     some: {
-                      libraryId: {
-                        in: item.libraries.map((il) => il.library.id),
+                      collectionId: {
+                        in: item.collections.map((ic) => ic.collection.id),
                       },
                       isActive: true,
                     },

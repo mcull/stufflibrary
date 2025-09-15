@@ -2,11 +2,15 @@
 
 import {
   Add as AddIcon,
-  ArrowBack as ArrowBackIcon,
   Close as CloseIcon,
   PhotoCamera as PhotoCameraIcon,
   Inventory as InventoryIcon,
   PersonAdd as PersonAddIcon,
+  MoreVert as MoreVertIcon,
+  Edit as EditIcon,
+  People as PeopleIcon,
+  Settings as SettingsIcon,
+  Archive as ArchiveIcon,
 } from '@mui/icons-material';
 import {
   Box,
@@ -18,7 +22,6 @@ import {
   IconButton,
   CircularProgress,
   Alert,
-  Paper,
   Menu,
   MenuItem,
   ListItemIcon,
@@ -30,9 +33,13 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 
 import { brandColors, spacing } from '@/theme/brandTokens';
 
+import { CollectionSettingsModal } from './CollectionSettingsModal';
+import { EditCollectionModal } from './EditCollectionModal';
+import { ExpandableText } from './ExpandableText';
 import { InviteFriendsModal } from './InviteFriendsModal';
 import { LibraryItemCard } from './LibraryItemCard';
 import { LibraryMap } from './LibraryMap';
+import { ManageMembersModal } from './ManageMembersModal';
 import { VintageCheckoutCardDialog } from './VintageCheckoutCardDialog';
 
 // Types
@@ -161,6 +168,11 @@ export function CollectionDetailClient({
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
   const [currentUserName, setCurrentUserName] = useState<string | null>(null);
+  const [settingsMenuAnchor, setSettingsMenuAnchor] =
+    useState<HTMLElement | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+  const [manageMembersModalOpen, setManageMembersModalOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [addMenuAnchor, setAddMenuAnchor] = useState<null | HTMLElement>(null);
   const addMenuOpen = Boolean(addMenuAnchor);
@@ -177,7 +189,7 @@ export function CollectionDetailClient({
         }
 
         const data = await response.json();
-        setLibrary(data.library);
+        setLibrary(data.collection);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load library');
       } finally {
@@ -223,6 +235,96 @@ export function CollectionDetailClient({
     setAddMenuAnchor(null);
   }, []);
 
+  const handleSettingsMenuClick = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      setSettingsMenuAnchor(event.currentTarget);
+    },
+    []
+  );
+
+  const handleSettingsMenuClose = useCallback(() => {
+    setSettingsMenuAnchor(null);
+  }, []);
+
+  const handleEditCollection = useCallback(() => {
+    handleSettingsMenuClose();
+    setEditModalOpen(true);
+  }, [handleSettingsMenuClose]);
+
+  const handleManageMembers = useCallback(() => {
+    handleSettingsMenuClose();
+    setManageMembersModalOpen(true);
+  }, [handleSettingsMenuClose]);
+
+  const handleCollectionSettings = useCallback(() => {
+    handleSettingsMenuClose();
+    setSettingsModalOpen(true);
+  }, [handleSettingsMenuClose]);
+
+  const handleSaveCollection = useCallback(
+    async (
+      updatedCollection: Partial<{
+        name: string;
+        description?: string | undefined;
+        location?: string | undefined;
+        isPublic: boolean;
+      }>
+    ) => {
+      if (!library) return;
+
+      console.log('Saving collection changes:', updatedCollection);
+      console.log('Library ID:', library?.id);
+
+      try {
+        const response = await fetch(`/api/collections/${library?.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(updatedCollection),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('API Error Response:', errorData);
+          console.error('Response status:', response.status);
+          throw new Error(errorData.error || 'Failed to update collection');
+        }
+
+        const { collection: updatedData } = await response.json();
+
+        // Optimistically update the local library state
+        setLibrary((prev) => (prev ? { ...prev, ...updatedData } : prev));
+
+        // TODO: Show success toast notification
+        console.log('Collection updated successfully');
+      } catch (error) {
+        console.error('Failed to update collection:', error);
+        throw error; // Re-throw to let modal handle the error display
+      }
+    },
+    [library]
+  );
+
+  const handleMembershipChanged = useCallback(() => {
+    // Refresh the collection data when membership changes
+    const fetchLibrary = async () => {
+      try {
+        const response = await fetch(`/api/collections/${collectionId}`);
+        if (!response.ok) {
+          throw new Error('Failed to load library');
+        }
+
+        const data = await response.json();
+        setLibrary(data.collection);
+      } catch (err) {
+        console.error('Error refreshing collection:', err);
+      }
+    };
+
+    fetchLibrary();
+  }, [collectionId]);
+
   const handleAddNewItem = useCallback(() => {
     handleAddMenuClose();
     const params = new URLSearchParams({
@@ -233,13 +335,13 @@ export function CollectionDetailClient({
 
   const handleAddFromInventory = useCallback(() => {
     handleAddMenuClose();
-    router.push(`/stuff/m/add-to-library/${collectionId}`);
+    router.push(`/stuff/m/add-to-collection/${collectionId}`);
   }, [handleAddMenuClose, collectionId, router]);
 
   // Memoize map props at the top level
   const mapMembers = useMemo(() => {
     if (!library) return [];
-    return library.members.map((member) => {
+    return library?.members.map((member) => {
       const address = member.user.addresses?.[0];
       return {
         id: member.user.id,
@@ -254,21 +356,69 @@ export function CollectionDetailClient({
 
   const mapCurrentUser = useMemo(
     () => ({
-      id: (session?.user as any)?.id || '',
+      id: (session?.user as { id?: string })?.id || '',
       latitude: library?.owner.addresses?.[0]?.latitude,
       longitude: library?.owner.addresses?.[0]?.longitude,
     }),
     [session?.user, library?.owner.addresses]
   );
 
-  const handleAddItem = (category?: string) => {
-    // Navigate to camera-based add item flow
-    const params = new URLSearchParams({
-      library: collectionId,
-      ...(category && { category }),
-    });
-    router.push(`/add-item?${params.toString()}`);
-  };
+  const handleToggleVisibility = useCallback(
+    async (isPublic: boolean) => {
+      if (!library) return;
+
+      await handleSaveCollection({ isPublic });
+    },
+    [library, handleSaveCollection]
+  );
+
+  const handleFromSettingsEditCollection = useCallback(() => {
+    setSettingsModalOpen(false);
+    setEditModalOpen(true);
+  }, []);
+
+  const handleFromSettingsManageMembers = useCallback(() => {
+    setSettingsModalOpen(false);
+    setManageMembersModalOpen(true);
+  }, []);
+
+  const handleArchiveCollection = useCallback(async () => {
+    if (!library) return;
+
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      `Are you sure you want to archive "${library?.name}"?\n\n` +
+        'This will:\n' +
+        '• Hide the collection from your active collections\n' +
+        '• Preserve all items and member data\n' +
+        '• Allow you to unarchive it later\n\n' +
+        'This action can be undone.'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(`/api/collections/${library?.id}/archive`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to archive collection');
+      }
+
+      await response.json();
+
+      // Show success message and redirect
+      alert(`Collection "${library?.name}" has been archived successfully.`);
+      router.push('/stacks');
+    } catch (error) {
+      console.error('Error archiving collection:', error);
+      alert(
+        error instanceof Error ? error.message : 'Failed to archive collection'
+      );
+    }
+  }, [library, router]);
 
   if (isLoading) {
     return (
@@ -286,9 +436,7 @@ export function CollectionDetailClient({
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
         </Alert>
-        <Button startIcon={<ArrowBackIcon />} onClick={() => router.back()}>
-          Go Back
-        </Button>
+        <Button onClick={() => router.push('/stacks')}>Return to Lobby</Button>
       </Container>
     );
   }
@@ -301,11 +449,11 @@ export function CollectionDetailClient({
     );
   }
 
-  const categories = Object.keys(library.itemsByCategory).sort();
+  const categories = Object.keys(library?.itemsByCategory).sort();
   const hasItems = categories.length > 0;
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container maxWidth="lg" sx={{ py: 4, position: 'relative' }}>
       {/* Welcome Banner for New Members */}
       {showWelcomeBanner && (
         <Alert
@@ -339,230 +487,405 @@ export function CollectionDetailClient({
           }}
         >
           Welcome{currentUserName ? `, ${currentUserName}` : ''}, to{' '}
-          {library.name}! 🎉
+          {library?.name}! 🎉
         </Alert>
       )}
 
       {/* Header */}
       <Box sx={{ mb: spacing.xl / 16 }}>
-        {/* Top Navigation Row */}
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            mb: spacing.md / 16,
-          }}
-        >
-          <Button
-            onClick={() => router.push('/stacks')}
-            startIcon={<ArrowBackIcon />}
+        {/* Breadcrumb Navigation */}
+        <Box sx={{ mb: spacing.md / 16 }}>
+          <Typography
+            variant="body2"
             sx={{
-              color: brandColors.inkBlue,
-              textTransform: 'none',
+              color: brandColors.charcoal,
+              opacity: 0.6,
+              fontSize: '0.875rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5,
             }}
           >
-            Back to Lobby
-          </Button>
-
-          {/* Action Icons Row */}
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-            {library.userRole && (
-              <IconButton
-                onClick={handleAddMenuClick}
-                sx={{
-                  bgcolor: 'rgba(25, 118, 210, 0.08)',
-                  color: brandColors.inkBlue,
-                  '&:hover': {
-                    bgcolor: 'rgba(25, 118, 210, 0.12)',
-                  },
-                }}
-                title="Add Items"
-              >
-                <AddIcon />
-              </IconButton>
-            )}
-            {(library.userRole === 'owner' || library.userRole === 'admin') && (
-              <IconButton
-                onClick={() => setInviteModalOpen(true)}
-                sx={{
-                  bgcolor: 'rgba(25, 118, 210, 0.08)',
-                  color: brandColors.inkBlue,
-                  '&:hover': {
-                    bgcolor: 'rgba(25, 118, 210, 0.12)',
-                  },
-                }}
-                title="Invite Friends"
-              >
-                <PersonAddIcon />
-              </IconButton>
-            )}
-          </Box>
+            <Typography
+              component="span"
+              onClick={() => router.push('/stacks')}
+              sx={{
+                cursor: 'pointer',
+                '&:hover': {
+                  opacity: 1,
+                  textDecoration: 'underline',
+                },
+                transition: 'all 0.2s ease',
+              }}
+            >
+              Home
+            </Typography>
+            <Typography component="span" sx={{ opacity: 0.4 }}>
+              /
+            </Typography>
+            <Typography
+              component="span"
+              onClick={() => router.push('/stacks')}
+              sx={{
+                cursor: 'pointer',
+                '&:hover': {
+                  opacity: 1,
+                  textDecoration: 'underline',
+                },
+                transition: 'all 0.2s ease',
+              }}
+            >
+              Collections
+            </Typography>
+            <Typography component="span" sx={{ opacity: 0.4 }}>
+              /
+            </Typography>
+            <Typography
+              component="span"
+              sx={{
+                fontWeight: 500,
+                opacity: 0.8,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                maxWidth: { xs: '120px', sm: '200px', md: 'none' },
+              }}
+            >
+              {library?.name}
+            </Typography>
+          </Typography>
         </Box>
 
-        {/* Owner/Private Chips */}
+        {/* Collection Settings Menu - Owner/Admin Only - Upper Right Corner */}
+        {(library?.userRole === 'owner' || library?.userRole === 'admin') && (
+          <IconButton
+            onClick={handleSettingsMenuClick}
+            size="medium"
+            sx={{
+              position: 'absolute',
+              top: { xs: 16, sm: 24 },
+              right: { xs: 16, sm: 24 },
+              color: brandColors.charcoal,
+              opacity: 0.6,
+              zIndex: 10,
+              '&:hover': {
+                opacity: 1,
+                backgroundColor: 'rgba(30, 58, 95, 0.08)',
+              },
+            }}
+            title="Collection Settings"
+          >
+            <MoreVertIcon />
+          </IconButton>
+        )}
+
+        {/* Collection Name - Visual Hero */}
         <Box
           sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-            mb: spacing.xs / 16,
-          }}
-        >
-          <Chip
-            label={library.userRole || 'member'}
-            size="small"
-            color={library.userRole === 'owner' ? 'primary' : 'default'}
-          />
-          {!library.isPublic && (
-            <Chip label="Private" size="small" variant="outlined" />
-          )}
-        </Box>
-
-        {/* Library Title */}
-        <Typography
-          variant="h2"
-          sx={{
-            fontSize: { xs: '2rem', md: '2.5rem' },
-            fontWeight: 700,
-            color: brandColors.charcoal,
             mb: spacing.sm / 16,
           }}
         >
-          {library.name}
-        </Typography>
+          <Typography
+            variant="h1"
+            sx={{
+              fontSize: { xs: '2.5rem', sm: '3rem', md: '3.5rem' },
+              fontWeight: 800,
+              color: brandColors.charcoal,
+              lineHeight: 1.1,
+            }}
+          >
+            {library?.name}
+          </Typography>
+        </Box>
 
-        <Typography
+        {/* Metadata Group - Muted and smaller */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+            flexWrap: 'wrap',
+            mb: spacing.md / 16,
+          }}
+        >
+          <Chip
+            label={library?.userRole || 'member'}
+            size="small"
+            sx={{
+              bgcolor:
+                library?.userRole === 'owner' ? brandColors.inkBlue : '#E0E0E0',
+              color:
+                library?.userRole === 'owner' ? 'white' : brandColors.charcoal,
+              fontSize: '0.75rem',
+            }}
+          />
+          {!library?.isPublic && (
+            <Chip
+              label="Private"
+              size="small"
+              variant="outlined"
+              sx={{ fontSize: '0.75rem' }}
+            />
+          )}
+          <Typography
+            variant="body2"
+            sx={{
+              color: brandColors.charcoal,
+              opacity: 0.6,
+              fontSize: '0.875rem',
+            }}
+          >
+            Since{' '}
+            {new Date(library?.createdAt || '').toLocaleDateString('en-US', {
+              month: 'long',
+              year: 'numeric',
+            })}
+          </Typography>
+          {library?.location && (
+            <Typography
+              variant="body2"
+              sx={{
+                color: brandColors.charcoal,
+                opacity: 0.6,
+                fontSize: '0.875rem',
+              }}
+            >
+              📍 {library?.location}
+            </Typography>
+          )}
+        </Box>
+
+        {/* Description */}
+        <ExpandableText
+          text={
+            library?.description ||
+            `A community library with ${library?.memberCount} members sharing ${library?.itemCount} items.`
+          }
+          maxLength={180}
           variant="body1"
           sx={{
             color: brandColors.charcoal,
             opacity: 0.8,
             maxWidth: '600px',
-            mb: spacing.xs / 16,
+            mb: spacing.lg / 16,
+            fontSize: { xs: '1rem', md: '1.125rem' },
           }}
-        >
-          {library.description ||
-            `A community library with ${library.memberCount} members sharing ${library.itemCount} items.`}
-        </Typography>
+        />
 
-        {/* Since date */}
-        <Typography
-          variant="body2"
-          sx={{
-            color: brandColors.charcoal,
-            opacity: 0.6,
-            fontStyle: 'italic',
-            mb: spacing.md / 16,
-          }}
-        >
-          Since{' '}
-          {new Date(library.createdAt).toLocaleDateString('en-US', {
-            month: 'long',
-            year: 'numeric',
-          })}
-        </Typography>
-
-        {/* Community Activity Stats */}
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 3,
-            flexWrap: 'wrap',
-            mb: spacing.md / 16,
-          }}
-        >
-          <Box sx={{ textAlign: 'center' }}>
+        {/* Action Toolbar - Hidden */}
+        {false && library?.userRole && (
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 1,
+              alignItems: 'center',
+              p: 1.5,
+              bgcolor: 'rgba(25, 118, 210, 0.04)',
+              borderRadius: 2,
+              border: '1px solid rgba(25, 118, 210, 0.12)',
+              mb: spacing.md / 16,
+            }}
+          >
             <Typography
-              variant="h4"
-              sx={{ fontWeight: 700, color: brandColors.inkBlue, mb: 0 }}
-            >
-              {library.memberCount}
-            </Typography>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ fontWeight: 600 }}
-            >
-              Members
-            </Typography>
-          </Box>
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography
-              variant="h4"
-              sx={{ fontWeight: 700, color: brandColors.inkBlue, mb: 0 }}
-            >
-              {library.itemCount}
-            </Typography>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ fontWeight: 600 }}
-            >
-              Total Items
-            </Typography>
-          </Box>
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography
-              variant="h4"
-              sx={{ fontWeight: 700, color: brandColors.mustardYellow, mb: 0 }}
-            >
-              {library.items?.filter(
-                (item) =>
-                  item.currentBorrow &&
-                  item.currentBorrow.borrower.id !==
-                    item.currentBorrow.lender.id // Exclude self-borrows
-              ).length || 0}
-            </Typography>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ fontWeight: 600 }}
-            >
-              On Loan Now
-            </Typography>
-          </Box>
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography
-              variant="h4"
-              sx={{ fontWeight: 700, color: '#2E7D32', mb: 0 }}
-            >
-              {library.items?.filter(
-                (item) => item.isAvailable && !item.currentBorrow
-              ).length || 0}
-            </Typography>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ fontWeight: 600 }}
-            >
-              Available
-            </Typography>
-          </Box>
-          {library.location && (
-            <Box
+              variant="body2"
               sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.5,
-                ml: 'auto',
+                color: brandColors.charcoal,
+                opacity: 0.7,
+                fontWeight: 500,
+                mr: 1,
               }}
             >
-              <Typography variant="body2" color="text.secondary">
-                📍 {library.location}
+              Quick Actions:
+            </Typography>
+            <IconButton
+              onClick={handleAddMenuClick}
+              size="small"
+              sx={{
+                bgcolor: 'white',
+                color: brandColors.inkBlue,
+                border: '1px solid rgba(25, 118, 210, 0.2)',
+                '&:hover': {
+                  bgcolor: 'rgba(25, 118, 210, 0.08)',
+                },
+              }}
+              title="Add Items"
+            >
+              <AddIcon fontSize="small" />
+            </IconButton>
+            {(library?.userRole === 'owner' ||
+              library?.userRole === 'admin') && (
+              <IconButton
+                onClick={() => setInviteModalOpen(true)}
+                size="small"
+                sx={{
+                  bgcolor: 'white',
+                  color: brandColors.inkBlue,
+                  border: '1px solid rgba(25, 118, 210, 0.2)',
+                  '&:hover': {
+                    bgcolor: 'rgba(25, 118, 210, 0.08)',
+                  },
+                }}
+                title="Invite Friends"
+              >
+                <PersonAddIcon fontSize="small" />
+              </IconButton>
+            )}
+          </Box>
+        )}
+
+        {/* Community Activity Stats - Hidden */}
+        {false && (
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: 'repeat(2, 1fr)',
+                sm: 'repeat(4, 1fr)',
+              },
+              gap: { xs: 2, sm: 3 },
+              p: 2,
+              bgcolor: 'rgba(255, 255, 255, 0.6)',
+              borderRadius: 2,
+              border: '1px solid rgba(0, 0, 0, 0.08)',
+              mb: spacing.md / 16,
+            }}
+          >
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography
+                variant="h3"
+                sx={{
+                  fontWeight: 700,
+                  color: brandColors.inkBlue,
+                  mb: 0.5,
+                  fontSize: { xs: '1.75rem', sm: '2rem' },
+                }}
+              >
+                {library?.memberCount}
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: brandColors.charcoal,
+                  opacity: 0.7,
+                  fontWeight: 500,
+                  fontSize: '0.875rem',
+                }}
+              >
+                Members
               </Typography>
             </Box>
-          )}
-        </Box>
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography
+                variant="h3"
+                sx={{
+                  fontWeight: 700,
+                  color: brandColors.inkBlue,
+                  mb: 0.5,
+                  fontSize: { xs: '1.75rem', sm: '2rem' },
+                }}
+              >
+                {library?.itemCount}
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: brandColors.charcoal,
+                  opacity: 0.7,
+                  fontWeight: 500,
+                  fontSize: '0.875rem',
+                }}
+              >
+                Total Items
+              </Typography>
+            </Box>
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography
+                variant="h3"
+                sx={{
+                  fontWeight: 700,
+                  color: brandColors.mustardYellow,
+                  mb: 0.5,
+                  fontSize: { xs: '1.75rem', sm: '2rem' },
+                }}
+              >
+                {library?.items?.filter(
+                  (item) =>
+                    item.currentBorrow &&
+                    item.currentBorrow.borrower.id !==
+                      item.currentBorrow.lender.id // Exclude self-borrows
+                ).length || 0}
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: brandColors.charcoal,
+                  opacity: 0.7,
+                  fontWeight: 500,
+                  fontSize: '0.875rem',
+                }}
+              >
+                On Loan Now
+              </Typography>
+            </Box>
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography
+                variant="h3"
+                sx={{
+                  fontWeight: 700,
+                  color: '#2E7D32',
+                  mb: 0.5,
+                  fontSize: { xs: '1.75rem', sm: '2rem' },
+                }}
+              >
+                {library?.items?.filter(
+                  (item) => item.isAvailable && !item.currentBorrow
+                ).length || 0}
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: brandColors.charcoal,
+                  opacity: 0.7,
+                  fontWeight: 500,
+                  fontSize: '0.875rem',
+                }}
+              >
+                Available
+              </Typography>
+            </Box>
+          </Box>
+        )}
       </Box>
 
-      {/* Library Members Map */}
+      {/* Collection Map */}
       <Box sx={{ mb: 4 }}>
-        <LibraryMap
-          libraryName={library.name}
-          members={mapMembers}
-          currentUser={mapCurrentUser}
-        />
+        {false && (
+          <Typography
+            variant="h5"
+            sx={{
+              fontWeight: 600,
+              color: brandColors.charcoal,
+              mb: spacing.md / 16,
+              fontSize: '1.25rem',
+            }}
+          >
+            Collection Map
+          </Typography>
+        )}
+        <Box
+          sx={{
+            height: { xs: '250px', sm: '300px', md: '350px' },
+            overflow: 'hidden',
+            borderRadius: 2,
+            border: '1px solid rgba(0, 0, 0, 0.08)',
+          }}
+        >
+          <LibraryMap
+            libraryName={library?.name}
+            members={mapMembers}
+            currentUser={mapCurrentUser}
+          />
+        </Box>
       </Box>
 
       {/* Filter Chips - moved below map */}
@@ -573,7 +896,7 @@ export function CollectionDetailClient({
           sx={{ flexWrap: 'wrap', gap: 1 }}
         >
           <Chip
-            label={`All ${library.itemCount}`}
+            label={`All ${library?.itemCount}`}
             onClick={() => setActiveFilter('all')}
             sx={{
               backgroundColor:
@@ -591,13 +914,13 @@ export function CollectionDetailClient({
               },
             }}
           />
-          {Object.keys(library.itemsByCategory)
+          {Object.keys(library?.itemsByCategory)
             .sort()
             .map((category) => {
               const categoryConfig =
                 CATEGORY_CONFIG[category as keyof typeof CATEGORY_CONFIG] ||
                 CATEGORY_CONFIG.other;
-              const itemCount = library.itemsByCategory[category]?.length || 0;
+              const itemCount = library?.itemsByCategory[category]?.length || 0;
 
               return (
                 <Chip
@@ -636,7 +959,7 @@ export function CollectionDetailClient({
                   CATEGORY_CONFIG[
                     categoryKey as keyof typeof CATEGORY_CONFIG
                   ] || CATEGORY_CONFIG.other;
-                const items = library.itemsByCategory[categoryKey];
+                const items = library?.itemsByCategory[categoryKey];
 
                 if (!items || items.length === 0) return null;
 
@@ -703,7 +1026,7 @@ export function CollectionDetailClient({
                   CATEGORY_CONFIG[
                     activeFilter as keyof typeof CATEGORY_CONFIG
                   ] || CATEGORY_CONFIG.other;
-                const items = library.itemsByCategory[activeFilter] || [];
+                const items = library?.itemsByCategory[activeFilter] || [];
 
                 return (
                   <Box>
@@ -764,28 +1087,112 @@ export function CollectionDetailClient({
               })()}
         </Box>
       ) : (
-        // Empty State
-        <Paper sx={{ p: 6, textAlign: 'center' }}>
-          <Typography variant="h5" gutterBottom>
-            No items in {library.name} yet
+        // Empty State - Warmer Design
+        <Box
+          sx={{
+            textAlign: 'center',
+            py: 8,
+            px: 4,
+            background: `linear-gradient(135deg, ${brandColors.warmCream} 0%, rgba(255, 248, 230, 0.8) 100%)`,
+            borderRadius: 3,
+            border: `2px dashed ${brandColors.mustardYellow}`,
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Decorative background elements */}
+          <Box
+            sx={{
+              position: 'absolute',
+              top: -20,
+              right: -20,
+              width: 80,
+              height: 80,
+              borderRadius: '50%',
+              bgcolor: 'rgba(244, 187, 68, 0.1)',
+            }}
+          />
+          <Box
+            sx={{
+              position: 'absolute',
+              bottom: -15,
+              left: -15,
+              width: 60,
+              height: 60,
+              borderRadius: '50%',
+              bgcolor: 'rgba(244, 187, 68, 0.15)',
+            }}
+          />
+
+          {/* Main illustration */}
+          <Typography
+            variant="h1"
+            sx={{
+              fontSize: '4rem',
+              mb: 2,
+              filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))',
+            }}
+          >
+            🔨🪜⛺
           </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-            Be the first to add items for your community to share!
+
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 600,
+              color: brandColors.charcoal,
+              mb: 2,
+              fontSize: { xs: '1.5rem', md: '2rem' },
+            }}
+          >
+            Your collection is waiting to come alive! 🌱
           </Typography>
-          {library.userRole && (
+
+          <Typography
+            variant="body1"
+            sx={{
+              color: brandColors.charcoal,
+              opacity: 0.8,
+              mb: 4,
+              maxWidth: '500px',
+              mx: 'auto',
+              fontSize: '1.1rem',
+              lineHeight: 1.6,
+            }}
+          >
+            {library?.userRole
+              ? `${library?.name} is ready for its first treasures! Add items to start building a community where neighbors share, discover, and connect.`
+              : `${library?.name} is just getting started! Once members add items, you'll see all the wonderful things available to borrow here.`}
+          </Typography>
+
+          {library?.userRole && (
             <Button
               variant="contained"
+              size="large"
               startIcon={<AddIcon />}
-              onClick={() => handleAddItem()}
+              onClick={handleAddFromInventory}
               sx={{
-                bgcolor: brandColors.inkBlue,
-                '&:hover': { bgcolor: '#1a2f4f' },
+                bgcolor: brandColors.mustardYellow,
+                color: brandColors.charcoal,
+                fontWeight: 600,
+                px: 4,
+                py: 1.5,
+                borderRadius: 2,
+                textTransform: 'none',
+                fontSize: '1.1rem',
+                boxShadow: '0 4px 12px rgba(244, 187, 68, 0.3)',
+                '&:hover': {
+                  bgcolor: '#E6A645',
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 6px 20px rgba(244, 187, 68, 0.4)',
+                },
+                transition: 'all 0.3s ease',
               }}
             >
-              Add First Item
+              Add Your First Item
             </Button>
           )}
-        </Paper>
+        </Box>
       )}
 
       {/* Vintage Checkout Card Dialog */}
@@ -839,12 +1246,123 @@ export function CollectionDetailClient({
         </MenuItem>
       </Menu>
 
+      {/* Collection Settings Menu - Owner/Admin Only */}
+      <Menu
+        anchorEl={settingsMenuAnchor}
+        open={Boolean(settingsMenuAnchor)}
+        onClose={handleSettingsMenuClose}
+        disablePortal={false}
+        MenuListProps={{
+          'aria-labelledby': 'collection-settings-button',
+        }}
+        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+        slotProps={{
+          paper: {
+            sx: {
+              zIndex: 9999,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              borderRadius: 2,
+              minWidth: 220,
+            },
+          },
+        }}
+      >
+        <MenuItem onClick={handleEditCollection}>
+          <ListItemIcon>
+            <EditIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText
+            primary="Edit Collection"
+            secondary="Update name, description, and location"
+          />
+        </MenuItem>
+        <MenuItem onClick={handleManageMembers}>
+          <ListItemIcon>
+            <PeopleIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText
+            primary="Manage Members"
+            secondary="Add, remove, or change member roles"
+          />
+        </MenuItem>
+        <MenuItem onClick={handleCollectionSettings}>
+          <ListItemIcon>
+            <SettingsIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText
+            primary="Collection Settings"
+            secondary="Privacy, permissions, and advanced options"
+          />
+        </MenuItem>
+        {library?.userRole === 'owner' && (
+          <MenuItem
+            onClick={handleSettingsMenuClose}
+            sx={{ color: 'error.main' }}
+          >
+            <ListItemIcon>
+              <ArchiveIcon fontSize="small" sx={{ color: 'error.main' }} />
+            </ListItemIcon>
+            <ListItemText
+              primary="Archive Collection"
+              secondary="Hide from public view"
+            />
+          </MenuItem>
+        )}
+      </Menu>
+
+      {/* Edit Collection Modal */}
+      {library && (
+        <EditCollectionModal
+          open={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          collection={{
+            id: library?.id,
+            name: library?.name,
+            description: library?.description ?? undefined,
+            location: library?.location ?? undefined,
+            isPublic: library?.isPublic,
+          }}
+          onSave={handleSaveCollection}
+        />
+      )}
+
       {/* Invite Friends Modal */}
       <InviteFriendsModal
         libraryId={collectionId}
         libraryName={library?.name || ''}
         open={inviteModalOpen}
         onClose={() => setInviteModalOpen(false)}
+      />
+
+      {/* Manage Members Modal */}
+      <ManageMembersModal
+        collectionId={collectionId}
+        collectionName={library?.name || ''}
+        userRole={library?.userRole || null}
+        open={manageMembersModalOpen}
+        onClose={() => setManageMembersModalOpen(false)}
+        onMembershipChanged={handleMembershipChanged}
+      />
+
+      <CollectionSettingsModal
+        open={settingsModalOpen}
+        onClose={() => setSettingsModalOpen(false)}
+        collection={{
+          id: library?.id || '',
+          name: library?.name || '',
+          description: library?.description,
+          location: library?.location,
+          isPublic: library?.isPublic || false,
+          memberCount: library?.memberCount || 0,
+          itemCount: library?.items?.length || 0,
+          isOwner: library?.userRole === 'owner',
+          isAdmin: library?.userRole === 'admin',
+        }}
+        onEditCollection={handleFromSettingsEditCollection}
+        onManageMembers={handleFromSettingsManageMembers}
+        onToggleVisibility={handleToggleVisibility}
+        onArchiveCollection={handleArchiveCollection}
       />
     </Container>
   );

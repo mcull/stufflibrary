@@ -20,7 +20,7 @@ export async function GET(
     const libraryId = id;
 
     // Check if user is library owner or admin
-    const library = await db.library.findFirst({
+    const library = await db.collection.findFirst({
       where: {
         id: libraryId,
         OR: [
