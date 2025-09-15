@@ -265,8 +265,8 @@ export function CollectionDetailClient({
     async (
       updatedCollection: Partial<{
         name: string;
-        description: string;
-        location: string;
+        description?: string | undefined;
+        location?: string | undefined;
         isPublic: boolean;
       }>
     ) => {
@@ -1349,11 +1349,11 @@ export function CollectionDetailClient({
         open={settingsModalOpen}
         onClose={() => setSettingsModalOpen(false)}
         collection={{
-          id: library?.id,
-          name: library?.name,
-          description: library?.description || undefined,
-          location: library?.location || undefined,
-          isPublic: library?.isPublic,
+          id: library?.id || '',
+          name: library?.name || '',
+          description: library?.description,
+          location: library?.location,
+          isPublic: library?.isPublic || false,
           memberCount: library?.memberCount || 0,
           itemCount: library?.items?.length || 0,
           isOwner: library?.userRole === 'owner',

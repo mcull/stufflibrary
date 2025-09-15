@@ -34,8 +34,8 @@ import { brandColors } from '@/theme/brandTokens';
 interface CollectionData {
   id: string;
   name: string;
-  description?: string;
-  location?: string;
+  description?: string | undefined;
+  location?: string | undefined;
   isPublic: boolean;
   memberCount: number;
   itemCount: number;
