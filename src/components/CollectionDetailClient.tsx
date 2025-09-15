@@ -262,6 +262,9 @@ export function CollectionDetailClient({
     async (updatedCollection: any) => {
       if (!library) return;
 
+      console.log('Saving collection changes:', updatedCollection);
+      console.log('Library ID:', library.id);
+
       try {
         const response = await fetch(`/api/collections/${library.id}`, {
           method: 'PATCH',
@@ -273,6 +276,8 @@ export function CollectionDetailClient({
 
         if (!response.ok) {
           const errorData = await response.json();
+          console.error('API Error Response:', errorData);
+          console.error('Response status:', response.status);
           throw new Error(errorData.error || 'Failed to update collection');
         }
 

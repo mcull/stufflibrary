@@ -492,25 +492,38 @@ export async function PATCH(
     const { id: libraryId } = await params;
 
     // Check if user has permission to edit (owner or admin)
-    const membership = await db.libraryMember.findUnique({
-      where: {
-        userId_libraryId: {
-          userId,
-          libraryId,
-        },
-      },
+    const library = await db.library.findUnique({
+      where: { id: libraryId },
       select: {
-        role: true,
-        library: {
-          select: {
-            ownerId: true,
-          },
-        },
+        ownerId: true,
       },
     });
 
-    const isOwner = membership?.library.ownerId === userId;
-    const isAdmin = membership?.role === 'admin';
+    if (!library) {
+      return NextResponse.json(
+        { error: 'Collection not found' },
+        { status: 404 }
+      );
+    }
+
+    const isOwner = library.ownerId === userId;
+
+    // Check if user is an admin member (if not owner)
+    let isAdmin = false;
+    if (!isOwner) {
+      const membership = await db.libraryMember.findUnique({
+        where: {
+          userId_libraryId: {
+            userId,
+            libraryId,
+          },
+        },
+        select: {
+          role: true,
+        },
+      });
+      isAdmin = membership?.role === 'admin';
+    }
 
     if (!isOwner && !isAdmin) {
       return NextResponse.json(
@@ -617,6 +630,10 @@ export async function PATCH(
     return NextResponse.json({ collection: updatedLibrary });
   } catch (error) {
     console.error('Error updating library:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return NextResponse.json(
       { error: 'Failed to update library' },
       { status: 500 }
