@@ -74,6 +74,7 @@ export function CollectionCard({ collection }: CollectionCardProps) {
         boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
         transition: 'transform 0.2s ease',
         cursor: 'pointer',
+        mb: 1, // 8px bottom margin for vertical spacing
         '&:hover': {
           transform: 'translateY(-2px)',
           boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
@@ -214,6 +215,7 @@ export function CreateCollectionCard({ onClick }: CreateCollectionCardProps) {
         overflow: 'visible',
         boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
         transition: 'all 0.3s ease',
+        mb: 1, // 8px bottom margin for vertical spacing
         '&:hover': {
           borderColor: brandColors.charcoal,
           backgroundColor: 'rgba(244, 187, 68, 0.2)',

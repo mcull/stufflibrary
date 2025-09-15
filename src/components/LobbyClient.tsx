@@ -26,7 +26,7 @@ import { useState } from 'react';
 import { useBorrowRequests } from '@/hooks/useBorrowRequests';
 import { useCollections } from '@/hooks/useCollections';
 import { useUserItems } from '@/hooks/useUserItems';
-import { brandColors, spacing } from '@/theme/brandTokens';
+import { brandColors } from '@/theme/brandTokens';
 
 import { CollectionCard, CreateCollectionCard } from './CollectionCard';
 import { CollectionCreationModal } from './CollectionCreationModal';
@@ -139,7 +139,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
               lg: 'repeat(5, 1fr)', // 5 columns on large screens
               xl: 'repeat(6, 1fr)', // 6 columns on extra large screens
             },
-            gap: spacing.md / 16,
+            gap: 1,
           }}
         >
           {showAddItem && <AddItemCard />}
@@ -440,7 +440,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                     lg: 'repeat(5, 1fr)', // 5 columns on large screens
                     xl: 'repeat(6, 1fr)', // 6 columns on extra large screens
                   },
-                  gap: spacing.md / 16,
+                  gap: 1,
                 }}
               >
                 {filteredItems.map((item) => (
@@ -681,7 +681,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                   lg: 'repeat(5, 1fr)', // 5 columns on large screens - matches My Shelf
                   xl: 'repeat(6, 1fr)', // 6 columns on extra large screens - matches My Shelf
                 },
-                gap: spacing.md / 16,
+                gap: 1,
                 mb: 4, // Match the bottom margin from My Shelf ItemSection components
               }}
             >
