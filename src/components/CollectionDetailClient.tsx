@@ -273,10 +273,10 @@ export function CollectionDetailClient({
       if (!library) return;
 
       console.log('Saving collection changes:', updatedCollection);
-      console.log('Library ID:', library.id);
+      console.log('Library ID:', library?.id);
 
       try {
-        const response = await fetch(`/api/collections/${library.id}`, {
+        const response = await fetch(`/api/collections/${library?.id}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -341,7 +341,7 @@ export function CollectionDetailClient({
   // Memoize map props at the top level
   const mapMembers = useMemo(() => {
     if (!library) return [];
-    return library.members.map((member) => {
+    return library?.members.map((member) => {
       const address = member.user.addresses?.[0];
       return {
         id: member.user.id,
@@ -387,7 +387,7 @@ export function CollectionDetailClient({
 
     // Show confirmation dialog
     const confirmed = window.confirm(
-      `Are you sure you want to archive "${library.name}"?\n\n` +
+      `Are you sure you want to archive "${library?.name}"?\n\n` +
         'This will:\n' +
         '• Hide the collection from your active collections\n' +
         '• Preserve all items and member data\n' +
@@ -398,7 +398,7 @@ export function CollectionDetailClient({
     if (!confirmed) return;
 
     try {
-      const response = await fetch(`/api/collections/${library.id}/archive`, {
+      const response = await fetch(`/api/collections/${library?.id}/archive`, {
         method: 'POST',
       });
 
@@ -410,7 +410,7 @@ export function CollectionDetailClient({
       await response.json();
 
       // Show success message and redirect
-      alert(`Collection "${library.name}" has been archived successfully.`);
+      alert(`Collection "${library?.name}" has been archived successfully.`);
       router.push('/stacks');
     } catch (error) {
       console.error('Error archiving collection:', error);
@@ -449,7 +449,7 @@ export function CollectionDetailClient({
     );
   }
 
-  const categories = Object.keys(library.itemsByCategory).sort();
+  const categories = Object.keys(library?.itemsByCategory).sort();
   const hasItems = categories.length > 0;
 
   return (
@@ -487,7 +487,7 @@ export function CollectionDetailClient({
           }}
         >
           Welcome{currentUserName ? `, ${currentUserName}` : ''}, to{' '}
-          {library.name}! 🎉
+          {library?.name}! 🎉
         </Alert>
       )}
 
@@ -551,13 +551,13 @@ export function CollectionDetailClient({
                 maxWidth: { xs: '120px', sm: '200px', md: 'none' },
               }}
             >
-              {library.name}
+              {library?.name}
             </Typography>
           </Typography>
         </Box>
 
         {/* Collection Settings Menu - Owner/Admin Only - Upper Right Corner */}
-        {(library.userRole === 'owner' || library.userRole === 'admin') && (
+        {(library?.userRole === 'owner' || library?.userRole === 'admin') && (
           <IconButton
             onClick={handleSettingsMenuClick}
             size="medium"
@@ -650,7 +650,7 @@ export function CollectionDetailClient({
                 fontSize: '0.875rem',
               }}
             >
-              📍 {library.location}
+              📍 {library?.location}
             </Typography>
           )}
         </Box>
@@ -658,8 +658,8 @@ export function CollectionDetailClient({
         {/* Description */}
         <ExpandableText
           text={
-            library.description ||
-            `A community library with ${library.memberCount} members sharing ${library.itemCount} items.`
+            library?.description ||
+            `A community library with ${library?.memberCount} members sharing ${library?.itemCount} items.`
           }
           maxLength={180}
           variant="body1"
@@ -881,7 +881,7 @@ export function CollectionDetailClient({
           }}
         >
           <LibraryMap
-            libraryName={library.name}
+            libraryName={library?.name}
             members={mapMembers}
             currentUser={mapCurrentUser}
           />
@@ -896,7 +896,7 @@ export function CollectionDetailClient({
           sx={{ flexWrap: 'wrap', gap: 1 }}
         >
           <Chip
-            label={`All ${library.itemCount}`}
+            label={`All ${library?.itemCount}`}
             onClick={() => setActiveFilter('all')}
             sx={{
               backgroundColor:
@@ -914,13 +914,13 @@ export function CollectionDetailClient({
               },
             }}
           />
-          {Object.keys(library.itemsByCategory)
+          {Object.keys(library?.itemsByCategory)
             .sort()
             .map((category) => {
               const categoryConfig =
                 CATEGORY_CONFIG[category as keyof typeof CATEGORY_CONFIG] ||
                 CATEGORY_CONFIG.other;
-              const itemCount = library.itemsByCategory[category]?.length || 0;
+              const itemCount = library?.itemsByCategory[category]?.length || 0;
 
               return (
                 <Chip
@@ -959,7 +959,7 @@ export function CollectionDetailClient({
                   CATEGORY_CONFIG[
                     categoryKey as keyof typeof CATEGORY_CONFIG
                   ] || CATEGORY_CONFIG.other;
-                const items = library.itemsByCategory[categoryKey];
+                const items = library?.itemsByCategory[categoryKey];
 
                 if (!items || items.length === 0) return null;
 
@@ -1026,7 +1026,7 @@ export function CollectionDetailClient({
                   CATEGORY_CONFIG[
                     activeFilter as keyof typeof CATEGORY_CONFIG
                   ] || CATEGORY_CONFIG.other;
-                const items = library.itemsByCategory[activeFilter] || [];
+                const items = library?.itemsByCategory[activeFilter] || [];
 
                 return (
                   <Box>
@@ -1160,12 +1160,12 @@ export function CollectionDetailClient({
               lineHeight: 1.6,
             }}
           >
-            {library.userRole
-              ? `${library.name} is ready for its first treasures! Add items to start building a community where neighbors share, discover, and connect.`
-              : `${library.name} is just getting started! Once members add items, you'll see all the wonderful things available to borrow here.`}
+            {library?.userRole
+              ? `${library?.name} is ready for its first treasures! Add items to start building a community where neighbors share, discover, and connect.`
+              : `${library?.name} is just getting started! Once members add items, you'll see all the wonderful things available to borrow here.`}
           </Typography>
 
-          {library.userRole && (
+          {library?.userRole && (
             <Button
               variant="contained"
               size="large"
@@ -1317,11 +1317,11 @@ export function CollectionDetailClient({
           open={editModalOpen}
           onClose={() => setEditModalOpen(false)}
           collection={{
-            id: library.id,
-            name: library.name,
-            description: library.description ?? undefined,
-            location: library.location ?? undefined,
-            isPublic: library.isPublic,
+            id: library?.id,
+            name: library?.name,
+            description: library?.description ?? undefined,
+            location: library?.location ?? undefined,
+            isPublic: library?.isPublic,
           }}
           onSave={handleSaveCollection}
         />
@@ -1349,15 +1349,15 @@ export function CollectionDetailClient({
         open={settingsModalOpen}
         onClose={() => setSettingsModalOpen(false)}
         collection={{
-          id: library.id,
-          name: library.name,
-          description: library.description || undefined,
-          location: library.location || undefined,
-          isPublic: library.isPublic,
-          memberCount: library.memberCount || 0,
-          itemCount: library.items?.length || 0,
-          isOwner: library.userRole === 'owner',
-          isAdmin: library.userRole === 'admin',
+          id: library?.id,
+          name: library?.name,
+          description: library?.description || undefined,
+          location: library?.location || undefined,
+          isPublic: library?.isPublic,
+          memberCount: library?.memberCount || 0,
+          itemCount: library?.items?.length || 0,
+          isOwner: library?.userRole === 'owner',
+          isAdmin: library?.userRole === 'admin',
         }}
         onEditCollection={handleFromSettingsEditCollection}
         onManageMembers={handleFromSettingsManageMembers}
