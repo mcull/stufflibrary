@@ -513,9 +513,9 @@ export async function PATCH(
     if (!isOwner) {
       const membership = await db.collectionMember.findUnique({
         where: {
-          userId_libraryId: {
+          userId_collectionId: {
             userId,
-            libraryId,
+            collectionId: libraryId,
           },
         },
         select: {

@@ -21,11 +21,11 @@ export async function GET(
     const invitation = await db.invitation.findFirst({
       where: {
         token,
-        type: 'library',
+        type: 'collection',
         status: { in: ['PENDING', 'SENT'] },
       },
       include: {
-        library: {
+        collection: {
           select: {
             id: true,
             name: true,
@@ -59,7 +59,7 @@ export async function GET(
       success: true,
       invitation: {
         email: invitation.email,
-        library: invitation.library,
+        collection: invitation.collection,
         sender: invitation.sender,
         expiresAt: invitation.expiresAt,
       },

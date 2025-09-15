@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       SELECT table_name 
       FROM information_schema.tables 
       WHERE table_schema = 'public' 
-      AND table_name IN ('libraries', 'library_members', 'item_libraries', 'users', 'addresses')
+      AND table_name IN ('collections', 'collection_members', 'item_collections', 'users', 'addresses')
       ORDER BY table_name
     `;
 
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     // Check counts of key entities
     const counts = await Promise.allSettled([
       db.user.count(),
-      db.library?.count() || Promise.resolve(0),
+      db.collection?.count() || Promise.resolve(0),
       db.invitation.count(),
     ]);
 
@@ -70,9 +70,9 @@ export async function GET(request: NextRequest) {
         tables: {
           found: tableNames,
           missing: [
-            'libraries',
-            'library_members',
-            'item_libraries',
+            'collections',
+            'collection_members',
+            'item_collections',
             'users',
             'addresses',
           ].filter((table) => !tableNames.includes(table)),
@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
         migrations: migrationHistory,
         counts: {
           users: counts[0].status === 'fulfilled' ? counts[0].value : 'error',
-          libraries:
+          collections:
             counts[1].status === 'fulfilled' ? counts[1].value : 'error',
           invitations:
             counts[2].status === 'fulfilled' ? counts[2].value : 'error',
@@ -93,16 +93,18 @@ export async function GET(request: NextRequest) {
       },
       health: {
         overall:
-          tableNames.includes('libraries') && tableNames.includes('users')
+          tableNames.includes('collections') && tableNames.includes('users')
             ? 'healthy'
             : 'unhealthy',
-        canCreateLibraries:
-          tableNames.includes('libraries') &&
-          tableNames.includes('library_members'),
+        canCreateCollections:
+          tableNames.includes('collections') &&
+          tableNames.includes('collection_members'),
         hasGoogleMaps: coordinateColumns.length === 2,
-        criticalTablesPresent: ['users', 'libraries', 'library_members'].every(
-          (t) => tableNames.includes(t)
-        ),
+        criticalTablesPresent: [
+          'users',
+          'collections',
+          'collection_members',
+        ].every((t) => tableNames.includes(t)),
       },
     };
 
@@ -126,7 +128,7 @@ export async function GET(request: NextRequest) {
         },
         health: {
           overall: 'unhealthy',
-          canCreateLibraries: false,
+          canCreateCollections: false,
           hasGoogleMaps: false,
           criticalTablesPresent: false,
         },

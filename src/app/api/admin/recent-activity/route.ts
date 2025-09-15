@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '20');
 
     // Get recent activities from different entities
-    const [recentUsers, recentItems, recentRequests, recentLibraries] =
+    const [recentUsers, recentItems, recentRequests, recentCollections] =
       await Promise.all([
         // Recent users
         db.user.findMany({
@@ -64,8 +64,8 @@ export async function GET(request: Request) {
           take: Math.floor(limit / 4),
         }),
 
-        // Recent libraries
-        db.library.findMany({
+        // Recent collections
+        db.collection.findMany({
           select: {
             id: true,
             name: true,
@@ -121,16 +121,16 @@ export async function GET(request: Request) {
           itemName: request.item.name,
         },
       })),
-      ...recentLibraries.map((library) => ({
-        id: `library-${library.id}`,
-        type: 'library_created',
-        title: 'New library created',
-        description: `${library.owner.name || library.owner.email} created library "${library.name}"`,
-        timestamp: library.createdAt,
+      ...recentCollections.map((collection) => ({
+        id: `collection-${collection.id}`,
+        type: 'collection_created',
+        title: 'New collection created',
+        description: `${collection.owner.name || collection.owner.email} created collection "${collection.name}"`,
+        timestamp: collection.createdAt,
         metadata: {
-          libraryId: library.id,
-          libraryName: library.name,
-          ownerName: library.owner.name,
+          collectionId: collection.id,
+          collectionName: collection.name,
+          ownerName: collection.owner.name,
         },
       })),
     ];
