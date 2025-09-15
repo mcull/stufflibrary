@@ -468,3 +468,158 @@ export async function DELETE(
     );
   }
 }
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const userId =
+      (session.user as any).id ||
+      (session as any).user?.id ||
+      (session as any).userId;
+
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
+    }
+
+    const { id: libraryId } = await params;
+
+    // Check if user has permission to edit (owner or admin)
+    const membership = await db.libraryMember.findUnique({
+      where: {
+        userId_libraryId: {
+          userId,
+          libraryId,
+        },
+      },
+      select: {
+        role: true,
+        library: {
+          select: {
+            ownerId: true,
+          },
+        },
+      },
+    });
+
+    const isOwner = membership?.library.ownerId === userId;
+    const isAdmin = membership?.role === 'admin';
+
+    if (!isOwner && !isAdmin) {
+      return NextResponse.json(
+        { error: 'Only library owners and admins can edit collections' },
+        { status: 403 }
+      );
+    }
+
+    // Parse request body
+    const body = await request.json();
+    const { name, description, location, isPublic } = body;
+
+    // Validation
+    const updates: any = {};
+
+    if (name !== undefined) {
+      if (typeof name !== 'string' || name.trim().length === 0) {
+        return NextResponse.json(
+          { error: 'Collection name is required and must be a string' },
+          { status: 400 }
+        );
+      }
+      if (name.trim().length > 100) {
+        return NextResponse.json(
+          { error: 'Collection name must be 100 characters or less' },
+          { status: 400 }
+        );
+      }
+      updates.name = name.trim();
+    }
+
+    if (description !== undefined) {
+      if (typeof description !== 'string') {
+        return NextResponse.json(
+          { error: 'Description must be a string' },
+          { status: 400 }
+        );
+      }
+      if (description.length > 500) {
+        return NextResponse.json(
+          { error: 'Description must be 500 characters or less' },
+          { status: 400 }
+        );
+      }
+      updates.description = description || null;
+    }
+
+    if (location !== undefined) {
+      if (typeof location !== 'string') {
+        return NextResponse.json(
+          { error: 'Location must be a string' },
+          { status: 400 }
+        );
+      }
+      if (location.length > 100) {
+        return NextResponse.json(
+          { error: 'Location must be 100 characters or less' },
+          { status: 400 }
+        );
+      }
+      updates.location = location || null;
+    }
+
+    if (isPublic !== undefined) {
+      if (typeof isPublic !== 'boolean') {
+        return NextResponse.json(
+          { error: 'isPublic must be a boolean' },
+          { status: 400 }
+        );
+      }
+      updates.isPublic = isPublic;
+    }
+
+    // If no valid updates, return success without making changes
+    if (Object.keys(updates).length === 0) {
+      const library = await db.library.findUnique({
+        where: { id: libraryId },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          location: true,
+          isPublic: true,
+        },
+      });
+
+      return NextResponse.json({ collection: library });
+    }
+
+    // Update the library
+    const updatedLibrary = await db.library.update({
+      where: { id: libraryId },
+      data: updates,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        location: true,
+        isPublic: true,
+        updatedAt: true,
+      },
+    });
+
+    return NextResponse.json({ collection: updatedLibrary });
+  } catch (error) {
+    console.error('Error updating library:', error);
+    return NextResponse.json(
+      { error: 'Failed to update library' },
+      { status: 500 }
+    );
+  }
+}

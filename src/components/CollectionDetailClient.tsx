@@ -33,6 +33,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 
 import { brandColors, spacing } from '@/theme/brandTokens';
 
+import { EditCollectionModal } from './EditCollectionModal';
 import { InviteFriendsModal } from './InviteFriendsModal';
 import { LibraryItemCard } from './LibraryItemCard';
 import { LibraryMap } from './LibraryMap';
@@ -166,6 +167,7 @@ export function CollectionDetailClient({
   const [currentUserName, setCurrentUserName] = useState<string | null>(null);
   const [settingsMenuAnchor, setSettingsMenuAnchor] =
     useState<HTMLElement | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [addMenuAnchor, setAddMenuAnchor] = useState<null | HTMLElement>(null);
   const addMenuOpen = Boolean(addMenuAnchor);
@@ -241,8 +243,7 @@ export function CollectionDetailClient({
 
   const handleEditCollection = useCallback(() => {
     handleSettingsMenuClose();
-    // TODO: Open edit collection modal/form
-    console.log('Edit collection details');
+    setEditModalOpen(true);
   }, [handleSettingsMenuClose]);
 
   const handleManageMembers = useCallback(() => {
@@ -256,6 +257,39 @@ export function CollectionDetailClient({
     // TODO: Open advanced settings modal
     console.log('Collection settings');
   }, [handleSettingsMenuClose]);
+
+  const handleSaveCollection = useCallback(
+    async (updatedCollection: any) => {
+      if (!library) return;
+
+      try {
+        const response = await fetch(`/api/collections/${library.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(updatedCollection),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to update collection');
+        }
+
+        const { collection: updatedData } = await response.json();
+
+        // Optimistically update the local library state
+        setLibrary((prev) => (prev ? { ...prev, ...updatedData } : prev));
+
+        // TODO: Show success toast notification
+        console.log('Collection updated successfully');
+      } catch (error) {
+        console.error('Failed to update collection:', error);
+        throw error; // Re-throw to let modal handle the error display
+      }
+    },
+    [library]
+  );
 
   const handleAddNewItem = useCallback(() => {
     handleAddMenuClose();
@@ -1192,6 +1226,22 @@ export function CollectionDetailClient({
           </MenuItem>
         )}
       </Menu>
+
+      {/* Edit Collection Modal */}
+      {library && (
+        <EditCollectionModal
+          open={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          collection={{
+            id: library.id,
+            name: library.name,
+            description: library.description ?? undefined,
+            location: library.location ?? undefined,
+            isPublic: library.isPublic,
+          }}
+          onSave={handleSaveCollection}
+        />
+      )}
 
       {/* Invite Friends Modal */}
       <InviteFriendsModal
