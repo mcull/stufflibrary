@@ -33,10 +33,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Get total count
-    const total = await db.library.count({ where });
+    const total = await db.collection.count({ where });
 
-    // Get libraries with relations
-    const libraries = await db.library.findMany({
+    // Get collections with relations
+    const collections = await db.collection.findMany({
       where,
       skip,
       take: limit,
@@ -71,17 +71,17 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Enrich libraries with computed fields
-    const enrichedLibraries = libraries.map((library) => ({
-      ...library,
-      totalMembers: library._count.members + 1, // +1 for owner
-      totalItems: library._count.items,
-      totalInvitations: library._count.invitations,
-      activeMembers: library.members.filter((m) => m.isActive).length + 1, // +1 for owner
+    // Enrich collections with computed fields
+    const enrichedCollections = collections.map((collection) => ({
+      ...collection,
+      totalMembers: collection._count.members + 1, // +1 for owner
+      totalItems: collection._count.items,
+      totalInvitations: collection._count.invitations,
+      activeMembers: collection.members.filter((m) => m.isActive).length + 1, // +1 for owner
     }));
 
     return NextResponse.json({
-      libraries: enrichedLibraries,
+      collections: enrichedCollections,
       pagination: {
         total,
         page,
@@ -90,11 +90,13 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Admin libraries fetch error:', error);
+    console.error('Admin collections fetch error:', error);
     return NextResponse.json(
       {
         error:
-          error instanceof Error ? error.message : 'Failed to fetch libraries',
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch collections',
       },
       { status: 500 }
     );
@@ -105,11 +107,15 @@ export async function PATCH(request: NextRequest) {
   try {
     await requireAdminAuth();
 
-    const { libraryIds, action, data } = await request.json();
+    const { collectionIds, action, data } = await request.json();
 
-    if (!libraryIds || !Array.isArray(libraryIds) || libraryIds.length === 0) {
+    if (
+      !collectionIds ||
+      !Array.isArray(collectionIds) ||
+      collectionIds.length === 0
+    ) {
       return NextResponse.json(
-        { error: 'Library IDs are required' },
+        { error: 'Collection IDs are required' },
         { status: 400 }
       );
     }
@@ -118,27 +124,27 @@ export async function PATCH(request: NextRequest) {
 
     switch (action) {
       case 'delete':
-        result = await db.library.deleteMany({
-          where: { id: { in: libraryIds } },
+        result = await db.collection.deleteMany({
+          where: { id: { in: collectionIds } },
         });
         break;
 
       case 'togglePublic':
-        // Toggle public status for each library individually
-        const libraries = await db.library.findMany({
-          where: { id: { in: libraryIds } },
+        // Toggle public status for each collection individually
+        const collections = await db.collection.findMany({
+          where: { id: { in: collectionIds } },
           select: { id: true, isPublic: true },
         });
 
-        const updatePromises = libraries.map((lib) =>
-          db.library.update({
-            where: { id: lib.id },
-            data: { isPublic: !lib.isPublic },
+        const updatePromises = collections.map((collection) =>
+          db.collection.update({
+            where: { id: collection.id },
+            data: { isPublic: !collection.isPublic },
           })
         );
 
         await Promise.all(updatePromises);
-        result = { count: libraries.length };
+        result = { count: collections.length };
         break;
 
       case 'updateVisibility':
@@ -148,8 +154,8 @@ export async function PATCH(request: NextRequest) {
             { status: 400 }
           );
         }
-        result = await db.library.updateMany({
-          where: { id: { in: libraryIds } },
+        result = await db.collection.updateMany({
+          where: { id: { in: collectionIds } },
           data: { isPublic: data.isPublic },
         });
         break;
@@ -170,7 +176,7 @@ export async function PATCH(request: NextRequest) {
       action,
     });
   } catch (error) {
-    console.error('Admin libraries bulk operation error:', error);
+    console.error('Admin collections bulk operation error:', error);
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : 'Bulk operation failed',

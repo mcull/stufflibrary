@@ -360,7 +360,11 @@ export function ManageMembersModal({
                         sx={{ display: 'flex', alignItems: 'center', flex: 1 }}
                       >
                         <ListItemAvatar>
-                          <Avatar src={member.user.image || ''}>
+                          <Avatar
+                            {...(member.user.image && {
+                              src: member.user.image,
+                            })}
+                          >
                             {member.user.name?.charAt(0).toUpperCase() ||
                               member.user.email?.charAt(0).toUpperCase() ||
                               '?'}
@@ -386,9 +390,11 @@ export function ManageMembersModal({
                                 size="small"
                                 color={getRoleColor(member.role)}
                                 variant="outlined"
-                                {...(member.role === 'admin' && {
-                                  icon: <AdminIcon />,
-                                })}
+                                {...(member.role === 'admin'
+                                  ? {
+                                      icon: <AdminIcon />,
+                                    }
+                                  : {})}
                               />
                             </Box>
                           }
