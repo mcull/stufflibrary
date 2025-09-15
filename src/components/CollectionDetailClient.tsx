@@ -34,6 +34,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { brandColors, spacing } from '@/theme/brandTokens';
 
 import { EditCollectionModal } from './EditCollectionModal';
+import { ExpandableText } from './ExpandableText';
 import { InviteFriendsModal } from './InviteFriendsModal';
 import { LibraryItemCard } from './LibraryItemCard';
 import { LibraryMap } from './LibraryMap';
@@ -376,7 +377,7 @@ export function CollectionDetailClient({
   const hasItems = categories.length > 0;
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container maxWidth="lg" sx={{ py: 4, position: 'relative' }}>
       {/* Welcome Banner for New Members */}
       {showWelcomeBanner && (
         <Alert
@@ -479,12 +480,32 @@ export function CollectionDetailClient({
           </Typography>
         </Box>
 
+        {/* Collection Settings Menu - Owner/Admin Only - Upper Right Corner */}
+        {(library.userRole === 'owner' || library.userRole === 'admin') && (
+          <IconButton
+            onClick={handleSettingsMenuClick}
+            size="medium"
+            sx={{
+              position: 'absolute',
+              top: { xs: 16, sm: 24 },
+              right: { xs: 16, sm: 24 },
+              color: brandColors.charcoal,
+              opacity: 0.6,
+              zIndex: 10,
+              '&:hover': {
+                opacity: 1,
+                backgroundColor: 'rgba(30, 58, 95, 0.08)',
+              },
+            }}
+            title="Collection Settings"
+          >
+            <MoreVertIcon />
+          </IconButton>
+        )}
+
         {/* Collection Name - Visual Hero */}
         <Box
           sx={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 2,
             mb: spacing.sm / 16,
           }}
         >
@@ -495,31 +516,10 @@ export function CollectionDetailClient({
               fontWeight: 800,
               color: brandColors.charcoal,
               lineHeight: 1.1,
-              flex: 1,
             }}
           >
             {library.name}
           </Typography>
-
-          {/* Collection Settings Menu - Owner/Admin Only */}
-          {(library.userRole === 'owner' || library.userRole === 'admin') && (
-            <IconButton
-              onClick={handleSettingsMenuClick}
-              size="medium"
-              sx={{
-                color: brandColors.charcoal,
-                opacity: 0.6,
-                mt: 1,
-                '&:hover': {
-                  opacity: 1,
-                  backgroundColor: 'rgba(30, 58, 95, 0.08)',
-                },
-              }}
-              title="Collection Settings"
-            >
-              <MoreVertIcon />
-            </IconButton>
-          )}
         </Box>
 
         {/* Metadata Group - Muted and smaller */}
@@ -580,7 +580,12 @@ export function CollectionDetailClient({
         </Box>
 
         {/* Description */}
-        <Typography
+        <ExpandableText
+          text={
+            library.description ||
+            `A community library with ${library.memberCount} members sharing ${library.itemCount} items.`
+          }
+          maxLength={180}
           variant="body1"
           sx={{
             color: brandColors.charcoal,
@@ -589,10 +594,7 @@ export function CollectionDetailClient({
             mb: spacing.lg / 16,
             fontSize: { xs: '1rem', md: '1.125rem' },
           }}
-        >
-          {library.description ||
-            `A community library with ${library.memberCount} members sharing ${library.itemCount} items.`}
-        </Typography>
+        />
 
         {/* Action Toolbar - Hidden */}
         {false && library.userRole && (
