@@ -562,31 +562,13 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
             <CircularProgress size={40} />
           </Box>
         ) : collections.length === 0 ? (
-          <Box sx={{ textAlign: 'center', py: 4 }}>
-            <Box
-              sx={{
-                width: 100,
-                height: 100,
-                borderRadius: '50%',
-                backgroundColor: brandColors.mustardYellow,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                mx: 'auto',
-                mb: 3,
-              }}
-            >
-              <Typography variant="h3" sx={{ color: brandColors.charcoal }}>
-                ➕
-              </Typography>
-            </Box>
-
+          <Box sx={{ textAlign: 'center', py: 2 }}>
             <Typography
               variant="h5"
               sx={{
                 fontWeight: 600,
                 color: brandColors.charcoal,
-                mb: 2,
+                mb: 1.5,
               }}
             >
               Start Your First Library
@@ -595,14 +577,14 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
             <Typography
               variant="body1"
               color="text.secondary"
-              sx={{ mb: 4, maxWidth: 500, mx: 'auto', lineHeight: 1.6 }}
+              sx={{ mb: 3, maxWidth: 500, mx: 'auto', lineHeight: 1.6 }}
             >
               Libraries are private sharing circles where you and people you
               trust can lend and borrow items. Create one for your family,
               friend group, or neighbors.
             </Typography>
 
-            <Box sx={{ mb: 4, maxWidth: 600, mx: 'auto' }}>
+            <Box sx={{ mb: 3, maxWidth: 600, mx: 'auto' }}>
               <Typography
                 variant="subtitle2"
                 sx={{
