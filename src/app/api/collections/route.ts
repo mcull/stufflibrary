@@ -12,8 +12,11 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user ID
-    const userId = (session.user as { id?: string }).id;
+    // Get user ID (support multiple session shapes)
+    const userId =
+      (session.user as any).id ||
+      (session as any).user?.id ||
+      (session as any).userId;
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
@@ -158,8 +161,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user ID
-    const userId = (session.user as { id?: string }).id;
+    // Get user ID (support multiple session shapes)
+    const userId =
+      (session.user as any).id ||
+      (session as any).user?.id ||
+      (session as any).userId;
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
