@@ -63,6 +63,7 @@ export function EditCollectionModal({
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
+  const [showBetaPrivacyNote, setShowBetaPrivacyNote] = useState(false);
 
   // Initialize form with collection data
   useEffect(() => {
@@ -96,6 +97,13 @@ export function EditCollectionModal({
     (field: keyof FormData) => (event: React.ChangeEvent<HTMLInputElement>) => {
       let value =
         field === 'isPublic' ? event.target.checked : event.target.value;
+
+      // During beta, libraries must remain private
+      if (field === 'isPublic' && value === true) {
+        setShowBetaPrivacyNote(true);
+        // Do not allow enabling public during beta
+        value = false;
+      }
 
       // Truncate input based on field limits
       if (field === 'name' && typeof value === 'string') {
@@ -349,6 +357,22 @@ export function EditCollectionModal({
                       ? 'Anyone can discover and request to join this library'
                       : 'Only people you invite can join this library'}
                   </Box>
+                  {showBetaPrivacyNote && (
+                    <Box
+                      sx={{
+                        mt: 1,
+                        fontSize: '0.875rem',
+                        color: '#FF6347', // tomato
+                        bgcolor: 'rgba(255, 99, 71, 0.08)',
+                        border: '1px solid rgba(255, 99, 71, 0.3)',
+                        borderRadius: 1,
+                        p: 1,
+                      }}
+                    >
+                      During our beta period, all libraries are private. Thanks
+                      for your patience — public libraries are coming soon.
+                    </Box>
+                  )}
                 </Box>
               }
             />
