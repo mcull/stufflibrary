@@ -551,7 +551,7 @@ export function CollectionDetailClient({
                 maxWidth: { xs: '120px', sm: '200px', md: 'none' },
               }}
             >
-              {library?.name}
+              Current Library
             </Typography>
           </Typography>
         </Box>
