@@ -843,12 +843,12 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
   const tabs: TabItem[] = [
     {
       id: 'others-stuff',
-      label: 'Collections',
+      label: 'Libraries',
       content: yourCollectionsContent,
     },
     {
       id: 'your-stuff',
-      label: 'My Shelf',
+      label: 'My Stuff',
       content: yourStuffContent,
     },
   ];
