@@ -273,7 +273,7 @@ export function CreateCollectionCard({ onClick }: CreateCollectionCardProps) {
             textAlign: 'center',
           }}
         >
-          Create Collection
+          Start a New Library
         </Typography>
 
         {/* No chip needed for CreateCollection card */}
