@@ -124,7 +124,7 @@ export function CollectionCreationModal({
             component="h2"
             sx={{ fontWeight: 600, color: brandColors.inkBlue }}
           >
-            Create Your Library
+            Start a New Library
           </Typography>
           <IconButton
             onClick={handleClose}
@@ -195,7 +195,7 @@ export function CollectionCreationModal({
               '&:disabled': { bgcolor: 'grey.300' },
             }}
           >
-            {isSubmitting ? 'Creating...' : 'Create Library'}
+            {isSubmitting ? 'Starting...' : 'Start New Library'}
           </Button>
         </DialogActions>
       </form>
