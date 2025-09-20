@@ -535,7 +535,7 @@ export function CollectionDetailClient({
                 transition: 'all 0.2s ease',
               }}
             >
-              Collections
+              Libraries
             </Typography>
             <Typography component="span" sx={{ opacity: 0.4 }}>
               /
@@ -573,13 +573,13 @@ export function CollectionDetailClient({
                 backgroundColor: 'rgba(30, 58, 95, 0.08)',
               },
             }}
-            title="Collection Settings"
+            title="Library Settings"
           >
             <MoreVertIcon />
           </IconButton>
         )}
 
-        {/* Collection Name - Visual Hero */}
+        {/* Library Name - Visual Hero */}
         <Box
           sx={{
             mb: spacing.sm / 16,
@@ -869,7 +869,7 @@ export function CollectionDetailClient({
               fontSize: '1.25rem',
             }}
           >
-            Collection Map
+            Library Map
           </Typography>
         )}
         <Box

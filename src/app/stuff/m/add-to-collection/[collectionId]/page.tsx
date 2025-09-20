@@ -190,7 +190,7 @@ export default function AddToCollectionPage() {
               variant="outlined"
               onClick={() => router.push(`/collection/${collectionId}`)}
             >
-              Back to Collection
+              Back to Library
             </Button>
           </Stack>
         </Box>

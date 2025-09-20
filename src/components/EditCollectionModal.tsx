@@ -85,7 +85,7 @@ export function EditCollectionModal({
 
     // Name validation - only check if empty since we truncate on input
     if (!formData.name.trim()) {
-      newErrors.name = 'Collection name is required';
+      newErrors.name = 'Library name is required';
     }
 
     setErrors(newErrors);
@@ -201,7 +201,7 @@ export function EditCollectionModal({
         }}
       >
         <Box>
-          Edit Collection
+          Edit Library
           <Box
             component="span"
             sx={{
@@ -234,9 +234,9 @@ export function EditCollectionModal({
             </Alert>
           )}
 
-          {/* Collection Name */}
+          {/* Library Name */}
           <TextField
-            label="Collection Name"
+            label="Library Name"
             value={formData.name}
             onChange={handleInputChange('name')}
             onKeyDown={handleKeyDown}
@@ -333,9 +333,7 @@ export function EditCollectionModal({
               label={
                 <Box>
                   <Box component="span" sx={{ fontWeight: 500 }}>
-                    {formData.isPublic
-                      ? 'Public Collection'
-                      : 'Private Collection'}
+                    {formData.isPublic ? 'Public Library' : 'Private Library'}
                   </Box>
                   <Box
                     component="span"
@@ -348,8 +346,8 @@ export function EditCollectionModal({
                     }}
                   >
                     {formData.isPublic
-                      ? 'Anyone can discover and request to join this collection'
-                      : 'Only people you invite can join this collection'}
+                      ? 'Anyone can discover and request to join this library'
+                      : 'Only people you invite can join this library'}
                   </Box>
                 </Box>
               }

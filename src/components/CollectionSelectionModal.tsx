@@ -148,7 +148,7 @@ export function CollectionSelectionModal({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ pb: 1, fontWeight: 600, fontSize: '1.5rem' }}>
-        Add &ldquo;{itemName}&rdquo; to Collections
+        Add &ldquo;{itemName}&rdquo; to Libraries
       </DialogTitle>
 
       <DialogContent>
@@ -268,9 +268,9 @@ export function CollectionSelectionModal({
                   Adding...
                 </>
               ) : selectedCollectionIds.length > 0 ? (
-                `Add to ${selectedCollectionIds.length} ${selectedCollectionIds.length === 1 ? 'Collection' : 'Collections'}`
+                `Add to ${selectedCollectionIds.length} ${selectedCollectionIds.length === 1 ? 'Library' : 'Libraries'}`
               ) : (
-                'Select Collections'
+                'Select Libraries'
               )}
             </Button>
           </>
