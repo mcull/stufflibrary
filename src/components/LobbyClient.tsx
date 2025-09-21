@@ -494,28 +494,40 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                   <img
                     src="/blenderphone1/IMG_9637-left.png"
                     alt="Phone taking a photo"
-                    width="56"
-                    height="56"
-                    style="border-radius:8px;border:1px solid #eee;object-fit:cover"
-                    onerror="this.style.display='none'"
+                    width={56}
+                    height={56}
+                    style={{
+                      borderRadius: 8,
+                      border: '1px solid #eee',
+                      objectFit: 'cover',
+                    }}
+                    onError={(e) => (e.currentTarget.style.display = 'none')}
                   />
-                  <span style="opacity:0.6">→</span>
+                  <Typography sx={{ opacity: 0.6 }}>→</Typography>
                   <img
                     src="/blenderphone2/IMG_9638-left.png"
                     alt="Illustrated result"
-                    width="56"
-                    height="56"
-                    style="border-radius:8px;border:1px solid #eee;object-fit:cover"
-                    onerror="this.style.display='none'"
+                    width={56}
+                    height={56}
+                    style={{
+                      borderRadius: 8,
+                      border: '1px solid #eee',
+                      objectFit: 'cover',
+                    }}
+                    onError={(e) => (e.currentTarget.style.display = 'none')}
                   />
-                  <span style="opacity:0.6">→</span>
+                  <Typography sx={{ opacity: 0.6 }}>→</Typography>
                   <img
                     src="/hero-background.png"
                     alt="Share with your libraries"
-                    width="56"
-                    height="56"
-                    style="border-radius:8px;border:1px solid #eee;object-fit:cover"
-                    onerror="this.style.display='none'"
+                    width={56}
+                    height={56}
+                    style={{
+                      borderRadius: 8,
+                      border: '1px solid #eee',
+                      objectFit: 'cover',
+                    }}
+                    onError={(e) => (e.currentTarget.style.display = 'none')}
                   />
                 </Box>
                 <div style="max-width:560px;margin:0 auto;text-align:left">
