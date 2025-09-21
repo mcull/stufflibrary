@@ -1,6 +1,7 @@
 'use client';
 
 import { Add as AddIcon, People as PeopleIcon } from '@mui/icons-material';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import ConstructionIcon from '@mui/icons-material/Construction';
 import {
   Box,
@@ -145,7 +146,7 @@ export function CollectionCard({ collection }: CollectionCardProps) {
             </Typography>
           </Box>
 
-          {/* Owner indicator: egalitarian "Started" chip with leaf icon */}
+          {/* Role indicators */}
           {collection.role === 'owner' && (
             <Tooltip title="You own this library" arrow>
               <Chip
@@ -165,6 +166,28 @@ export function CollectionCard({ collection }: CollectionCardProps) {
                   },
                 }}
                 aria-label="You own this library"
+              />
+            </Tooltip>
+          )}
+          {collection.role === 'admin' && (
+            <Tooltip title="You are an admin of this library" arrow>
+              <Chip
+                icon={<AdminPanelSettingsIcon sx={{ fontSize: 16 }} />}
+                label="Admin"
+                size="small"
+                sx={{
+                  position: 'absolute',
+                  top: 4,
+                  left: 4,
+                  backgroundColor: '#E3F2FD',
+                  color: '#1565C0',
+                  fontWeight: 600,
+                  '& .MuiChip-icon': {
+                    color: '#1565C0',
+                    mr: 0.5,
+                  },
+                }}
+                aria-label="You are an admin"
               />
             </Tooltip>
           )}
