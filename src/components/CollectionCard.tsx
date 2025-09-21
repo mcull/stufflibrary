@@ -147,10 +147,10 @@ export function CollectionCard({ collection }: CollectionCardProps) {
 
           {/* Owner indicator: egalitarian "Started" chip with leaf icon */}
           {collection.role === 'owner' && (
-            <Tooltip title="You started this library" arrow>
+            <Tooltip title="You own this library" arrow>
               <Chip
                 icon={<ConstructionIcon sx={{ fontSize: 16 }} />}
-                label="Started"
+                label="Owner"
                 size="small"
                 sx={{
                   position: 'absolute',
@@ -164,7 +164,7 @@ export function CollectionCard({ collection }: CollectionCardProps) {
                     mr: 0.5,
                   },
                 }}
-                aria-label="Started by you"
+                aria-label="You own this library"
               />
             </Tooltip>
           )}
