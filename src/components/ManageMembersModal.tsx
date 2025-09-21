@@ -7,6 +7,7 @@ import {
   Person as PersonIcon,
   AdminPanelSettings as AdminIcon,
   RemoveCircle as RemoveCircleIcon,
+  Construction as ConstructionIcon,
 } from '@mui/icons-material';
 import {
   Dialog,
@@ -250,16 +251,7 @@ export function ManageMembersModal({
     }
   };
 
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'owner':
-        return 'primary';
-      case 'admin':
-        return 'secondary';
-      default:
-        return 'default';
-    }
-  };
+  // Role color helper removed
 
   const canRemoveMember = (member: Member) => {
     if (userRole === 'owner') {
@@ -454,17 +446,40 @@ export function ManageMembersModal({
                               >
                                 {member.user.name || 'Unknown User'}
                               </Typography>
-                              <Chip
-                                label={member.role}
-                                size="small"
-                                color={getRoleColor(member.role)}
-                                variant="outlined"
-                                {...(member.role === 'admin'
-                                  ? {
-                                      icon: <AdminIcon />,
-                                    }
-                                  : {})}
-                              />
+                              {member.role === 'owner' ? (
+                                <Chip
+                                  icon={
+                                    <ConstructionIcon sx={{ fontSize: 16 }} />
+                                  }
+                                  label="Owner"
+                                  size="small"
+                                  sx={{
+                                    backgroundColor: '#E8F5E8',
+                                    color: '#2E7D32',
+                                    height: 22,
+                                    '& .MuiChip-icon': { color: '#2E7D32' },
+                                  }}
+                                />
+                              ) : member.role === 'admin' ? (
+                                <Chip
+                                  icon={<AdminIcon sx={{ fontSize: 16 }} />}
+                                  label="Admin"
+                                  size="small"
+                                  sx={{
+                                    backgroundColor: '#E3F2FD',
+                                    color: '#1565C0',
+                                    height: 22,
+                                    '& .MuiChip-icon': { color: '#1565C0' },
+                                  }}
+                                />
+                              ) : (
+                                <Chip
+                                  label="Member"
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{ height: 22 }}
+                                />
+                              )}
                             </Box>
                           }
                           secondary={
