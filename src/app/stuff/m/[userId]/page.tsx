@@ -799,7 +799,7 @@ export default function UserInventoryPage() {
                 opacity: 0.7,
               }}
             >
-              📦✨
+              📷
             </Box>
 
             <Typography
@@ -810,7 +810,7 @@ export default function UserInventoryPage() {
                 fontWeight: 600,
               }}
             >
-              {isOwnInventory ? 'Your inventory is ready!' : 'No items to show'}
+              {isOwnInventory ? 'Add your first item' : 'No items to show'}
             </Typography>
 
             <Typography
@@ -823,7 +823,7 @@ export default function UserInventoryPage() {
               }}
             >
               {isOwnInventory
-                ? 'This is where all your stuff will live once you start adding items. Share tools, books, kitchen gadgets, and anything else your neighbors might find useful!'
+                ? "Take a quick photo of something you're comfortable sharing. We'll auto-classify it and create a clean illustration, then you can add it to any of your libraries."
                 : 'This person hasn&apos;t added any items to their inventory yet. Check back later or explore other members&apos; inventories.'}
             </Typography>
 
@@ -847,16 +847,61 @@ export default function UserInventoryPage() {
                   📷 Add Your First Item
                 </Button>
 
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: brandColors.charcoal,
-                    opacity: 0.6,
-                    fontSize: '0.9rem',
-                  }}
+                <Box
+                  sx={{ display: 'flex', gap: 2, alignItems: 'center', mt: 1 }}
                 >
-                  Just snap a photo and we&apos;ll help identify it!
-                </Typography>
+                  <img
+                    src="/blenderphone1/IMG_9637-left.png"
+                    alt="Phone taking a photo"
+                    width={72}
+                    height={72}
+                    style={{
+                      borderRadius: 8,
+                      border: '1px solid #eee',
+                      objectFit: 'cover',
+                    }}
+                    onError={(e) => (e.currentTarget.style.display = 'none')}
+                  />
+                  <Typography sx={{ opacity: 0.6 }}>→</Typography>
+                  <img
+                    src="/blenderphone2/IMG_9638-left.png"
+                    alt="Illustrated result"
+                    width={72}
+                    height={72}
+                    style={{
+                      borderRadius: 8,
+                      border: '1px solid #eee',
+                      objectFit: 'cover',
+                    }}
+                    onError={(e) => (e.currentTarget.style.display = 'none')}
+                  />
+                  <Typography sx={{ opacity: 0.6 }}>→</Typography>
+                  <img
+                    src="/hero-background.png"
+                    alt="Share with your libraries"
+                    width={72}
+                    height={72}
+                    style={{
+                      borderRadius: 8,
+                      border: '1px solid #eee',
+                      objectFit: 'cover',
+                    }}
+                    onError={(e) => (e.currentTarget.style.display = 'none')}
+                  />
+                </Box>
+                <Box sx={{ maxWidth: 560, textAlign: 'left', mt: 2 }}>
+                  <Typography
+                    variant="body2"
+                    sx={{ color: 'text.secondary', mb: 1 }}
+                  >
+                    Why photos: the fastest, no‑fuss way to add items. One
+                    picture and you&apos;re done.
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    Why illustrations: they keep attention on your item and
+                    avoid exposing background details of your home.
+                  </Typography>
+                </Box>
               </Stack>
             )}
           </Box>
