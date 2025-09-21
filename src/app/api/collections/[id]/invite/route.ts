@@ -72,15 +72,27 @@ export async function POST(
       );
     }
 
-    // Check if user is already a member
+    // Check if user is already a member (active or inactive)
     const existingMember = await db.collectionMember.findFirst({
       where: {
         collectionId: libraryId,
         user: { email },
       },
+      select: { id: true, isActive: true },
     });
 
     if (existingMember) {
+      if (!existingMember.isActive) {
+        // Reactivate inactive membership instead of erroring
+        await db.collectionMember.update({
+          where: { id: existingMember.id },
+          data: { isActive: true },
+        });
+        return NextResponse.json({
+          success: true,
+          message: 'Reactivated existing membership for this user.',
+        });
+      }
       return NextResponse.json(
         { error: 'User is already a member of this library' },
         { status: 400 }

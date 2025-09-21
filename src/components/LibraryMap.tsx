@@ -102,23 +102,25 @@ function LibraryMapComponent({
         mapCenter = { lat: avgLat, lng: avgLng };
       }
 
-      const mapOptions = {
+      const mapOptions: any = {
         center: mapCenter,
         zoom: 12,
-        tilt: 45, // Maximum tilt for 3D perspective
-        mapId: process.env.NEXT_PUBLIC_GOOGLE_MAP_ID, // Your configured map ID
-        // If mapId doesn't work, we can try styleId as backup
-        ...(process.env.NEXT_PUBLIC_GOOGLE_MAPS_STYLE && {
-          styleId: process.env.NEXT_PUBLIC_GOOGLE_MAPS_STYLE,
-        }),
+        tilt: 45, // Re-enable tilt for 3D perspective
         disableDefaultUI: true,
         zoomControl: true,
-        ...(window.google.maps.ControlPosition && {
-          zoomControlOptions: {
-            position: window.google.maps.ControlPosition.RIGHT_BOTTOM,
-          },
-        }),
+        gestureHandling: 'greedy',
       };
+      if (process.env.NEXT_PUBLIC_GOOGLE_MAP_ID) {
+        mapOptions.mapId = process.env.NEXT_PUBLIC_GOOGLE_MAP_ID;
+      }
+      if (process.env.NEXT_PUBLIC_GOOGLE_MAPS_STYLE) {
+        mapOptions.styleId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_STYLE;
+      }
+      if (window.google.maps.ControlPosition) {
+        mapOptions.zoomControlOptions = {
+          position: window.google.maps.ControlPosition.RIGHT_BOTTOM,
+        };
+      }
 
       const newMap = new window.google.maps.Map(mapRef.current, mapOptions);
       setMap(newMap);
@@ -223,13 +225,35 @@ function LibraryMapComponent({
           markerDiv.style.transform = 'scale(1)';
         });
 
-        // Create advanced marker
-        const marker = new window.google.maps.marker.AdvancedMarkerElement({
-          position: { lat, lng },
-          map: newMap,
-          title: member.name || 'Anonymous',
-          content: markerDiv,
-        });
+        // Create marker (use AdvancedMarkerElement if available, else fallback to Marker)
+        let marker: any;
+        try {
+          if (
+            window.google?.maps?.marker?.AdvancedMarkerElement &&
+            typeof window.google.maps.marker.AdvancedMarkerElement ===
+              'function'
+          ) {
+            marker = new window.google.maps.marker.AdvancedMarkerElement({
+              position: { lat, lng },
+              map: newMap,
+              title: member.name || 'Anonymous',
+              content: markerDiv,
+            });
+          } else {
+            marker = new window.google.maps.Marker({
+              position: { lat, lng },
+              map: newMap,
+              title: member.name || 'Anonymous',
+            });
+          }
+        } catch {
+          // Fallback to basic marker on any error
+          marker = new window.google.maps.Marker({
+            position: { lat, lng },
+            map: newMap,
+            title: member.name || 'Anonymous',
+          });
+        }
 
         // Add info window
         const infoWindow = new window.google.maps.InfoWindow({

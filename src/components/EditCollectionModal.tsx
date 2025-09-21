@@ -32,6 +32,8 @@ interface EditCollectionModalProps {
   onClose: () => void;
   collection: CollectionData;
   onSave: (updatedCollection: Partial<CollectionData>) => Promise<void>;
+  onArchiveCollection?: () => void | Promise<void>;
+  onDeleteCollection?: () => void | Promise<void>;
 }
 
 interface FormData {
@@ -52,6 +54,8 @@ export function EditCollectionModal({
   onClose,
   collection,
   onSave,
+  onArchiveCollection,
+  onDeleteCollection,
 }: EditCollectionModalProps) {
   const [formData, setFormData] = useState<FormData>({
     name: '',
@@ -63,6 +67,7 @@ export function EditCollectionModal({
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
+  const [showBetaPrivacyNote, setShowBetaPrivacyNote] = useState(false);
 
   // Initialize form with collection data
   useEffect(() => {
@@ -85,7 +90,7 @@ export function EditCollectionModal({
 
     // Name validation - only check if empty since we truncate on input
     if (!formData.name.trim()) {
-      newErrors.name = 'Collection name is required';
+      newErrors.name = 'Library name is required';
     }
 
     setErrors(newErrors);
@@ -96,6 +101,13 @@ export function EditCollectionModal({
     (field: keyof FormData) => (event: React.ChangeEvent<HTMLInputElement>) => {
       let value =
         field === 'isPublic' ? event.target.checked : event.target.value;
+
+      // During beta, libraries must remain private
+      if (field === 'isPublic' && value === true) {
+        setShowBetaPrivacyNote(true);
+        // Do not allow enabling public during beta
+        value = false;
+      }
 
       // Truncate input based on field limits
       if (field === 'name' && typeof value === 'string') {
@@ -201,7 +213,7 @@ export function EditCollectionModal({
         }}
       >
         <Box>
-          Edit Collection
+          Edit Library
           <Box
             component="span"
             sx={{
@@ -234,9 +246,9 @@ export function EditCollectionModal({
             </Alert>
           )}
 
-          {/* Collection Name */}
+          {/* Library Name */}
           <TextField
-            label="Collection Name"
+            label="Library Name"
             value={formData.name}
             onChange={handleInputChange('name')}
             onKeyDown={handleKeyDown}
@@ -333,9 +345,7 @@ export function EditCollectionModal({
               label={
                 <Box>
                   <Box component="span" sx={{ fontWeight: 500 }}>
-                    {formData.isPublic
-                      ? 'Public Collection'
-                      : 'Private Collection'}
+                    {formData.isPublic ? 'Public Library' : 'Private Library'}
                   </Box>
                   <Box
                     component="span"
@@ -348,13 +358,77 @@ export function EditCollectionModal({
                     }}
                   >
                     {formData.isPublic
-                      ? 'Anyone can discover and request to join this collection'
-                      : 'Only people you invite can join this collection'}
+                      ? 'Anyone can discover and request to join this library'
+                      : 'Only people you invite can join this library'}
                   </Box>
+                  {showBetaPrivacyNote && (
+                    <Box
+                      sx={{
+                        mt: 1,
+                        fontSize: '0.875rem',
+                        color: '#FF6347', // tomato
+                        bgcolor: 'rgba(255, 99, 71, 0.08)',
+                        border: '1px solid rgba(255, 99, 71, 0.3)',
+                        borderRadius: 1,
+                        p: 1,
+                      }}
+                    >
+                      During our beta period, all libraries are private. Thanks
+                      for your patience — public libraries are coming soon.
+                    </Box>
+                  )}
                 </Box>
               }
             />
           </Box>
+
+          {/* Danger Zone */}
+          {(onArchiveCollection || onDeleteCollection) && (
+            <Box
+              sx={{
+                mt: 1,
+                pt: 1,
+                borderTop: `1px dashed ${brandColors.softGray}`,
+              }}
+            >
+              <Box sx={{ mb: 1 }}>
+                <span
+                  style={{
+                    fontSize: '0.8rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    color: 'rgba(0,0,0,0.6)',
+                  }}
+                >
+                  Danger Zone
+                </span>
+              </Box>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                {onArchiveCollection && (
+                  <Button
+                    variant="outlined"
+                    color="warning"
+                    onClick={onArchiveCollection}
+                    disabled={isLoading}
+                    sx={{ textTransform: 'none' }}
+                  >
+                    Archive Library
+                  </Button>
+                )}
+                {onDeleteCollection && (
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    onClick={onDeleteCollection}
+                    disabled={isLoading}
+                    sx={{ textTransform: 'none' }}
+                  >
+                    Delete Library
+                  </Button>
+                )}
+              </Box>
+            </Box>
+          )}
         </Box>
       </DialogContent>
 

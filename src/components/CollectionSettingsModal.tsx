@@ -113,9 +113,9 @@ export function CollectionSettingsModal({
         }}
       >
         <Box>
-          Collection Settings
+          Library Settings
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            Manage your collection preferences
+            Manage your library preferences
           </Typography>
         </Box>
         <IconButton
@@ -176,7 +176,7 @@ export function CollectionSettingsModal({
                 <EditIcon />
               </ListItemIcon>
               <ListItemText
-                primary="Edit Collection"
+                primary="Edit Library"
                 secondary="Change name, description, and location"
               />
             </ListItemButton>
@@ -187,7 +187,7 @@ export function CollectionSettingsModal({
               {collection.isPublic ? <VisibilityIcon /> : <VisibilityOffIcon />}
             </ListItemIcon>
             <ListItemText
-              primary="Collection Visibility"
+              primary="Library Visibility"
               secondary={
                 collection.isPublic
                   ? 'Anyone can discover and request to join'
@@ -252,8 +252,8 @@ export function CollectionSettingsModal({
                       <ArchiveIcon sx={{ color: 'warning.main' }} />
                     </ListItemIcon>
                     <ListItemText
-                      primary="Archive Collection"
-                      secondary="Hide from active collections, preserve data"
+                      primary="Archive Library"
+                      secondary="Hide from active libraries, preserve data"
                       primaryTypographyProps={{ color: 'warning.main' }}
                     />
                   </ListItemButton>
@@ -267,8 +267,8 @@ export function CollectionSettingsModal({
                       <DeleteIcon sx={{ color: 'error.main' }} />
                     </ListItemIcon>
                     <ListItemText
-                      primary="Delete Collection"
-                      secondary="Permanently delete this collection and all its data"
+                      primary="Delete Library"
+                      secondary="Permanently delete this library and all its data"
                       primaryTypographyProps={{ color: 'error.main' }}
                     />
                   </ListItemButton>

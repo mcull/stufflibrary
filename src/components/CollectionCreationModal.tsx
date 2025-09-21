@@ -124,7 +124,7 @@ export function CollectionCreationModal({
             component="h2"
             sx={{ fontWeight: 600, color: brandColors.inkBlue }}
           >
-            Create Your Collection
+            Start a New Library
           </Typography>
           <IconButton
             onClick={handleClose}
@@ -147,11 +147,11 @@ export function CollectionCreationModal({
             </Alert>
           )}
 
-          {/* Collection Name */}
+          {/* Library Name */}
           <TextField
             fullWidth
-            label="Collection Name"
-            placeholder="e.g., Family Sharing Circle, Neighbors Tool Collection"
+            label="Library Name"
+            placeholder="e.g., Family Sharing Circle, Neighbors Tool Library"
             value={formData.name}
             onChange={(e) => handleInputChange('name', e.target.value)}
             error={formData.name.length > 100}
@@ -195,7 +195,7 @@ export function CollectionCreationModal({
               '&:disabled': { bgcolor: 'grey.300' },
             }}
           >
-            {isSubmitting ? 'Creating...' : 'Create Collection'}
+            {isSubmitting ? 'Starting...' : 'Start New Library'}
           </Button>
         </DialogActions>
       </form>

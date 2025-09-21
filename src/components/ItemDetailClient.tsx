@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  ArrowBack as ArrowBackIcon,
   Save as SaveIcon,
   PersonAdd as PersonAddIcon,
   History as HistoryIcon,
@@ -38,6 +37,7 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
+import { EditModeCue } from '@/components/EditModeCue';
 import { useBorrowHistory } from '@/hooks/useBorrowHistory';
 import { useBorrowRequests } from '@/hooks/useBorrowRequests';
 import { useCollections } from '@/hooks/useCollections';
@@ -89,11 +89,15 @@ interface ItemData {
 interface ItemDetailClientProps {
   itemId: string;
   isNewItem?: boolean;
+  refSource?: 'library' | 'mystuff' | null;
+  refLibraryId?: string | null;
 }
 
 export function ItemDetailClient({
   itemId,
   isNewItem = false,
+  refSource,
+  refLibraryId,
 }: ItemDetailClientProps) {
   const router = useRouter();
   const { data: session } = useSession();
@@ -119,6 +123,15 @@ export function ItemDetailClient({
   });
   const [checkingIn, setCheckingIn] = useState(false);
   const [markingLost, setMarkingLost] = useState(false);
+
+  // Derived navigation target based on referral context
+  const navigateBack = () => {
+    if (refSource === 'library' && refLibraryId) {
+      router.push(`/library/${refLibraryId}`);
+    } else {
+      router.push('/stacks');
+    }
+  };
 
   // Store original values for cancel functionality
   const [originalValues, setOriginalValues] = useState({
@@ -246,10 +259,14 @@ export function ItemDetailClient({
         message: `"${item.name}" has been deleted`,
       });
 
-      // Navigate back to inventory after deletion
+      // Navigate back to referring context after deletion
       setTimeout(() => {
-        router.push(`/stuff/m/${currentUserId}`);
-      }, 1500);
+        if (refSource === 'library' && refLibraryId) {
+          router.push(`/library/${refLibraryId}`);
+        } else {
+          router.push('/stacks');
+        }
+      }, 1200);
     } catch (err) {
       console.error('Error deleting item:', err);
       setError(err instanceof Error ? err.message : 'Failed to delete item');
@@ -400,9 +417,9 @@ export function ItemDetailClient({
         });
       }
 
-      // Navigate to lobby after saving new item
+      // Navigate after saving new item
       if (isNewItem) {
-        router.push('/stacks');
+        navigateBack();
       }
     } catch (err) {
       console.error('Error saving item:', err);
@@ -410,6 +427,12 @@ export function ItemDetailClient({
     } finally {
       setSaving(false);
     }
+  };
+
+  // Explicit save and return button handler
+  const handleSaveAndReturn = async () => {
+    await handleSave(undefined, true);
+    navigateBack();
   };
 
   // Handle library membership updates
@@ -568,6 +591,67 @@ export function ItemDetailClient({
   if (error && !item) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
+        {/* Breadcrumbs */}
+        <Box sx={{ mb: 2, color: 'text.secondary' }}>
+          <Typography component="span" sx={{ opacity: 0.6 }}>
+            Home
+          </Typography>
+          <Typography component="span" sx={{ opacity: 0.4, mx: 1 }}>
+            /
+          </Typography>
+          {refSource === 'library' && refLibraryId ? (
+            <>
+              <Typography
+                component="span"
+                onClick={() => router.push('/stacks')}
+                sx={{
+                  cursor: 'pointer',
+                  '&:hover': { textDecoration: 'underline' },
+                }}
+              >
+                Libraries
+              </Typography>
+              <Typography component="span" sx={{ opacity: 0.4, mx: 1 }}>
+                /
+              </Typography>
+              <Typography
+                component="span"
+                onClick={() => router.push(`/library/${refLibraryId}`)}
+                sx={{
+                  cursor: 'pointer',
+                  '&:hover': { textDecoration: 'underline' },
+                }}
+              >
+                Current Library
+              </Typography>
+              <Typography component="span" sx={{ opacity: 0.4, mx: 1 }}>
+                /
+              </Typography>
+              <Typography component="span" sx={{ fontWeight: 500 }}>
+                Item Detail
+              </Typography>
+            </>
+          ) : (
+            <>
+              <Typography
+                component="span"
+                onClick={() => router.push('/stacks')}
+                sx={{
+                  cursor: 'pointer',
+                  '&:hover': { textDecoration: 'underline' },
+                }}
+              >
+                My Stuff
+              </Typography>
+              <Typography component="span" sx={{ opacity: 0.4, mx: 1 }}>
+                /
+              </Typography>
+              <Typography component="span" sx={{ fontWeight: 500 }}>
+                Item Detail
+              </Typography>
+            </>
+          )}
+        </Box>
         <Alert severity="error">{error}</Alert>
       </Container>
     );
@@ -582,19 +666,73 @@ export function ItemDetailClient({
         minHeight: '100vh',
       }}
     >
-      {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => router.back()}
-          sx={{ mr: 2 }}
-        >
-          Back
-        </Button>
-        <Typography variant="h5" component="h1">
-          {isNewItem ? 'Complete Item Details' : 'Item Details'}
+      {/* Breadcrumbs */}
+      <Box sx={{ mb: 1, color: 'text.secondary' }}>
+        <Typography component="span" sx={{ opacity: 0.6 }}>
+          Home
         </Typography>
+        <Typography component="span" sx={{ opacity: 0.4, mx: 1 }}>
+          /
+        </Typography>
+        {refSource === 'library' && refLibraryId ? (
+          <>
+            <Typography
+              component="span"
+              onClick={() => router.push('/stacks')}
+              sx={{
+                cursor: 'pointer',
+                '&:hover': { textDecoration: 'underline' },
+              }}
+            >
+              Libraries
+            </Typography>
+            <Typography component="span" sx={{ opacity: 0.4, mx: 1 }}>
+              /
+            </Typography>
+            <Typography
+              component="span"
+              onClick={() => router.push(`/library/${refLibraryId}`)}
+              sx={{
+                cursor: 'pointer',
+                '&:hover': { textDecoration: 'underline' },
+              }}
+            >
+              Current Library
+            </Typography>
+            <Typography component="span" sx={{ opacity: 0.4, mx: 1 }}>
+              /
+            </Typography>
+            <Typography component="span" sx={{ fontWeight: 500 }}>
+              Item Detail
+            </Typography>
+          </>
+        ) : (
+          <>
+            <Typography
+              component="span"
+              onClick={() => router.push('/stacks')}
+              sx={{
+                cursor: 'pointer',
+                '&:hover': { textDecoration: 'underline' },
+              }}
+            >
+              My Stuff
+            </Typography>
+            <Typography component="span" sx={{ opacity: 0.4, mx: 1 }}>
+              /
+            </Typography>
+            <Typography component="span" sx={{ fontWeight: 500 }}>
+              Item Detail
+            </Typography>
+          </>
+        )}
       </Box>
+      {/* Editing cue for owners (temporarily hidden) */}
+      {false && !isNewItem && item?.owner.id === currentUserId && (
+        <Typography variant="body2" sx={{ mb: 3, color: 'text.secondary' }}>
+          <EditModeCue />
+        </Typography>
+      )}
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
@@ -844,9 +982,7 @@ export function ItemDetailClient({
                           <Button
                             variant="contained"
                             startIcon={<SaveIcon />}
-                            onClick={() =>
-                              router.push(`/stuff/m/${currentUserId}`)
-                            }
+                            onClick={() => navigateBack()}
                             sx={{
                               backgroundColor: '#4CAF50',
                               '&:hover': { backgroundColor: '#45a049' },
@@ -1011,7 +1147,7 @@ export function ItemDetailClient({
                           sx={{
                             pt: 2,
                             display: 'flex',
-                            justifyContent: 'space-between',
+                            justifyContent: 'flex-start',
                             alignItems: 'center',
                             gap: 2,
                           }}
@@ -1160,6 +1296,25 @@ export function ItemDetailClient({
                               {deleting ? 'Deleting...' : 'Delete Item'}
                             </Button>
                           )}
+
+                          {/* Save Button */}
+                          <Button
+                            variant="contained"
+                            color="primary"
+                            size="large"
+                            startIcon={
+                              saving ? (
+                                <CircularProgress size={20} />
+                              ) : (
+                                <SaveIcon />
+                              )
+                            }
+                            onClick={handleSaveAndReturn}
+                            disabled={saving}
+                            sx={{ borderRadius: 2, textTransform: 'none' }}
+                          >
+                            {saving ? 'Saving...' : 'Save'}
+                          </Button>
                         </Box>
                       )}
 
@@ -1421,3 +1576,5 @@ export function ItemDetailClient({
     </Container>
   );
 }
+
+// (EditModeCue is a reusable component in '@/components/EditModeCue')

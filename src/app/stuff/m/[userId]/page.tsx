@@ -137,7 +137,7 @@ function ItemCard({ item, status }: ItemCardProps) {
     // Always go to item details page, but extract the correct item ID based on data structure
     const itemId = item.item?.id || item.id; // For borrow requests: item.item.id, for direct items: item.id
     if (itemId) {
-      router.push(`/stuff/${itemId}`);
+      router.push(`/stuff/${itemId}?src=mystuff`);
     }
   };
 

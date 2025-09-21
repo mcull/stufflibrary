@@ -66,13 +66,15 @@ interface LibraryItemCardProps {
     }>;
     queueDepth: number;
   };
+  libraryId?: string;
 }
 
-export function LibraryItemCard({ item }: LibraryItemCardProps) {
+export function LibraryItemCard({ item, libraryId }: LibraryItemCardProps) {
   const router = useRouter();
 
   const handleClick = () => {
-    router.push(`/stuff/${item.id}`);
+    const qp = libraryId ? `?src=library&lib=${libraryId}` : '';
+    router.push(`/stuff/${item.id}${qp}`);
   };
 
   const getStatusConfig = () => {

@@ -562,47 +562,29 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
             <CircularProgress size={40} />
           </Box>
         ) : collections.length === 0 ? (
-          <Box sx={{ textAlign: 'center', py: 4 }}>
-            <Box
-              sx={{
-                width: 100,
-                height: 100,
-                borderRadius: '50%',
-                backgroundColor: brandColors.mustardYellow,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                mx: 'auto',
-                mb: 3,
-              }}
-            >
-              <Typography variant="h3" sx={{ color: brandColors.charcoal }}>
-                ➕
-              </Typography>
-            </Box>
-
+          <Box sx={{ textAlign: 'center', py: 2 }}>
             <Typography
               variant="h5"
               sx={{
                 fontWeight: 600,
                 color: brandColors.charcoal,
-                mb: 2,
+                mb: 1.5,
               }}
             >
-              Start Your First Collection
+              Start Your First Library
             </Typography>
 
             <Typography
               variant="body1"
               color="text.secondary"
-              sx={{ mb: 4, maxWidth: 500, mx: 'auto', lineHeight: 1.6 }}
+              sx={{ mb: 3, maxWidth: 500, mx: 'auto', lineHeight: 1.6 }}
             >
-              Collections are private sharing circles where you and people you
+              Libraries are private sharing circles where you and people you
               trust can lend and borrow items. Create one for your family,
               friend group, or neighbors.
             </Typography>
 
-            <Box sx={{ mb: 4, maxWidth: 600, mx: 'auto' }}>
+            <Box sx={{ mb: 3, maxWidth: 600, mx: 'auto' }}>
               <Typography
                 variant="subtitle2"
                 sx={{
@@ -682,7 +664,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                 transition: 'all 0.2s ease',
               }}
             >
-              Create Your First Collection
+              Create Your First Library
             </Button>
           </Box>
         ) : (
@@ -710,16 +692,16 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                     }}
                   >
                     <MenuItem value="all">
-                      All Collections ({collections.length})
+                      All Libraries ({collections.length})
                     </MenuItem>
                     {startedCollections.length > 0 && (
                       <MenuItem value="started">
-                        Collections I Started ({startedCollections.length})
+                        Libraries I Started ({startedCollections.length})
                       </MenuItem>
                     )}
                     {joinedCollections.length > 0 && (
                       <MenuItem value="joined">
-                        Collections I Joined ({joinedCollections.length})
+                        Libraries I Joined ({joinedCollections.length})
                       </MenuItem>
                     )}
                   </Select>
@@ -807,17 +789,17 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
               )}
             </Box>
 
-            {/* Collections Sections */}
+            {/* Libraries Sections */}
             {collectionFilter === 'all' ? (
               <>
                 {/* Show sections when viewing all */}
                 <CollectionSection
-                  title="Collections I Started"
+                  title="Libraries I Started"
                   collections={startedCollections}
                   showCreateCard={true}
                 />
                 <CollectionSection
-                  title="Collections I Joined"
+                  title="Libraries I Joined"
                   collections={joinedCollections}
                 />
               </>
@@ -826,8 +808,8 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
               <CollectionSection
                 title={
                   collectionFilter === 'started'
-                    ? 'Collections I Started'
-                    : 'Collections I Joined'
+                    ? 'Libraries I Started'
+                    : 'Libraries I Joined'
                 }
                 collections={filteredCollections}
                 showCreateCard={collectionFilter === 'started'}
@@ -843,12 +825,12 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
   const tabs: TabItem[] = [
     {
       id: 'others-stuff',
-      label: 'Collections',
+      label: 'Libraries',
       content: yourCollectionsContent,
     },
     {
       id: 'your-stuff',
-      label: 'My Shelf',
+      label: 'My Stuff',
       content: yourStuffContent,
     },
   ];
@@ -875,7 +857,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
         showAddButton={false}
       />
 
-      {/* Collection Creation Modal */}
+      {/* Library Creation Modal */}
       <CollectionCreationModal
         open={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}

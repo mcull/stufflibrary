@@ -60,9 +60,14 @@ interface Address {
 interface ProfileViewProps {
   user: User;
   currentAddress: Address | null;
+  itemsAvailableCount?: number;
 }
 
-export function ProfileView({ user, currentAddress }: ProfileViewProps) {
+export function ProfileView({
+  user,
+  currentAddress,
+  itemsAvailableCount = 0,
+}: ProfileViewProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [profileImage, setProfileImage] = useState<File | null>(null);
@@ -257,15 +262,21 @@ export function ProfileView({ user, currentAddress }: ProfileViewProps) {
           >
             My Profile
           </Typography>
-          <Typography
-            variant="body1"
-            sx={{
-              color: brandColors.charcoal,
-              opacity: 0.7,
-            }}
-          >
-            Update your profile information and interests
-          </Typography>
+          <Box sx={{ color: 'text.secondary' }}>
+            {user.email && (
+              <Typography variant="body2">{user.email}</Typography>
+            )}
+            <Typography variant="body2">
+              Member since{' '}
+              {new Date(user.createdAt).toLocaleDateString('en-US', {
+                month: 'long',
+                year: 'numeric',
+              })}
+            </Typography>
+            <Typography variant="body2">
+              {itemsAvailableCount} total items available to share
+            </Typography>
+          </Box>
         </Box>
 
         <Box component="form" onSubmit={handleSubmit(onSubmit)}>
