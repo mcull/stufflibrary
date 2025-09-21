@@ -32,6 +32,8 @@ interface EditCollectionModalProps {
   onClose: () => void;
   collection: CollectionData;
   onSave: (updatedCollection: Partial<CollectionData>) => Promise<void>;
+  onArchiveCollection?: () => void | Promise<void>;
+  onDeleteCollection?: () => void | Promise<void>;
 }
 
 interface FormData {
@@ -52,6 +54,8 @@ export function EditCollectionModal({
   onClose,
   collection,
   onSave,
+  onArchiveCollection,
+  onDeleteCollection,
 }: EditCollectionModalProps) {
   const [formData, setFormData] = useState<FormData>({
     name: '',
@@ -377,6 +381,54 @@ export function EditCollectionModal({
               }
             />
           </Box>
+
+          {/* Danger Zone */}
+          {(onArchiveCollection || onDeleteCollection) && (
+            <Box
+              sx={{
+                mt: 1,
+                pt: 1,
+                borderTop: `1px dashed ${brandColors.softGray}`,
+              }}
+            >
+              <Box sx={{ mb: 1 }}>
+                <span
+                  style={{
+                    fontSize: '0.8rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    color: 'rgba(0,0,0,0.6)',
+                  }}
+                >
+                  Danger Zone
+                </span>
+              </Box>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                {onArchiveCollection && (
+                  <Button
+                    variant="outlined"
+                    color="warning"
+                    onClick={onArchiveCollection}
+                    disabled={isLoading}
+                    sx={{ textTransform: 'none' }}
+                  >
+                    Archive Library
+                  </Button>
+                )}
+                {onDeleteCollection && (
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    onClick={onDeleteCollection}
+                    disabled={isLoading}
+                    sx={{ textTransform: 'none' }}
+                  >
+                    Delete Library
+                  </Button>
+                )}
+              </Box>
+            </Box>
+          )}
         </Box>
       </DialogContent>
 

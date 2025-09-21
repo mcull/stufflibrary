@@ -9,7 +9,6 @@ import {
   MoreVert as MoreVertIcon,
   Edit as EditIcon,
   People as PeopleIcon,
-  Settings as SettingsIcon,
   Archive as ArchiveIcon,
 } from '@mui/icons-material';
 import {
@@ -33,7 +32,6 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 
 import { brandColors, spacing } from '@/theme/brandTokens';
 
-import { CollectionSettingsModal } from './CollectionSettingsModal';
 import { EditCollectionModal } from './EditCollectionModal';
 import { ExpandableText } from './ExpandableText';
 import { InviteFriendsModal } from './InviteFriendsModal';
@@ -171,7 +169,7 @@ export function CollectionDetailClient({
   const [settingsMenuAnchor, setSettingsMenuAnchor] =
     useState<HTMLElement | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+  // const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [manageMembersModalOpen, setManageMembersModalOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [addMenuAnchor, setAddMenuAnchor] = useState<null | HTMLElement>(null);
@@ -256,10 +254,7 @@ export function CollectionDetailClient({
     setManageMembersModalOpen(true);
   }, [handleSettingsMenuClose]);
 
-  const handleCollectionSettings = useCallback(() => {
-    handleSettingsMenuClose();
-    setSettingsModalOpen(true);
-  }, [handleSettingsMenuClose]);
+  // Removed: Collection Settings no longer used
 
   const handleSaveCollection = useCallback(
     async (
@@ -363,24 +358,23 @@ export function CollectionDetailClient({
     [session?.user, library?.owner.addresses]
   );
 
-  const handleToggleVisibility = useCallback(
-    async (isPublic: boolean) => {
-      if (!library) return;
+  // const handleToggleVisibility = useCallback(
+  //   async (isPublic: boolean) => {
+  //     if (!library) return;
+  //     await handleSaveCollection({ isPublic });
+  //   },
+  //   [library, handleSaveCollection]
+  // );
 
-      await handleSaveCollection({ isPublic });
-    },
-    [library, handleSaveCollection]
-  );
+  // const handleFromSettingsEditCollection = useCallback(() => {
+  //   setSettingsModalOpen(false);
+  //   setEditModalOpen(true);
+  // }, []);
 
-  const handleFromSettingsEditCollection = useCallback(() => {
-    setSettingsModalOpen(false);
-    setEditModalOpen(true);
-  }, []);
-
-  const handleFromSettingsManageMembers = useCallback(() => {
-    setSettingsModalOpen(false);
-    setManageMembersModalOpen(true);
-  }, []);
+  // const handleFromSettingsManageMembers = useCallback(() => {
+  //   setSettingsModalOpen(false);
+  //   setManageMembersModalOpen(true);
+  // }, []);
 
   const handleArchiveCollection = useCallback(async () => {
     if (!library) return;
@@ -416,6 +410,34 @@ export function CollectionDetailClient({
       console.error('Error archiving collection:', error);
       alert(
         error instanceof Error ? error.message : 'Failed to archive collection'
+      );
+    }
+  }, [library, router]);
+
+  const handleDeleteCollection = useCallback(async () => {
+    if (!library) return;
+    const confirmed = window.confirm(
+      `Permanently delete "${library?.name}"?\n\n` +
+        'This will:\n' +
+        '• Remove the library\n' +
+        '• You must remove all items and members first\n\n' +
+        'This action cannot be undone.'
+    );
+    if (!confirmed) return;
+    try {
+      const response = await fetch(`/api/collections/${library?.id}`, {
+        method: 'DELETE',
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete library');
+      }
+      alert('Library deleted successfully');
+      router.push('/stacks');
+    } catch (error) {
+      console.error('Error deleting library:', error);
+      alert(
+        error instanceof Error ? error.message : 'Failed to delete library'
       );
     }
   }, [library, router]);
@@ -1260,9 +1282,7 @@ export function CollectionDetailClient({
         open={Boolean(settingsMenuAnchor)}
         onClose={handleSettingsMenuClose}
         disablePortal={false}
-        MenuListProps={{
-          'aria-labelledby': 'collection-settings-button',
-        }}
+        MenuListProps={{ 'aria-labelledby': 'collection-settings-button' }}
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
         slotProps={{
@@ -1281,7 +1301,7 @@ export function CollectionDetailClient({
             <EditIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText
-            primary="Edit Collection"
+            primary="Edit Library"
             secondary="Update name, description, and location"
           />
         </MenuItem>
@@ -1294,15 +1314,7 @@ export function CollectionDetailClient({
             secondary="Add, remove, or change member roles"
           />
         </MenuItem>
-        <MenuItem onClick={handleCollectionSettings}>
-          <ListItemIcon>
-            <SettingsIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText
-            primary="Collection Settings"
-            secondary="Privacy, permissions, and advanced options"
-          />
-        </MenuItem>
+        {/* Removed Collection Settings; moved danger zone into Edit Library */}
         {library?.userRole === 'owner' && (
           <MenuItem
             onClick={handleSettingsMenuClose}
@@ -1319,7 +1331,7 @@ export function CollectionDetailClient({
         )}
       </Menu>
 
-      {/* Edit Collection Modal */}
+      {/* Edit Library Modal (with Danger Zone actions) */}
       {library && (
         <EditCollectionModal
           open={editModalOpen}
@@ -1332,6 +1344,12 @@ export function CollectionDetailClient({
             isPublic: library?.isPublic,
           }}
           onSave={handleSaveCollection}
+          {...(library?.userRole === 'owner'
+            ? {
+                onArchiveCollection: handleArchiveCollection,
+                onDeleteCollection: handleDeleteCollection,
+              }
+            : {})}
         />
       )}
 
@@ -1353,25 +1371,7 @@ export function CollectionDetailClient({
         onMembershipChanged={handleMembershipChanged}
       />
 
-      <CollectionSettingsModal
-        open={settingsModalOpen}
-        onClose={() => setSettingsModalOpen(false)}
-        collection={{
-          id: library?.id || '',
-          name: library?.name || '',
-          description: library?.description,
-          location: library?.location,
-          isPublic: library?.isPublic || false,
-          memberCount: library?.memberCount || 0,
-          itemCount: library?.items?.length || 0,
-          isOwner: library?.userRole === 'owner',
-          isAdmin: library?.userRole === 'admin',
-        }}
-        onEditCollection={handleFromSettingsEditCollection}
-        onManageMembers={handleFromSettingsManageMembers}
-        onToggleVisibility={handleToggleVisibility}
-        onArchiveCollection={handleArchiveCollection}
-      />
+      {/* CollectionSettingsModal removed */}
     </Container>
   );
 }
