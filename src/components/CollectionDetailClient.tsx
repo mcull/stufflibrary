@@ -9,6 +9,7 @@ import {
   MoreVert as MoreVertIcon,
   Edit as EditIcon,
   People as PeopleIcon,
+  Construction as ConstructionIcon,
   Archive as ArchiveIcon,
 } from '@mui/icons-material';
 import {
@@ -630,17 +631,31 @@ export function CollectionDetailClient({
             mb: spacing.md / 16,
           }}
         >
-          <Chip
-            label={library?.userRole || 'member'}
-            size="small"
-            sx={{
-              bgcolor:
-                library?.userRole === 'owner' ? brandColors.inkBlue : '#E0E0E0',
-              color:
-                library?.userRole === 'owner' ? 'white' : brandColors.charcoal,
-              fontSize: '0.75rem',
-            }}
-          />
+          {library?.userRole === 'owner' ? (
+            <Chip
+              icon={<ConstructionIcon sx={{ fontSize: 16 }} />}
+              label="Owner"
+              size="small"
+              sx={{
+                backgroundColor: '#E8F5E8',
+                color: '#2E7D32',
+                fontSize: '0.75rem',
+                '& .MuiChip-icon': {
+                  color: '#2E7D32',
+                },
+              }}
+            />
+          ) : (
+            <Chip
+              label={library?.userRole || 'member'}
+              size="small"
+              sx={{
+                bgcolor: '#E0E0E0',
+                color: brandColors.charcoal,
+                fontSize: '0.75rem',
+              }}
+            />
+          )}
           {!library?.isPublic && (
             <Chip
               label="Private"
