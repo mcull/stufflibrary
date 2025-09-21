@@ -86,6 +86,7 @@ export function ManageMembersModal({
   const [members, setMembers] = useState<Member[]>([]);
   const [loadingData, setLoadingData] = useState(false);
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
+  const [updatingRoleId, setUpdatingRoleId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     setLoadingData(true);
@@ -238,6 +239,44 @@ export function ManageMembersModal({
       return member.role === 'member'; // Admin can only remove regular members
     }
     return false; // Members can't remove anyone
+  };
+
+  const canChangeRole = (member: Member) => {
+    // Only owners can change roles; cannot change owners; cannot change yourself
+    if (userRole !== 'owner') return false;
+    if (member.role === 'owner') return false;
+    return true;
+  };
+
+  const handleChangeRole = async (
+    member: Member,
+    newRole: 'admin' | 'member'
+  ) => {
+    setUpdatingRoleId(member.id);
+    setError(null);
+    setSuccess(null);
+    try {
+      const response = await fetch(
+        `/api/collections/${collectionId}/members/${member.id}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: newRole }),
+        }
+      );
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update role');
+      }
+      setSuccess(`Updated ${member.user.name || 'member'} to ${newRole}`);
+      await loadData();
+      onMembershipChanged?.();
+    } catch (e) {
+      console.error('Failed to update role:', e);
+      setError(e instanceof Error ? e.message : 'Failed to update role');
+    } finally {
+      setUpdatingRoleId(null);
+    }
   };
 
   return (
@@ -422,6 +461,39 @@ export function ManageMembersModal({
                         />
                       </Box>
 
+                      {/* Role change actions */}
+                      {canChangeRole(member) && (
+                        <Box sx={{ display: 'flex', gap: 1, mr: 1 }}>
+                          {member.role !== 'admin' && (
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              disabled={updatingRoleId === member.id}
+                              onClick={() => handleChangeRole(member, 'admin')}
+                              sx={{ textTransform: 'none' }}
+                            >
+                              {updatingRoleId === member.id
+                                ? 'Updating...'
+                                : 'Make admin'}
+                            </Button>
+                          )}
+                          {member.role !== 'member' && (
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              disabled={updatingRoleId === member.id}
+                              onClick={() => handleChangeRole(member, 'member')}
+                              sx={{ textTransform: 'none' }}
+                            >
+                              {updatingRoleId === member.id
+                                ? 'Updating...'
+                                : 'Make member'}
+                            </Button>
+                          )}
+                        </Box>
+                      )}
+
+                      {/* Remove action */}
                       {canRemoveMember(member) && (
                         <Tooltip
                           title={`Remove ${member.user.name || 'member'}`}

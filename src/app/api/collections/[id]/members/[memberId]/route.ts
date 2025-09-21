@@ -124,3 +124,88 @@ export async function DELETE(
     );
   }
 }
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string; memberId: string }> }
+) {
+  const { id: collectionId, memberId } = await params;
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const userId = (session.user as { id?: string }).id!;
+    const { role } = await request.json();
+
+    if (!['admin', 'member'].includes(role)) {
+      return NextResponse.json(
+        { error: 'Invalid role. Allowed roles: admin, member' },
+        { status: 400 }
+      );
+    }
+
+    // Ensure current user is the owner (only owners can change roles)
+    const collection = await db.collection.findUnique({
+      where: { id: collectionId },
+      select: { ownerId: true },
+    });
+
+    if (!collection) {
+      return NextResponse.json(
+        { error: 'Collection not found' },
+        { status: 404 }
+      );
+    }
+
+    if (collection.ownerId !== userId) {
+      return NextResponse.json(
+        { error: 'Only library owners can change member roles' },
+        { status: 403 }
+      );
+    }
+
+    // Get target membership and validate it belongs to this collection
+    const membership = await db.collectionMember.findUnique({
+      where: { id: memberId },
+      select: {
+        id: true,
+        userId: true,
+        collectionId: true,
+        role: true,
+        isActive: true,
+      },
+    });
+
+    if (!membership || membership.collectionId !== collectionId) {
+      return NextResponse.json(
+        { error: 'Member not found in this collection' },
+        { status: 404 }
+      );
+    }
+
+    // Cannot change your own role
+    if (membership.userId === userId) {
+      return NextResponse.json(
+        { error: 'Owners cannot change their own role' },
+        { status: 400 }
+      );
+    }
+
+    // Update role
+    await db.collectionMember.update({
+      where: { id: memberId },
+      data: { role },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error updating member role:', error);
+    return NextResponse.json(
+      { error: 'Failed to update member role' },
+      { status: 500 }
+    );
+  }
+}
