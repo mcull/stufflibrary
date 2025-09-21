@@ -68,6 +68,7 @@ export function EditCollectionModal({
   const [apiError, setApiError] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [showBetaPrivacyNote, setShowBetaPrivacyNote] = useState(false);
+  // Transfer ownership controls are handled in ManageMembersModal
 
   // Initialize form with collection data
   useEffect(() => {

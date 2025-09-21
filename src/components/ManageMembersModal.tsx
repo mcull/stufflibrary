@@ -185,6 +185,36 @@ export function ManageMembersModal({
     }
   };
 
+  //
+  const handleTransferOwnership = async (member: Member) => {
+    if (!confirm(`Transfer ownership to ${member.user.name || 'this member'}?`))
+      return;
+    setTransferringOwnerId(member.id);
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await fetch(
+        `/api/collections/${collectionId}/transfer-ownership`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ newOwnerId: member.user.id }),
+        }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok)
+        throw new Error(data.error || 'Failed to transfer ownership');
+      setSuccess('Ownership transferred');
+      await loadData();
+      onMembershipChanged?.();
+    } catch (e) {
+      console.error('Failed to transfer ownership:', e);
+      setError(e instanceof Error ? e.message : 'Failed to transfer ownership');
+    } finally {
+      setTransferringOwnerId(null);
+    }
+  };
+
   const handleClose = () => {
     setEmail('');
     setError(null);
@@ -491,6 +521,18 @@ export function ManageMembersModal({
                             </Button>
                           )}
                         </Box>
+                      )}
+
+                      {userRole === 'owner' && member.role !== 'owner' && (
+                        <Button
+                          variant="text"
+                          size="small"
+                          disabled={false}
+                          onClick={() => handleTransferOwnership(member)}
+                          sx={{ textTransform: 'none', mr: 1 }}
+                        >
+                          Make owner
+                        </Button>
                       )}
 
                       {/* Remove action */}

@@ -147,7 +147,7 @@ export async function PATCH(
       );
     }
 
-    // Ensure current user is the owner (only owners can change roles)
+    // Ensure current user is the owner or admin (admins have limited ability)
     const collection = await db.collection.findUnique({
       where: { id: collectionId },
       select: { ownerId: true },
@@ -160,11 +160,20 @@ export async function PATCH(
       );
     }
 
-    if (collection.ownerId !== userId) {
-      return NextResponse.json(
-        { error: 'Only library owners can change member roles' },
-        { status: 403 }
-      );
+    const isOwner = collection.ownerId === userId;
+    let isAdminActor = false;
+    if (!isOwner) {
+      const actorMembership = await db.collectionMember.findFirst({
+        where: { collectionId, userId, isActive: true },
+        select: { role: true },
+      });
+      isAdminActor = actorMembership?.role === 'admin';
+      if (!isAdminActor) {
+        return NextResponse.json(
+          { error: 'Only owners or admins can change member roles' },
+          { status: 403 }
+        );
+      }
     }
 
     // Get target membership and validate it belongs to this collection
@@ -194,7 +203,22 @@ export async function PATCH(
       );
     }
 
-    // Update role
+    // Admins may only promote members to admin
+    if (!isOwner) {
+      if (role !== 'admin') {
+        return NextResponse.json(
+          { error: 'Admins can only promote members to admin' },
+          { status: 403 }
+        );
+      }
+      if (membership.role !== 'member') {
+        return NextResponse.json(
+          { error: 'Only members can be promoted to admin' },
+          { status: 400 }
+        );
+      }
+    }
+
     await db.collectionMember.update({
       where: { id: memberId },
       data: { role },
