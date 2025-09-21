@@ -1014,7 +1014,11 @@ export function CollectionDetailClient({
                       }}
                     >
                       {items.map((item) => (
-                        <LibraryItemCard key={item.id} item={item} />
+                        <LibraryItemCard
+                          key={item.id}
+                          item={item}
+                          libraryId={collectionId}
+                        />
                       ))}
                     </Box>
                   </Box>
@@ -1079,7 +1083,11 @@ export function CollectionDetailClient({
                       }}
                     >
                       {items.map((item) => (
-                        <LibraryItemCard key={item.id} item={item} />
+                        <LibraryItemCard
+                          key={item.id}
+                          item={item}
+                          libraryId={collectionId}
+                        />
                       ))}
                     </Box>
                   </Box>

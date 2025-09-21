@@ -22,6 +22,17 @@ export default async function ItemPage({
   const { id: itemId } = await params;
   const resolvedSearchParams = await searchParams;
   const isNewItem = resolvedSearchParams?.new === 'true';
+  const refSource =
+    (resolvedSearchParams?.src as 'library' | 'mystuff' | undefined) ?? null;
+  const refLibraryId =
+    (resolvedSearchParams?.lib as string | undefined) ?? null;
 
-  return <ItemDetailClient itemId={itemId} isNewItem={isNewItem} />;
+  return (
+    <ItemDetailClient
+      itemId={itemId}
+      isNewItem={isNewItem}
+      refSource={refSource}
+      refLibraryId={refLibraryId}
+    />
+  );
 }

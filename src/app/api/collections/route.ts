@@ -12,24 +12,94 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user ID (support multiple session shapes)
-    const userId =
+    // Get user ID (support multiple session shapes) and fallback by email
+    let userId =
       (session.user as any).id ||
       (session as any).user?.id ||
-      (session as any).userId;
+      (session as any).userId ||
+      null;
+
+    if (!userId && session.user?.email) {
+      const userByEmail = await db.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true },
+      });
+      userId = userByEmail?.id || null;
+    }
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
     }
 
-    // Get user's collections (both owned and member)
-    const userLibraries = await db.user.findUnique({
-      where: { id: userId },
+    // Safety net: ensure accepted invitations are reflected as active memberships
+    try {
+      const accepted = await db.invitation.findMany({
+        where: {
+          receiverId: userId,
+          status: 'ACCEPTED',
+          libraryId: { not: null },
+        },
+        select: { libraryId: true },
+      });
+      if (accepted.length > 0) {
+        const libIds = Array.from(new Set(accepted.map((a) => a.libraryId!)));
+        const existing = await db.collectionMember.findMany({
+          where: { userId, collectionId: { in: libIds } },
+          select: { collectionId: true },
+        });
+        const existingSet = new Set(existing.map((m) => m.collectionId));
+        const toCreate = libIds.filter((id) => !existingSet.has(id));
+        if (toCreate.length > 0) {
+          await db.$transaction(
+            toCreate.map((collectionId) =>
+              db.collectionMember.create({
+                data: { userId, collectionId, role: 'member', isActive: true },
+              })
+            )
+          );
+        }
+      }
+    } catch (e) {
+      console.warn('Membership sync skipped:', e);
+    }
+
+    // Get owned collections directly
+    const owned = await db.collection.findMany({
+      where: { ownerId: userId, isArchived: false },
       select: {
-        ownedCollections: {
-          where: {
-            isArchived: false,
+        id: true,
+        name: true,
+        description: true,
+        location: true,
+        isPublic: true,
+        createdAt: true,
+        members: {
+          select: {
+            id: true,
+            role: true,
+            user: { select: { id: true, name: true, image: true } },
           },
+        },
+        _count: {
+          select: {
+            members: true,
+            items: { where: { item: { currentBorrowRequestId: null } } },
+          },
+        },
+      },
+    });
+
+    // Get member collections via memberships
+    const memberships = await db.collectionMember.findMany({
+      where: {
+        userId,
+        isActive: true,
+        collection: { isArchived: false },
+      },
+      select: {
+        role: true,
+        joinedAt: true,
+        collection: {
           select: {
             id: true,
             name: true,
@@ -37,66 +107,11 @@ export async function GET() {
             location: true,
             isPublic: true,
             createdAt: true,
-            members: {
-              select: {
-                id: true,
-                role: true,
-                user: {
-                  select: {
-                    id: true,
-                    name: true,
-                    image: true,
-                  },
-                },
-              },
-            },
+            owner: { select: { id: true, name: true, image: true } },
             _count: {
               select: {
                 members: true,
-                items: {
-                  where: {
-                    item: { currentBorrowRequestId: null },
-                  },
-                },
-              },
-            },
-          },
-        },
-        collectionMemberships: {
-          where: {
-            isActive: true,
-            collection: {
-              isArchived: false,
-            },
-          },
-          select: {
-            role: true,
-            joinedAt: true,
-            collection: {
-              select: {
-                id: true,
-                name: true,
-                description: true,
-                location: true,
-                isPublic: true,
-                createdAt: true,
-                owner: {
-                  select: {
-                    id: true,
-                    name: true,
-                    image: true,
-                  },
-                },
-                _count: {
-                  select: {
-                    members: true,
-                    items: {
-                      where: {
-                        item: { currentBorrowRequestId: null },
-                      },
-                    },
-                  },
-                },
+                items: { where: { item: { currentBorrowRequestId: null } } },
               },
             },
           },
@@ -104,21 +119,15 @@ export async function GET() {
       },
     });
 
-    if (!userLibraries) {
-      return NextResponse.json({ collections: [] });
-    }
-
-    // Format the response
     const collections = [
-      // Owned collections
-      ...userLibraries.ownedCollections.map((library) => ({
+      ...owned.map((library) => ({
         id: library.id,
         name: library.name,
         description: library.description,
         location: library.location,
         isPublic: library.isPublic,
-        role: 'owner',
-        memberCount: library._count.members + 1, // +1 for owner
+        role: 'owner' as const,
+        memberCount: library._count.members + 1,
         itemCount: library._count.items,
         joinedAt: library.createdAt,
         owner: {
@@ -128,18 +137,17 @@ export async function GET() {
         },
         members: library.members,
       })),
-      // Member collections
-      ...userLibraries.collectionMemberships.map((membership) => ({
-        id: membership.collection.id,
-        name: membership.collection.name,
-        description: membership.collection.description,
-        location: membership.collection.location,
-        isPublic: membership.collection.isPublic,
-        role: membership.role,
-        memberCount: membership.collection._count.members + 1, // +1 for owner
-        itemCount: membership.collection._count.items,
-        joinedAt: membership.joinedAt,
-        owner: membership.collection.owner,
+      ...memberships.map((m) => ({
+        id: m.collection.id,
+        name: m.collection.name,
+        description: m.collection.description,
+        location: m.collection.location,
+        isPublic: m.collection.isPublic,
+        role: m.role,
+        memberCount: m.collection._count.members + 1,
+        itemCount: m.collection._count.items,
+        joinedAt: m.joinedAt,
+        owner: m.collection.owner,
       })),
     ];
 

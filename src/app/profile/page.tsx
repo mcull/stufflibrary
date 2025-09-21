@@ -83,5 +83,19 @@ export default async function ProfilePage() {
     });
   }
 
-  return <ProfileView user={user} currentAddress={currentAddress} />;
+  // Compute stats: total items available to share
+  const itemsAvailableCount = await db.item.count({
+    where: {
+      ownerId: user.id,
+      currentBorrowRequestId: null,
+    },
+  });
+
+  return (
+    <ProfileView
+      user={user}
+      currentAddress={currentAddress}
+      itemsAvailableCount={itemsAvailableCount}
+    />
+  );
 }

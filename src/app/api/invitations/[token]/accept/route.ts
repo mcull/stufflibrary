@@ -82,16 +82,23 @@ export async function POST(
       );
     }
 
-    // Check if user is already a member
+    // Check if user is already a member (active or inactive)
     const existingMembership = await db.collectionMember.findFirst({
       where: {
         userId,
         collectionId: invitation.libraryId!,
-        isActive: true,
       },
+      select: { id: true, isActive: true, role: true },
     });
 
     if (existingMembership) {
+      // Reactivate if needed
+      if (!existingMembership.isActive) {
+        await db.collectionMember.update({
+          where: { id: existingMembership.id },
+          data: { isActive: true },
+        });
+      }
       // Mark invitation as accepted anyway
       await db.invitation.update({
         where: { id: invitation.id },
