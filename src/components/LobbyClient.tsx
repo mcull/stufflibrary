@@ -444,12 +444,12 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                   }}
                 >
                   <Typography variant="h4" sx={{ color: brandColors.charcoal }}>
-                    📚
+                    📷
                   </Typography>
                 </Box>
 
                 <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                  Your shelf is empty
+                  Add your first item
                 </Typography>
 
                 <Typography
@@ -457,7 +457,9 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                   color="text.secondary"
                   sx={{ mb: 3, maxWidth: 400, mx: 'auto' }}
                 >
-                  Add your first item to start sharing with your community!
+                  Take a quick photo of something you’re comfortable sharing.
+                  We’ll auto-classify it and create a clean illustration, then
+                  you can add it to any of your libraries.
                 </Typography>
 
                 <Button
@@ -479,6 +481,53 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                 >
                   Add Your First Item
                 </Button>
+
+                <Box
+                  sx={{
+                    display: 'flex',
+                    gap: 16 / 8,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mb: 2,
+                  }}
+                >
+                  <img
+                    src="/blenderphone1/IMG_9637-left.png"
+                    alt="Phone taking a photo"
+                    width="56"
+                    height="56"
+                    style="border-radius:8px;border:1px solid #eee;object-fit:cover"
+                    onerror="this.style.display='none'"
+                  />
+                  <span style="opacity:0.6">→</span>
+                  <img
+                    src="/blenderphone2/IMG_9638-left.png"
+                    alt="Illustrated result"
+                    width="56"
+                    height="56"
+                    style="border-radius:8px;border:1px solid #eee;object-fit:cover"
+                    onerror="this.style.display='none'"
+                  />
+                  <span style="opacity:0.6">→</span>
+                  <img
+                    src="/hero-background.png"
+                    alt="Share with your libraries"
+                    width="56"
+                    height="56"
+                    style="border-radius:8px;border:1px solid #eee;object-fit:cover"
+                    onerror="this.style.display='none'"
+                  />
+                </Box>
+                <div style="max-width:560px;margin:0 auto;text-align:left">
+                  <p style="margin:0 0 6px;color:rgba(0,0,0,.6);font-size:.9rem">
+                    Why photos: the fastest, no‑fuss way to add items. One
+                    picture and you’re done.
+                  </p>
+                  <p style="margin:0;color:rgba(0,0,0,.6);font-size:.9rem">
+                    Why illustrations: they keep attention on your item and
+                    avoid exposing background details of your home.
+                  </p>
+                </div>
               </Box>
             ) : itemFilter === 'all' ? (
               // Show all sections with headers when "All" is selected
