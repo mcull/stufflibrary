@@ -1,10 +1,7 @@
 'use client';
 
-import {
-  Add as AddIcon,
-  People as PeopleIcon,
-  Eco as EcoIcon,
-} from '@mui/icons-material';
+import { Add as AddIcon, People as PeopleIcon } from '@mui/icons-material';
+import EmojiNatureIcon from '@mui/icons-material/EmojiNature';
 import {
   Box,
   Card,
@@ -152,7 +149,7 @@ export function CollectionCard({ collection }: CollectionCardProps) {
           {collection.role === 'owner' && (
             <Tooltip title="You started this library" arrow>
               <Chip
-                icon={<EcoIcon sx={{ fontSize: 16 }} />}
+                icon={<EmojiNatureIcon sx={{ fontSize: 16 }} />}
                 label="Started"
                 size="small"
                 sx={{
