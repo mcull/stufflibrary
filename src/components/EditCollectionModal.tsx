@@ -34,6 +34,7 @@ interface EditCollectionModalProps {
   onSave: (updatedCollection: Partial<CollectionData>) => Promise<void>;
   onArchiveCollection?: () => void | Promise<void>;
   onDeleteCollection?: () => void | Promise<void>;
+  onOpenManageMembers?: () => void;
 }
 
 interface FormData {
@@ -56,6 +57,7 @@ export function EditCollectionModal({
   onSave,
   onArchiveCollection,
   onDeleteCollection,
+  onOpenManageMembers: _onOpenManageMembers,
 }: EditCollectionModalProps) {
   const [formData, setFormData] = useState<FormData>({
     name: '',
@@ -68,6 +70,7 @@ export function EditCollectionModal({
   const [apiError, setApiError] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [showBetaPrivacyNote, setShowBetaPrivacyNote] = useState(false);
+  // Transfer ownership controls are handled in ManageMembersModal
 
   // Initialize form with collection data
   useEffect(() => {

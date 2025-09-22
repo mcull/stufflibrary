@@ -1,7 +1,16 @@
 'use client';
 
 import { Add as AddIcon, People as PeopleIcon } from '@mui/icons-material';
-import { Box, Card, CardContent, Typography, Chip } from '@mui/material';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import ConstructionIcon from '@mui/icons-material/Construction';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Chip,
+  Tooltip,
+} from '@mui/material';
 import { useRouter } from 'next/navigation';
 
 import { brandColors, spacing } from '@/theme/brandTokens';
@@ -137,25 +146,50 @@ export function CollectionCard({ collection }: CollectionCardProps) {
             </Typography>
           </Box>
 
-          {/* Role indicator in top right corner */}
+          {/* Role indicators */}
           {collection.role === 'owner' && (
-            <Box
-              sx={{
-                position: 'absolute',
-                top: 4,
-                right: 4,
-                width: 24,
-                height: 24,
-                borderRadius: '50%',
-                backgroundColor: brandColors.inkBlue,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
-              }}
-            >
-              <Typography sx={{ fontSize: '0.7rem' }}>👑</Typography>
-            </Box>
+            <Tooltip title="You own this library" arrow>
+              <Chip
+                icon={<ConstructionIcon sx={{ fontSize: 16 }} />}
+                label="Owner"
+                size="small"
+                sx={{
+                  position: 'absolute',
+                  top: 4,
+                  left: 4,
+                  backgroundColor: '#E8F5E8',
+                  color: '#2E7D32',
+                  fontWeight: 600,
+                  '& .MuiChip-icon': {
+                    color: '#2E7D32',
+                    mr: 0.5,
+                  },
+                }}
+                aria-label="You own this library"
+              />
+            </Tooltip>
+          )}
+          {collection.role === 'admin' && (
+            <Tooltip title="You are an admin of this library" arrow>
+              <Chip
+                icon={<AdminPanelSettingsIcon sx={{ fontSize: 16 }} />}
+                label="Admin"
+                size="small"
+                sx={{
+                  position: 'absolute',
+                  top: 4,
+                  left: 4,
+                  backgroundColor: '#E3F2FD',
+                  color: '#1565C0',
+                  fontWeight: 600,
+                  '& .MuiChip-icon': {
+                    color: '#1565C0',
+                    mr: 0.5,
+                  },
+                }}
+                aria-label="You are an admin"
+              />
+            </Tooltip>
           )}
         </Box>
 

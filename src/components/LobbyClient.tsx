@@ -430,35 +430,66 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
             {/* Items Display */}
             {allItems.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 6 }}>
-                <Box
-                  sx={{
-                    width: 80,
-                    height: 80,
-                    borderRadius: '50%',
-                    backgroundColor: brandColors.warmCream,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    mx: 'auto',
-                    mb: 3,
-                  }}
+                <Link
+                  href="/add-item"
+                  aria-label="Add your first item"
+                  style={{ textDecoration: 'none' }}
                 >
-                  <Typography variant="h4" sx={{ color: brandColors.charcoal }}>
-                    📚
-                  </Typography>
-                </Box>
+                  <Box
+                    sx={{
+                      width: 80,
+                      height: 80,
+                      borderRadius: '50%',
+                      backgroundColor: brandColors.warmCream,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      mx: 'auto',
+                      mb: 3,
+                      cursor: 'pointer',
+                      transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                      '&:hover': {
+                        transform: 'translateY(-1px)',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                      },
+                    }}
+                  >
+                    <Typography
+                      variant="h4"
+                      sx={{ color: brandColors.charcoal }}
+                    >
+                      📷
+                    </Typography>
+                  </Box>
+                </Link>
 
                 <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                  Your shelf is empty
+                  Add your first item
                 </Typography>
 
                 <Typography
                   variant="body1"
                   color="text.secondary"
-                  sx={{ mb: 3, maxWidth: 400, mx: 'auto' }}
+                  sx={{ mb: 2, maxWidth: 400, mx: 'auto' }}
                 >
-                  Add your first item to start sharing with your community!
+                  Take a quick photo of something you’re comfortable sharing.
+                  We’ll auto-classify it and create a clean illustration, then
+                  you can add it to any of your libraries.
                 </Typography>
+
+                {/* Replace storyboard with single how-to image */}
+                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+                  <img
+                    src="/how-to-add-stuff.png"
+                    alt="How to add your first item"
+                    style={{
+                      maxWidth: '100%',
+                      width: isMobile ? '100%' : 520,
+                      height: 'auto',
+                    }}
+                    onError={(e) => (e.currentTarget.style.display = 'none')}
+                  />
+                </Box>
 
                 <Button
                   component={Link}

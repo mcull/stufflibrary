@@ -662,8 +662,11 @@ export function ItemDetailClient({
       maxWidth="md"
       sx={{
         py: 4,
-        pb: { xs: 8, sm: 4 }, // Extra bottom padding on mobile for viewport
-        minHeight: '100vh',
+        // Extra bottom padding to ensure content clears fixed UI on small screens
+        pb: {
+          xs: 'calc(120px + env(safe-area-inset-bottom, 0px))',
+          sm: '150px',
+        },
       }}
     >
       {/* Breadcrumbs */}
@@ -1100,27 +1103,7 @@ export function ItemDetailClient({
                           </Box>
                         )}
 
-                      {/* Save Button (only for new items) */}
-                      {isNewItem && (
-                        <Box sx={{ pt: 2 }}>
-                          <Button
-                            variant="contained"
-                            size="large"
-                            startIcon={
-                              saving ? (
-                                <CircularProgress size={20} />
-                              ) : (
-                                <SaveIcon />
-                              )
-                            }
-                            onClick={() => handleSave()}
-                            disabled={saving || !name.trim()}
-                            sx={{ borderRadius: 2 }}
-                          >
-                            {saving ? 'Saving...' : 'Add to Library'}
-                          </Button>
-                        </Box>
-                      )}
+                      {/* Removed duplicate new-item save button to avoid confusion on new item flow */}
 
                       {/* Borrow Request Button */}
                       {canBorrow && (

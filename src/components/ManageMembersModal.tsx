@@ -7,6 +7,7 @@ import {
   Person as PersonIcon,
   AdminPanelSettings as AdminIcon,
   RemoveCircle as RemoveCircleIcon,
+  Construction as ConstructionIcon,
 } from '@mui/icons-material';
 import {
   Dialog,
@@ -86,6 +87,10 @@ export function ManageMembersModal({
   const [members, setMembers] = useState<Member[]>([]);
   const [loadingData, setLoadingData] = useState(false);
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
+  const [updatingRoleId, setUpdatingRoleId] = useState<string | null>(null);
+  const [transferringOwnerId, setTransferringOwnerId] = useState<string | null>(
+    null
+  );
 
   const loadData = useCallback(async () => {
     setLoadingData(true);
@@ -184,6 +189,36 @@ export function ManageMembersModal({
     }
   };
 
+  //
+  const handleTransferOwnership = async (member: Member) => {
+    if (!confirm(`Transfer ownership to ${member.user.name || 'this member'}?`))
+      return;
+    setTransferringOwnerId(member.id);
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await fetch(
+        `/api/collections/${collectionId}/transfer-ownership`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ newOwnerId: member.user.id }),
+        }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok)
+        throw new Error(data.error || 'Failed to transfer ownership');
+      setSuccess('Ownership transferred');
+      await loadData();
+      onMembershipChanged?.();
+    } catch (e) {
+      console.error('Failed to transfer ownership:', e);
+      setError(e instanceof Error ? e.message : 'Failed to transfer ownership');
+    } finally {
+      setTransferringOwnerId(null);
+    }
+  };
+
   const handleClose = () => {
     setEmail('');
     setError(null);
@@ -219,16 +254,7 @@ export function ManageMembersModal({
     }
   };
 
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'owner':
-        return 'primary';
-      case 'admin':
-        return 'secondary';
-      default:
-        return 'default';
-    }
-  };
+  // Role color helper removed
 
   const canRemoveMember = (member: Member) => {
     if (userRole === 'owner') {
@@ -238,6 +264,44 @@ export function ManageMembersModal({
       return member.role === 'member'; // Admin can only remove regular members
     }
     return false; // Members can't remove anyone
+  };
+
+  const canChangeRole = (member: Member) => {
+    // Only owners can change roles; cannot change owners; cannot change yourself
+    if (userRole !== 'owner') return false;
+    if (member.role === 'owner') return false;
+    return true;
+  };
+
+  const handleChangeRole = async (
+    member: Member,
+    newRole: 'admin' | 'member'
+  ) => {
+    setUpdatingRoleId(member.id);
+    setError(null);
+    setSuccess(null);
+    try {
+      const response = await fetch(
+        `/api/collections/${collectionId}/members/${member.id}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: newRole }),
+        }
+      );
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update role');
+      }
+      setSuccess(`Updated ${member.user.name || 'member'} to ${newRole}`);
+      await loadData();
+      onMembershipChanged?.();
+    } catch (e) {
+      console.error('Failed to update role:', e);
+      setError(e instanceof Error ? e.message : 'Failed to update role');
+    } finally {
+      setUpdatingRoleId(null);
+    }
   };
 
   return (
@@ -385,17 +449,40 @@ export function ManageMembersModal({
                               >
                                 {member.user.name || 'Unknown User'}
                               </Typography>
-                              <Chip
-                                label={member.role}
-                                size="small"
-                                color={getRoleColor(member.role)}
-                                variant="outlined"
-                                {...(member.role === 'admin'
-                                  ? {
-                                      icon: <AdminIcon />,
-                                    }
-                                  : {})}
-                              />
+                              {member.role === 'owner' ? (
+                                <Chip
+                                  icon={
+                                    <ConstructionIcon sx={{ fontSize: 16 }} />
+                                  }
+                                  label="Owner"
+                                  size="small"
+                                  sx={{
+                                    backgroundColor: '#E8F5E8',
+                                    color: '#2E7D32',
+                                    height: 22,
+                                    '& .MuiChip-icon': { color: '#2E7D32' },
+                                  }}
+                                />
+                              ) : member.role === 'admin' ? (
+                                <Chip
+                                  icon={<AdminIcon sx={{ fontSize: 16 }} />}
+                                  label="Admin"
+                                  size="small"
+                                  sx={{
+                                    backgroundColor: '#E3F2FD',
+                                    color: '#1565C0',
+                                    height: 22,
+                                    '& .MuiChip-icon': { color: '#1565C0' },
+                                  }}
+                                />
+                              ) : (
+                                <Chip
+                                  label="Member"
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{ height: 22 }}
+                                />
+                              )}
                             </Box>
                           }
                           secondary={
@@ -422,6 +509,53 @@ export function ManageMembersModal({
                         />
                       </Box>
 
+                      {/* Role change actions */}
+                      {canChangeRole(member) && (
+                        <Box sx={{ display: 'flex', gap: 1, mr: 1 }}>
+                          {member.role !== 'admin' && (
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              disabled={updatingRoleId === member.id}
+                              onClick={() => handleChangeRole(member, 'admin')}
+                              sx={{ textTransform: 'none' }}
+                            >
+                              {updatingRoleId === member.id
+                                ? 'Updating...'
+                                : 'Make admin'}
+                            </Button>
+                          )}
+                          {member.role !== 'member' && (
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              disabled={updatingRoleId === member.id}
+                              onClick={() => handleChangeRole(member, 'member')}
+                              sx={{ textTransform: 'none' }}
+                            >
+                              {updatingRoleId === member.id
+                                ? 'Updating...'
+                                : 'Make member'}
+                            </Button>
+                          )}
+                        </Box>
+                      )}
+
+                      {userRole === 'owner' && member.role !== 'owner' && (
+                        <Button
+                          variant="text"
+                          size="small"
+                          disabled={transferringOwnerId !== null}
+                          onClick={() => handleTransferOwnership(member)}
+                          sx={{ textTransform: 'none', mr: 1 }}
+                        >
+                          {transferringOwnerId === member.id
+                            ? 'Transferring...'
+                            : 'Make owner'}
+                        </Button>
+                      )}
+
+                      {/* Remove action */}
                       {canRemoveMember(member) && (
                         <Tooltip
                           title={`Remove ${member.user.name || 'member'}`}

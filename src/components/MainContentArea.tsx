@@ -25,8 +25,11 @@ export function MainContentArea({ children }: MainContentAreaProps) {
   return (
     <Box
       sx={{
-        pb: needsBottomPadding ? { xs: 8, md: 0 } : 0, // 64px bottom padding on mobile for bottom nav
-        minHeight: needsBottomPadding ? 'calc(100vh - 64px)' : '100vh', // Adjust for mobile bottom nav
+        // Space for bottom nav on mobile + iOS safe area
+        pb: needsBottomPadding
+          ? { xs: 'calc(64px + env(safe-area-inset-bottom, 0px))', md: 0 }
+          : 0,
+        // Remove enforced viewport minHeight to allow full-page scrolling
       }}
     >
       {children}
