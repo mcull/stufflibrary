@@ -3,6 +3,7 @@
 import {
   ArrowBack as ArrowBackIcon,
   AddAPhotoTwoTone as AddIcon,
+  FeedbackOutlined as FeedbackOutlinedIcon,
 } from '@mui/icons-material';
 import {
   AppBar,
@@ -92,6 +93,20 @@ export function GlobalHeader({
               flex: '0 0 auto',
             }}
           >
+            {/* Feedback - Desktop Only */}
+            <IconButton
+              component={Link}
+              href="/feedback"
+              sx={{
+                color: brandColors.charcoal,
+                display: { xs: 'none', md: 'flex' },
+                '&:hover': { backgroundColor: 'rgba(30, 58, 95, 0.08)' },
+              }}
+              aria-label="Feedback"
+            >
+              <FeedbackOutlinedIcon />
+            </IconButton>
+
             {showBackButton && (
               <IconButton
                 onClick={handleBackClick}
@@ -146,7 +161,7 @@ export function GlobalHeader({
             )}
           </Box>
 
-          {/* Right Section - Add Button, Notifications & User Avatar */}
+          {/* Right Section - Feedback, Add Button, Notifications & User Avatar */}
           <Box
             sx={{
               display: 'flex',
@@ -155,6 +170,20 @@ export function GlobalHeader({
               flex: '0 0 auto',
             }}
           >
+            {/* Feedback - Desktop Only */}
+            <IconButton
+              component={Link}
+              href="/feedback"
+              sx={{
+                color: brandColors.charcoal,
+                display: { xs: 'none', md: 'flex' },
+                '&:hover': { backgroundColor: 'rgba(30, 58, 95, 0.08)' },
+              }}
+              aria-label="Feedback"
+            >
+              <FeedbackOutlinedIcon />
+            </IconButton>
+
             {/* Add Stuff Button - Desktop Only */}
             <IconButton
               component={Link}
