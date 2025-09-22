@@ -88,6 +88,9 @@ export function ManageMembersModal({
   const [loadingData, setLoadingData] = useState(false);
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
   const [updatingRoleId, setUpdatingRoleId] = useState<string | null>(null);
+  const [transferringOwnerId, setTransferringOwnerId] = useState<string | null>(
+    null
+  );
 
   const loadData = useCallback(async () => {
     setLoadingData(true);
@@ -542,11 +545,13 @@ export function ManageMembersModal({
                         <Button
                           variant="text"
                           size="small"
-                          disabled={false}
+                          disabled={transferringOwnerId !== null}
                           onClick={() => handleTransferOwnership(member)}
                           sx={{ textTransform: 'none', mr: 1 }}
                         >
-                          Make owner
+                          {transferringOwnerId === member.id
+                            ? 'Transferring...'
+                            : 'Make owner'}
                         </Button>
                       )}
 
