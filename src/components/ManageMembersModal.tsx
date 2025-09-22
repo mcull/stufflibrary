@@ -31,6 +31,10 @@ import {
   Tab,
   Divider,
   Tooltip,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import { useState, useEffect, useCallback } from 'react';
 
@@ -87,10 +91,10 @@ export function ManageMembersModal({
   const [members, setMembers] = useState<Member[]>([]);
   const [loadingData, setLoadingData] = useState(false);
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
-  const [updatingRoleId, setUpdatingRoleId] = useState<string | null>(null);
-  const [transferringOwnerId, setTransferringOwnerId] = useState<string | null>(
-    null
-  );
+  const [_updatingRoleId, setUpdatingRoleId] = useState<string | null>(null);
+  const [_transferringOwnerId, setTransferringOwnerId] = useState<
+    string | null
+  >(null);
 
   const loadData = useCallback(async () => {
     setLoadingData(true);
@@ -432,54 +436,12 @@ export function ManageMembersModal({
                         </ListItemAvatar>
                         <ListItemText
                           primary={
-                            <Box
-                              sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1,
-                              }}
+                            <Typography
+                              variant="subtitle1"
+                              sx={{ fontWeight: 500 }}
                             >
-                              <Typography
-                                variant="subtitle1"
-                                sx={{ fontWeight: 500 }}
-                              >
-                                {member.user.name || 'Unknown User'}
-                              </Typography>
-                              {member.role === 'owner' ? (
-                                <Chip
-                                  icon={
-                                    <ConstructionIcon sx={{ fontSize: 16 }} />
-                                  }
-                                  label="Owner"
-                                  size="small"
-                                  sx={{
-                                    backgroundColor: '#E8F5E8',
-                                    color: '#2E7D32',
-                                    height: 22,
-                                    '& .MuiChip-icon': { color: '#2E7D32' },
-                                  }}
-                                />
-                              ) : member.role === 'admin' ? (
-                                <Chip
-                                  icon={<AdminIcon sx={{ fontSize: 16 }} />}
-                                  label="Admin"
-                                  size="small"
-                                  sx={{
-                                    backgroundColor: '#E3F2FD',
-                                    color: '#1565C0',
-                                    height: 22,
-                                    '& .MuiChip-icon': { color: '#1565C0' },
-                                  }}
-                                />
-                              ) : (
-                                <Chip
-                                  label="Member"
-                                  size="small"
-                                  variant="outlined"
-                                  sx={{ height: 22 }}
-                                />
-                              )}
-                            </Box>
+                              {member.user.name || 'Unknown User'}
+                            </Typography>
                           }
                           secondary={
                             <>
@@ -500,56 +462,100 @@ export function ManageMembersModal({
                                 Joined{' '}
                                 {new Date(member.joinedAt).toLocaleDateString()}
                               </Typography>
+                              <Box
+                                sx={{
+                                  mt: 0.5,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 1,
+                                  flexWrap: 'wrap',
+                                }}
+                              >
+                                {canChangeRole(member) ? (
+                                  <FormControl
+                                    size="small"
+                                    sx={{ minWidth: 140 }}
+                                  >
+                                    <InputLabel id={`role-label-${member.id}`}>
+                                      Role
+                                    </InputLabel>
+                                    <Select
+                                      labelId={`role-label-${member.id}`}
+                                      label="Role"
+                                      value={member.role}
+                                      onChange={(e) => {
+                                        const role = e.target.value as
+                                          | 'owner'
+                                          | 'admin'
+                                          | 'member';
+                                        if (role === 'owner') {
+                                          handleTransferOwnership(member);
+                                        } else if (
+                                          role === 'admin' ||
+                                          role === 'member'
+                                        ) {
+                                          handleChangeRole(member, role);
+                                        }
+                                      }}
+                                    >
+                                      <MenuItem value="member">Member</MenuItem>
+                                      <MenuItem value="admin">Admin</MenuItem>
+                                      <MenuItem value="owner">Owner</MenuItem>
+                                    </Select>
+                                  </FormControl>
+                                ) : (
+                                  <>
+                                    {member.role === 'owner' ? (
+                                      <Chip
+                                        icon={
+                                          <ConstructionIcon
+                                            sx={{ fontSize: 16 }}
+                                          />
+                                        }
+                                        label="Owner"
+                                        size="small"
+                                        sx={{
+                                          backgroundColor: '#E8F5E8',
+                                          color: '#2E7D32',
+                                          height: 22,
+                                          '& .MuiChip-icon': {
+                                            color: '#2E7D32',
+                                          },
+                                        }}
+                                      />
+                                    ) : member.role === 'admin' ? (
+                                      <Chip
+                                        icon={
+                                          <AdminIcon sx={{ fontSize: 16 }} />
+                                        }
+                                        label="Admin"
+                                        size="small"
+                                        sx={{
+                                          backgroundColor: '#E3F2FD',
+                                          color: '#1565C0',
+                                          height: 22,
+                                          '& .MuiChip-icon': {
+                                            color: '#1565C0',
+                                          },
+                                        }}
+                                      />
+                                    ) : (
+                                      <Chip
+                                        label="Member"
+                                        size="small"
+                                        variant="outlined"
+                                        sx={{ height: 22 }}
+                                      />
+                                    )}
+                                  </>
+                                )}
+                              </Box>
                             </>
                           }
                         />
                       </Box>
 
-                      {/* Role change actions */}
-                      {canChangeRole(member) && (
-                        <Box sx={{ display: 'flex', gap: 1, mr: 1 }}>
-                          {member.role !== 'admin' && (
-                            <Button
-                              variant="outlined"
-                              size="small"
-                              disabled={updatingRoleId === member.id}
-                              onClick={() => handleChangeRole(member, 'admin')}
-                              sx={{ textTransform: 'none' }}
-                            >
-                              {updatingRoleId === member.id
-                                ? 'Updating...'
-                                : 'Make admin'}
-                            </Button>
-                          )}
-                          {member.role !== 'member' && (
-                            <Button
-                              variant="outlined"
-                              size="small"
-                              disabled={updatingRoleId === member.id}
-                              onClick={() => handleChangeRole(member, 'member')}
-                              sx={{ textTransform: 'none' }}
-                            >
-                              {updatingRoleId === member.id
-                                ? 'Updating...'
-                                : 'Make member'}
-                            </Button>
-                          )}
-                        </Box>
-                      )}
-
-                      {userRole === 'owner' && member.role !== 'owner' && (
-                        <Button
-                          variant="text"
-                          size="small"
-                          disabled={transferringOwnerId !== null}
-                          onClick={() => handleTransferOwnership(member)}
-                          sx={{ textTransform: 'none', mr: 1 }}
-                        >
-                          {transferringOwnerId === member.id
-                            ? 'Transferring...'
-                            : 'Make owner'}
-                        </Button>
-                      )}
+                      {/* Role actions moved into dropdown; owner transfer handled on selecting 'Owner' */}
 
                       {/* Remove action */}
                       {canRemoveMember(member) && (
