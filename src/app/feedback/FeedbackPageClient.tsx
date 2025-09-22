@@ -21,6 +21,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import { Snackbar } from '@mui/material';
 import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
@@ -60,6 +61,8 @@ export function FeedbackPageClient() {
   const [loadingIssues, setLoadingIssues] = useState(true);
   const [upvoting, setUpvoting] = useState<Record<number, boolean>>({});
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, _setPreviewUrl] = useState<string | null>(null);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
 
   // Load open issues on component mount
   useEffect(() => {
@@ -98,6 +101,7 @@ export function FeedbackPageClient() {
       if (!response.ok) throw new Error('Failed to submit feedback');
       const data = await response.json();
       setSubmitSuccess(true);
+      setSnackbarOpen(true);
       if (data?.issueUrl && data?.issueNumber) {
         setSubmittedIssue({ url: data.issueUrl, number: data.issueNumber });
       } else {
@@ -285,6 +289,22 @@ export function FeedbackPageClient() {
                       {imageFile.name}
                     </Typography>
                   )}
+                  {previewUrl && (
+                    <Box sx={{ mt: 1 }}>
+                      <Box
+                        component="img"
+                        src={previewUrl}
+                        alt="Screenshot preview"
+                        sx={{
+                          width: 160,
+                          maxWidth: '100%',
+                          height: 'auto',
+                          borderRadius: 1,
+                          border: '1px solid #e0e0e0',
+                        }}
+                      />
+                    </Box>
+                  )}
                 </Box>
               </Box>
             </CardContent>
@@ -414,6 +434,20 @@ export function FeedbackPageClient() {
           </Card>
         </Grid>
       </Grid>
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setSnackbarOpen(false)}
+          severity="success"
+          sx={{ width: '100%' }}
+        >
+          Thanks for your feedback!
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }
