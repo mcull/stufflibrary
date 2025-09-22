@@ -1,16 +1,18 @@
 import { Octokit } from '@octokit/rest';
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+
+import { authOptions } from '@/lib/auth';
+import { db } from '@/lib/db';
 
 export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ number: string }> }
 ) {
   try {
-    if (!process.env.GITHUB_TOKEN) {
-      return NextResponse.json(
-        { error: 'GitHub token not configured' },
-        { status: 501 }
-      );
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { number } = await params;
@@ -22,31 +24,45 @@ export async function POST(
       );
     }
 
-    const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+    // Create internal vote if not exists
+    await db.feedbackVote.upsert({
+      where: {
+        issueNumber_userId: {
+          issueNumber,
+          userId: session.user.id as string,
+        },
+      },
+      create: {
+        issueNumber,
+        userId: session.user.id as string,
+      },
+      update: {},
+    });
 
-    // Attempt to create a +1 reaction. If it already exists for the token user, ignore.
-    try {
-      await octokit.rest.reactions.createForIssue({
-        owner: 'mcull',
-        repo: 'stufflibrary',
-        issue_number: issueNumber,
-        content: '+1',
-      });
-    } catch (err: unknown) {
-      // If already reacted or insufficient permissions, fall through with a graceful response
-      const status = (err as any)?.status || 500;
-      if (
-        status !== 200 &&
-        status !== 201 &&
-        status !== 409 &&
-        status !== 422
-      ) {
-        // 409/422 may indicate duplicate or not allowed; treat as non-fatal for UX
-        console.warn('GitHub reaction create error:', err);
+    // Count total internal votes for this issue
+    const internalCount = await db.feedbackVote.count({
+      where: { issueNumber },
+    });
+
+    // Best-effort GitHub +1 for discoverability (does not affect internal count)
+    if (process.env.GITHUB_TOKEN) {
+      const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+      try {
+        await octokit.rest.reactions.createForIssue({
+          owner: 'mcull',
+          repo: 'stufflibrary',
+          issue_number: issueNumber,
+          content: '+1',
+        });
+      } catch (err: unknown) {
+        const status = (err as any)?.status || 500;
+        if (![200, 201, 409, 422].includes(status)) {
+          console.warn('GitHub reaction create error:', err);
+        }
       }
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, internalCount, userVoted: true });
   } catch (error) {
     console.error('Error upvoting issue:', error);
     return NextResponse.json(

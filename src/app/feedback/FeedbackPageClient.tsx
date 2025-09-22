@@ -60,6 +60,7 @@ export function FeedbackPageClient() {
   const [loadingIssues, setLoadingIssues] = useState(true);
   const [upvoting, setUpvoting] = useState<Record<number, boolean>>({});
   const [voted, setVoted] = useState<Record<number, boolean>>({});
+  const [voteCounts, setVoteCounts] = useState<Record<number, number>>({});
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -72,8 +73,8 @@ export function FeedbackPageClient() {
   const sortIssues = (list: GitHubIssue[]) => {
     const isClosed = (s?: string) => (s || '').toLowerCase() === 'closed';
     const byVotesThenCreatedDesc = (a: GitHubIssue, b: GitHubIssue) => {
-      const va = a.reactions?.['+1'] || 0;
-      const vb = b.reactions?.['+1'] || 0;
+      const va = (voteCounts[a.number] ?? a.reactions?.['+1']) || 0;
+      const vb = (voteCounts[b.number] ?? b.reactions?.['+1']) || 0;
       if (vb !== va) return vb - va; // primary: votes desc
       // secondary: created_at desc (newer first)
       return (
@@ -92,26 +93,39 @@ export function FeedbackPageClient() {
     return [...open, ...closed];
   };
 
+  const loadVotes = async (numbers: number[]) => {
+    if (!numbers.length) return;
+    try {
+      const params = new URLSearchParams({ numbers: numbers.join(',') });
+      const res = await fetch(`/api/feedback/votes?${params.toString()}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const counts: Record<number, number> = {};
+      const votedMap: Record<number, boolean> = {};
+      Object.entries<{ count: number; userVoted: boolean }>(
+        data.votes || {}
+      ).forEach(([k, v]) => {
+        const n = parseInt(k, 10);
+        if (!Number.isNaN(n)) {
+          counts[n] = v.count;
+          votedMap[n] = v.userVoted;
+        }
+      });
+      setVoteCounts((prev) => ({ ...prev, ...counts }));
+      setVoted((prev) => ({ ...prev, ...votedMap }));
+    } catch (e) {
+      console.warn('Failed to load internal votes', e);
+    }
+  };
+
   const loadOpenIssues = async () => {
     try {
       const response = await fetch('/api/feedback/issues');
       if (response.ok) {
         const data: GitHubIssue[] = await response.json();
-        const sorted = sortIssues(data);
-        setIssues(sorted);
-        // Sync local voted flags from localStorage for visible issues
-        try {
-          const map: Record<number, boolean> = {};
-          sorted.forEach((it) => {
-            if (
-              typeof window !== 'undefined' &&
-              localStorage.getItem(`sl_feedback_voted_${it.number}`) === '1'
-            ) {
-              map[it.number] = true;
-            }
-          });
-          setVoted(map);
-        } catch {}
+        setIssues(data);
+        await loadVotes(data.map((it) => it.number));
+        setIssues((prev) => sortIssues(prev));
       }
     } catch (error) {
       console.error('Failed to load issues:', error);
@@ -390,9 +404,10 @@ export function FeedbackPageClient() {
                 </Box>
               ) : (
                 <Box>
-                  {issues.map((issue, idx) => {
+                  {sortIssues(issues).map((issue, idx) => {
                     const _isClosed = issue.state.toLowerCase() === 'closed';
                     const alreadyVoted = Boolean(voted[issue.number]);
+                    const internalCount = voteCounts[issue.number];
                     return (
                       <Box
                         key={issue.id}
@@ -486,19 +501,12 @@ export function FeedbackPageClient() {
                                   { method: 'POST' }
                                 );
                                 if (res.ok) {
-                                  // Mark locally to prevent multiple votes in this browser
-                                  try {
-                                    localStorage.setItem(
-                                      `sl_feedback_voted_${issue.number}`,
-                                      '1'
-                                    );
-                                    setVoted((m) => ({
-                                      ...m,
-                                      [issue.number]: true,
-                                    }));
-                                  } catch {}
-                                  // Reload issues to reflect the actual count from GitHub
-                                  await loadOpenIssues();
+                                  setVoted((m) => ({
+                                    ...m,
+                                    [issue.number]: true,
+                                  }));
+                                  await loadVotes([issue.number]);
+                                  setIssues((prev) => sortIssues(prev));
                                 }
                               } catch (e) {
                                 console.warn('Failed to upvote issue', e);
@@ -512,7 +520,7 @@ export function FeedbackPageClient() {
                           >
                             {alreadyVoted
                               ? 'Voted'
-                              : issue.reactions['+1'] || 0}
+                              : (internalCount ?? (issue.reactions['+1'] || 0))}
                           </Button>
                         </Box>
                         {idx < issues.length - 1 && (
