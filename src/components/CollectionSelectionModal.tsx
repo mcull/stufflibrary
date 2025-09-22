@@ -47,7 +47,7 @@ export function CollectionSelectionModal({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch user's collections
+  // Fetch user's libraries (collections)
   useEffect(() => {
     if (open) {
       fetchCollections();
@@ -76,7 +76,7 @@ export function CollectionSelectionModal({
       }
     } catch (err) {
       console.error('Error fetching collections:', err);
-      setError('Failed to load your collections');
+      setError('Failed to load your libraries');
     } finally {
       setIsLoading(false);
     }
@@ -100,23 +100,23 @@ export function CollectionSelectionModal({
     setError(null);
 
     try {
-      // Add item to selected collections
+      // Add item to selected libraries
       const response = await fetch(`/api/items/${itemId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ collectionIds: selectedCollectionIds }),
+        body: JSON.stringify({ libraryIds: selectedCollectionIds }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to add item to collections');
+        throw new Error('Failed to add item to libraries');
       }
 
       onComplete(selectedCollectionIds);
     } catch (err) {
-      console.error('Error saving to collection:', err);
-      setError('Failed to add item to collection');
+      console.error('Error saving to libraries:', err);
+      setError('Failed to add item to libraries');
       setIsSaving(false);
     }
   };
@@ -138,7 +138,7 @@ export function CollectionSelectionModal({
             }}
           >
             <CircularProgress size={40} sx={{ mb: 2 }} />
-            <Typography>Loading your collections...</Typography>
+            <Typography>Loading your libraries...</Typography>
           </Box>
         </DialogContent>
       </Dialog>
