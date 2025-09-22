@@ -64,6 +64,7 @@ export function FeedbackPageClient() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMsg, setSnackbarMsg] = useState<string | null>(null);
 
   // Load open issues on component mount
   useEffect(() => {
@@ -501,15 +502,32 @@ export function FeedbackPageClient() {
                                   { method: 'POST' }
                                 );
                                 if (res.ok) {
+                                  const data = await res
+                                    .json()
+                                    .catch(() => ({}));
                                   setVoted((m) => ({
                                     ...m,
                                     [issue.number]: true,
                                   }));
-                                  await loadVotes([issue.number]);
+                                  if (typeof data.internalCount === 'number') {
+                                    setVoteCounts((c) => ({
+                                      ...c,
+                                      [issue.number]: data.internalCount,
+                                    }));
+                                  } else {
+                                    await loadVotes([issue.number]);
+                                  }
                                   setIssues((prev) => sortIssues(prev));
+                                } else {
+                                  setSnackbarMsg(
+                                    'Failed to register your vote.'
+                                  );
+                                  setSnackbarOpen(true);
                                 }
                               } catch (e) {
                                 console.warn('Failed to upvote issue', e);
+                                setSnackbarMsg('Failed to register your vote.');
+                                setSnackbarOpen(true);
                               } finally {
                                 setUpvoting((s) => ({
                                   ...s,
@@ -548,7 +566,7 @@ export function FeedbackPageClient() {
           severity="success"
           sx={{ width: '100%' }}
         >
-          Thanks for your feedback!
+          {snackbarMsg || 'Thanks for your feedback!'}
         </Alert>
       </Snackbar>
     </Container>
