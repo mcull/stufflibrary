@@ -26,6 +26,7 @@ interface MetricCardProps {
 }
 
 function MetricCard({ title, value, subtitle, trend, icon }: MetricCardProps) {
+  const safeValue = typeof value === 'number' ? value : 0;
   return (
     <div className="bg-white overflow-hidden shadow rounded-lg">
       <div className="p-5">
@@ -39,7 +40,7 @@ function MetricCard({ title, value, subtitle, trend, icon }: MetricCardProps) {
                 {title}
               </dt>
               <dd className="text-lg font-medium text-gray-900">
-                {value.toLocaleString()}
+                {safeValue.toLocaleString()}
               </dd>
               {subtitle && (
                 <dd className="text-sm text-gray-500">{subtitle}</dd>
@@ -217,7 +218,11 @@ export function DashboardMetrics() {
 
       <MetricCard
         title="Libraries"
-        value={metrics.totalLibraries}
+        value={
+          (metrics as any).totalLibraries ??
+          (metrics as any).totalCollections ??
+          0
+        }
         subtitle="Community libraries"
         icon={<LibrariesIcon />}
       />

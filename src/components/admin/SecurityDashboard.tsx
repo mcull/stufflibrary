@@ -84,6 +84,7 @@ function SecurityMetricCard({
   icon: React.ReactNode;
   trend?: { value: number; positive: boolean };
 }) {
+  const safeValue = typeof value === 'number' ? value : 0;
   return (
     <div className="bg-white overflow-hidden shadow rounded-lg">
       <div className="p-5">
@@ -97,7 +98,7 @@ function SecurityMetricCard({
                 {title}
               </dt>
               <dd className="text-lg font-medium text-gray-900">
-                {value.toLocaleString()}
+                {safeValue.toLocaleString()}
               </dd>
               {subtitle && (
                 <dd className="text-sm text-gray-500">{subtitle}</dd>
