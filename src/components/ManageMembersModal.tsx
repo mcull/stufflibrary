@@ -465,7 +465,7 @@ export function ManageMembersModal({
                               </Typography>
                               <Box
                                 sx={{
-                                  mt: 0.5,
+                                  mt: 1,
                                   display: 'flex',
                                   alignItems: 'center',
                                   gap: 1,
