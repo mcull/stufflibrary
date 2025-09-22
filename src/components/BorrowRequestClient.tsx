@@ -1029,8 +1029,8 @@ export function BorrowRequestClient({
               variant="body1"
               sx={{ mb: 4, color: brandColors.charcoal, opacity: 0.7 }}
             >
-              {item.owner.name} will receive your video request via SMS and
-              email. You&apos;ll be notified when they respond.
+              {item.owner.name} will receive your video request via email and
+              in-app notification. You&apos;ll be notified when they respond.
             </Typography>
             <Button
               variant="contained"
