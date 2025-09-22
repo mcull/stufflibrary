@@ -688,19 +688,6 @@ export function ItemDetailClient({
           <>
             <Typography
               component="span"
-              onClick={() => router.push('/stacks')}
-              sx={{
-                cursor: 'pointer',
-                '&:hover': { textDecoration: 'underline' },
-              }}
-            >
-              Libraries
-            </Typography>
-            <Typography component="span" sx={{ opacity: 0.4, mx: 1 }}>
-              /
-            </Typography>
-            <Typography
-              component="span"
               onClick={() => router.push(`/library/${refLibraryId}`)}
               sx={{
                 cursor: 'pointer',
