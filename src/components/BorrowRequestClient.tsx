@@ -1133,7 +1133,15 @@ export function BorrowRequestClient({
     <Container maxWidth="md" sx={{ py: 4 }}>
       {/* Breadcrumbs */}
       <Box sx={{ mb: 2, color: 'text.secondary' }}>
-        <Typography component="span" sx={{ opacity: 0.6 }}>
+        <Typography
+          component="span"
+          onClick={() => router.push('/stacks')}
+          sx={{
+            opacity: 0.6,
+            cursor: 'pointer',
+            '&:hover': { textDecoration: 'underline' },
+          }}
+        >
           Home
         </Typography>
         <Typography component="span" sx={{ opacity: 0.4, mx: 1 }}>
