@@ -1,8 +1,10 @@
 import { Octokit } from '@octokit/rest';
+import { put } from '@vercel/blob';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import OpenAI from 'openai';
 import { Resend } from 'resend';
+import { v4 as uuidv4 } from 'uuid';
 
 import { authOptions } from '@/lib/auth';
 
@@ -29,7 +31,31 @@ export async function POST(request: NextRequest) {
 
     const resend = new Resend(process.env.RESEND_API_KEY);
 
-    const { type, message } = await request.json();
+    let type: string;
+    let message: string;
+    let uploadedImageUrl: string | null = null;
+
+    const contentType = request.headers.get('content-type') || '';
+    if (contentType.includes('multipart/form-data')) {
+      const form = await request.formData();
+      type = String(form.get('type') || 'feature');
+      message = String(form.get('message') || '');
+      const image = form.get('image') as File | null;
+      if (image && image.size > 0) {
+        try {
+          const ext = (image.name.split('.').pop() || 'png').toLowerCase();
+          const filename = `feedback/${uuidv4()}.${ext}`;
+          const blob = await put(filename, image, { access: 'public' });
+          uploadedImageUrl = blob.url;
+        } catch (e) {
+          console.warn('Failed to upload feedback image:', e);
+        }
+      }
+    } else {
+      const body = await request.json();
+      type = body.type;
+      message = body.message;
+    }
 
     if (!message || !type) {
       return NextResponse.json(
@@ -91,6 +117,8 @@ ${message}
 
 _${enhancement.comment}_
 
+${uploadedImageUrl ? `### Screenshot\n\n![feedback-screenshot](${uploadedImageUrl})\n\n` : ''}
+
 **Internal Notes:**
 - Auto-generated from feedback form
 - User should receive email updates on this issue
@@ -139,6 +167,7 @@ _${enhancement.comment}_
       success: true,
       issueUrl: issue?.data?.html_url || null,
       issueNumber: issue?.data?.number || null,
+      issueTitle: enhancement.title,
       createdIssue: Boolean(issue),
     });
   } catch (error) {

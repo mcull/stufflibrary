@@ -31,6 +31,7 @@ interface GitHubIssue {
   body: string;
   state: string;
   created_at: string;
+  closed_at?: string | null;
   labels: Array<{ name: string; color: string }>;
   reactions: {
     '+1': number;
@@ -58,6 +59,7 @@ export function FeedbackPageClient() {
   const [openIssues, setOpenIssues] = useState<GitHubIssue[]>([]);
   const [loadingIssues, setLoadingIssues] = useState(true);
   const [upvoting, setUpvoting] = useState<Record<number, boolean>>({});
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   // Load open issues on component mount
   useEffect(() => {
@@ -102,6 +104,7 @@ export function FeedbackPageClient() {
         setSubmittedIssue(null);
       }
       setFormData({ type: 'feature', message: '' });
+      setImageFile(null);
       // Reload issues to show the new one
       loadOpenIssues();
     } catch (error) {
@@ -265,6 +268,24 @@ export function FeedbackPageClient() {
                 >
                   {isSubmitting ? 'Sending…' : 'Submit Feedback'}
                 </Button>
+                <Box sx={{ mt: 2 }}>
+                  <Button variant="outlined" component="label">
+                    {imageFile ? 'Change Screenshot' : 'Attach Screenshot'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      onChange={(e) =>
+                        setImageFile(e.target.files?.[0] || null)
+                      }
+                    />
+                  </Button>
+                  {imageFile && (
+                    <Typography variant="caption" sx={{ ml: 1 }}>
+                      {imageFile.name}
+                    </Typography>
+                  )}
+                </Box>
               </Box>
             </CardContent>
           </Card>
