@@ -231,6 +231,8 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
               xl: 'repeat(6, 1fr)', // 6 columns on extra large screens - matches My Shelf
             },
             gap: 1,
+            // Allow tighter packing when some cards span two columns
+            gridAutoFlow: 'dense',
           }}
         >
           {showCreateCard && (

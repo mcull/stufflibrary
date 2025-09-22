@@ -34,6 +34,8 @@ export function CollectionCard({ collection }: CollectionCardProps) {
     router.push(`/collection/${collection.id}`);
   };
 
+  // Keep cards a uniform width; long words will wrap/ellipsize
+
   const getStatusConfig = () => {
     switch (collection.role) {
       case 'owner':
@@ -75,6 +77,8 @@ export function CollectionCard({ collection }: CollectionCardProps) {
     <Card
       onClick={handleClick}
       sx={{
+        // Prevent content-based min width from expanding grid tracks
+        minWidth: 0,
         backgroundColor: config.backgroundColor,
         border: `1px solid ${config.borderColor}`,
         borderRadius: spacing.md / 16,
@@ -107,7 +111,7 @@ export function CollectionCard({ collection }: CollectionCardProps) {
           sx={{
             position: 'relative',
             width: '100%',
-            aspectRatio: '1/1', // Square aspect ratio like item images
+            aspectRatio: '1 / 1', // Square aspect ratio like item images
             backgroundColor: 'rgba(255,255,255,0.5)',
             borderRadius: spacing.sm / 16,
             border: '1px solid #E0E0E0',
@@ -206,6 +210,8 @@ export function CollectionCard({ collection }: CollectionCardProps) {
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
+            // Allow breaking long single words to avoid layout overflow
+            overflowWrap: 'anywhere',
           }}
         >
           {collection.name}
@@ -240,6 +246,7 @@ export function CreateCollectionCard({ onClick }: CreateCollectionCardProps) {
     <Card
       onClick={handleClick}
       sx={{
+        minWidth: 0,
         cursor: 'pointer',
         position: 'relative',
         border: '2px dashed',

@@ -615,6 +615,12 @@ export function CollectionDetailClient({
               fontWeight: 800,
               color: brandColors.charcoal,
               lineHeight: 1.1,
+              // Prevent long unbroken names from overflowing
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              overflowWrap: 'anywhere',
             }}
           >
             {library?.name}
