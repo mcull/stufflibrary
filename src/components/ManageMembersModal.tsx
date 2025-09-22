@@ -25,8 +25,6 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemAvatar,
-  Avatar,
   Tabs,
   Tab,
   Divider,
@@ -71,6 +69,13 @@ interface Member {
     name?: string;
     email?: string;
     image?: string;
+    addresses?: Array<{
+      address1?: string;
+      city?: string;
+      state?: string;
+      zip?: string;
+      formattedAddress?: string;
+    }>;
   };
 }
 
@@ -420,20 +425,7 @@ export function ManageMembersModal({
                         justifyContent: 'space-between',
                       }}
                     >
-                      <Box
-                        sx={{ display: 'flex', alignItems: 'center', flex: 1 }}
-                      >
-                        <ListItemAvatar>
-                          <Avatar
-                            {...(member.user.image && {
-                              src: member.user.image,
-                            })}
-                          >
-                            {member.user.name?.charAt(0).toUpperCase() ||
-                              member.user.email?.charAt(0).toUpperCase() ||
-                              '?'}
-                          </Avatar>
-                        </ListItemAvatar>
+                      <Box sx={{ flex: 1 }}>
                         <ListItemText
                           primary={
                             <Typography
@@ -454,6 +446,24 @@ export function ManageMembersModal({
                               >
                                 {member.user.email}
                               </Typography>
+                              {(() => {
+                                const addr = member.user.addresses?.[0];
+                                const text =
+                                  addr?.formattedAddress ||
+                                  (addr?.address1 && addr?.city && addr?.state
+                                    ? `${addr.address1}, ${addr.city}, ${addr.state} ${addr.zip || ''}`.trim()
+                                    : null);
+                                return text ? (
+                                  <Typography
+                                    variant="body2"
+                                    color="text.secondary"
+                                    component="span"
+                                    sx={{ display: 'block' }}
+                                  >
+                                    {text}
+                                  </Typography>
+                                ) : null;
+                              })()}
                               <Typography
                                 variant="caption"
                                 color="text.secondary"
@@ -474,8 +484,8 @@ export function ManageMembersModal({
                               >
                                 {canChangeRole(member) ? (
                                   <FormControl
-                                    size="small"
-                                    sx={{ minWidth: 140 }}
+                                    size="medium"
+                                    sx={{ minWidth: { xs: 160, sm: 180 } }}
                                   >
                                     <InputLabel id={`role-label-${member.id}`}>
                                       Role
@@ -497,6 +507,12 @@ export function ManageMembersModal({
                                         ) {
                                           handleChangeRole(member, role);
                                         }
+                                      }}
+                                      sx={{
+                                        '& .MuiSelect-select': {
+                                          py: 1.25,
+                                          pr: 5,
+                                        },
                                       }}
                                     >
                                       <MenuItem value="member">Member</MenuItem>
