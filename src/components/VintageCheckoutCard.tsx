@@ -90,7 +90,7 @@ export function VintageCheckoutCard({
           <Typography
             className="vintage-stampette"
             sx={{
-              fontSize: '1rem',
+              fontSize: { xs: '0.9rem', sm: '1rem' },
               fontWeight: 'bold',
               color: '#2c1810',
               textTransform: 'uppercase',
@@ -115,7 +115,7 @@ export function VintageCheckoutCard({
         <Typography
           className="vintage-stampette"
           sx={{
-            fontSize: '0.8rem',
+            fontSize: { xs: '0.7rem', sm: '0.8rem' },
             fontWeight: 'bold',
             color: '#2c1810',
             textAlign: 'center',
@@ -128,7 +128,7 @@ export function VintageCheckoutCard({
         <Typography
           className="vintage-stampette"
           sx={{
-            fontSize: '0.8rem',
+            fontSize: { xs: '0.7rem', sm: '0.8rem' },
             fontWeight: 'bold',
             color: '#2c1810',
             textAlign: 'center',
@@ -141,7 +141,7 @@ export function VintageCheckoutCard({
         <Typography
           className="vintage-stampette"
           sx={{
-            fontSize: '0.8rem',
+            fontSize: { xs: '0.7rem', sm: '0.8rem' },
             fontWeight: 'bold',
             color: '#2c1810',
             textAlign: 'center',
@@ -163,18 +163,18 @@ export function VintageCheckoutCard({
               display: 'grid',
               gridTemplateColumns: '50% 25% 25%',
               mb: 1,
-              minHeight: '32px',
+              minHeight: { xs: '28px', sm: '32px' },
               alignItems: 'end',
               borderBottom: '1px solid #333',
-              pb: 1,
+              pb: { xs: 0.5, sm: 1 },
             }}
           >
             {/* Borrower name */}
-            <Box sx={{ textAlign: 'left', pl: 2 }}>
+            <Box sx={{ textAlign: 'left', pl: { xs: 1, sm: 2 } }}>
               {record && (
                 <Typography
                   sx={{
-                    fontSize: '0.95rem',
+                    fontSize: { xs: '0.8rem', sm: '0.95rem' },
                     fontFamily: 'Courier, monospace',
                     color: '#1a1a1a',
                     fontWeight: 'normal',
@@ -191,7 +191,7 @@ export function VintageCheckoutCard({
                 <Typography
                   className="vintage-impact-label"
                   sx={{
-                    fontSize: '0.8rem',
+                    fontSize: { xs: '0.7rem', sm: '0.8rem' },
                     color: '#dc2626',
                     fontWeight: 'bold',
                     textTransform: 'uppercase',
@@ -210,7 +210,7 @@ export function VintageCheckoutCard({
                 <Typography
                   className="vintage-impact-label"
                   sx={{
-                    fontSize: '0.8rem',
+                    fontSize: { xs: '0.7rem', sm: '0.8rem' },
                     color: '#2e7d32',
                     fontWeight: 'bold',
                     textTransform: 'uppercase',
