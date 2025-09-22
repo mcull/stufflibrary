@@ -56,9 +56,10 @@ export function FeedbackPageClient() {
     url: string;
     number: number;
   } | null>(null);
-  const [openIssues, setOpenIssues] = useState<GitHubIssue[]>([]);
+  const [issues, setIssues] = useState<GitHubIssue[]>([]);
   const [loadingIssues, setLoadingIssues] = useState(true);
   const [upvoting, setUpvoting] = useState<Record<number, boolean>>({});
+  const [voted, setVoted] = useState<Record<number, boolean>>({});
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -68,12 +69,49 @@ export function FeedbackPageClient() {
     loadOpenIssues();
   }, []);
 
+  const sortIssues = (list: GitHubIssue[]) => {
+    const isClosed = (s?: string) => (s || '').toLowerCase() === 'closed';
+    const byVotesThenCreatedDesc = (a: GitHubIssue, b: GitHubIssue) => {
+      const va = a.reactions?.['+1'] || 0;
+      const vb = b.reactions?.['+1'] || 0;
+      if (vb !== va) return vb - va; // primary: votes desc
+      // secondary: created_at desc (newer first)
+      return (
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    };
+    const byClosedAtDesc = (a: GitHubIssue, b: GitHubIssue) => {
+      const ad = a.closed_at ? new Date(a.closed_at).getTime() : 0;
+      const bd = b.closed_at ? new Date(b.closed_at).getTime() : 0;
+      return bd - ad; // newer closed first
+    };
+    const open = list
+      .filter((i) => !isClosed(i.state))
+      .sort(byVotesThenCreatedDesc);
+    const closed = list.filter((i) => isClosed(i.state)).sort(byClosedAtDesc);
+    return [...open, ...closed];
+  };
+
   const loadOpenIssues = async () => {
     try {
       const response = await fetch('/api/feedback/issues');
       if (response.ok) {
-        const issues = await response.json();
-        setOpenIssues(issues);
+        const data: GitHubIssue[] = await response.json();
+        const sorted = sortIssues(data);
+        setIssues(sorted);
+        // Sync local voted flags from localStorage for visible issues
+        try {
+          const map: Record<number, boolean> = {};
+          sorted.forEach((it) => {
+            if (
+              typeof window !== 'undefined' &&
+              localStorage.getItem(`sl_feedback_voted_${it.number}`) === '1'
+            ) {
+              map[it.number] = true;
+            }
+          });
+          setVoted(map);
+        } catch {}
       }
     } catch (error) {
       console.error('Failed to load issues:', error);
@@ -352,8 +390,9 @@ export function FeedbackPageClient() {
                 </Box>
               ) : (
                 <Box>
-                  {openIssues.map((issue, idx) => {
+                  {issues.map((issue, idx) => {
                     const _isClosed = issue.state.toLowerCase() === 'closed';
+                    const alreadyVoted = Boolean(voted[issue.number]);
                     return (
                       <Box
                         key={issue.id}
@@ -426,7 +465,9 @@ export function FeedbackPageClient() {
                             variant="text"
                             startIcon={<ThumbUpOffAltIcon fontSize="small" />}
                             disabled={
-                              Boolean(upvoting[issue.number]) || _isClosed
+                              Boolean(upvoting[issue.number]) ||
+                              _isClosed ||
+                              alreadyVoted
                             }
                             title={
                               _isClosed
@@ -445,20 +486,19 @@ export function FeedbackPageClient() {
                                   { method: 'POST' }
                                 );
                                 if (res.ok) {
-                                  setOpenIssues((prev) =>
-                                    prev.map((it) =>
-                                      it.number === issue.number
-                                        ? {
-                                            ...it,
-                                            reactions: {
-                                              ...it.reactions,
-                                              '+1':
-                                                (it.reactions['+1'] || 0) + 1,
-                                            },
-                                          }
-                                        : it
-                                    )
-                                  );
+                                  // Mark locally to prevent multiple votes in this browser
+                                  try {
+                                    localStorage.setItem(
+                                      `sl_feedback_voted_${issue.number}`,
+                                      '1'
+                                    );
+                                    setVoted((m) => ({
+                                      ...m,
+                                      [issue.number]: true,
+                                    }));
+                                  } catch {}
+                                  // Reload issues to reflect the actual count from GitHub
+                                  await loadOpenIssues();
                                 }
                               } catch (e) {
                                 console.warn('Failed to upvote issue', e);
@@ -470,12 +510,12 @@ export function FeedbackPageClient() {
                               }
                             }}
                           >
-                            {upvoting[issue.number]
-                              ? '...'
+                            {alreadyVoted
+                              ? 'Voted'
                               : issue.reactions['+1'] || 0}
                           </Button>
                         </Box>
-                        {idx < openIssues.length - 1 && (
+                        {idx < issues.length - 1 && (
                           <Divider sx={{ mt: 1.5 }} />
                         )}
                       </Box>
