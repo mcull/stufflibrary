@@ -1,5 +1,6 @@
 'use client';
 
+import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import ThumbUpOffAltIcon from '@mui/icons-material/ThumbUpOffAlt';
 import {
   Alert,
@@ -479,7 +480,13 @@ export function FeedbackPageClient() {
                           <Button
                             size="small"
                             variant="text"
-                            startIcon={<ThumbUpOffAltIcon fontSize="small" />}
+                            startIcon={
+                              alreadyVoted ? (
+                                <ThumbUpIcon fontSize="small" />
+                              ) : (
+                                <ThumbUpOffAltIcon fontSize="small" />
+                              )
+                            }
                             disabled={
                               Boolean(upvoting[issue.number]) ||
                               _isClosed ||
@@ -488,9 +495,7 @@ export function FeedbackPageClient() {
                             title={
                               _isClosed
                                 ? 'Voting disabled on closed issues'
-                                : alreadyVoted
-                                  ? 'You already voted'
-                                  : undefined
+                                : undefined
                             }
                             onClick={async () => {
                               if (_isClosed) return;
@@ -538,11 +543,7 @@ export function FeedbackPageClient() {
                               }
                             }}
                           >
-                            {alreadyVoted
-                              ? `Voted • ${
-                                  internalCount ?? (issue.reactions['+1'] || 0)
-                                }`
-                              : (internalCount ?? (issue.reactions['+1'] || 0))}
+                            {internalCount ?? (issue.reactions['+1'] || 0)}
                           </Button>
                         </Box>
                         {idx < issues.length - 1 && (
