@@ -1,3 +1,5 @@
+import crypto from 'crypto';
+
 import { Octokit } from '@octokit/rest';
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
@@ -9,12 +11,37 @@ import { parseFeedbackSlug } from '@/lib/feedback-slug';
 export async function POST(request: NextRequest) {
   try {
     const secret = process.env.WEBHOOK_SECRET || '';
-    const auth = request.headers.get('authorization') || '';
-    if (!secret || auth !== `Bearer ${secret}`) {
+    if (!secret) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json().catch(() => ({}) as any);
+    // Accept either Authorization: Bearer <secret> or x-vercel-signature (HMAC-SHA1 of raw body)
+    const authHeader = request.headers.get('authorization') || '';
+    const sigHeaderRaw = request.headers.get('x-vercel-signature') || '';
+    let sigHeader = sigHeaderRaw;
+    if (sigHeader.startsWith('sha1=')) sigHeader = sigHeader.slice(5);
+
+    const raw = await request.text();
+    const computed = crypto
+      .createHmac('sha1', secret)
+      .update(raw)
+      .digest('hex');
+    const authorized =
+      authHeader === `Bearer ${secret}` ||
+      (sigHeader &&
+        sigHeader.length === computed.length &&
+        crypto.timingSafeEqual(Buffer.from(sigHeader), Buffer.from(computed)));
+
+    if (!authorized) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    let body: any = {};
+    try {
+      body = raw ? JSON.parse(raw) : {};
+    } catch {
+      body = {};
+    }
     const issueNumber = parseInt(body?.issueNumber, 10);
     if (!issueNumber || Number.isNaN(issueNumber)) {
       return NextResponse.json(
