@@ -517,7 +517,35 @@ export function BorrowRequestClient({
     }
   }, [videoBlob, returnDate, promiseChecked, item, recordingTime]);
 
-  const suggestedScript = `Hey ${item.owner.name || 'there'}, I'd love to borrow your ${item.name} for a few days. ${item.description ? `I need it for ${item.description.toLowerCase().includes('ing') ? item.description.toLowerCase() : 'my project'}` : 'I have a project that would benefit from using it'}. I can pick it up anytime after 5:30 on weeknights, or before noon on weekends. Thanks!`;
+  const [suggestedScript, setSuggestedScript] = useState<string>('');
+
+  // Load or generate suggested borrow script
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const pre = (item as any).suggestedBorrowScript as string | undefined;
+        if (pre) {
+          if (!cancelled) setSuggestedScript(pre);
+          return;
+        }
+        const res = await fetch(`/api/items/${item.id}/borrow-script`);
+        if (res.ok) {
+          const data = await res.json();
+          if (!cancelled && data.script)
+            setSuggestedScript(data.script as string);
+        }
+      } catch {
+        const firstName = (item.owner.name || 'there').split(' ')[0];
+        const fallback = `Hey ${firstName}, I'd love to borrow your ${item.name} for a few days. I've got a silly little project it would be perfect for — I could grab it any day after work.`;
+        if (!cancelled) setSuggestedScript(fallback);
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [item]);
 
   const renderContent = () => {
     switch (state) {

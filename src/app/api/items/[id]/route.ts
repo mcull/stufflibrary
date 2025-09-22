@@ -91,6 +91,8 @@ export async function GET(
       id: item.id,
       name: item.name,
       description: item.description,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      suggestedBorrowScript: (item as any).suggestedBorrowScript,
       condition: item.condition,
       location: item.location,
       imageUrl: item.imageUrl,
@@ -237,6 +239,8 @@ export async function PUT(
       id: updatedItem.id,
       name: updatedItem.name,
       description: updatedItem.description,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      suggestedBorrowScript: (updatedItem as any).suggestedBorrowScript,
       condition: updatedItem.condition,
       location: updatedItem.location,
       imageUrl: updatedItem.imageUrl,

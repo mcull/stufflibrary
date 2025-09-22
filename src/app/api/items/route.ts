@@ -218,12 +218,25 @@ export async function POST(request: NextRequest) {
       console.log('⚠️ Watercolor rendering disabled (no GOOGLE_AI_API_KEY)');
     }
 
+    // Fire-and-forget generation of suggested borrow script
+    try {
+      fetch(
+        `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/items/${item.id}/borrow-script`,
+        {
+          method: 'GET',
+          headers: { Cookie: request.headers.get('Cookie') || '' },
+        }
+      ).catch(() => {});
+    } catch {}
+
     return NextResponse.json({
       itemId: itemWithLibraries!.id,
       item: {
         id: itemWithLibraries!.id,
         name: itemWithLibraries!.name,
         description: itemWithLibraries!.description,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        suggestedBorrowScript: (itemWithLibraries as any).suggestedBorrowScript,
         condition: itemWithLibraries!.condition,
         imageUrl: itemWithLibraries!.imageUrl,
         watercolorUrl: itemWithLibraries!.watercolorUrl,
