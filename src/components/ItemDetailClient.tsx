@@ -1407,7 +1407,7 @@ export function ItemDetailClient({
                       <Typography
                         className="vintage-impact-label"
                         sx={{
-                          fontSize: '1.1rem',
+                          fontSize: { xs: '0.95rem', md: '1.1rem' },
                           fontWeight: 'bold',
                           letterSpacing: '2px',
                           color: '#2c1810',
