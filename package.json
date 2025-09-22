@@ -76,7 +76,6 @@
     "@types/qrcode": "^1.5.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@types/recharts": "^2.0.1",
     "@types/uuid": "^10.0.0",
     "@upstash/redis": "^1.35.3",
     "@vercel/analytics": "^1.5.0",
