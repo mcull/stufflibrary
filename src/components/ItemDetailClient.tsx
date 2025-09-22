@@ -840,7 +840,7 @@ export function ItemDetailClient({
               sx={{
                 position: 'relative',
                 perspective: '1000px',
-                minHeight: '625px',
+                minHeight: '720px',
               }}
             >
               {/* Card Container with 3D Transform */}
@@ -865,8 +865,8 @@ export function ItemDetailClient({
                   sx={{
                     position: 'absolute',
                     width: '100%',
-                    height: { xs: 'auto', md: '625px' },
-                    minHeight: { xs: '500px', md: '625px' },
+                    height: { xs: 'auto', md: '720px' },
+                    minHeight: { xs: '500px', md: '720px' },
                     backfaceVisibility: 'hidden',
                     WebkitBackfaceVisibility: 'hidden', // Safari-specific
                     opacity: !isClient || !showHistory ? 1 : 0, // Fallback visibility control
@@ -1145,14 +1145,16 @@ export function ItemDetailClient({
                         </Box>
                       )}
 
-                      {/* Action Buttons Row - only for owners */}
+                      {/* Action Buttons Grid - only for owners */}
                       {!isNewItem && item?.owner.id === currentUserId && (
                         <Box
                           sx={{
                             pt: 2,
-                            display: 'flex',
-                            justifyContent: 'flex-start',
-                            alignItems: 'center',
+                            display: 'grid',
+                            gridTemplateColumns: {
+                              xs: '1fr',
+                              sm: 'repeat(2, 1fr)',
+                            },
                             gap: 2,
                           }}
                         >
@@ -1176,6 +1178,7 @@ export function ItemDetailClient({
                                 borderRadius: 2,
                                 textTransform: 'none',
                               }}
+                              fullWidth
                             >
                               {checkingOut
                                 ? 'Taking Offline...'
@@ -1200,6 +1203,7 @@ export function ItemDetailClient({
                                 borderRadius: 2,
                                 textTransform: 'none',
                               }}
+                              fullWidth
                             >
                               {checkingOut ? 'Taking Online...' : 'Take Online'}
                             </Button>
@@ -1222,8 +1226,8 @@ export function ItemDetailClient({
                                 sx={{
                                   borderRadius: 2,
                                   textTransform: 'none',
-                                  mr: 1,
                                 }}
+                                fullWidth
                               >
                                 {checkingIn ? 'Checking In...' : 'Check In'}
                               </Button>
@@ -1244,6 +1248,7 @@ export function ItemDetailClient({
                                   borderRadius: 2,
                                   textTransform: 'none',
                                 }}
+                                fullWidth
                               >
                                 {markingLost ? 'Marking Lost...' : 'Lost'}
                               </Button>
@@ -1267,6 +1272,7 @@ export function ItemDetailClient({
                                 borderRadius: 2,
                                 textTransform: 'none',
                               }}
+                              fullWidth
                             >
                               {checkingOut ? 'Taking Online...' : 'Take Online'}
                             </Button>
@@ -1296,6 +1302,7 @@ export function ItemDetailClient({
                                   color: 'white',
                                 },
                               }}
+                              fullWidth
                             >
                               {deleting ? 'Deleting...' : 'Delete Item'}
                             </Button>
@@ -1315,7 +1322,12 @@ export function ItemDetailClient({
                             }
                             onClick={handleSaveAndReturn}
                             disabled={saving}
-                            sx={{ borderRadius: 2, textTransform: 'none' }}
+                            sx={{
+                              borderRadius: 2,
+                              textTransform: 'none',
+                              gridColumn: { xs: 'auto', sm: '1 / -1' },
+                            }}
+                            fullWidth
                           >
                             {saving ? 'Saving...' : 'Save'}
                           </Button>
@@ -1340,8 +1352,8 @@ export function ItemDetailClient({
                   sx={{
                     position: 'absolute',
                     width: '100%',
-                    height: { xs: 'auto', md: '625px' },
-                    minHeight: { xs: '500px', md: '625px' },
+                    height: { xs: 'auto', md: '720px' },
+                    minHeight: { xs: '500px', md: '720px' },
                     backfaceVisibility: 'hidden',
                     WebkitBackfaceVisibility: 'hidden', // Safari-specific
                     transform: 'rotateY(180deg)',
