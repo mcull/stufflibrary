@@ -42,7 +42,7 @@ export function UserItemCard({ item, status }: ItemCardProps) {
           backgroundColor: '#FFF8E1',
           borderColor: brandColors.mustardYellow,
           statusChip: {
-            label: item.borrower ? `Lent to ${item.borrower.name}` : 'On Loan',
+            label: 'Checked out',
             color: '#FFF3E0',
             textColor: '#F57C00',
           },
@@ -88,14 +88,7 @@ export function UserItemCard({ item, status }: ItemCardProps) {
         const location = item.location || 'No location';
         return truncateText(location);
       case 'on-loan':
-        const borrower = item.borrower?.name || 'Unknown';
-        const lentDate = item.requestedAt
-          ? new Date(item.requestedAt).toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-            })
-          : '';
-        return `Lent to ${borrower}${lentDate ? ` on ${lentDate}` : ''}`;
+        return 'Checked out';
       case 'offline':
         return 'Not available to lend';
       case 'borrowed':
@@ -189,7 +182,7 @@ export function UserItemCard({ item, status }: ItemCardProps) {
                     e.stopPropagation();
                     const userId = item.activeBorrower?.id || item.owner?.id;
                     if (userId) {
-                      router.push(`/profile/${userId}`);
+                      router.push(`/stuff/m/${userId}`);
                     }
                   }}
                   sx={{
