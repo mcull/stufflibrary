@@ -488,7 +488,9 @@ export function FeedbackPageClient() {
                             title={
                               _isClosed
                                 ? 'Voting disabled on closed issues'
-                                : undefined
+                                : alreadyVoted
+                                  ? 'You already voted'
+                                  : undefined
                             }
                             onClick={async () => {
                               if (_isClosed) return;
@@ -537,7 +539,9 @@ export function FeedbackPageClient() {
                             }}
                           >
                             {alreadyVoted
-                              ? 'Voted'
+                              ? `Voted • ${
+                                  internalCount ?? (issue.reactions['+1'] || 0)
+                                }`
                               : (internalCount ?? (issue.reactions['+1'] || 0))}
                           </Button>
                         </Box>
