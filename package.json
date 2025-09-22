@@ -36,6 +36,8 @@
     "db:backup:monitor": "tsx scripts/backup-monitor.ts monitor",
     "db:backup:test": "tsx scripts/backup-monitor.ts test-restore",
     "db:migrate:production": "tsx scripts/migrate-production.ts",
+    "gen:slug": "tsx scripts/gen-feedback-slug.ts",
+    "verify:slug": "tsx scripts/verify-feedback-slug.ts",
     "supabase:branches": "tsx scripts/supabase-branch-manager.ts",
     "supabase:setup": "tsx scripts/supabase-branch-manager.ts setup",
     "seed": "echo 'Seed script not implemented yet. See issue #19'",
