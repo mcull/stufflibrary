@@ -117,7 +117,7 @@ export function BorrowApprovalClient({
     setDecision(newDecision);
     if (newDecision === 'approve') {
       setResponse(
-        `No problem! When would work for pickup? I'm usually available _____ around _____`
+        `No problem! When would work for pickup? I'm usually available [weekdays] around [5:30p]`
       );
     } else {
       setResponse(
