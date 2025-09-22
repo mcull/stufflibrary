@@ -23,6 +23,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import MuxPlayer from '@mux/mux-player-react';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { brandColors } from '@/theme/brandTokens';
@@ -182,6 +183,14 @@ export function BorrowApprovalClient({
             {borrowRequest.borrower.name} has been notified of your response via
             email and in-app notification.
           </Typography>
+          <Button
+            variant="contained"
+            component={Link}
+            href="/stacks"
+            sx={{ mt: 3, borderRadius: 2 }}
+          >
+            Home
+          </Button>
         </Box>
       </Container>
     );
