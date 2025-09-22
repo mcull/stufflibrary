@@ -127,9 +127,11 @@ export function DashboardMetrics() {
 
   if (!metrics) return null;
 
+  const iconSize = 32;
   const UsersIcon = () => (
     <svg
-      className="w-8 h-8"
+      width={iconSize}
+      height={iconSize}
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
@@ -145,7 +147,8 @@ export function DashboardMetrics() {
 
   const ItemsIcon = () => (
     <svg
-      className="w-8 h-8"
+      width={iconSize}
+      height={iconSize}
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
@@ -161,7 +164,8 @@ export function DashboardMetrics() {
 
   const LibrariesIcon = () => (
     <svg
-      className="w-8 h-8"
+      width={iconSize}
+      height={iconSize}
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
@@ -177,7 +181,8 @@ export function DashboardMetrics() {
 
   const RequestsIcon = () => (
     <svg
-      className="w-8 h-8"
+      width={iconSize}
+      height={iconSize}
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"

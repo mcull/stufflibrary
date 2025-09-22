@@ -90,7 +90,9 @@ function SecurityMetricCard({
       <div className="p-5">
         <div className="flex items-center">
           <div className="flex-shrink-0">
-            <div className="w-8 h-8 text-gray-400">{icon}</div>
+            <div style={{ width: 32, height: 32, color: '#9ca3af' }}>
+              {icon}
+            </div>
           </div>
           <div className="ml-5 w-0 flex-1">
             <dl>
