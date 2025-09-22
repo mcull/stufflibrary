@@ -430,23 +430,38 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
             {/* Items Display */}
             {allItems.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 6 }}>
-                <Box
-                  sx={{
-                    width: 80,
-                    height: 80,
-                    borderRadius: '50%',
-                    backgroundColor: brandColors.warmCream,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    mx: 'auto',
-                    mb: 3,
-                  }}
+                <Link
+                  href="/add-item"
+                  aria-label="Add your first item"
+                  style={{ textDecoration: 'none' }}
                 >
-                  <Typography variant="h4" sx={{ color: brandColors.charcoal }}>
-                    📷
-                  </Typography>
-                </Box>
+                  <Box
+                    sx={{
+                      width: 80,
+                      height: 80,
+                      borderRadius: '50%',
+                      backgroundColor: brandColors.warmCream,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      mx: 'auto',
+                      mb: 3,
+                      cursor: 'pointer',
+                      transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                      '&:hover': {
+                        transform: 'translateY(-1px)',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                      },
+                    }}
+                  >
+                    <Typography
+                      variant="h4"
+                      sx={{ color: brandColors.charcoal }}
+                    >
+                      📷
+                    </Typography>
+                  </Box>
+                </Link>
 
                 <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
                   Add your first item
@@ -455,12 +470,26 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                 <Typography
                   variant="body1"
                   color="text.secondary"
-                  sx={{ mb: 3, maxWidth: 400, mx: 'auto' }}
+                  sx={{ mb: 2, maxWidth: 400, mx: 'auto' }}
                 >
                   Take a quick photo of something you’re comfortable sharing.
                   We’ll auto-classify it and create a clean illustration, then
                   you can add it to any of your libraries.
                 </Typography>
+
+                {/* Replace storyboard with single how-to image */}
+                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+                  <img
+                    src="/how-to-add-stuff.png"
+                    alt="How to add your first item"
+                    style={{
+                      maxWidth: '100%',
+                      width: isMobile ? '100%' : 520,
+                      height: 'auto',
+                    }}
+                    onError={(e) => (e.currentTarget.style.display = 'none')}
+                  />
+                </Box>
 
                 <Button
                   component={Link}
@@ -481,65 +510,6 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                 >
                   Add Your First Item
                 </Button>
-
-                <Box
-                  sx={{
-                    display: 'flex',
-                    gap: 16 / 8,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    mb: 2,
-                  }}
-                >
-                  <img
-                    src="/blenderphone1/IMG_9637-left.png"
-                    alt="Phone taking a photo"
-                    width={56}
-                    height={56}
-                    style={{
-                      borderRadius: 8,
-                      border: '1px solid #eee',
-                      objectFit: 'cover',
-                    }}
-                    onError={(e) => (e.currentTarget.style.display = 'none')}
-                  />
-                  <Typography sx={{ opacity: 0.6 }}>→</Typography>
-                  <img
-                    src="/blenderphone2/IMG_9638-left.png"
-                    alt="Illustrated result"
-                    width={56}
-                    height={56}
-                    style={{
-                      borderRadius: 8,
-                      border: '1px solid #eee',
-                      objectFit: 'cover',
-                    }}
-                    onError={(e) => (e.currentTarget.style.display = 'none')}
-                  />
-                  <Typography sx={{ opacity: 0.6 }}>→</Typography>
-                  <img
-                    src="/hero-background.png"
-                    alt="Share with your libraries"
-                    width={56}
-                    height={56}
-                    style={{
-                      borderRadius: 8,
-                      border: '1px solid #eee',
-                      objectFit: 'cover',
-                    }}
-                    onError={(e) => (e.currentTarget.style.display = 'none')}
-                  />
-                </Box>
-                <div style="max-width:560px;margin:0 auto;text-align:left">
-                  <p style="margin:0 0 6px;color:rgba(0,0,0,.6);font-size:.9rem">
-                    Why photos: the fastest, no‑fuss way to add items. One
-                    picture and you’re done.
-                  </p>
-                  <p style="margin:0;color:rgba(0,0,0,.6);font-size:.9rem">
-                    Why illustrations: they keep attention on your item and
-                    avoid exposing background details of your home.
-                  </p>
-                </div>
               </Box>
             ) : itemFilter === 'all' ? (
               // Show all sections with headers when "All" is selected

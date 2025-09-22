@@ -726,13 +726,13 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
                 bottom: 20,
                 left: '50%',
                 transform: 'translateX(-50%)',
-                bgcolor: 'rgba(0, 0, 0, 0.85)',
-                color: 'white',
-                px: 4,
-                py: 2,
-                borderRadius: 25,
+                bgcolor: 'white',
+                color: 'black',
+                px: 3,
+                py: 1.5,
+                borderRadius: 22,
                 pointerEvents: 'none',
-                border: '2px solid rgba(255, 255, 255, 0.8)',
+                border: '2px solid rgba(0, 0, 0, 0.1)',
                 boxShadow: '0 4px 12px rgba(0, 0, 0, 0.6)',
                 backdropFilter: 'blur(8px)',
                 WebkitBackdropFilter: 'blur(8px)',
@@ -742,12 +742,13 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
                 variant="body1"
                 sx={{
                   fontWeight: 600,
-                  fontSize: '1.1rem',
-                  textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+                  fontSize: '1rem',
+                  textShadow: 'none',
                   letterSpacing: '0.5px',
+                  color: 'black',
                 }}
               >
-                Tap Item
+                Tap to add
               </Typography>
             </Box>
           </Box>
