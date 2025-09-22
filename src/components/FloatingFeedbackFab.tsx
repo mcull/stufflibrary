@@ -9,6 +9,8 @@ import { useEffect, useState } from 'react';
 export function FloatingFeedbackFab() {
   const router = useRouter();
   const [coachmarkOpen, setCoachmarkOpen] = useState(false);
+  const isTestEnv =
+    typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
 
   // (Guard moved after hooks to satisfy Rules of Hooks)
 
