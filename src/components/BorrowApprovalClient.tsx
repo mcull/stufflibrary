@@ -23,7 +23,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import MuxPlayer from '@mux/mux-player-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { brandColors } from '@/theme/brandTokens';
 
@@ -66,6 +66,51 @@ export function BorrowApprovalClient({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(
+    borrowRequest.videoUrl || null
+  );
+
+  // Light polling to detect when Mux processing completes in dev
+  useEffect(() => {
+    let interval: number | null = null;
+    let attempts = 0;
+    const maxAttempts = 60; // ~2 minutes at 2s intervals
+
+    async function poll() {
+      try {
+        const res = await fetch(`/api/borrow-requests/${borrowRequest.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          const url = data.borrowRequest?.videoUrl as string | undefined;
+          if (url && url !== videoUrl) {
+            setVideoUrl(url);
+            if (interval) window.clearInterval(interval);
+            interval = null;
+          }
+        }
+      } catch {
+        // ignore transient errors
+      } finally {
+        attempts += 1;
+        if (attempts >= maxAttempts && interval) {
+          window.clearInterval(interval);
+          interval = null;
+        }
+      }
+    }
+
+    // Start polling if we do not yet have a playable Mux URL
+    const needsPolling = !videoUrl || !videoUrl.includes('stream.mux.com/');
+    if (needsPolling) {
+      // initial attempt
+      poll();
+      interval = window.setInterval(poll, 2000);
+    }
+
+    return () => {
+      if (interval) window.clearInterval(interval);
+    };
+  }, [borrowRequest.id, videoUrl]);
 
   // Pre-populate response based on decision
   const handleDecisionChange = (newDecision: 'approve' | 'decline') => {
@@ -135,7 +180,7 @@ export function BorrowApprovalClient({
             sx={{ color: brandColors.charcoal, opacity: 0.7 }}
           >
             {borrowRequest.borrower.name} has been notified of your response via
-            SMS.
+            email and in-app notification.
           </Typography>
         </Box>
       </Container>
@@ -254,9 +299,9 @@ export function BorrowApprovalClient({
               bgcolor: 'black',
             }}
           >
-            {borrowRequest.videoUrl ? (
+            {videoUrl ? (
               (() => {
-                const url = borrowRequest.videoUrl || '';
+                const url = videoUrl || '';
                 if (url.includes('stream.mux.com/')) {
                   const match = url.match(/stream\.mux\.com\/([^\.]+)/);
                   const playbackId = match ? match[1] : null;
@@ -273,7 +318,7 @@ export function BorrowApprovalClient({
                 }
                 return (
                   <video
-                    src={borrowRequest.videoUrl}
+                    src={videoUrl}
                     controls
                     style={{ width: '100%', height: 'auto', display: 'block' }}
                   />
