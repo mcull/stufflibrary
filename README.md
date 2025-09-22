@@ -166,3 +166,73 @@ This is an open-source project. Contributions, ideas, and forks are welcome.
 \n
 
 # Testing CI fix
+
+## Post-Deploy Webhooks (Vercel)
+
+This project supports notifying contributors after code is deployed by parsing closed issues from merged PRs and emailing the original submitter (without exposing their email address).
+
+Endpoints
+
+- `POST /api/webhooks/vercel-deploy`
+  - Compares the previous deployed commit to the current one, finds merged PRs with closing keywords (close/fix/resolve #n), fetches the issues, extracts an anonymized SLFB slug from each issue body, and emails the contributor via Resend.
+- `POST /api/webhooks/feedback-resolved`
+  - Directly emails the contributor for a single issue number (useful for manual tests or ad hoc notifications).
+
+Auth (Vercel-compatible)
+
+- Either of the following is accepted:
+  - `Authorization: Bearer $WEBHOOK_SECRET`
+  - `x-vercel-signature: <HMAC-SHA1 of raw body using WEBHOOK_SECRET>`
+
+Environment Variables
+
+- `WEBHOOK_SECRET`: shared secret used by Vercel to sign payloads (and for Bearer for manual tests)
+- `GITHUB_TOKEN`: repo read access for comparing commits and fetching issue bodies
+- `RESEND_API_KEY`: for email delivery
+- `FEEDBACK_SLUG_SECRET`: signs/verifies anonymized reporter slugs in issue bodies
+
+Vercel Setup
+
+1. Add an Outgoing Webhook → Event: Deployment Ready (Production). URL: `https://<your-domain>/api/webhooks/vercel-deploy`. Secret: `WEBHOOK_SECRET`.
+2. Ensure the environment variables above are set for the Production environment.
+3. First deploy per environment seeds the `DeployMarker` and does not send emails. Subsequent deploys send notifications for issues closed by merged PRs in the deployed range.
+
+Curl Examples (after deploying)
+
+Using Vercel signature (recommended)
+
+```
+export WEBHOOK_SECRET=... # your Vercel webhook secret
+
+# feedback-resolved (manual single-issue test)
+BODY='{"issueNumber":277}'
+SIG=$(printf '%s' "$BODY" | openssl dgst -sha1 -hmac "$WEBHOOK_SECRET" -binary | xxd -p -c 256)
+
+curl -X POST https://<your-domain>/api/webhooks/feedback-resolved \
+  -H "x-vercel-signature: $SIG" \
+  -H "Content-Type: application/json" \
+  --data-binary "$BODY"
+
+# vercel-deploy (manual test with a real deployed commit SHA)
+BODY='{"deployment":{"meta":{"githubCommitSha":"GIT_SHA"},"target":"production"}}'
+SIG=$(printf '%s' "$BODY" | openssl dgst -sha1 -hmac "$WEBHOOK_SECRET" -binary | xxd -p -c 256)
+
+curl -X POST https://<your-domain>/api/webhooks/vercel-deploy \
+  -H "x-vercel-signature: $SIG" \
+  -H "Content-Type: application/json" \
+  --data-binary "$BODY"
+```
+
+Using Bearer (convenient for manual tests)
+
+```
+curl -X POST https://<your-domain>/api/webhooks/feedback-resolved \
+  -H "Authorization: Bearer $WEBHOOK_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"issueNumber":277}'
+```
+
+Notes
+
+- The anonymized reporter slug in issue bodies has the form `SLFB:v1:<userId>:<sig8>`. The signature is verified server-side with `FEEDBACK_SLUG_SECRET`.
+- If you rotate `FEEDBACK_SLUG_SECRET`, slugs created with the old secret will no longer validate.
