@@ -110,7 +110,9 @@ Format your response as JSON:
     let lastInitial = '';
     const parts = displayName?.split(' ') || [];
     if (parts.length > 1 && parts[parts.length - 1]) {
-      lastInitial = (parts[parts.length - 1][0] || '').toUpperCase();
+      const last = parts[parts.length - 1] || '';
+      const ch = last.charAt(0);
+      lastInitial = ch ? ch.toUpperCase() : '';
     }
     const anonymized = `${firstName}${lastInitial ? ' ' + lastInitial + '.' : ''}`;
     const slug = userId ? makeFeedbackSlug(userId) : 'SLFB:v1:anon:00000000';
