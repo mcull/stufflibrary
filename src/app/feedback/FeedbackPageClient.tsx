@@ -21,7 +21,6 @@ import {
   Typography,
 } from '@mui/material';
 import { Snackbar } from '@mui/material';
-import { Unstable_Grid2 as Grid } from '@mui/material/Unstable_Grid2';
 import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
@@ -179,8 +178,14 @@ export function FeedbackPageClient() {
         </Typography>
       </Box>
 
-      <Grid container spacing={3}>
-        <Grid xs={12} md={6}>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+          gap: 3,
+        }}
+      >
+        <Box>
           <Card>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
@@ -309,9 +314,9 @@ export function FeedbackPageClient() {
               </Box>
             </CardContent>
           </Card>
-        </Grid>
+        </Box>
 
-        <Grid xs={12} md={6}>
+        <Box>
           <Card>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
@@ -432,8 +437,8 @@ export function FeedbackPageClient() {
               {/* Footer link removed per request */}
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={3000}
