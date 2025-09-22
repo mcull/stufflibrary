@@ -343,10 +343,15 @@ export function ManageMembersModal({
         <Tabs
           value={activeTab}
           onChange={(_, newValue) => setActiveTab(newValue)}
+          variant="scrollable"
+          scrollButtons="auto"
+          allowScrollButtonsMobile
           sx={{
             '& .MuiTabs-indicator': {
               backgroundColor: brandColors.inkBlue,
             },
+            // Ensure tabs don't get cut off on small screens
+            overflowX: 'auto',
           }}
         >
           <Tab
