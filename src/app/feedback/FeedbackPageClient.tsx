@@ -302,7 +302,7 @@ export function FeedbackPageClient() {
                               underline="hover"
                               sx={{ fontWeight: 600 }}
                             >
-                              #{issue.number} — {issue.title}
+                              {issue.title}
                             </MUILink>
                             <Typography
                               variant="caption"
@@ -388,15 +388,7 @@ export function FeedbackPageClient() {
                 </Box>
               )}
 
-              <Box sx={{ textAlign: 'center', mt: 2 }}>
-                <MUILink
-                  href="https://github.com/mcull/stufflibrary/issues"
-                  target="_blank"
-                  underline="hover"
-                >
-                  Explore on GitHub →
-                </MUILink>
-              </Box>
+              {/* Footer link removed per request */}
             </CardContent>
           </Card>
         </Grid>
