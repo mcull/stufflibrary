@@ -68,6 +68,8 @@ interface BorrowRequest {
     name: string;
     description?: string;
     imageUrl?: string;
+    watercolorUrl?: string;
+    watercolorThumbUrl?: string;
     condition: string;
   };
 }
