@@ -286,7 +286,7 @@ export async function PATCH(
 
     const { id: itemId } = await params;
     const body = await request.json();
-    const { isAvailable, libraryIds } = body;
+    const { isAvailable, libraryIds, addLibraryIds, removeLibraryIds } = body;
 
     // Check if user owns the item
     const item = await db.item.findUnique({
@@ -441,73 +441,80 @@ export async function PATCH(
     });
 
     // Handle library assignments if provided
-    if (libraryIds && Array.isArray(libraryIds)) {
-      // Delete existing library relationships
-      await db.itemCollection.deleteMany({
-        where: { itemId },
-      });
+    if (
+      (libraryIds && Array.isArray(libraryIds)) ||
+      (addLibraryIds && Array.isArray(addLibraryIds)) ||
+      (removeLibraryIds && Array.isArray(removeLibraryIds))
+    ) {
+      // Two modes:
+      // - Replacement: if libraryIds provided → replace full membership set
+      // - Incremental: if addLibraryIds/removeLibraryIds provided → modify set additively
 
-      // Create new library relationships
-      if (libraryIds.length > 0) {
-        await db.$transaction(
-          libraryIds.map((libraryId: string) =>
-            db.itemCollection.create({
-              data: {
-                itemId,
-                collectionId: libraryId,
-              },
-            })
-          )
-        );
+      let additions: string[] = [];
+      let removals: string[] = [];
+      if (libraryIds && Array.isArray(libraryIds)) {
+        // Replacement mode
+        await db.itemCollection.deleteMany({ where: { itemId } });
+        if (libraryIds.length > 0) {
+          await db.$transaction(
+            libraryIds.map((libraryId: string) =>
+              db.itemCollection.create({
+                data: { itemId, collectionId: libraryId },
+              })
+            )
+          );
+        }
+      } else {
+        // Incremental mode
+        additions = Array.isArray(addLibraryIds)
+          ? (addLibraryIds as string[])
+          : [];
+        removals = Array.isArray(removeLibraryIds)
+          ? (removeLibraryIds as string[])
+          : [];
+
+        // Add: upsert via create with unique constraint (itemId, collectionId)
+        if (additions.length > 0) {
+          await db.$transaction(
+            additions.map((libraryId) =>
+              db.itemCollection.upsert({
+                where: {
+                  // unique composite defined as @@unique([itemId, collectionId]) in schema
+                  itemId_collectionId: { itemId, collectionId: libraryId },
+                },
+                create: { itemId, collectionId: libraryId },
+                update: {},
+              })
+            )
+          );
+        }
+
+        // Remove: delete specific relations
+        if (removals.length > 0) {
+          await db.itemCollection.deleteMany({
+            where: { itemId, collectionId: { in: removals } },
+          });
+        }
       }
 
       // Refetch item with updated library relationships
       const itemWithLibraries = await db.item.findUnique({
         where: { id: itemId },
         include: {
-          owner: {
-            select: {
-              id: true,
-              name: true,
-              image: true,
-            },
-          },
+          owner: { select: { id: true, name: true, image: true } },
           stuffType: {
-            select: {
-              displayName: true,
-              category: true,
-              iconPath: true,
-            },
+            select: { displayName: true, category: true, iconPath: true },
           },
           collections: {
             include: {
-              collection: {
-                select: {
-                  id: true,
-                  name: true,
-                },
-              },
+              collection: { select: { id: true, name: true } },
             },
           },
           borrowRequests: {
-            where: {
-              status: { in: ['ACTIVE', 'APPROVED'] },
-            },
+            where: { status: { in: ['ACTIVE', 'APPROVED'] } },
             include: {
-              borrower: {
-                select: {
-                  id: true,
-                  name: true,
-                  image: true,
-                },
-              },
-              lender: {
-                select: {
-                  id: true,
-                  name: true,
-                  image: true,
-                },
-              },
+              borrower: { select: { id: true, name: true, image: true } },
+              lender: { select: { id: true, name: true, image: true } },
             },
             take: 1,
           },
@@ -534,11 +541,17 @@ export async function PATCH(
         libraries: itemWithLibraries!.collections.map((ic) => ic.collection),
         currentActiveBorrow: activeBorrowRequestWithLibraries,
       };
+      const message = Array.isArray(libraryIds)
+        ? `Library membership set to ${libraryIds.length} ${
+            libraryIds.length === 1 ? 'library' : 'libraries'
+          }`
+        : `Library membership updated${
+            additions.length || removals.length
+              ? ` (+${additions.length}, -${removals.length})`
+              : ''
+          }`;
 
-      return NextResponse.json({
-        item: formattedItemWithLibraries,
-        message: `Item added to ${libraryIds.length} ${libraryIds.length === 1 ? 'library' : 'libraries'}`,
-      });
+      return NextResponse.json({ item: formattedItemWithLibraries, message });
     }
 
     // Format response
