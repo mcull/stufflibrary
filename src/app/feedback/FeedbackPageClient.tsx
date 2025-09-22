@@ -57,6 +57,7 @@ export function FeedbackPageClient() {
   } | null>(null);
   const [openIssues, setOpenIssues] = useState<GitHubIssue[]>([]);
   const [loadingIssues, setLoadingIssues] = useState(true);
+  const [upvoting, setUpvoting] = useState<Record<number, boolean>>({});
 
   // Load open issues on component mount
   useEffect(() => {
@@ -336,11 +337,46 @@ export function FeedbackPageClient() {
                             size="small"
                             variant="text"
                             startIcon={<ThumbUpOffAltIcon fontSize="small" />}
-                            onClick={() =>
-                              console.log('Upvote issue', issue.number)
-                            }
+                            disabled={Boolean(upvoting[issue.number])}
+                            onClick={async () => {
+                              try {
+                                setUpvoting((s) => ({
+                                  ...s,
+                                  [issue.number]: true,
+                                }));
+                                const res = await fetch(
+                                  `/api/feedback/issues/${issue.number}/upvote`,
+                                  { method: 'POST' }
+                                );
+                                if (res.ok) {
+                                  setOpenIssues((prev) =>
+                                    prev.map((it) =>
+                                      it.number === issue.number
+                                        ? {
+                                            ...it,
+                                            reactions: {
+                                              ...it.reactions,
+                                              '+1':
+                                                (it.reactions['+1'] || 0) + 1,
+                                            },
+                                          }
+                                        : it
+                                    )
+                                  );
+                                }
+                              } catch (e) {
+                                console.warn('Failed to upvote issue', e);
+                              } finally {
+                                setUpvoting((s) => ({
+                                  ...s,
+                                  [issue.number]: false,
+                                }));
+                              }
+                            }}
                           >
-                            {issue.reactions['+1'] || 0}
+                            {upvoting[issue.number]
+                              ? '...'
+                              : issue.reactions['+1'] || 0}
                           </Button>
                         </Box>
                         {idx < openIssues.length - 1 && (
