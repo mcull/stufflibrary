@@ -3,10 +3,13 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(_request: NextRequest) {
   try {
+    // If no token configured, return an empty list gracefully (dev fallback)
+    if (!process.env.GITHUB_TOKEN) {
+      return NextResponse.json([]);
+    }
+
     // Initialize client at request time to avoid build-time errors
-    const octokit = new Octokit({
-      auth: process.env.GITHUB_TOKEN,
-    });
+    const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
     // Fetch open issues with the 'user-feedback' label
     const response = await octokit.rest.issues.listForRepo({
       owner: 'mcull',
@@ -37,7 +40,15 @@ export async function GET(_request: NextRequest) {
     }));
 
     return NextResponse.json(issues);
-  } catch (error) {
+  } catch (error: any) {
+    // Graceful fallback in dev when token is invalid/insufficient
+    const status = error?.status || 500;
+    if (status === 401 || status === 403) {
+      console.warn(
+        'GitHub auth missing/insufficient for issues listing; returning empty list'
+      );
+      return NextResponse.json([]);
+    }
     console.error('Error fetching GitHub issues:', error);
     return NextResponse.json(
       { error: 'Failed to fetch issues' },

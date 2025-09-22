@@ -18,9 +18,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Initialize clients at request time to avoid build-time errors
-    const octokit = new Octokit({
-      auth: process.env.GITHUB_TOKEN,
-    });
+    const hasGitHub = !!process.env.GITHUB_TOKEN;
+    const octokit = hasGitHub
+      ? new Octokit({ auth: process.env.GITHUB_TOKEN })
+      : null;
 
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
@@ -95,33 +96,50 @@ _${enhancement.comment}_
 - User should receive email updates on this issue
 `;
 
-    // Create GitHub issue
-    const issue = await octokit.rest.issues.create({
-      owner: 'mcull',
-      repo: 'stufflibrary',
-      title: enhancement.title,
-      body: issueBody,
-      labels: [
-        'user-feedback',
-        `priority-${enhancement.priority.toLowerCase()}`,
-        `type-${type}`,
-      ],
-    });
+    // Create GitHub issue (graceful fallback if token missing/invalid)
+    let issue: any = null;
+    if (octokit) {
+      try {
+        issue = await octokit.rest.issues.create({
+          owner: 'mcull',
+          repo: 'stufflibrary',
+          title: enhancement.title,
+          body: issueBody,
+          labels: [
+            'user-feedback',
+            `priority-${enhancement.priority.toLowerCase()}`,
+            `type-${type}`,
+          ],
+        });
+      } catch (ghErr: any) {
+        const status = ghErr?.status || 500;
+        if (status === 401 || status === 403) {
+          console.warn(
+            'GitHub token missing or insufficient; skipping issue creation'
+          );
+        } else {
+          console.error('Error creating GitHub issue:', ghErr);
+        }
+      }
+    } else {
+      console.warn('GITHUB_TOKEN not set; skipping GitHub issue creation');
+    }
 
     // Send email notification
     await sendFeedbackEmail({
       userEmail: session.user.email,
       userName: session.user.name || 'StuffLibrary User',
       feedbackType: type,
-      issueUrl: issue.data.html_url,
-      issueNumber: issue.data.number,
+      issueUrl: issue?.data?.html_url || '#',
+      issueNumber: issue?.data?.number || 0,
       resend,
     });
 
     return NextResponse.json({
       success: true,
-      issueUrl: issue.data.html_url,
-      issueNumber: issue.data.number,
+      issueUrl: issue?.data?.html_url || null,
+      issueNumber: issue?.data?.number || null,
+      createdIssue: Boolean(issue),
     });
   } catch (error) {
     console.error('Error submitting feedback:', error);
