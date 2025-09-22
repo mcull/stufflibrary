@@ -4,13 +4,13 @@ import FeedbackOutlinedIcon from '@mui/icons-material/FeedbackOutlined';
 import { Fab, Tooltip, Snackbar, Button } from '@mui/material';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 
 export function FloatingFeedbackFab() {
-  const { data: session } = useSession();
   const router = useRouter();
   const [coachmarkOpen, setCoachmarkOpen] = useState(false);
+
+  // (Guard moved after hooks to satisfy Rules of Hooks)
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -27,9 +27,8 @@ export function FloatingFeedbackFab() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [router]);
 
-  // One-time coachmark to teach the shortcut
+  // One-time coachmark to teach the shortcut (no auth requirement)
   useEffect(() => {
-    if (!session?.user) return;
     let t: ReturnType<typeof setTimeout> | null = null;
     try {
       const key = 'sl_feedback_coachmark_seen';
@@ -45,10 +44,9 @@ export function FloatingFeedbackFab() {
     return () => {
       if (t) clearTimeout(t);
     };
-  }, [session?.user]);
+  }, []);
 
-  // Show only for authenticated users
-  if (!session?.user) return null;
+  if (isTestEnv) return null;
 
   return (
     <>
