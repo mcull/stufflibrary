@@ -5,12 +5,12 @@ import { Fab, Tooltip, Snackbar, Button } from '@mui/material';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export function FloatingFeedbackFab() {
   const { data: session } = useSession();
   const router = useRouter();
-  const [coachmarkOpen, setCoachmarkOpen] = useState(false as any);
+  const [coachmarkOpen, setCoachmarkOpen] = useState(false);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
