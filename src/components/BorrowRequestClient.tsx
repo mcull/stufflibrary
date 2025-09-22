@@ -898,18 +898,20 @@ export function BorrowRequestClient({
       case 'confirming':
         return (
           <Box sx={{ py: 4 }}>
-            <Typography
-              variant="h5"
-              gutterBottom
-              sx={{
-                fontWeight: 600,
-                color: brandColors.charcoal,
-                textAlign: 'center',
-                mb: 4,
-              }}
-            >
-              Confirm Your Request
-            </Typography>
+            <Box sx={{ maxWidth: 640, mx: 'auto', width: '100%' }}>
+              <Typography
+                variant="h3"
+                gutterBottom
+                sx={{
+                  fontWeight: 700,
+                  color: brandColors.charcoal,
+                  textAlign: 'left',
+                  mb: 3,
+                }}
+              >
+                Confirm Your Request
+              </Typography>
+            </Box>
 
             {/* Return Date */}
             <Card sx={{ mb: 3 }}>
