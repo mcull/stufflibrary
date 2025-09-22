@@ -27,7 +27,7 @@ export function FloatingFeedbackFab() {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [router]);
+  }, []);
 
   // One-time coachmark to teach the shortcut (no auth requirement)
   useEffect(() => {
