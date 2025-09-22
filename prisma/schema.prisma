@@ -189,6 +189,7 @@ model Item {
   id                     String          @id @default(cuid())
   name                   String
   description            String?
+  suggestedBorrowScript  String?
   category               String?
   condition              String          @default("good")
   location               String?         // e.g., "garage", "kitchen", "basement"

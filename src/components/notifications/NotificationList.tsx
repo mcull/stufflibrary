@@ -319,6 +319,8 @@ export function NotificationList({
                       </Typography>
                     </Box>
                   }
+                  primaryTypographyProps={{ component: 'div' }}
+                  secondaryTypographyProps={{ component: 'div' }}
                 />
               </ListItem>
               {index < notifications.length - 1 && <Divider />}

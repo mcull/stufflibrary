@@ -172,7 +172,14 @@ export function ItemDetailClient({
 
   // Handle borrow request
   const handleBorrowRequest = () => {
-    router.push(`/borrow-request?item=${itemId}`);
+    const params = new URLSearchParams({ item: itemId });
+    if (refSource === 'library' && refLibraryId) {
+      params.set('src', 'library');
+      params.set('lib', refLibraryId);
+    } else if (refSource === 'mystuff') {
+      params.set('src', 'mystuff');
+    }
+    router.push(`/borrow-request?${params.toString()}`);
   };
 
   // Handle take offline/online item
@@ -670,8 +677,22 @@ export function ItemDetailClient({
       }}
     >
       {/* Breadcrumbs */}
-      <Box sx={{ mb: 1, color: 'text.secondary' }}>
-        <Typography component="span" sx={{ opacity: 0.6 }}>
+      <Box
+        sx={{
+          mb: 1,
+          color: 'text.secondary',
+          fontSize: { xs: '0.85rem', md: '1rem' },
+        }}
+      >
+        <Typography
+          component="span"
+          onClick={() => router.push('/stacks')}
+          sx={{
+            opacity: 0.6,
+            cursor: 'pointer',
+            '&:hover': { textDecoration: 'underline' },
+          }}
+        >
           Home
         </Typography>
         <Typography component="span" sx={{ opacity: 0.4, mx: 1 }}>

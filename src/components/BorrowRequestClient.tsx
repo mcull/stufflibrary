@@ -49,6 +49,8 @@ interface Item {
 
 interface BorrowRequestClientProps {
   item: Item;
+  refSource?: 'library' | 'mystuff' | null;
+  refLibraryId?: string | null;
 }
 
 type RequestState =
@@ -61,7 +63,11 @@ type RequestState =
   | 'success'
   | 'error';
 
-export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
+export function BorrowRequestClient({
+  item,
+  refSource = null,
+  refLibraryId = null,
+}: BorrowRequestClientProps) {
   const router = useRouter();
 
   // Helper function to get the best available image URL (prioritize watercolor)
@@ -98,6 +104,7 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
   const [state, setState] = useState<RequestState>('intro');
   const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
   const [videoBlobUrl, setVideoBlobUrl] = useState<string | null>(null);
+  // Elapsed recording time in seconds (float)
   const [recordingTime, setRecordingTime] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [promiseChecked, setPromiseChecked] = useState(false);
@@ -106,6 +113,34 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [isFrontCamera, setIsFrontCamera] = useState<boolean>(false);
   const xhrRef = useRef<XMLHttpRequest | null>(null);
+  const beep20PlayedRef = useRef<boolean>(false);
+  const beep25PlayedRef = useRef<boolean>(false);
+
+  const playBeep = useCallback(
+    (frequency: number = 880, durationMs: number = 120) => {
+      try {
+        const Ctx: any =
+          (window as any).AudioContext || (window as any).webkitAudioContext;
+        if (!Ctx) return;
+        const ctx = new Ctx();
+        const oscillator = ctx.createOscillator();
+        const gain = ctx.createGain();
+        oscillator.type = 'sine';
+        oscillator.frequency.value = frequency;
+        gain.gain.value = 0.08;
+        oscillator.connect(gain);
+        gain.connect(ctx.destination);
+        oscillator.start();
+        setTimeout(() => {
+          oscillator.stop();
+          ctx.close();
+        }, durationMs);
+      } catch {
+        /* noop */
+      }
+    },
+    []
+  );
 
   // Start camera stream
   const startCamera = useCallback(async () => {
@@ -266,6 +301,8 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
 
     recordedChunksRef.current = [];
     setIsRecording(true);
+    beep20PlayedRef.current = false;
+    beep25PlayedRef.current = false;
 
     // Try different codecs based on browser support
     let mimeType = 'video/webm;codecs=vp9';
@@ -335,27 +372,34 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
 
     mediaRecorder.start();
 
-    // Countdown timer (12 to 0)
-    recordingStartRef.current = Date.now();
-    setRecordingTime(12);
+    // Count-up timer with milliseconds, auto-stop at 30s
+    recordingStartRef.current = performance.now();
+    setRecordingTime(0);
+    // Update roughly every 25ms for a smooth ms counter
     timerIntervalRef.current = window.setInterval(() => {
       if (recordingStartRef.current) {
-        const elapsed = Math.floor(
-          (Date.now() - recordingStartRef.current) / 1000
-        );
-        const remaining = Math.max(0, 12 - elapsed);
-        setRecordingTime(remaining);
+        const elapsedMs = performance.now() - recordingStartRef.current;
+        const elapsedSec = elapsedMs / 1000;
+        setRecordingTime(elapsedSec);
+        if (elapsedSec >= 20 && !beep20PlayedRef.current) {
+          playBeep(740, 100);
+          beep20PlayedRef.current = true;
+        }
+        if (elapsedSec >= 25 && !beep25PlayedRef.current) {
+          playBeep(880, 120);
+          beep25PlayedRef.current = true;
+        }
       }
-    }, 1000);
+    }, 25);
 
-    // Auto-stop after 12 seconds to keep uploads smaller and more focused
+    // Auto-stop after 30 seconds
     autoStopTimeoutRef.current = window.setTimeout(() => {
       if (mediaRecorderRef.current?.state === 'recording') {
         mediaRecorderRef.current.stop();
       }
       clearTimers();
-    }, 12000);
-  }, [clearTimers, stopStream]);
+    }, 30000);
+  }, [clearTimers, stopStream, playBeep]);
 
   // Stop recording
   const stopRecording = useCallback(() => {
@@ -398,7 +442,7 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
       if (videoBlob.size > maxSize) {
         const sizeMB = Math.round((videoBlob.size / (1024 * 1024)) * 10) / 10;
         throw new Error(
-          `Video file is ${sizeMB}MB, which is too large. Please try recording a shorter clip (aim for 8-12 seconds) or check your camera quality settings.`
+          `Video file is ${sizeMB}MB, which is too large. Please try recording a shorter clip (aim for 10-30 seconds) or check your camera quality settings.`
         );
       }
 
@@ -473,7 +517,35 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
     }
   }, [videoBlob, returnDate, promiseChecked, item, recordingTime]);
 
-  const suggestedScript = `Hey ${item.owner.name || 'there'}, I'd love to borrow your ${item.name} for a few days. ${item.description ? `I need it for ${item.description.toLowerCase().includes('ing') ? item.description.toLowerCase() : 'my project'}` : 'I have a project that would benefit from using it'}. I can pick it up anytime after 5:30 on weeknights, or before noon on weekends. Thanks!`;
+  const [suggestedScript, setSuggestedScript] = useState<string>('');
+
+  // Load or generate suggested borrow script
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const pre = (item as any).suggestedBorrowScript as string | undefined;
+        if (pre) {
+          if (!cancelled) setSuggestedScript(pre);
+          return;
+        }
+        const res = await fetch(`/api/items/${item.id}/borrow-script`);
+        if (res.ok) {
+          const data = await res.json();
+          if (!cancelled && data.script)
+            setSuggestedScript(data.script as string);
+        }
+      } catch {
+        const firstName = (item.owner.name || 'there').split(' ')[0];
+        const fallback = `Hey ${firstName}, I'd love to borrow your ${item.name} for a few days. I've got a silly little project it would be perfect for — I could grab it any day after work.`;
+        if (!cancelled) setSuggestedScript(fallback);
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [item]);
 
   const renderContent = () => {
     switch (state) {
@@ -485,7 +557,7 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
               variant="body1"
               sx={{ color: brandColors.charcoal, opacity: 0.7, mb: 3 }}
             >
-              Record a short (8-12 second) video selfie to introduce yourself
+              Record a short (10-30 second) video selfie to introduce yourself
               and explain why you&apos;d like to borrow this item.
             </Typography>
 
@@ -577,7 +649,7 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
               variant="body1"
               sx={{ color: brandColors.charcoal, opacity: 0.7, mb: 3 }}
             >
-              Record a short (8-12 second) video selfie to introduce yourself
+              Record a short (10-30 second) video selfie to introduce yourself
               and explain why you&apos;d like to borrow this item.
             </Typography>
 
@@ -640,7 +712,7 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
                 }}
               />
 
-              {/* Countdown timer with color coding */}
+              {/* Recording indicator */}
               {isRecording && (
                 <Box
                   sx={{
@@ -670,26 +742,47 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
                 </Box>
               )}
 
-              {/* Large countdown display */}
+              {/* Count-up timer with color thresholds (green <20s, yellow <25s, red >=25s) */}
               {isRecording && (
                 <Box
                   sx={{
                     position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    fontSize: '4rem',
-                    fontWeight: 'bold',
-                    color:
-                      recordingTime > 4
-                        ? 'green'
-                        : recordingTime > 2
-                          ? 'yellow'
-                          : 'red',
-                    textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
+                    top: 16,
+                    right: 16,
+                    bgcolor: 'rgba(0, 0, 0, 0.8)',
+                    px: 2,
+                    py: 1,
+                    borderRadius: 1,
                   }}
                 >
-                  {recordingTime}
+                  {(() => {
+                    const totalMs = Math.floor(recordingTime * 1000);
+                    const minutes = Math.floor(totalMs / 60000);
+                    const seconds = Math.floor((totalMs % 60000) / 1000);
+                    const ms4 = Math.floor((totalMs % 1000) * 10); // 4 digits
+                    const color =
+                      recordingTime < 20
+                        ? '#2E7D32'
+                        : recordingTime < 25
+                          ? '#F9A825'
+                          : '#C62828';
+                    const text = `${String(minutes).padStart(2, '0')}:${String(
+                      seconds
+                    ).padStart(2, '0')}:${String(ms4).padStart(4, '0')}`;
+                    return (
+                      <Typography
+                        component="span"
+                        sx={{
+                          color,
+                          fontFamily: 'monospace',
+                          fontWeight: 700,
+                          letterSpacing: 1,
+                        }}
+                      >
+                        {text}
+                      </Typography>
+                    );
+                  })()}
                 </Box>
               )}
             </Box>
@@ -728,9 +821,14 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
         return (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Typography
-              variant="h5"
+              variant="h3"
               gutterBottom
-              sx={{ fontWeight: 600, color: brandColors.charcoal }}
+              sx={{
+                fontWeight: 700,
+                color: brandColors.charcoal,
+                textAlign: 'left',
+                mb: 2,
+              }}
             >
               Review Your Request
             </Typography>
@@ -800,13 +898,13 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
         return (
           <Box sx={{ py: 4 }}>
             <Typography
-              variant="h5"
+              variant="h3"
               gutterBottom
               sx={{
-                fontWeight: 600,
+                fontWeight: 700,
                 color: brandColors.charcoal,
-                textAlign: 'center',
-                mb: 4,
+                textAlign: 'left',
+                mb: 3,
               }}
             >
               Confirm Your Request
@@ -931,15 +1029,19 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
               variant="body1"
               sx={{ mb: 4, color: brandColors.charcoal, opacity: 0.7 }}
             >
-              {item.owner.name} will receive your video request via SMS and
-              email. You&apos;ll be notified when they respond.
+              {item.owner.name} will receive your video request via email and
+              in-app notification. You&apos;ll be notified when they respond.
             </Typography>
             <Button
               variant="contained"
-              onClick={() => router.push('/stacks')}
+              onClick={() =>
+                refSource === 'library' && refLibraryId
+                  ? router.push(`/library/${refLibraryId}`)
+                  : router.push('/stacks')
+              }
               sx={{ borderRadius: 2 }}
             >
-              Back to Lobby
+              {refSource === 'library' ? 'Back to Library' : 'Back to Lobby'}
             </Button>
           </Box>
         );
@@ -952,7 +1054,7 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
               variant="body1"
               sx={{ color: brandColors.charcoal, opacity: 0.7, mb: 3 }}
             >
-              Record a short (8-12 second) video selfie to introduce yourself
+              Record a short (10-30 second) video selfie to introduce yourself
               and explain why you&apos;d like to borrow this item.
             </Typography>
 
@@ -1060,16 +1162,78 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      {/* Header */}
-      <Box sx={{ mb: 2 }}>
+      {/* Breadcrumbs */}
+      <Box
+        sx={{
+          mb: 2,
+          color: 'text.secondary',
+          fontSize: { xs: '0.85rem', md: '1rem' },
+        }}
+      >
         <Typography
-          variant="h4"
+          component="span"
+          onClick={() => router.push('/stacks')}
           sx={{
-            fontWeight: 700,
-            color: brandColors.charcoal,
-            textAlign: 'center',
+            opacity: 0.6,
+            cursor: 'pointer',
+            '&:hover': { textDecoration: 'underline' },
           }}
         >
+          Home
+        </Typography>
+        <Typography component="span" sx={{ opacity: 0.4, mx: 1 }}>
+          /
+        </Typography>
+        {refSource === 'library' && refLibraryId ? (
+          <>
+            <Typography
+              component="span"
+              onClick={() => router.push('/stacks')}
+              sx={{
+                cursor: 'pointer',
+                '&:hover': { textDecoration: 'underline' },
+              }}
+            >
+              Libraries
+            </Typography>
+            <Typography component="span" sx={{ opacity: 0.4, mx: 1 }}>
+              /
+            </Typography>
+            <Typography
+              component="span"
+              onClick={() => router.push(`/library/${refLibraryId}`)}
+              sx={{
+                cursor: 'pointer',
+                '&:hover': { textDecoration: 'underline' },
+              }}
+            >
+              Current Library
+            </Typography>
+            <Typography component="span" sx={{ opacity: 0.4, mx: 1 }}>
+              /
+            </Typography>
+          </>
+        ) : null}
+        <Typography
+          component="span"
+          onClick={() => {
+            const params = new URLSearchParams();
+            if (refSource === 'library' && refLibraryId) {
+              params.set('src', 'library');
+              params.set('lib', refLibraryId);
+            } else if (refSource === 'mystuff') {
+              params.set('src', 'mystuff');
+            }
+            router.push(`/stuff/${item.id}?${params.toString()}`);
+          }}
+          sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+        >
+          Item Detail
+        </Typography>
+        <Typography component="span" sx={{ opacity: 0.4, mx: 1 }}>
+          /
+        </Typography>
+        <Typography component="span" sx={{ fontWeight: 500 }}>
           Borrow Request
         </Typography>
       </Box>
