@@ -12,8 +12,14 @@ export default async function SecurityPage() {
     redirect('/admin/login');
   }
 
+  const cssVars = {
+    ['--font-size-multiplier']: 1,
+    ['--letter-spacing']: 'normal',
+    ['--line-height-multiplier']: 1,
+  } as React.CSSProperties;
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50" style={cssVars}>
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">

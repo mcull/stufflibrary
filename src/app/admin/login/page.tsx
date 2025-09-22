@@ -10,6 +10,11 @@ export default function AdminLoginPage() {
   const [providers, setProviders] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDev, setIsDev] = useState(false);
+  const cssVars = {
+    ['--font-size-multiplier']: 1,
+    ['--letter-spacing']: 'normal',
+    ['--line-height-multiplier']: 1,
+  } as React.CSSProperties;
 
   useEffect(() => {
     // Determine if running on localhost for dev bypass UX
@@ -51,7 +56,10 @@ export default function AdminLoginPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div
+        className="min-h-screen flex items-center justify-center bg-gray-50"
+        style={cssVars}
+      >
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
       </div>
     );
@@ -59,7 +67,10 @@ export default function AdminLoginPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div
+        className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8"
+        style={cssVars}
+      >
         <div className="max-w-md w-full space-y-8">
           <div>
             <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
@@ -95,7 +106,10 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div
+      className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8"
+      style={cssVars}
+    >
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
