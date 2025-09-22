@@ -1132,7 +1132,13 @@ export function BorrowRequestClient({
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
       {/* Breadcrumbs */}
-      <Box sx={{ mb: 2, color: 'text.secondary' }}>
+      <Box
+        sx={{
+          mb: 2,
+          color: 'text.secondary',
+          fontSize: { xs: '0.85rem', md: '1rem' },
+        }}
+      >
         <Typography
           component="span"
           onClick={() => router.push('/stacks')}
@@ -1149,6 +1155,19 @@ export function BorrowRequestClient({
         </Typography>
         {refSource === 'library' && refLibraryId ? (
           <>
+            <Typography
+              component="span"
+              onClick={() => router.push('/stacks')}
+              sx={{
+                cursor: 'pointer',
+                '&:hover': { textDecoration: 'underline' },
+              }}
+            >
+              Libraries
+            </Typography>
+            <Typography component="span" sx={{ opacity: 0.4, mx: 1 }}>
+              /
+            </Typography>
             <Typography
               component="span"
               onClick={() => router.push(`/library/${refLibraryId}`)}

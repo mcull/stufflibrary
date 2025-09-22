@@ -677,7 +677,13 @@ export function ItemDetailClient({
       }}
     >
       {/* Breadcrumbs */}
-      <Box sx={{ mb: 1, color: 'text.secondary' }}>
+      <Box
+        sx={{
+          mb: 1,
+          color: 'text.secondary',
+          fontSize: { xs: '0.85rem', md: '1rem' },
+        }}
+      >
         <Typography
           component="span"
           onClick={() => router.push('/stacks')}
@@ -694,6 +700,19 @@ export function ItemDetailClient({
         </Typography>
         {refSource === 'library' && refLibraryId ? (
           <>
+            <Typography
+              component="span"
+              onClick={() => router.push('/stacks')}
+              sx={{
+                cursor: 'pointer',
+                '&:hover': { textDecoration: 'underline' },
+              }}
+            >
+              Libraries
+            </Typography>
+            <Typography component="span" sx={{ opacity: 0.4, mx: 1 }}>
+              /
+            </Typography>
             <Typography
               component="span"
               onClick={() => router.push(`/library/${refLibraryId}`)}
