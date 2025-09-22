@@ -363,18 +363,9 @@ export function ManageMembersModal({
               },
             }}
           />
-          <Tab
-            label={`Invitations (${invitations.length})`}
-            sx={{
-              color: brandColors.charcoal,
-              '&.Mui-selected': {
-                color: brandColors.inkBlue,
-              },
-            }}
-          />
           {(userRole === 'owner' || userRole === 'admin') && (
             <Tab
-              label="Invite New"
+              label={'+Add'}
               sx={{
                 color: brandColors.charcoal,
                 '&.Mui-selected': {
