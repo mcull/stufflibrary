@@ -236,3 +236,8 @@ Notes
 
 - The anonymized reporter slug in issue bodies has the form `SLFB:v1:<userId>:<sig8>`. The signature is verified server-side with `FEEDBACK_SLUG_SECRET`.
 - If you rotate `FEEDBACK_SLUG_SECRET`, slugs created with the old secret will no longer validate.
+
+Helper scripts
+
+- Generate a slug: `FEEDBACK_SLUG_SECRET=... npm run gen:slug -- <userId>`
+- Verify a slug: `FEEDBACK_SLUG_SECRET=... npm run verify:slug -- <slug>`
