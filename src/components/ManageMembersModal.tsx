@@ -598,149 +598,148 @@ export function ManageMembersModal({
           </Box>
         )}
 
-        {/* Invitations Tab */}
-        {activeTab === 1 && (
-          <Box>
-            <Typography
-              variant="h6"
-              sx={{ mb: 2, color: brandColors.charcoal }}
-            >
-              Pending Invitations
-            </Typography>
+        {/* +Add Tab (combined invite form + pending list) */}
+        {activeTab === 1 && (userRole === 'owner' || userRole === 'admin') && (
+          <Box component="section">
+            <form onSubmit={handleInviteSubmit}>
+              <Typography
+                variant="h6"
+                sx={{ mb: 2, color: brandColors.charcoal }}
+              >
+                Invite New Member
+              </Typography>
 
-            {loadingData ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                <CircularProgress size={32} />
+              <Box sx={{ mb: 3 }}>
+                <TextField
+                  fullWidth
+                  label="Friend's Email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="friend@example.com"
+                  required
+                  disabled={isLoading}
+                  InputProps={{
+                    startAdornment: (
+                      <EmailIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                    ),
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      backgroundColor: brandColors.white,
+                    },
+                  }}
+                />
               </Box>
-            ) : invitations.length > 0 ? (
-              <List sx={{ bgcolor: brandColors.white, borderRadius: 2 }}>
-                {invitations.map((invitation, index) => (
-                  <Box key={invitation.id}>
-                    <ListItem sx={{ py: 2 }}>
-                      <PersonIcon sx={{ mr: 2, color: 'text.secondary' }} />
-                      <ListItemText
-                        primary={invitation.email}
-                        secondary={
-                          <>
-                            <Typography
-                              variant="body2"
-                              color="text.secondary"
-                              component="span"
-                              sx={{ display: 'block' }}
-                            >
-                              {invitation.sentAt
-                                ? `Sent ${new Date(invitation.sentAt).toLocaleDateString()}`
-                                : `Created ${new Date(invitation.createdAt).toLocaleDateString()}`}
-                            </Typography>
-                            {invitation.sender && (
+
+              <Box
+                sx={{
+                  p: 2,
+                  bgcolor: 'rgba(59, 130, 246, 0.1)',
+                  borderRadius: 1,
+                  mb: 3,
+                }}
+              >
+                <Typography variant="body2" color="text.secondary">
+                  💡 You can send up to 5 invitations per hour. Invitations
+                  expire after 7 days.
+                </Typography>
+              </Box>
+
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={isLoading || !email.trim()}
+                startIcon={
+                  isLoading ? <CircularProgress size={16} /> : <SendIcon />
+                }
+                sx={{
+                  bgcolor: brandColors.inkBlue,
+                  '&:hover': { bgcolor: '#1a2f4f' },
+                  '&:disabled': { bgcolor: 'grey.300' },
+                }}
+              >
+                {isLoading ? 'Sending...' : 'Send Invitation'}
+              </Button>
+            </form>
+
+            <Box sx={{ mt: 4 }}>
+              <Typography
+                variant="h6"
+                sx={{ mb: 2, color: brandColors.charcoal }}
+              >
+                Pending Invitations
+              </Typography>
+
+              {loadingData ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                  <CircularProgress size={32} />
+                </Box>
+              ) : invitations.length > 0 ? (
+                <List sx={{ bgcolor: brandColors.white, borderRadius: 2 }}>
+                  {invitations.map((invitation, index) => (
+                    <Box key={invitation.id}>
+                      <ListItem sx={{ py: 2 }}>
+                        <PersonIcon sx={{ mr: 2, color: 'text.secondary' }} />
+                        <ListItemText
+                          primary={invitation.email}
+                          secondary={
+                            <>
                               <Typography
-                                variant="caption"
+                                variant="body2"
                                 color="text.secondary"
                                 component="span"
                                 sx={{ display: 'block' }}
                               >
-                                Sent by {invitation.sender.name}
+                                {invitation.sentAt
+                                  ? `Sent ${new Date(invitation.sentAt).toLocaleDateString()}`
+                                  : `Created ${new Date(invitation.createdAt).toLocaleDateString()}`}
                               </Typography>
-                            )}
-                          </>
-                        }
-                      />
-                      <Chip
-                        label={getStatusText(
-                          invitation.status,
-                          invitation.isExpired
-                        )}
-                        size="small"
-                        color={getStatusColor(
-                          invitation.status,
-                          invitation.isExpired
-                        )}
-                        variant={
-                          invitation.status === 'ACCEPTED'
-                            ? 'filled'
-                            : 'outlined'
-                        }
-                      />
-                    </ListItem>
-                    {index < invitations.length - 1 && <Divider />}
-                  </Box>
-                ))}
-              </List>
-            ) : (
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ textAlign: 'center', py: 4 }}
-              >
-                No invitations found
-              </Typography>
-            )}
+                              {invitation.sender && (
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                  component="span"
+                                  sx={{ display: 'block' }}
+                                >
+                                  Sent by {invitation.sender.name}
+                                </Typography>
+                              )}
+                            </>
+                          }
+                        />
+                        <Chip
+                          label={getStatusText(
+                            invitation.status,
+                            invitation.isExpired
+                          )}
+                          size="small"
+                          color={getStatusColor(
+                            invitation.status,
+                            invitation.isExpired
+                          )}
+                          variant={
+                            invitation.status === 'ACCEPTED'
+                              ? 'filled'
+                              : 'outlined'
+                          }
+                        />
+                      </ListItem>
+                      {index < invitations.length - 1 && <Divider />}
+                    </Box>
+                  ))}
+                </List>
+              ) : (
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ textAlign: 'center', py: 4 }}
+                >
+                  No invitations found
+                </Typography>
+              )}
+            </Box>
           </Box>
-        )}
-
-        {/* Invite New Tab */}
-        {activeTab === 2 && (userRole === 'owner' || userRole === 'admin') && (
-          <form onSubmit={handleInviteSubmit}>
-            <Typography
-              variant="h6"
-              sx={{ mb: 2, color: brandColors.charcoal }}
-            >
-              Invite New Member
-            </Typography>
-
-            <Box sx={{ mb: 3 }}>
-              <TextField
-                fullWidth
-                label="Friend's Email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="friend@example.com"
-                required
-                disabled={isLoading}
-                InputProps={{
-                  startAdornment: (
-                    <EmailIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                  ),
-                }}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    backgroundColor: brandColors.white,
-                  },
-                }}
-              />
-            </Box>
-
-            <Box
-              sx={{
-                p: 2,
-                bgcolor: 'rgba(59, 130, 246, 0.1)',
-                borderRadius: 1,
-                mb: 3,
-              }}
-            >
-              <Typography variant="body2" color="text.secondary">
-                💡 You can send up to 5 invitations per hour. Invitations expire
-                after 7 days.
-              </Typography>
-            </Box>
-
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={isLoading || !email.trim()}
-              startIcon={
-                isLoading ? <CircularProgress size={16} /> : <SendIcon />
-              }
-              sx={{
-                bgcolor: brandColors.inkBlue,
-                '&:hover': { bgcolor: '#1a2f4f' },
-                '&:disabled': { bgcolor: 'grey.300' },
-              }}
-            >
-              {isLoading ? 'Sending...' : 'Send Invitation'}
-            </Button>
-          </form>
         )}
       </DialogContent>
 
