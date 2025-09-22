@@ -34,6 +34,8 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
+import { brandColors, spacing } from '@/theme/brandTokens';
+
 interface BorrowRequest {
   id: string;
   status:
@@ -175,40 +177,46 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
 
   if (status === 'loading' || loading) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Box
-          display="flex"
-          justifyContent="center"
-          alignItems="center"
-          minHeight="50vh"
-        >
-          <CircularProgress />
-        </Box>
-      </Container>
+      <Box sx={{ minHeight: '100vh', backgroundColor: brandColors.warmCream }}>
+        <Container maxWidth="lg" sx={{ py: spacing.lg / 16 }}>
+          <Box
+            display="flex"
+            justifyContent="center"
+            alignItems="center"
+            minHeight="50vh"
+          >
+            <CircularProgress />
+          </Box>
+        </Container>
+      </Box>
     );
   }
 
   if (error) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Button
-          component={Link}
-          href="/stacks"
-          startIcon={<ArrowBack />}
-          sx={{ mb: 2 }}
-        >
-          Back to Lobby
-        </Button>
-        <Alert severity="error">{error}</Alert>
-      </Container>
+      <Box sx={{ minHeight: '100vh', backgroundColor: brandColors.warmCream }}>
+        <Container maxWidth="lg" sx={{ py: spacing.lg / 16 }}>
+          <Button
+            component={Link}
+            href="/stacks"
+            startIcon={<ArrowBack />}
+            sx={{ mb: 2 }}
+          >
+            Back to Lobby
+          </Button>
+          <Alert severity="error">{error}</Alert>
+        </Container>
+      </Box>
     );
   }
 
   if (!request) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Alert severity="info">Request not found</Alert>
-      </Container>
+      <Box sx={{ minHeight: '100vh', backgroundColor: brandColors.warmCream }}>
+        <Container maxWidth="lg" sx={{ py: spacing.lg / 16 }}>
+          <Alert severity="info">Request not found</Alert>
+        </Container>
+      </Box>
     );
   }
 
@@ -221,344 +229,361 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
   const isOverdue = returnDate < new Date() && isActive;
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      {/* Navigation */}
-      <Button
-        component={Link}
-        href="/lobby"
-        startIcon={<ArrowBack />}
-        sx={{ mb: 3 }}
-      >
-        Back to Lobby
-      </Button>
+    <Box sx={{ minHeight: '100vh', backgroundColor: brandColors.warmCream }}>
+      <Container maxWidth="lg" sx={{ py: spacing.lg / 16 }}>
+        {/* Navigation */}
+        <Button
+          component={Link}
+          href="/lobby"
+          startIcon={<ArrowBack />}
+          sx={{ mb: 3 }}
+        >
+          Back to Lobby
+        </Button>
 
-      {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Your Borrow Request
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-          <Chip label={request.status} color={statusColors[request.status]} />
-          {isOverdue && (
-            <Chip
-              icon={<WarningAmber />}
-              label="OVERDUE"
-              color="error"
-              variant="outlined"
-            />
-          )}
+        {/* Header */}
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h4" component="h1" gutterBottom>
+            Your Borrow Request
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+            <Chip label={request.status} color={statusColors[request.status]} />
+            {isOverdue && (
+              <Chip
+                icon={<WarningAmber />}
+                label="OVERDUE"
+                color="error"
+                variant="outlined"
+              />
+            )}
+          </Box>
         </Box>
-      </Box>
 
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: { xs: 'column', lg: 'row' },
-          gap: 4,
-        }}
-      >
-        {/* Main Content */}
-        <Box sx={{ flex: { lg: 2 } }}>
-          {/* Item Details */}
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Borrowed Item
-              </Typography>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', lg: 'row' },
+            gap: 4,
+          }}
+        >
+          {/* Main Content */}
+          <Box sx={{ flex: { lg: 2 } }}>
+            {/* Item Details */}
+            <Card sx={{ mb: 3 }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Borrowed Item
+                </Typography>
 
-              <Box
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    gap: 3,
+                  }}
+                >
+                  <Box sx={{ flex: { sm: 1 } }}>
+                    {(request.item.watercolorThumbUrl ||
+                      request.item.watercolorUrl ||
+                      request.item.imageUrl) && (
+                      <Box
+                        component="img"
+                        src={
+                          request.item.watercolorThumbUrl ||
+                          request.item.watercolorUrl ||
+                          request.item.imageUrl!
+                        }
+                        alt={request.item.name}
+                        sx={{
+                          width: '100%',
+                          height: 200,
+                          objectFit: 'cover',
+                          borderRadius: 1,
+                        }}
+                      />
+                    )}
+                  </Box>
+                  <Box sx={{ flex: { sm: 2 } }}>
+                    <Typography variant="h6" gutterBottom>
+                      {request.item.name}
+                    </Typography>
+                    {request.item.description && (
+                      <Typography
+                        variant="body2"
+                        color="textSecondary"
+                        paragraph
+                      >
+                        {request.item.description}
+                      </Typography>
+                    )}
+                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                      <Typography variant="body2" color="textSecondary">
+                        <strong>Condition:</strong> {request.item.condition}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+
+            {/* Your Request Message */}
+            {request.requestMessage && (
+              <Card sx={{ mb: 3 }}>
+                <CardContent>
+                  <Typography
+                    variant="h6"
+                    gutterBottom
+                    sx={{ display: 'flex', alignItems: 'center' }}
+                  >
+                    <Message sx={{ mr: 1 }} />
+                    Your Request Message
+                  </Typography>
+                  <Typography variant="body1">
+                    &quot;{request.requestMessage}&quot;
+                  </Typography>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Lender's Response */}
+            {request.lenderMessage && (
+              <Card sx={{ mb: 3 }}>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom color="primary">
+                    {request.lender.name}&apos;s Response
+                  </Typography>
+                  <Typography variant="body1">
+                    &quot;{request.lenderMessage}&quot;
+                  </Typography>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Return Instructions */}
+            {isActive && (
+              <Card
                 sx={{
-                  display: 'flex',
-                  flexDirection: { xs: 'column', sm: 'row' },
-                  gap: 3,
+                  mb: 3,
+                  bgcolor: 'info.light',
+                  color: 'info.contrastText',
                 }}
               >
-                <Box sx={{ flex: { sm: 1 } }}>
-                  {request.item.imageUrl && (
-                    <Box
-                      component="img"
-                      src={request.item.imageUrl}
-                      alt={request.item.name}
-                      sx={{
-                        width: '100%',
-                        height: 200,
-                        objectFit: 'cover',
-                        borderRadius: 1,
-                      }}
-                    />
-                  )}
-                </Box>
-                <Box sx={{ flex: { sm: 2 } }}>
+                <CardContent>
                   <Typography variant="h6" gutterBottom>
-                    {request.item.name}
+                    Return Instructions
                   </Typography>
-                  {request.item.description && (
-                    <Typography variant="body2" color="textSecondary" paragraph>
-                      {request.item.description}
-                    </Typography>
-                  )}
-                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                  <Typography variant="body2" paragraph>
+                    When you&apos;re ready to return this item:
+                  </Typography>
+                  <Typography variant="body2" component="div" sx={{ ml: 2 }}>
+                    1. Return the item to {request.lender.name} in the same
+                    condition
+                    <br />
+                    2. Click &quot;Mark as Returned&quot; below
+                    <br />
+                    3. Add any notes about the condition or return process
+                    <br />
+                    4. {request.lender.name} will be notified and can confirm
+                    the return
+                  </Typography>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Return Confirmation */}
+            {isReturned && (
+              <Card
+                sx={{
+                  mb: 3,
+                  bgcolor: 'success.light',
+                  color: 'success.contrastText',
+                }}
+              >
+                <CardContent>
+                  <Typography
+                    variant="h6"
+                    gutterBottom
+                    sx={{ display: 'flex', alignItems: 'center' }}
+                  >
+                    <CheckCircle sx={{ mr: 1 }} />
+                    Item Returned
+                  </Typography>
+                  <Typography variant="body2">
+                    You marked this item as returned on{' '}
+                    {formatDistanceToNow(new Date(request.returnedAt!), {
+                      addSuffix: true,
+                    })}
+                    .{request.lender.name} has been notified.
+                  </Typography>
+                </CardContent>
+              </Card>
+            )}
+          </Box>
+
+          {/* Sidebar */}
+          <Box sx={{ flex: { lg: 1 } }}>
+            {/* Lender Profile */}
+            <Card sx={{ mb: 3 }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Lender
+                </Typography>
+
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <Avatar
+                    {...(request.lender.image && {
+                      src: request.lender.image,
+                    })}
+                    alt={request.lender.name}
+                    sx={{ width: 56, height: 56, mr: 2 }}
+                  >
+                    <Person />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h6">{request.lender.name}</Typography>
                     <Typography variant="body2" color="textSecondary">
-                      <strong>Condition:</strong> {request.item.condition}
+                      Item owner
                     </Typography>
                   </Box>
                 </Box>
-              </Box>
-            </CardContent>
-          </Card>
 
-          {/* Your Request Message */}
-          {request.requestMessage && (
-            <Card sx={{ mb: 3 }}>
-              <CardContent>
-                <Typography
-                  variant="h6"
-                  gutterBottom
-                  sx={{ display: 'flex', alignItems: 'center' }}
-                >
-                  <Message sx={{ mr: 1 }} />
-                  Your Request Message
-                </Typography>
-                <Typography variant="body1">
-                  &quot;{request.requestMessage}&quot;
-                </Typography>
-              </CardContent>
-            </Card>
-          )}
+                <Divider sx={{ my: 2 }} />
 
-          {/* Lender's Response */}
-          {request.lenderMessage && (
-            <Card sx={{ mb: 3 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom color="primary">
-                  {request.lender.name}&apos;s Response
-                </Typography>
-                <Typography variant="body1">
-                  &quot;{request.lenderMessage}&quot;
-                </Typography>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Return Instructions */}
-          {isActive && (
-            <Card
-              sx={{ mb: 3, bgcolor: 'info.light', color: 'info.contrastText' }}
-            >
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Return Instructions
-                </Typography>
-                <Typography variant="body2" paragraph>
-                  When you&apos;re ready to return this item:
-                </Typography>
-                <Typography variant="body2" component="div" sx={{ ml: 2 }}>
-                  1. Return the item to {request.lender.name} in the same
-                  condition
-                  <br />
-                  2. Click &quot;Mark as Returned&quot; below
-                  <br />
-                  3. Add any notes about the condition or return process
-                  <br />
-                  4. {request.lender.name} will be notified and can confirm the
-                  return
-                </Typography>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Return Confirmation */}
-          {isReturned && (
-            <Card
-              sx={{
-                mb: 3,
-                bgcolor: 'success.light',
-                color: 'success.contrastText',
-              }}
-            >
-              <CardContent>
-                <Typography
-                  variant="h6"
-                  gutterBottom
-                  sx={{ display: 'flex', alignItems: 'center' }}
-                >
-                  <CheckCircle sx={{ mr: 1 }} />
-                  Item Returned
-                </Typography>
-                <Typography variant="body2">
-                  You marked this item as returned on{' '}
-                  {formatDistanceToNow(new Date(request.returnedAt!), {
-                    addSuffix: true,
-                  })}
-                  .{request.lender.name} has been notified.
-                </Typography>
-              </CardContent>
-            </Card>
-          )}
-        </Box>
-
-        {/* Sidebar */}
-        <Box sx={{ flex: { lg: 1 } }}>
-          {/* Lender Profile */}
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Lender
-              </Typography>
-
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Avatar
-                  {...(request.lender.image && {
-                    src: request.lender.image,
-                  })}
-                  alt={request.lender.name}
-                  sx={{ width: 56, height: 56, mr: 2 }}
-                >
-                  <Person />
-                </Avatar>
-                <Box>
-                  <Typography variant="h6">{request.lender.name}</Typography>
-                  <Typography variant="body2" color="textSecondary">
-                    Item owner
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Divider sx={{ my: 2 }} />
-
-              <Box sx={{ mb: 1 }}>
-                <Typography variant="body2" color="textSecondary">
-                  <CalendarToday
-                    sx={{ fontSize: 16, mr: 1, verticalAlign: 'middle' }}
-                  />
-                  Requested:{' '}
-                  {formatDistanceToNow(new Date(request.createdAt), {
-                    addSuffix: true,
-                  })}
-                </Typography>
-              </Box>
-
-              <Box sx={{ mb: 1 }}>
-                <Typography
-                  variant="body2"
-                  color={isOverdue ? 'error' : 'textSecondary'}
-                  sx={{ fontWeight: isOverdue ? 600 : 400 }}
-                >
-                  <AccessTime
-                    sx={{ fontSize: 16, mr: 1, verticalAlign: 'middle' }}
-                  />
-                  {isOverdue ? 'Was due: ' : 'Return by: '}
-                  {new Date(request.requestedReturnDate).toLocaleDateString()}
-                  {isOverdue && ' (Overdue)'}
-                </Typography>
-              </Box>
-
-              {request.approvedAt && (
                 <Box sx={{ mb: 1 }}>
                   <Typography variant="body2" color="textSecondary">
-                    <CheckCircle
+                    <CalendarToday
                       sx={{ fontSize: 16, mr: 1, verticalAlign: 'middle' }}
                     />
-                    Approved:{' '}
-                    {formatDistanceToNow(new Date(request.approvedAt), {
+                    Requested:{' '}
+                    {formatDistanceToNow(new Date(request.createdAt), {
                       addSuffix: true,
                     })}
                   </Typography>
                 </Box>
-              )}
-            </CardContent>
-          </Card>
 
-          {/* Action Button */}
-          {canReturn && (
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Ready to Return?
-                </Typography>
-                <Typography variant="body2" color="textSecondary" paragraph>
-                  Mark this item as returned when you&apos;ve given it back to{' '}
-                  {request.lender.name}.
-                </Typography>
+                <Box sx={{ mb: 1 }}>
+                  <Typography
+                    variant="body2"
+                    color={isOverdue ? 'error' : 'textSecondary'}
+                    sx={{ fontWeight: isOverdue ? 600 : 400 }}
+                  >
+                    <AccessTime
+                      sx={{ fontSize: 16, mr: 1, verticalAlign: 'middle' }}
+                    />
+                    {isOverdue ? 'Was due: ' : 'Return by: '}
+                    {new Date(request.requestedReturnDate).toLocaleDateString()}
+                    {isOverdue && ' (Overdue)'}
+                  </Typography>
+                </Box>
 
-                <Button
-                  variant="contained"
-                  color="success"
-                  size="large"
-                  fullWidth
-                  startIcon={<AssignmentReturned />}
-                  onClick={openReturnDialog}
-                  sx={{ mb: isOverdue ? 2 : 0 }}
-                >
-                  Mark as Returned
-                </Button>
-
-                {isOverdue && (
-                  <Alert severity="warning" sx={{ mt: 2 }}>
-                    This item is overdue. Please return it as soon as possible.
-                  </Alert>
+                {request.approvedAt && (
+                  <Box sx={{ mb: 1 }}>
+                    <Typography variant="body2" color="textSecondary">
+                      <CheckCircle
+                        sx={{ fontSize: 16, mr: 1, verticalAlign: 'middle' }}
+                      />
+                      Approved:{' '}
+                      {formatDistanceToNow(new Date(request.approvedAt), {
+                        addSuffix: true,
+                      })}
+                    </Typography>
+                  </Box>
                 )}
               </CardContent>
             </Card>
-          )}
-        </Box>
-      </Box>
 
-      {/* Return Confirmation Dialog */}
-      <Dialog
-        open={returnDialog}
-        onClose={closeReturnDialog}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          Mark &quot;{request.item.name}&quot; as Returned
-        </DialogTitle>
+            {/* Action Button */}
+            {canReturn && (
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    Ready to Return?
+                  </Typography>
+                  <Typography variant="body2" color="textSecondary" paragraph>
+                    Mark this item as returned when you&apos;ve given it back to{' '}
+                    {request.lender.name}.
+                  </Typography>
 
-        <DialogContent>
-          <Typography variant="body2" color="textSecondary" paragraph>
-            Confirm that you have returned this item to {request.lender.name}
-            in good condition. They will receive a notification.
-          </Typography>
+                  <Button
+                    variant="contained"
+                    color="success"
+                    size="large"
+                    fullWidth
+                    startIcon={<AssignmentReturned />}
+                    onClick={openReturnDialog}
+                    sx={{ mb: isOverdue ? 2 : 0 }}
+                  >
+                    Mark as Returned
+                  </Button>
 
-          <TextField
-            fullWidth
-            multiline
-            rows={3}
-            label="Return notes (optional)"
-            placeholder="Item returned in good condition. Thanks for letting me borrow it!"
-            value={returnNotes}
-            onChange={(e) => setReturnNotes(e.target.value)}
-            sx={{ mb: 2 }}
-          />
-
-          <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-            <Typography variant="caption" color="textSecondary">
-              ✓ {request.lender.name} will be notified that you&apos;ve returned
-              the item
-            </Typography>
+                  {isOverdue && (
+                    <Alert severity="warning" sx={{ mt: 2 }}>
+                      This item is overdue. Please return it as soon as
+                      possible.
+                    </Alert>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </Box>
-        </DialogContent>
+        </Box>
 
-        <DialogActions>
-          <Button onClick={closeReturnDialog}>Cancel</Button>
-          <Button
-            onClick={handleMarkReturned}
-            variant="contained"
-            color="success"
-            disabled={returning}
-            startIcon={
-              returning ? (
-                <CircularProgress size={20} />
-              ) : (
-                <AssignmentReturned />
-              )
-            }
-          >
-            {returning ? 'Marking as Returned...' : 'Mark as Returned'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Container>
+        {/* Return Confirmation Dialog */}
+        <Dialog
+          open={returnDialog}
+          onClose={closeReturnDialog}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>
+            Mark &quot;{request.item.name}&quot; as Returned
+          </DialogTitle>
+
+          <DialogContent>
+            <Typography variant="body2" color="textSecondary" paragraph>
+              Confirm that you have returned this item to {request.lender.name}
+              in good condition. They will receive a notification.
+            </Typography>
+
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              label="Return notes (optional)"
+              placeholder="Item returned in good condition. Thanks for letting me borrow it!"
+              value={returnNotes}
+              onChange={(e) => setReturnNotes(e.target.value)}
+              sx={{ mb: 2 }}
+            />
+
+            <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+              <Typography variant="caption" color="textSecondary">
+                ✓ {request.lender.name} will be notified that you&apos;ve
+                returned the item
+              </Typography>
+            </Box>
+          </DialogContent>
+
+          <DialogActions>
+            <Button onClick={closeReturnDialog}>Cancel</Button>
+            <Button
+              onClick={handleMarkReturned}
+              variant="contained"
+              color="success"
+              disabled={returning}
+              startIcon={
+                returning ? (
+                  <CircularProgress size={20} />
+                ) : (
+                  <AssignmentReturned />
+                )
+              }
+            >
+              {returning ? 'Marking as Returned...' : 'Mark as Returned'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Container>
+    </Box>
   );
 }
