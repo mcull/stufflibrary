@@ -11,7 +11,8 @@ export async function POST(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const userId = (session?.user as { id?: string })?.id;
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -29,12 +30,12 @@ export async function POST(
       where: {
         issueNumber_userId: {
           issueNumber,
-          userId: session.user.id as string,
+          userId: userId,
         },
       },
       create: {
         issueNumber,
-        userId: session.user.id as string,
+        userId: userId,
       },
       update: {},
     });
