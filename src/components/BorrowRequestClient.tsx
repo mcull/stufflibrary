@@ -820,19 +820,18 @@ export function BorrowRequestClient({
       case 'playing':
         return (
           <Box sx={{ textAlign: 'center', py: 4 }}>
-            <Box sx={{ maxWidth: 640, mx: 'auto', width: '100%' }}>
-              <Typography
-                variant="h3"
-                gutterBottom
-                sx={{
-                  fontWeight: 700,
-                  color: brandColors.charcoal,
-                  textAlign: 'left',
-                }}
-              >
-                Review Your Request
-              </Typography>
-            </Box>
+            <Typography
+              variant="h3"
+              gutterBottom
+              sx={{
+                fontWeight: 700,
+                color: brandColors.charcoal,
+                textAlign: 'left',
+                mb: 2,
+              }}
+            >
+              Review Your Request
+            </Typography>
 
             {/* Video Playback */}
             <Box
@@ -898,20 +897,18 @@ export function BorrowRequestClient({
       case 'confirming':
         return (
           <Box sx={{ py: 4 }}>
-            <Box sx={{ maxWidth: 640, mx: 'auto', width: '100%' }}>
-              <Typography
-                variant="h3"
-                gutterBottom
-                sx={{
-                  fontWeight: 700,
-                  color: brandColors.charcoal,
-                  textAlign: 'left',
-                  mb: 3,
-                }}
-              >
-                Confirm Your Request
-              </Typography>
-            </Box>
+            <Typography
+              variant="h3"
+              gutterBottom
+              sx={{
+                fontWeight: 700,
+                color: brandColors.charcoal,
+                textAlign: 'left',
+                mb: 3,
+              }}
+            >
+              Confirm Your Request
+            </Typography>
 
             {/* Return Date */}
             <Card sx={{ mb: 3 }}>
