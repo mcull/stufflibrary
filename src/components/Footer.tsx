@@ -30,6 +30,7 @@ const footerSections = [
     title: 'Support',
     links: [
       { label: 'Community Guidelines', href: '#' },
+      { label: 'Feedback', href: '/feedback' },
       { label: 'Contact Us', href: 'mailto:hello@stufflibrary.org' },
       { label: 'Report Issue', href: '#' },
     ],

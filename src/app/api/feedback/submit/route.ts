@@ -1,8 +1,10 @@
 import { Octokit } from '@octokit/rest';
+import { put } from '@vercel/blob';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import OpenAI from 'openai';
 import { Resend } from 'resend';
+import { v4 as uuidv4 } from 'uuid';
 
 import { authOptions } from '@/lib/auth';
 
@@ -18,9 +20,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Initialize clients at request time to avoid build-time errors
-    const octokit = new Octokit({
-      auth: process.env.GITHUB_TOKEN,
-    });
+    const hasGitHub = !!process.env.GITHUB_TOKEN;
+    const octokit = hasGitHub
+      ? new Octokit({ auth: process.env.GITHUB_TOKEN })
+      : null;
 
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
@@ -28,7 +31,31 @@ export async function POST(request: NextRequest) {
 
     const resend = new Resend(process.env.RESEND_API_KEY);
 
-    const { type, message } = await request.json();
+    let type: string;
+    let message: string;
+    let uploadedImageUrl: string | null = null;
+
+    const contentType = request.headers.get('content-type') || '';
+    if (contentType.includes('multipart/form-data')) {
+      const form = await request.formData();
+      type = String(form.get('type') || 'feature');
+      message = String(form.get('message') || '');
+      const image = form.get('image') as File | null;
+      if (image && image.size > 0) {
+        try {
+          const ext = (image.name.split('.').pop() || 'png').toLowerCase();
+          const filename = `feedback/${uuidv4()}.${ext}`;
+          const blob = await put(filename, image, { access: 'public' });
+          uploadedImageUrl = blob.url;
+        } catch (e) {
+          console.warn('Failed to upload feedback image:', e);
+        }
+      }
+    } else {
+      const body = await request.json();
+      type = body.type;
+      message = body.message;
+    }
 
     if (!message || !type) {
       return NextResponse.json(
@@ -90,38 +117,58 @@ ${message}
 
 _${enhancement.comment}_
 
+${uploadedImageUrl ? `### Screenshot\n\n![feedback-screenshot](${uploadedImageUrl})\n\n` : ''}
+
 **Internal Notes:**
 - Auto-generated from feedback form
 - User should receive email updates on this issue
 `;
 
-    // Create GitHub issue
-    const issue = await octokit.rest.issues.create({
-      owner: 'mcull',
-      repo: 'stufflibrary',
-      title: enhancement.title,
-      body: issueBody,
-      labels: [
-        'user-feedback',
-        `priority-${enhancement.priority.toLowerCase()}`,
-        `type-${type}`,
-      ],
-    });
+    // Create GitHub issue (graceful fallback if token missing/invalid)
+    let issue: any = null;
+    if (octokit) {
+      try {
+        issue = await octokit.rest.issues.create({
+          owner: 'mcull',
+          repo: 'stufflibrary',
+          title: enhancement.title,
+          body: issueBody,
+          labels: [
+            'user-feedback',
+            `priority-${enhancement.priority.toLowerCase()}`,
+            `type-${type}`,
+          ],
+        });
+      } catch (ghErr: any) {
+        const status = ghErr?.status || 500;
+        if (status === 401 || status === 403) {
+          console.warn(
+            'GitHub token missing or insufficient; skipping issue creation'
+          );
+        } else {
+          console.error('Error creating GitHub issue:', ghErr);
+        }
+      }
+    } else {
+      console.warn('GITHUB_TOKEN not set; skipping GitHub issue creation');
+    }
 
     // Send email notification
     await sendFeedbackEmail({
       userEmail: session.user.email,
       userName: session.user.name || 'StuffLibrary User',
       feedbackType: type,
-      issueUrl: issue.data.html_url,
-      issueNumber: issue.data.number,
+      issueUrl: issue?.data?.html_url || '#',
+      issueNumber: issue?.data?.number || 0,
       resend,
     });
 
     return NextResponse.json({
       success: true,
-      issueUrl: issue.data.html_url,
-      issueNumber: issue.data.number,
+      issueUrl: issue?.data?.html_url || null,
+      issueNumber: issue?.data?.number || null,
+      issueTitle: enhancement.title,
+      createdIssue: Boolean(issue),
     });
   } catch (error) {
     console.error('Error submitting feedback:', error);
