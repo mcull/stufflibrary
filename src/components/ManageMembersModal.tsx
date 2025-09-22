@@ -25,12 +25,14 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemAvatar,
-  Avatar,
   Tabs,
   Tab,
   Divider,
   Tooltip,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import { useState, useEffect, useCallback } from 'react';
 
@@ -67,6 +69,13 @@ interface Member {
     name?: string;
     email?: string;
     image?: string;
+    addresses?: Array<{
+      address1?: string;
+      city?: string;
+      state?: string;
+      zip?: string;
+      formattedAddress?: string;
+    }>;
   };
 }
 
@@ -87,10 +96,10 @@ export function ManageMembersModal({
   const [members, setMembers] = useState<Member[]>([]);
   const [loadingData, setLoadingData] = useState(false);
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
-  const [updatingRoleId, setUpdatingRoleId] = useState<string | null>(null);
-  const [transferringOwnerId, setTransferringOwnerId] = useState<string | null>(
-    null
-  );
+  const [_updatingRoleId, setUpdatingRoleId] = useState<string | null>(null);
+  const [_transferringOwnerId, setTransferringOwnerId] = useState<
+    string | null
+  >(null);
 
   const loadData = useCallback(async () => {
     setLoadingData(true);
@@ -343,10 +352,15 @@ export function ManageMembersModal({
         <Tabs
           value={activeTab}
           onChange={(_, newValue) => setActiveTab(newValue)}
+          variant="scrollable"
+          scrollButtons="auto"
+          allowScrollButtonsMobile
           sx={{
             '& .MuiTabs-indicator': {
               backgroundColor: brandColors.inkBlue,
             },
+            // Ensure tabs don't get cut off on small screens
+            overflowX: 'auto',
           }}
         >
           <Tab
@@ -358,18 +372,9 @@ export function ManageMembersModal({
               },
             }}
           />
-          <Tab
-            label={`Invitations (${invitations.length})`}
-            sx={{
-              color: brandColors.charcoal,
-              '&.Mui-selected': {
-                color: brandColors.inkBlue,
-              },
-            }}
-          />
           {(userRole === 'owner' || userRole === 'admin') && (
             <Tab
-              label="Invite New"
+              label={'+Add'}
               sx={{
                 color: brandColors.charcoal,
                 '&.Mui-selected': {
@@ -420,71 +425,17 @@ export function ManageMembersModal({
                         justifyContent: 'space-between',
                       }}
                     >
-                      <Box
-                        sx={{ display: 'flex', alignItems: 'center', flex: 1 }}
-                      >
-                        <ListItemAvatar>
-                          <Avatar
-                            {...(member.user.image && {
-                              src: member.user.image,
-                            })}
-                          >
-                            {member.user.name?.charAt(0).toUpperCase() ||
-                              member.user.email?.charAt(0).toUpperCase() ||
-                              '?'}
-                          </Avatar>
-                        </ListItemAvatar>
+                      <Box sx={{ flex: 1 }}>
                         <ListItemText
                           primary={
-                            <Box
-                              sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1,
-                              }}
+                            <Typography
+                              variant="subtitle1"
+                              sx={{ fontWeight: 500 }}
                             >
-                              <Typography
-                                variant="subtitle1"
-                                sx={{ fontWeight: 500 }}
-                              >
-                                {member.user.name || 'Unknown User'}
-                              </Typography>
-                              {member.role === 'owner' ? (
-                                <Chip
-                                  icon={
-                                    <ConstructionIcon sx={{ fontSize: 16 }} />
-                                  }
-                                  label="Owner"
-                                  size="small"
-                                  sx={{
-                                    backgroundColor: '#E8F5E8',
-                                    color: '#2E7D32',
-                                    height: 22,
-                                    '& .MuiChip-icon': { color: '#2E7D32' },
-                                  }}
-                                />
-                              ) : member.role === 'admin' ? (
-                                <Chip
-                                  icon={<AdminIcon sx={{ fontSize: 16 }} />}
-                                  label="Admin"
-                                  size="small"
-                                  sx={{
-                                    backgroundColor: '#E3F2FD',
-                                    color: '#1565C0',
-                                    height: 22,
-                                    '& .MuiChip-icon': { color: '#1565C0' },
-                                  }}
-                                />
-                              ) : (
-                                <Chip
-                                  label="Member"
-                                  size="small"
-                                  variant="outlined"
-                                  sx={{ height: 22 }}
-                                />
-                              )}
-                            </Box>
+                              {member.user.name || 'Unknown User'}
+                            </Typography>
                           }
+                          secondaryTypographyProps={{ component: 'div' }}
                           secondary={
                             <>
                               <Typography
@@ -495,6 +446,24 @@ export function ManageMembersModal({
                               >
                                 {member.user.email}
                               </Typography>
+                              {(() => {
+                                const addr = member.user.addresses?.[0];
+                                const text =
+                                  addr?.formattedAddress ||
+                                  (addr?.address1 && addr?.city && addr?.state
+                                    ? `${addr.address1}, ${addr.city}, ${addr.state} ${addr.zip || ''}`.trim()
+                                    : null);
+                                return text ? (
+                                  <Typography
+                                    variant="body2"
+                                    color="text.secondary"
+                                    component="span"
+                                    sx={{ display: 'block' }}
+                                  >
+                                    {text}
+                                  </Typography>
+                                ) : null;
+                              })()}
                               <Typography
                                 variant="caption"
                                 color="text.secondary"
@@ -504,56 +473,106 @@ export function ManageMembersModal({
                                 Joined{' '}
                                 {new Date(member.joinedAt).toLocaleDateString()}
                               </Typography>
+                              <Box
+                                sx={{
+                                  mt: 1,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 1,
+                                  flexWrap: 'wrap',
+                                }}
+                              >
+                                {canChangeRole(member) ? (
+                                  <FormControl
+                                    size="medium"
+                                    sx={{ minWidth: { xs: 160, sm: 180 } }}
+                                  >
+                                    <InputLabel id={`role-label-${member.id}`}>
+                                      Role
+                                    </InputLabel>
+                                    <Select
+                                      labelId={`role-label-${member.id}`}
+                                      label="Role"
+                                      value={member.role}
+                                      onChange={(e) => {
+                                        const role = e.target.value as
+                                          | 'owner'
+                                          | 'admin'
+                                          | 'member';
+                                        if (role === 'owner') {
+                                          handleTransferOwnership(member);
+                                        } else if (
+                                          role === 'admin' ||
+                                          role === 'member'
+                                        ) {
+                                          handleChangeRole(member, role);
+                                        }
+                                      }}
+                                      sx={{
+                                        '& .MuiSelect-select': {
+                                          py: 1.25,
+                                          pr: 5,
+                                        },
+                                      }}
+                                    >
+                                      <MenuItem value="member">Member</MenuItem>
+                                      <MenuItem value="admin">Admin</MenuItem>
+                                      <MenuItem value="owner">Owner</MenuItem>
+                                    </Select>
+                                  </FormControl>
+                                ) : (
+                                  <>
+                                    {member.role === 'owner' ? (
+                                      <Chip
+                                        icon={
+                                          <ConstructionIcon
+                                            sx={{ fontSize: 16 }}
+                                          />
+                                        }
+                                        label="Owner"
+                                        size="small"
+                                        sx={{
+                                          backgroundColor: '#E8F5E8',
+                                          color: '#2E7D32',
+                                          height: 22,
+                                          '& .MuiChip-icon': {
+                                            color: '#2E7D32',
+                                          },
+                                        }}
+                                      />
+                                    ) : member.role === 'admin' ? (
+                                      <Chip
+                                        icon={
+                                          <AdminIcon sx={{ fontSize: 16 }} />
+                                        }
+                                        label="Admin"
+                                        size="small"
+                                        sx={{
+                                          backgroundColor: '#E3F2FD',
+                                          color: '#1565C0',
+                                          height: 22,
+                                          '& .MuiChip-icon': {
+                                            color: '#1565C0',
+                                          },
+                                        }}
+                                      />
+                                    ) : (
+                                      <Chip
+                                        label="Member"
+                                        size="small"
+                                        variant="outlined"
+                                        sx={{ height: 22 }}
+                                      />
+                                    )}
+                                  </>
+                                )}
+                              </Box>
                             </>
                           }
                         />
                       </Box>
 
-                      {/* Role change actions */}
-                      {canChangeRole(member) && (
-                        <Box sx={{ display: 'flex', gap: 1, mr: 1 }}>
-                          {member.role !== 'admin' && (
-                            <Button
-                              variant="outlined"
-                              size="small"
-                              disabled={updatingRoleId === member.id}
-                              onClick={() => handleChangeRole(member, 'admin')}
-                              sx={{ textTransform: 'none' }}
-                            >
-                              {updatingRoleId === member.id
-                                ? 'Updating...'
-                                : 'Make admin'}
-                            </Button>
-                          )}
-                          {member.role !== 'member' && (
-                            <Button
-                              variant="outlined"
-                              size="small"
-                              disabled={updatingRoleId === member.id}
-                              onClick={() => handleChangeRole(member, 'member')}
-                              sx={{ textTransform: 'none' }}
-                            >
-                              {updatingRoleId === member.id
-                                ? 'Updating...'
-                                : 'Make member'}
-                            </Button>
-                          )}
-                        </Box>
-                      )}
-
-                      {userRole === 'owner' && member.role !== 'owner' && (
-                        <Button
-                          variant="text"
-                          size="small"
-                          disabled={transferringOwnerId !== null}
-                          onClick={() => handleTransferOwnership(member)}
-                          sx={{ textTransform: 'none', mr: 1 }}
-                        >
-                          {transferringOwnerId === member.id
-                            ? 'Transferring...'
-                            : 'Make owner'}
-                        </Button>
-                      )}
+                      {/* Role actions moved into dropdown; owner transfer handled on selecting 'Owner' */}
 
                       {/* Remove action */}
                       {canRemoveMember(member) && (
@@ -593,149 +612,149 @@ export function ManageMembersModal({
           </Box>
         )}
 
-        {/* Invitations Tab */}
-        {activeTab === 1 && (
-          <Box>
-            <Typography
-              variant="h6"
-              sx={{ mb: 2, color: brandColors.charcoal }}
-            >
-              Pending Invitations
-            </Typography>
+        {/* +Add Tab (combined invite form + pending list) */}
+        {activeTab === 1 && (userRole === 'owner' || userRole === 'admin') && (
+          <Box component="section">
+            <form onSubmit={handleInviteSubmit}>
+              <Typography
+                variant="h6"
+                sx={{ mb: 2, color: brandColors.charcoal }}
+              >
+                Invite New Member
+              </Typography>
 
-            {loadingData ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                <CircularProgress size={32} />
+              <Box sx={{ mb: 3 }}>
+                <TextField
+                  fullWidth
+                  label="Friend's Email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="friend@example.com"
+                  required
+                  disabled={isLoading}
+                  InputProps={{
+                    startAdornment: (
+                      <EmailIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                    ),
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      backgroundColor: brandColors.white,
+                    },
+                  }}
+                />
               </Box>
-            ) : invitations.length > 0 ? (
-              <List sx={{ bgcolor: brandColors.white, borderRadius: 2 }}>
-                {invitations.map((invitation, index) => (
-                  <Box key={invitation.id}>
-                    <ListItem sx={{ py: 2 }}>
-                      <PersonIcon sx={{ mr: 2, color: 'text.secondary' }} />
-                      <ListItemText
-                        primary={invitation.email}
-                        secondary={
-                          <>
-                            <Typography
-                              variant="body2"
-                              color="text.secondary"
-                              component="span"
-                              sx={{ display: 'block' }}
-                            >
-                              {invitation.sentAt
-                                ? `Sent ${new Date(invitation.sentAt).toLocaleDateString()}`
-                                : `Created ${new Date(invitation.createdAt).toLocaleDateString()}`}
-                            </Typography>
-                            {invitation.sender && (
+
+              <Box
+                sx={{
+                  p: 2,
+                  bgcolor: 'rgba(59, 130, 246, 0.1)',
+                  borderRadius: 1,
+                  mb: 3,
+                }}
+              >
+                <Typography variant="body2" color="text.secondary">
+                  💡 You can send up to 5 invitations per hour. Invitations
+                  expire after 7 days.
+                </Typography>
+              </Box>
+
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={isLoading || !email.trim()}
+                startIcon={
+                  isLoading ? <CircularProgress size={16} /> : <SendIcon />
+                }
+                sx={{
+                  bgcolor: brandColors.inkBlue,
+                  '&:hover': { bgcolor: '#1a2f4f' },
+                  '&:disabled': { bgcolor: 'grey.300' },
+                }}
+              >
+                {isLoading ? 'Sending...' : 'Send Invitation'}
+              </Button>
+            </form>
+
+            <Box sx={{ mt: 4 }}>
+              <Typography
+                variant="h6"
+                sx={{ mb: 2, color: brandColors.charcoal }}
+              >
+                Pending Invitations
+              </Typography>
+
+              {loadingData ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                  <CircularProgress size={32} />
+                </Box>
+              ) : invitations.length > 0 ? (
+                <List sx={{ bgcolor: brandColors.white, borderRadius: 2 }}>
+                  {invitations.map((invitation, index) => (
+                    <Box key={invitation.id}>
+                      <ListItem sx={{ py: 2 }}>
+                        <PersonIcon sx={{ mr: 2, color: 'text.secondary' }} />
+                        <ListItemText
+                          primary={invitation.email}
+                          secondaryTypographyProps={{ component: 'div' }}
+                          secondary={
+                            <>
                               <Typography
-                                variant="caption"
+                                variant="body2"
                                 color="text.secondary"
                                 component="span"
                                 sx={{ display: 'block' }}
                               >
-                                Sent by {invitation.sender.name}
+                                {invitation.sentAt
+                                  ? `Sent ${new Date(invitation.sentAt).toLocaleDateString()}`
+                                  : `Created ${new Date(invitation.createdAt).toLocaleDateString()}`}
                               </Typography>
-                            )}
-                          </>
-                        }
-                      />
-                      <Chip
-                        label={getStatusText(
-                          invitation.status,
-                          invitation.isExpired
-                        )}
-                        size="small"
-                        color={getStatusColor(
-                          invitation.status,
-                          invitation.isExpired
-                        )}
-                        variant={
-                          invitation.status === 'ACCEPTED'
-                            ? 'filled'
-                            : 'outlined'
-                        }
-                      />
-                    </ListItem>
-                    {index < invitations.length - 1 && <Divider />}
-                  </Box>
-                ))}
-              </List>
-            ) : (
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ textAlign: 'center', py: 4 }}
-              >
-                No invitations found
-              </Typography>
-            )}
+                              {invitation.sender && (
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                  component="span"
+                                  sx={{ display: 'block' }}
+                                >
+                                  Sent by {invitation.sender.name}
+                                </Typography>
+                              )}
+                            </>
+                          }
+                        />
+                        <Chip
+                          label={getStatusText(
+                            invitation.status,
+                            invitation.isExpired
+                          )}
+                          size="small"
+                          color={getStatusColor(
+                            invitation.status,
+                            invitation.isExpired
+                          )}
+                          variant={
+                            invitation.status === 'ACCEPTED'
+                              ? 'filled'
+                              : 'outlined'
+                          }
+                        />
+                      </ListItem>
+                      {index < invitations.length - 1 && <Divider />}
+                    </Box>
+                  ))}
+                </List>
+              ) : (
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ textAlign: 'center', py: 4 }}
+                >
+                  No invitations found
+                </Typography>
+              )}
+            </Box>
           </Box>
-        )}
-
-        {/* Invite New Tab */}
-        {activeTab === 2 && (userRole === 'owner' || userRole === 'admin') && (
-          <form onSubmit={handleInviteSubmit}>
-            <Typography
-              variant="h6"
-              sx={{ mb: 2, color: brandColors.charcoal }}
-            >
-              Invite New Member
-            </Typography>
-
-            <Box sx={{ mb: 3 }}>
-              <TextField
-                fullWidth
-                label="Friend's Email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="friend@example.com"
-                required
-                disabled={isLoading}
-                InputProps={{
-                  startAdornment: (
-                    <EmailIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                  ),
-                }}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    backgroundColor: brandColors.white,
-                  },
-                }}
-              />
-            </Box>
-
-            <Box
-              sx={{
-                p: 2,
-                bgcolor: 'rgba(59, 130, 246, 0.1)',
-                borderRadius: 1,
-                mb: 3,
-              }}
-            >
-              <Typography variant="body2" color="text.secondary">
-                💡 You can send up to 5 invitations per hour. Invitations expire
-                after 7 days.
-              </Typography>
-            </Box>
-
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={isLoading || !email.trim()}
-              startIcon={
-                isLoading ? <CircularProgress size={16} /> : <SendIcon />
-              }
-              sx={{
-                bgcolor: brandColors.inkBlue,
-                '&:hover': { bgcolor: '#1a2f4f' },
-                '&:disabled': { bgcolor: 'grey.300' },
-              }}
-            >
-              {isLoading ? 'Sending...' : 'Send Invitation'}
-            </Button>
-          </form>
         )}
       </DialogContent>
 
