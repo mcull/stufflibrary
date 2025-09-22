@@ -10,12 +10,12 @@ export async function GET(_request: NextRequest) {
 
     // Initialize client at request time to avoid build-time errors
     const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
-    // Fetch open issues with the 'user-feedback' label
+    // Fetch issues (open and closed) with the 'user-feedback' label
     const response = await octokit.rest.issues.listForRepo({
       owner: 'mcull',
       repo: 'stufflibrary',
       labels: 'user-feedback',
-      state: 'open',
+      state: 'all',
       sort: 'created',
       direction: 'desc',
       per_page: 50,
@@ -28,6 +28,7 @@ export async function GET(_request: NextRequest) {
       title: issue.title,
       body: issue.body || '',
       state: issue.state,
+      closed_at: issue.closed_at,
       created_at: issue.created_at,
       labels: issue.labels.map((label) => ({
         name: typeof label === 'string' ? label : label.name || '',
@@ -40,9 +41,10 @@ export async function GET(_request: NextRequest) {
     }));
 
     return NextResponse.json(issues);
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Graceful fallback in dev when token is invalid/insufficient
-    const status = error?.status || 500;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const status = (error as any)?.status || 500;
     if (status === 401 || status === 403) {
       console.warn(
         'GitHub auth missing/insufficient for issues listing; returning empty list'

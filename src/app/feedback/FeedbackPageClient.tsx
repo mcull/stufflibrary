@@ -51,6 +51,10 @@ export function FeedbackPageClient() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submittedIssue, setSubmittedIssue] = useState<{
+    url: string;
+    number: number;
+  } | null>(null);
   const [openIssues, setOpenIssues] = useState<GitHubIssue[]>([]);
   const [loadingIssues, setLoadingIssues] = useState(true);
 
@@ -88,14 +92,17 @@ export function FeedbackPageClient() {
         body: JSON.stringify(formData),
       });
 
-      if (response.ok) {
-        setSubmitSuccess(true);
-        setFormData({ type: 'feature', message: '' });
-        // Reload issues to show the new one
-        loadOpenIssues();
+      if (!response.ok) throw new Error('Failed to submit feedback');
+      const data = await response.json();
+      setSubmitSuccess(true);
+      if (data?.issueUrl && data?.issueNumber) {
+        setSubmittedIssue({ url: data.issueUrl, number: data.issueNumber });
       } else {
-        throw new Error('Failed to submit feedback');
+        setSubmittedIssue(null);
       }
+      setFormData({ type: 'feature', message: '' });
+      // Reload issues to show the new one
+      loadOpenIssues();
     } catch (error) {
       console.error('Error submitting feedback:', error);
       alert(
@@ -174,8 +181,21 @@ export function FeedbackPageClient() {
 
               {submitSuccess && (
                 <Alert severity="success" sx={{ mb: 2 }}>
-                  Thanks for your feedback! We created a GitHub issue and
-                  you&apos;ll get an email when it&apos;s addressed.
+                  We&apos;ve logged your feedback.
+                  {submittedIssue && (
+                    <>
+                      {' '}
+                      See issue{' '}
+                      <MUILink
+                        href={submittedIssue.url}
+                        target="_blank"
+                        underline="hover"
+                      >
+                        #{submittedIssue.number}
+                      </MUILink>
+                      .
+                    </>
+                  )}
                 </Alert>
               )}
 
@@ -262,70 +282,73 @@ export function FeedbackPageClient() {
                 </Box>
               ) : (
                 <Box>
-                  {openIssues.map((issue, idx) => (
-                    <Box key={issue.id} sx={{ py: 1.5 }}>
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'flex-start',
-                          gap: 2,
-                        }}
-                      >
-                        <Box sx={{ minWidth: 0 }}>
-                          <MUILink
-                            href={issue.html_url}
-                            target="_blank"
-                            underline="hover"
-                            sx={{ fontWeight: 600 }}
-                          >
-                            #{issue.number} — {issue.title}
-                          </MUILink>
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            sx={{ display: 'block', mt: 0.5 }}
-                          >
-                            Opened {formatDate(issue.created_at)}
-                          </Typography>
-                          <Box
-                            sx={{
-                              mt: 1,
-                              display: 'flex',
-                              flexWrap: 'wrap',
-                              gap: 0.5,
-                            }}
-                          >
-                            {issue.labels.map((label) => (
-                              <Chip
-                                key={label.name}
-                                label={label.name}
-                                size="small"
-                                variant="outlined"
-                                sx={{
-                                  borderColor: `#${label.color}`,
-                                  color: `#${label.color}`,
-                                }}
-                              />
-                            ))}
-                          </Box>
-                        </Box>
-                        <Button
-                          size="small"
-                          variant="text"
-                          startIcon={<ThumbUpOffAltIcon fontSize="small" />}
-                          onClick={() =>
-                            console.log('Upvote issue', issue.number)
-                          }
+                  {openIssues.map((issue, idx) => {
+                    const _isClosed = issue.state.toLowerCase() === 'closed';
+                    return (
+                      <Box key={issue.id} sx={{ py: 1.5 }}>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                            gap: 2,
+                          }}
                         >
-                          {issue.reactions['+1'] || 0}
-                        </Button>
+                          <Box sx={{ minWidth: 0 }}>
+                            <MUILink
+                              href={issue.html_url}
+                              target="_blank"
+                              underline="hover"
+                              sx={{ fontWeight: 600 }}
+                            >
+                              #{issue.number} — {issue.title}
+                            </MUILink>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{ display: 'block', mt: 0.5 }}
+                            >
+                              Opened {formatDate(issue.created_at)}
+                            </Typography>
+                            <Box
+                              sx={{
+                                mt: 1,
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                gap: 0.5,
+                              }}
+                            >
+                              {issue.labels.map((label) => (
+                                <Chip
+                                  key={label.name}
+                                  label={label.name}
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{
+                                    borderColor: `#${label.color}`,
+                                    color: `#${label.color}`,
+                                  }}
+                                />
+                              ))}
+                            </Box>
+                          </Box>
+                          <Button
+                            size="small"
+                            variant="text"
+                            startIcon={<ThumbUpOffAltIcon fontSize="small" />}
+                            onClick={() =>
+                              console.log('Upvote issue', issue.number)
+                            }
+                          >
+                            {issue.reactions['+1'] || 0}
+                          </Button>
+                        </Box>
+                        {idx < openIssues.length - 1 && (
+                          <Divider sx={{ mt: 1.5 }} />
+                        )}
                       </Box>
-                      {idx < openIssues.length - 1 && (
-                        <Divider sx={{ mt: 1.5 }} />
-                      )}
-                    </Box>
-                  ))}
+                    );
+                  })}
                 </Box>
               )}
 
@@ -335,7 +358,7 @@ export function FeedbackPageClient() {
                   target="_blank"
                   underline="hover"
                 >
-                  View all issues on GitHub →
+                  Explore on GitHub →
                 </MUILink>
               </Box>
             </CardContent>
