@@ -7,6 +7,7 @@ import { Resend } from 'resend';
 import { v4 as uuidv4 } from 'uuid';
 
 import { authOptions } from '@/lib/auth';
+import { makeFeedbackSlug } from '@/lib/feedback-slug';
 
 export async function POST(request: NextRequest) {
   try {
@@ -102,11 +103,23 @@ Format your response as JSON:
       };
     }
 
-    // Create the issue body
+    // Build anonymized reporter string: FirstName LastInitial + slug
+    const userId = (session.user as any)?.id || null;
+    const displayName = session.user.name || '';
+    const firstName = displayName?.split(' ')[0] || 'Friend';
+    let lastInitial = '';
+    const parts = displayName?.split(' ') || [];
+    if (parts.length > 1 && parts[parts.length - 1]) {
+      lastInitial = (parts[parts.length - 1][0] || '').toUpperCase();
+    }
+    const anonymized = `${firstName}${lastInitial ? ' ' + lastInitial + '.' : ''}`;
+    const slug = userId ? makeFeedbackSlug(userId) : 'SLFB:v1:anon:00000000';
+
+    // Create the issue body (anonymized)
     const issueBody = `## User Feedback
 
 **Type:** ${type.charAt(0).toUpperCase() + type.slice(1)}
-**Submitted by:** ${session.user.email}
+**Submitted by:** ${anonymized} (${slug})
 **Priority:** ${enhancement.priority}
 
 ---
