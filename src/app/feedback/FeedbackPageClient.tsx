@@ -355,7 +355,10 @@ export function FeedbackPageClient() {
                   {openIssues.map((issue, idx) => {
                     const _isClosed = issue.state.toLowerCase() === 'closed';
                     return (
-                      <Box key={issue.id} sx={{ py: 1.5 }}>
+                      <Box
+                        key={issue.id}
+                        sx={{ py: 1.5, opacity: _isClosed ? 0.88 : 1 }}
+                      >
                         <Box
                           sx={{
                             display: 'flex',
@@ -392,6 +395,18 @@ export function FeedbackPageClient() {
                                 gap: 0.5,
                               }}
                             >
+                              {_isClosed && (
+                                <Chip
+                                  label="Closed"
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{
+                                    backgroundColor: '#f3f4f6',
+                                    color: '#6b7280',
+                                    borderColor: '#e5e7eb',
+                                  }}
+                                />
+                              )}
                               {issue.labels.map((label) => (
                                 <Chip
                                   key={label.name}
@@ -410,8 +425,16 @@ export function FeedbackPageClient() {
                             size="small"
                             variant="text"
                             startIcon={<ThumbUpOffAltIcon fontSize="small" />}
-                            disabled={Boolean(upvoting[issue.number])}
+                            disabled={
+                              Boolean(upvoting[issue.number]) || _isClosed
+                            }
+                            title={
+                              _isClosed
+                                ? 'Voting disabled on closed issues'
+                                : undefined
+                            }
                             onClick={async () => {
+                              if (_isClosed) return;
                               try {
                                 setUpvoting((s) => ({
                                   ...s,
