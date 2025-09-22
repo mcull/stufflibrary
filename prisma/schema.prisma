@@ -83,6 +83,7 @@ model User {
   blockedIPs            BlockedIP[]
   auditLogs             AuditLog[]
   complianceReports     ComplianceReport[]
+  feedbackVotes         FeedbackVote[]
   complianceAdmin       ComplianceReport[] @relation("ComplianceAdmin")
 
   @@map("users")
@@ -577,6 +578,21 @@ model ComplianceReport {
   @@index([userId])
   @@index([generatedAt])
   @@map("compliance_reports")
+}
+
+// Tracks internal votes for GitHub feedback issues per StuffLibrary user
+model FeedbackVote {
+  id          String   @id @default(cuid())
+  issueNumber Int
+  userId      String
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([issueNumber, userId])
+  @@index([issueNumber])
+  @@index([userId])
+  @@map("feedback_votes")
 }
 
 enum SecurityEventType {
