@@ -6,25 +6,25 @@ import { feedbackResolvedEmailHTML } from '@/emails/feedbackResolvedEmail';
 import { db } from '@/lib/db';
 import { parseFeedbackSlug } from '@/lib/feedback-slug';
 
-function pickEnv(body: Record<string, unknown>): string {
-  return (
-    body?.target ||
-    body?.deployment?.target ||
-    body?.environment ||
-    body?.payload?.deployment?.target ||
-    'production'
-  );
+function pickEnv(body: unknown): string {
+  const b = body as any;
+  const env: unknown =
+    b?.target ||
+    b?.deployment?.target ||
+    b?.environment ||
+    b?.payload?.deployment?.target;
+  return typeof env === 'string' && env.length > 0 ? env : 'production';
 }
 
-function pickSha(body: Record<string, unknown>): string | null {
-  return (
-    body?.deployment?.meta?.githubCommitSha ||
-    body?.deployment?.commit ||
-    body?.commitSha ||
-    body?.commit ||
-    body?.payload?.deployment?.meta?.githubCommitSha ||
-    null
-  );
+function pickSha(body: unknown): string | null {
+  const b = body as any;
+  const sha: unknown =
+    b?.deployment?.meta?.githubCommitSha ||
+    b?.deployment?.commit ||
+    b?.commitSha ||
+    b?.commit ||
+    b?.payload?.deployment?.meta?.githubCommitSha;
+  return typeof sha === 'string' && sha.length > 0 ? sha : null;
 }
 
 const CLOSE_REGEX = /(close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)/gi;
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json().catch(() => ({}));
+    const body: any = await request.json().catch(() => ({}) as any);
     const env = pickEnv(body);
     const currentSha = pickSha(body);
     if (!currentSha) {
@@ -110,7 +110,9 @@ export async function POST(request: NextRequest) {
           const text = `${pr.title}\n\n${pr.body || ''}`;
           let m: RegExpExecArray | null;
           while ((m = CLOSE_REGEX.exec(text)) !== null) {
-            const num = parseInt(m[2], 10);
+            const numStr = (m[2] ?? '').toString();
+            if (!numStr) continue;
+            const num = parseInt(numStr, 10);
             if (!Number.isNaN(num)) issueNumbers.add(num);
           }
         }
