@@ -30,16 +30,21 @@ export function FloatingFeedbackFab() {
   // One-time coachmark to teach the shortcut
   useEffect(() => {
     if (!session?.user) return;
+    let t: ReturnType<typeof setTimeout> | null = null;
     try {
       const key = 'sl_feedback_coachmark_seen';
       const seen = localStorage.getItem(key);
       if (!seen) {
         setCoachmarkOpen(true);
         // Auto-hide after a few seconds
-        const t = setTimeout(() => setCoachmarkOpen(false), 5000);
-        return () => clearTimeout(t);
+        t = setTimeout(() => setCoachmarkOpen(false), 5000);
       }
-    } catch {}
+    } catch {
+      // ignore
+    }
+    return () => {
+      if (t) clearTimeout(t);
+    };
   }, [session?.user]);
 
   // Show only for authenticated users

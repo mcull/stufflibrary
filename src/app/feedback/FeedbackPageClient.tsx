@@ -14,7 +14,6 @@ import {
   FormControl,
   FormControlLabel,
   FormLabel,
-  Grid,
   Link as MUILink,
   Radio,
   RadioGroup,
@@ -22,6 +21,7 @@ import {
   Typography,
 } from '@mui/material';
 import { Snackbar } from '@mui/material';
+import { Unstable_Grid2 as Grid } from '@mui/material/Unstable_Grid2';
 import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
@@ -180,7 +180,7 @@ export function FeedbackPageClient() {
       </Box>
 
       <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
+        <Grid xs={12} md={6}>
           <Card>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
@@ -311,7 +311,7 @@ export function FeedbackPageClient() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={6}>
+        <Grid xs={12} md={6}>
           <Card>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
