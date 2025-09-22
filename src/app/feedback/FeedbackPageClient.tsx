@@ -60,7 +60,7 @@ export function FeedbackPageClient() {
   const [loadingIssues, setLoadingIssues] = useState(true);
   const [upvoting, setUpvoting] = useState<Record<number, boolean>>({});
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [previewUrl, _setPreviewUrl] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
 
   // Load open issues on component mount
@@ -89,13 +89,25 @@ export function FeedbackPageClient() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('/api/feedback/submit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
+      let response: Response;
+      if (imageFile) {
+        const fd = new FormData();
+        fd.append('type', formData.type);
+        fd.append('message', formData.message);
+        fd.append('image', imageFile);
+        response = await fetch('/api/feedback/submit', {
+          method: 'POST',
+          body: fd,
+        });
+      } else {
+        response = await fetch('/api/feedback/submit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
+      }
 
       if (!response.ok) throw new Error('Failed to submit feedback');
       const data = await response.json();
@@ -107,6 +119,10 @@ export function FeedbackPageClient() {
         setSubmittedIssue(null);
       }
       setFormData({ type: 'feature', message: '' });
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+      setPreviewUrl(null);
       setImageFile(null);
       // Reload issues to show the new one
       loadOpenIssues();
@@ -284,9 +300,16 @@ export function FeedbackPageClient() {
                       type="file"
                       accept="image/*"
                       hidden
-                      onChange={(e) =>
-                        setImageFile(e.target.files?.[0] || null)
-                      }
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        if (previewUrl) {
+                          try {
+                            URL.revokeObjectURL(previewUrl);
+                          } catch {}
+                        }
+                        setImageFile(file);
+                        setPreviewUrl(file ? URL.createObjectURL(file) : null);
+                      }}
                     />
                   </Button>
                   {imageFile && (
@@ -356,6 +379,10 @@ export function FeedbackPageClient() {
                               sx={{ display: 'block', mt: 0.5 }}
                             >
                               Opened {formatDate(issue.created_at)}
+                              {issue.state?.toLowerCase() === 'closed' &&
+                                issue.closed_at && (
+                                  <> • Closed {formatDate(issue.closed_at)}</>
+                                )}
                             </Typography>
                             <Box
                               sx={{
