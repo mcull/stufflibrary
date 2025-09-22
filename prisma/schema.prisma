@@ -595,6 +595,17 @@ model FeedbackVote {
   @@map("feedback_votes")
 }
 
+// Tracks the last deployed commit SHA per environment (e.g., production, preview)
+model DeployMarker {
+  id        String   @id @default(cuid())
+  env       String   // e.g., "production" | "preview" | branch name
+  lastSha   String
+  updatedAt DateTime @updatedAt
+
+  @@unique([env])
+  @@map("deploy_markers")
+}
+
 enum SecurityEventType {
   LOGIN_SUCCESS
   LOGIN_FAILED
