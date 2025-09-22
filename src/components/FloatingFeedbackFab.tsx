@@ -3,11 +3,9 @@
 import FeedbackOutlinedIcon from '@mui/icons-material/FeedbackOutlined';
 import { Fab, Tooltip, Snackbar, Button } from '@mui/material';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export function FloatingFeedbackFab() {
-  const router = useRouter();
   const [coachmarkOpen, setCoachmarkOpen] = useState(false);
   const isTestEnv =
     typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
@@ -22,7 +20,9 @@ export function FloatingFeedbackFab() {
       const isEditable = (e.target as HTMLElement)?.isContentEditable;
       if (isEditable) return;
       if (e.key.toLowerCase() === 'f') {
-        router.push('/feedback');
+        if (typeof window !== 'undefined') {
+          window.location.href = '/feedback';
+        }
       }
     };
     window.addEventListener('keydown', onKeyDown);
