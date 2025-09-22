@@ -20,6 +20,10 @@ export default async function BorrowRequestPage({
 
   const resolvedSearchParams = await searchParams;
   const itemId = resolvedSearchParams?.item as string;
+  const refSource =
+    (resolvedSearchParams?.src as 'library' | 'mystuff' | undefined) ?? null;
+  const refLibraryId =
+    (resolvedSearchParams?.lib as string | undefined) ?? null;
 
   if (!itemId) {
     redirect('/stacks');
@@ -68,5 +72,11 @@ export default async function BorrowRequestPage({
     redirect(`/stuff/${itemId}`);
   }
 
-  return <BorrowRequestClient item={item} />;
+  return (
+    <BorrowRequestClient
+      item={item}
+      refSource={refSource}
+      refLibraryId={refLibraryId}
+    />
+  );
 }

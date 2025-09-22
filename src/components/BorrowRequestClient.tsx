@@ -49,6 +49,8 @@ interface Item {
 
 interface BorrowRequestClientProps {
   item: Item;
+  refSource?: 'library' | 'mystuff' | null;
+  refLibraryId?: string | null;
 }
 
 type RequestState =
@@ -61,7 +63,11 @@ type RequestState =
   | 'success'
   | 'error';
 
-export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
+export function BorrowRequestClient({
+  item,
+  refSource = null,
+  refLibraryId = null,
+}: BorrowRequestClientProps) {
   const router = useRouter();
 
   // Helper function to get the best available image URL (prioritize watercolor)
@@ -107,6 +113,34 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [isFrontCamera, setIsFrontCamera] = useState<boolean>(false);
   const xhrRef = useRef<XMLHttpRequest | null>(null);
+  const beep20PlayedRef = useRef<boolean>(false);
+  const beep25PlayedRef = useRef<boolean>(false);
+
+  const playBeep = useCallback(
+    (frequency: number = 880, durationMs: number = 120) => {
+      try {
+        const Ctx: any =
+          (window as any).AudioContext || (window as any).webkitAudioContext;
+        if (!Ctx) return;
+        const ctx = new Ctx();
+        const oscillator = ctx.createOscillator();
+        const gain = ctx.createGain();
+        oscillator.type = 'sine';
+        oscillator.frequency.value = frequency;
+        gain.gain.value = 0.08;
+        oscillator.connect(gain);
+        gain.connect(ctx.destination);
+        oscillator.start();
+        setTimeout(() => {
+          oscillator.stop();
+          ctx.close();
+        }, durationMs);
+      } catch {
+        /* noop */
+      }
+    },
+    []
+  );
 
   // Start camera stream
   const startCamera = useCallback(async () => {
@@ -267,6 +301,8 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
 
     recordedChunksRef.current = [];
     setIsRecording(true);
+    beep20PlayedRef.current = false;
+    beep25PlayedRef.current = false;
 
     // Try different codecs based on browser support
     let mimeType = 'video/webm;codecs=vp9';
@@ -345,6 +381,14 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
         const elapsedMs = performance.now() - recordingStartRef.current;
         const elapsedSec = elapsedMs / 1000;
         setRecordingTime(elapsedSec);
+        if (elapsedSec >= 20 && !beep20PlayedRef.current) {
+          playBeep(740, 100);
+          beep20PlayedRef.current = true;
+        }
+        if (elapsedSec >= 25 && !beep25PlayedRef.current) {
+          playBeep(880, 120);
+          beep25PlayedRef.current = true;
+        }
       }
     }, 25);
 
@@ -355,7 +399,7 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
       }
       clearTimers();
     }, 30000);
-  }, [clearTimers, stopStream]);
+  }, [clearTimers, stopStream, playBeep]);
 
   // Stop recording
   const stopRecording = useCallback(() => {
@@ -748,13 +792,19 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
       case 'playing':
         return (
           <Box sx={{ textAlign: 'center', py: 4 }}>
-            <Typography
-              variant="h5"
-              gutterBottom
-              sx={{ fontWeight: 600, color: brandColors.charcoal }}
-            >
-              Review Your Request
-            </Typography>
+            <Box sx={{ maxWidth: 640, mx: 'auto', width: '100%' }}>
+              <Typography
+                variant="h3"
+                gutterBottom
+                sx={{
+                  fontWeight: 700,
+                  color: brandColors.charcoal,
+                  textAlign: 'left',
+                }}
+              >
+                Review Your Request
+              </Typography>
+            </Box>
 
             {/* Video Playback */}
             <Box
@@ -1081,16 +1131,51 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      {/* Header */}
-      <Box sx={{ mb: 2 }}>
+      {/* Breadcrumbs */}
+      <Box sx={{ mb: 2, color: 'text.secondary' }}>
+        <Typography component="span" sx={{ opacity: 0.6 }}>
+          Home
+        </Typography>
+        <Typography component="span" sx={{ opacity: 0.4, mx: 1 }}>
+          /
+        </Typography>
+        {refSource === 'library' && refLibraryId ? (
+          <>
+            <Typography
+              component="span"
+              onClick={() => router.push(`/library/${refLibraryId}`)}
+              sx={{
+                cursor: 'pointer',
+                '&:hover': { textDecoration: 'underline' },
+              }}
+            >
+              Current Library
+            </Typography>
+            <Typography component="span" sx={{ opacity: 0.4, mx: 1 }}>
+              /
+            </Typography>
+          </>
+        ) : null}
         <Typography
-          variant="h4"
-          sx={{
-            fontWeight: 700,
-            color: brandColors.charcoal,
-            textAlign: 'center',
+          component="span"
+          onClick={() => {
+            const params = new URLSearchParams();
+            if (refSource === 'library' && refLibraryId) {
+              params.set('src', 'library');
+              params.set('lib', refLibraryId);
+            } else if (refSource === 'mystuff') {
+              params.set('src', 'mystuff');
+            }
+            router.push(`/stuff/${item.id}?${params.toString()}`);
           }}
+          sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
         >
+          Item Detail
+        </Typography>
+        <Typography component="span" sx={{ opacity: 0.4, mx: 1 }}>
+          /
+        </Typography>
+        <Typography component="span" sx={{ fontWeight: 500 }}>
           Borrow Request
         </Typography>
       </Box>
