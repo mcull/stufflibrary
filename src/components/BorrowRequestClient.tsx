@@ -1034,10 +1034,14 @@ export function BorrowRequestClient({
             </Typography>
             <Button
               variant="contained"
-              onClick={() => router.push('/stacks')}
+              onClick={() =>
+                refSource === 'library' && refLibraryId
+                  ? router.push(`/library/${refLibraryId}`)
+                  : router.push('/stacks')
+              }
               sx={{ borderRadius: 2 }}
             >
-              Back to Lobby
+              {refSource === 'library' ? 'Back to Library' : 'Back to Lobby'}
             </Button>
           </Box>
         );
