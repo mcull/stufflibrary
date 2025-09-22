@@ -424,10 +424,7 @@ export function ItemDetailClient({
         });
       }
 
-      // Navigate after saving new item
-      if (isNewItem) {
-        navigateBack();
-      }
+      // Navigation is handled by the caller (e.g., handleSaveAndReturn)
     } catch (err) {
       console.error('Error saving item:', err);
       setError('Failed to save changes');
@@ -1006,7 +1003,7 @@ export function ItemDetailClient({
                           <Button
                             variant="contained"
                             startIcon={<SaveIcon />}
-                            onClick={() => navigateBack()}
+                            onClick={handleSaveAndReturn}
                             sx={{
                               backgroundColor: '#4CAF50',
                               '&:hover': { backgroundColor: '#45a049' },
