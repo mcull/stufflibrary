@@ -193,14 +193,7 @@ function ItemCard({ item, status }: ItemCardProps) {
       case 'ready-to-lend':
         return item.location || 'No location';
       case 'on-loan':
-        const borrower = item.borrower?.name || 'Unknown';
-        const lentDate = item.requestedAt
-          ? new Date(item.requestedAt).toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-            })
-          : '';
-        return `Lent to ${borrower}${lentDate ? ` on ${lentDate}` : ''}`;
+        return 'Checked out';
       case 'offline':
         return 'Not available to lend';
       case 'borrowed':
@@ -293,7 +286,7 @@ function ItemCard({ item, status }: ItemCardProps) {
                     e.stopPropagation();
                     const userId = item.activeBorrower?.id || item.owner?.id;
                     if (userId) {
-                      router.push(`/profile/${userId}`);
+                      router.push(`/stuff/m/${userId}`);
                     }
                   }}
                   sx={{

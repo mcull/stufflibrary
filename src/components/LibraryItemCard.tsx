@@ -98,7 +98,7 @@ export function LibraryItemCard({ item, libraryId }: LibraryItemCardProps) {
           backgroundColor: '#FFF8E1',
           borderColor: brandColors.mustardYellow,
           statusChip: {
-            label: `Checked out to ${item.currentBorrow.borrower.name || 'borrower'}`,
+            label: 'Checked out',
             color: '#FFF3E0',
             textColor: '#F57C00',
           },
@@ -212,7 +212,7 @@ export function LibraryItemCard({ item, libraryId }: LibraryItemCardProps) {
                       onClick={(e: React.MouseEvent) => {
                         e.stopPropagation();
                         if (userId) {
-                          router.push(`/profile/${userId}`);
+                          router.push(`/stuff/m/${userId}`);
                         }
                       }}
                       sx={{
