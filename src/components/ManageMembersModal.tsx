@@ -443,6 +443,7 @@ export function ManageMembersModal({
                               {member.user.name || 'Unknown User'}
                             </Typography>
                           }
+                          secondaryTypographyProps={{ component: 'div' }}
                           secondary={
                             <>
                               <Typography
@@ -680,6 +681,7 @@ export function ManageMembersModal({
                         <PersonIcon sx={{ mr: 2, color: 'text.secondary' }} />
                         <ListItemText
                           primary={invitation.email}
+                          secondaryTypographyProps={{ component: 'div' }}
                           secondary={
                             <>
                               <Typography
