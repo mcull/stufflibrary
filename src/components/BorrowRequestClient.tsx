@@ -98,6 +98,7 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
   const [state, setState] = useState<RequestState>('intro');
   const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
   const [videoBlobUrl, setVideoBlobUrl] = useState<string | null>(null);
+  // Elapsed recording time in seconds (float)
   const [recordingTime, setRecordingTime] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [promiseChecked, setPromiseChecked] = useState(false);
@@ -335,26 +336,25 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
 
     mediaRecorder.start();
 
-    // Countdown timer (12 to 0)
-    recordingStartRef.current = Date.now();
-    setRecordingTime(12);
+    // Count-up timer with milliseconds, auto-stop at 30s
+    recordingStartRef.current = performance.now();
+    setRecordingTime(0);
+    // Update roughly every 25ms for a smooth ms counter
     timerIntervalRef.current = window.setInterval(() => {
       if (recordingStartRef.current) {
-        const elapsed = Math.floor(
-          (Date.now() - recordingStartRef.current) / 1000
-        );
-        const remaining = Math.max(0, 12 - elapsed);
-        setRecordingTime(remaining);
+        const elapsedMs = performance.now() - recordingStartRef.current;
+        const elapsedSec = elapsedMs / 1000;
+        setRecordingTime(elapsedSec);
       }
-    }, 1000);
+    }, 25);
 
-    // Auto-stop after 12 seconds to keep uploads smaller and more focused
+    // Auto-stop after 30 seconds
     autoStopTimeoutRef.current = window.setTimeout(() => {
       if (mediaRecorderRef.current?.state === 'recording') {
         mediaRecorderRef.current.stop();
       }
       clearTimers();
-    }, 12000);
+    }, 30000);
   }, [clearTimers, stopStream]);
 
   // Stop recording
@@ -398,7 +398,7 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
       if (videoBlob.size > maxSize) {
         const sizeMB = Math.round((videoBlob.size / (1024 * 1024)) * 10) / 10;
         throw new Error(
-          `Video file is ${sizeMB}MB, which is too large. Please try recording a shorter clip (aim for 8-12 seconds) or check your camera quality settings.`
+          `Video file is ${sizeMB}MB, which is too large. Please try recording a shorter clip (aim for 10-30 seconds) or check your camera quality settings.`
         );
       }
 
@@ -485,7 +485,7 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
               variant="body1"
               sx={{ color: brandColors.charcoal, opacity: 0.7, mb: 3 }}
             >
-              Record a short (8-12 second) video selfie to introduce yourself
+              Record a short (10-30 second) video selfie to introduce yourself
               and explain why you&apos;d like to borrow this item.
             </Typography>
 
@@ -577,7 +577,7 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
               variant="body1"
               sx={{ color: brandColors.charcoal, opacity: 0.7, mb: 3 }}
             >
-              Record a short (8-12 second) video selfie to introduce yourself
+              Record a short (10-30 second) video selfie to introduce yourself
               and explain why you&apos;d like to borrow this item.
             </Typography>
 
@@ -640,7 +640,7 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
                 }}
               />
 
-              {/* Countdown timer with color coding */}
+              {/* Recording indicator */}
               {isRecording && (
                 <Box
                   sx={{
@@ -670,26 +670,47 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
                 </Box>
               )}
 
-              {/* Large countdown display */}
+              {/* Count-up timer with color thresholds (green <20s, yellow <25s, red >=25s) */}
               {isRecording && (
                 <Box
                   sx={{
                     position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    fontSize: '4rem',
-                    fontWeight: 'bold',
-                    color:
-                      recordingTime > 4
-                        ? 'green'
-                        : recordingTime > 2
-                          ? 'yellow'
-                          : 'red',
-                    textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
+                    top: 16,
+                    right: 16,
+                    bgcolor: 'rgba(0, 0, 0, 0.8)',
+                    px: 2,
+                    py: 1,
+                    borderRadius: 1,
                   }}
                 >
-                  {recordingTime}
+                  {(() => {
+                    const totalMs = Math.floor(recordingTime * 1000);
+                    const minutes = Math.floor(totalMs / 60000);
+                    const seconds = Math.floor((totalMs % 60000) / 1000);
+                    const ms4 = Math.floor((totalMs % 1000) * 10); // 4 digits
+                    const color =
+                      recordingTime < 20
+                        ? '#2E7D32'
+                        : recordingTime < 25
+                          ? '#F9A825'
+                          : '#C62828';
+                    const text = `${String(minutes).padStart(2, '0')}:${String(
+                      seconds
+                    ).padStart(2, '0')}:${String(ms4).padStart(4, '0')}`;
+                    return (
+                      <Typography
+                        component="span"
+                        sx={{
+                          color,
+                          fontFamily: 'monospace',
+                          fontWeight: 700,
+                          letterSpacing: 1,
+                        }}
+                      >
+                        {text}
+                      </Typography>
+                    );
+                  })()}
                 </Box>
               )}
             </Box>
@@ -952,7 +973,7 @@ export function BorrowRequestClient({ item }: BorrowRequestClientProps) {
               variant="body1"
               sx={{ color: brandColors.charcoal, opacity: 0.7, mb: 3 }}
             >
-              Record a short (8-12 second) video selfie to introduce yourself
+              Record a short (10-30 second) video selfie to introduce yourself
               and explain why you&apos;d like to borrow this item.
             </Typography>
 
