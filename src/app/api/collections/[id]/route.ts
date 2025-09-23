@@ -90,6 +90,10 @@ export async function GET(
           },
         },
         active: true, // Only show active items
+        OR: [
+          { watercolorUrl: { not: null } },
+          { watercolorThumbUrl: { not: null } },
+        ], // Hide items without watercolor imagery
       },
       include: {
         owner: {
