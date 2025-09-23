@@ -16,6 +16,7 @@ vi.mock('../db', () => ({
   db: {
     notification: {
       create: vi.fn(),
+      findFirst: vi.fn(),
       findMany: vi.fn(),
       count: vi.fn(),
       update: vi.fn(),
@@ -32,6 +33,8 @@ vi.mock('../twilio', () => ({
 describe('Notification Service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // By default, no existing recent notification is found (dedupe path)
+    vi.mocked(db.notification.findFirst).mockResolvedValue(null as any);
   });
 
   afterEach(() => {

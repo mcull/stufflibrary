@@ -38,6 +38,64 @@ export async function createNotification({
   emailTemplate,
 }: CreateNotificationData) {
   try {
+    // Dedupe guard: if a recent notification exists for the same user/type
+    // and the same relatedRequestId (preferred) or relatedItemId, skip creating
+    // a duplicate row. If email is requested and the existing row has not sent
+    // email, send it and update that row.
+    const dedupeWindowMinutes = 10;
+    const cutoff = new Date(Date.now() - dedupeWindowMinutes * 60 * 1000);
+
+    const dedupeWhere: any = { userId, type, createdAt: { gte: cutoff } };
+    if (relatedRequestId) {
+      dedupeWhere.relatedRequestId = relatedRequestId;
+    } else if (relatedItemId) {
+      dedupeWhere.relatedItemId = relatedItemId;
+    }
+
+    // Only attempt dedupe if we have a meaningful discriminator
+    if (relatedRequestId || relatedItemId) {
+      const existing = await db.notification.findFirst({
+        where: dedupeWhere,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: { select: { id: true, name: true, email: true } },
+        },
+      });
+
+      if (existing) {
+        // Optionally send email if requested and not already sent
+        if (
+          shouldSendEmail &&
+          emailTemplate &&
+          !existing.emailSent &&
+          (existing as any).user?.email
+        ) {
+          try {
+            const emailResult = await sendEmail({
+              to: emailTemplate.to || (existing as any).user.email,
+              subject: emailTemplate.subject,
+              html: emailTemplate.html,
+            });
+            if (emailResult.success) {
+              await db.notification.update({
+                where: { id: existing.id },
+                data: { emailSent: true, emailSentAt: new Date() },
+              });
+            }
+          } catch (emailError) {
+            if (process.env.NODE_ENV !== 'test') {
+              console.error(
+                'Failed to send notification email (dedupe path):',
+                emailError
+              );
+            }
+          }
+        }
+
+        return existing;
+      }
+    }
+
     // Create in-app notification
     const notification = await db.notification.create({
       data: {
