@@ -1,8 +1,10 @@
 import crypto from 'crypto';
 
 import { GoogleGenAI } from '@google/genai';
-import { put } from '@vercel/blob';
 import sharp from 'sharp';
+
+// no direct blob import; use StorageService
+import { StorageService } from './storage';
 
 interface WatercolorRenderOptions {
   itemId: string;
@@ -60,11 +62,13 @@ export class WatercolorService {
     path: string,
     contentType: string
   ): Promise<string> {
-    const blob = await put(path, buffer, {
-      access: 'public',
+    const { url } = await StorageService.uploadFile(path, buffer, {
       contentType,
+      retries: 3,
+      retryDelayMs: 250,
+      addRandomSuffix: false, // explicit pathing for deterministic URLs
     });
-    return blob.url;
+    return url;
   }
 
   private async detectAndSegmentObjects(

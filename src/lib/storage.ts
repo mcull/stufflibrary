@@ -40,6 +40,8 @@ export class StorageService {
       contentType?: string;
       cacheControlMaxAge?: number;
       addRandomSuffix?: boolean;
+      retries?: number;
+      retryDelayMs?: number;
     }
   ): Promise<{ url: string; pathname: string }> {
     try {
@@ -56,12 +58,24 @@ export class StorageService {
       // Add token to options
       putOptions.token = env.BLOB_READ_WRITE_TOKEN!;
 
-      const blob = await put(filename, file, putOptions);
-
-      return {
-        url: blob.url,
-        pathname: blob.pathname,
-      };
+      const maxRetries = options?.retries ?? 3;
+      const baseDelay = options?.retryDelayMs ?? 250;
+      let lastError: unknown;
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          const blob = await put(filename, file, putOptions);
+          return {
+            url: blob.url,
+            pathname: blob.pathname,
+          };
+        } catch (err) {
+          lastError = err;
+          if (attempt === maxRetries) break;
+          const delay = baseDelay * Math.pow(2, attempt);
+          await new Promise((res) => setTimeout(res, delay));
+        }
+      }
+      throw lastError;
     } catch (error) {
       console.error('Storage upload error:', error);
       throw error;
@@ -75,6 +89,8 @@ export class StorageService {
       contentType?: string;
       cacheControlMaxAge?: number;
       addRandomSuffix?: boolean;
+      retries?: number;
+      retryDelayMs?: number;
     }
   ): Promise<{ url: string; pathname: string }> {
     try {
@@ -91,12 +107,24 @@ export class StorageService {
       // Add token to options
       putOptions.token = env.BLOB_READ_WRITE_TOKEN!;
 
-      const blob = await put(filename, url, putOptions);
-
-      return {
-        url: blob.url,
-        pathname: blob.pathname,
-      };
+      const maxRetries = options?.retries ?? 3;
+      const baseDelay = options?.retryDelayMs ?? 250;
+      let lastError: unknown;
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          const blob = await put(filename, url, putOptions);
+          return {
+            url: blob.url,
+            pathname: blob.pathname,
+          };
+        } catch (err) {
+          lastError = err;
+          if (attempt === maxRetries) break;
+          const delay = baseDelay * Math.pow(2, attempt);
+          await new Promise((res) => setTimeout(res, delay));
+        }
+      }
+      throw lastError;
     } catch (error) {
       console.error('Storage upload from URL error:', error);
       throw error;

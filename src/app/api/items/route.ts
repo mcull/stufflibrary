@@ -1,10 +1,11 @@
-import { put } from '@vercel/blob';
+// no direct blob import; use StorageService
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { v4 as uuidv4 } from 'uuid';
 
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { StorageService } from '@/lib/storage';
 
 export async function POST(request: NextRequest) {
   try {
@@ -62,11 +63,13 @@ export async function POST(request: NextRequest) {
     try {
       // Upload to Vercel Blob storage
       console.log('☁️ Uploading to Vercel Blob...');
-      const blob = await put(filename, image, {
-        access: 'public',
+      const uploaded = await StorageService.uploadFile(filename, image, {
+        contentType: image.type || 'image/jpeg',
+        retries: 3,
+        retryDelayMs: 250,
       });
 
-      imageUrl = blob.url;
+      imageUrl = uploaded.url;
       console.log('✅ Image uploaded successfully:', imageUrl);
     } catch (err) {
       console.error('❌ Error uploading image to blob storage:', err);
