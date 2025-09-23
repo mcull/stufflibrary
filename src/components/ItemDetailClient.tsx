@@ -35,7 +35,7 @@ import {
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 import { EditModeCue } from '@/components/EditModeCue';
 import { useBorrowHistory } from '@/hooks/useBorrowHistory';
@@ -123,6 +123,11 @@ export function ItemDetailClient({
   });
   const [checkingIn, setCheckingIn] = useState(false);
   const [markingLost, setMarkingLost] = useState(false);
+  // Optional: track kickoff errors for future UI surfacing
+  const [_renderKickoffError, setRenderKickoffError] = useState<string | null>(
+    null
+  );
+  const renderAttemptedRef = useRef(false);
 
   // Derived navigation target based on referral context
   const navigateBack = () => {
@@ -349,10 +354,33 @@ export function ItemDetailClient({
     fetchItem();
   }, [itemId, isNewItem]);
 
-  // Light polling for watercolor completion on new items (only if not already present)
+  // Trigger watercolor generation when viewing an item without one (owner only),
+  // and poll briefly for completion. This makes illustration eventually consistent
+  // even if earlier attempts failed.
   useEffect(() => {
-    if (!isNewItem || !item || item.watercolorUrl) return;
+    const isOwner = item?.owner?.id === currentUserId;
+    if (!item || item.watercolorUrl || !isOwner) return;
 
+    // Kick off render exactly once per view
+    if (!renderAttemptedRef.current) {
+      renderAttemptedRef.current = true;
+      (async () => {
+        try {
+          await fetch('/api/items/render-watercolor', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ itemId }),
+          });
+        } catch (e) {
+          if (process.env.NODE_ENV !== 'test') {
+            console.error('Failed to kickoff watercolor render:', e);
+          }
+          setRenderKickoffError('Failed to start illustration');
+        }
+      })();
+    }
+
+    // Poll for completion for a short window
     const pollInterval = setInterval(async () => {
       try {
         const response = await fetch(`/api/items/${itemId}`);
@@ -360,15 +388,15 @@ export function ItemDetailClient({
           const data = await response.json();
           if (data.item.watercolorUrl) {
             setItem(data.item);
-            clearInterval(pollInterval); // Stop polling once we get the watercolor
+            clearInterval(pollInterval);
+            clearTimeout(timeout);
           }
         }
       } catch (err) {
         console.error('Error polling for watercolor:', err);
       }
-    }, 2000); // Poll every 2 seconds
+    }, 2500);
 
-    // Stop polling after 30 seconds - watercolor should be ready by then
     const timeout = setTimeout(() => {
       clearInterval(pollInterval);
     }, 30000);
@@ -377,7 +405,7 @@ export function ItemDetailClient({
       clearInterval(pollInterval);
       clearTimeout(timeout);
     };
-  }, [isNewItem, item?.watercolorUrl, itemId]);
+  }, [item, itemId, currentUserId]);
 
   // Save item updates
   const handleSave = async (field?: string, silent = false) => {
