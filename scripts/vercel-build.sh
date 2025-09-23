@@ -38,6 +38,12 @@ if [[ "$DEPLOY_MIGRATIONS" == "true" ]]; then
     if [[ -z "$DATABASE_URL" ]]; then
         log "${RED}❌ DATABASE_URL not found. Skipping migrations.${NC}"
     else
+        # Basic safety guard: don't run against localhost/test DBs on CI
+        DB_HOST=$(node -e "try{const u=new URL(process.env.DATABASE_URL);console.log(u.hostname)}catch(e){process.exit(1)}" || echo "unknown")
+        if [[ "$DB_HOST" == "localhost" || "$DB_HOST" == "127.0.0.1" ]]; then
+            log "${YELLOW}⚠️ Skipping migrations because DATABASE_URL points to $DB_HOST${NC}"
+            log "Set a proper remote DATABASE_URL in Vercel project settings."
+        else
         # Run migrations
         log "Running: npx prisma migrate deploy"
         if npx prisma migrate deploy; then
@@ -69,6 +75,7 @@ if [[ "$DEPLOY_MIGRATIONS" == "true" ]]; then
             log "${RED}❌ Migration deployment failed${NC}"
             log "This might be expected for the first deployment or if database is not ready"
             log "Continuing with build - manual migration may be needed"
+        fi
         fi
     fi
 else
