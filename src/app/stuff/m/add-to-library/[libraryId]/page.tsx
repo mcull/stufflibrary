@@ -75,7 +75,14 @@ export default function AddToLibraryPage() {
     (item) => !(item as any).currentBorrowRequestId
   );
 
+  const isInThisLibrary = (item: any) => {
+    const libs: Array<{ id: string }> = (item as any).libraries || [];
+    return libs.some((l) => l.id === libraryId);
+  };
+
   const handleItemToggle = (itemId: string) => {
+    const it = availableItems.find((i) => i.id === itemId);
+    if (it && isInThisLibrary(it)) return;
     const newSelected = new Set(selectedItems);
     if (newSelected.has(itemId)) newSelected.delete(itemId);
     else newSelected.add(itemId);
@@ -204,85 +211,99 @@ export default function AddToLibraryPage() {
               mb: 4,
             }}
           >
-            {availableItems.map((item) => (
-              <Card
-                key={item.id}
-                sx={{
-                  position: 'relative',
-                  cursor: 'pointer',
-                  border: selectedItems.has(item.id)
-                    ? `2px solid ${brandColors.inkBlue}`
-                    : '1px solid transparent',
-                  '&:hover': { boxShadow: '0 4px 12px rgba(0,0,0,0.1)' },
-                }}
-                onClick={() => handleItemToggle(item.id)}
-              >
-                <CardContent sx={{ p: 2 }}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={selectedItems.has(item.id)}
-                        onChange={(e) => e.stopPropagation()}
-                        sx={{ position: 'absolute', top: 8, right: 8, p: 0.5 }}
-                      />
-                    }
-                    label=""
-                    sx={{ position: 'absolute', top: 0, right: 0, m: 0 }}
-                  />
-                  <Box
-                    sx={{
-                      position: 'relative',
-                      width: '100%',
-                      aspectRatio: '1',
-                      backgroundColor: 'grey.100',
-                      borderRadius: 1,
-                      mb: 2,
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {item.watercolorThumbUrl || item.imageUrl ? (
-                      <Image
-                        src={(item.watercolorThumbUrl || item.imageUrl)!}
-                        alt={item.name}
-                        fill
-                        style={{ objectFit: 'cover' }}
-                      />
-                    ) : (
-                      <Box
-                        sx={{
-                          height: '100%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Typography variant="h3" sx={{ opacity: 0.5 }}>
-                          📦
-                        </Typography>
-                      </Box>
-                    )}
-                  </Box>
-                  <Typography
-                    variant="subtitle2"
-                    sx={{
-                      fontWeight: 600,
-                      mb: 1,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {item.name}
-                  </Typography>
-                  <Chip
-                    label={item.condition || 'Good'}
-                    size="small"
-                    variant="outlined"
-                    sx={{ fontSize: '0.7rem' }}
-                  />
-                </CardContent>
-              </Card>
-            ))}
+            {availableItems.map((item) => {
+              const disabled = isInThisLibrary(item);
+              return (
+                <Card
+                  key={item.id}
+                  sx={{
+                    position: 'relative',
+                    cursor: disabled ? 'not-allowed' : 'pointer',
+                    opacity: disabled ? 0.5 : 1,
+                    border: selectedItems.has(item.id)
+                      ? `2px solid ${brandColors.inkBlue}`
+                      : '1px solid transparent',
+                    '&:hover': {
+                      boxShadow: disabled
+                        ? 'none'
+                        : '0 4px 12px rgba(0,0,0,0.1)',
+                    },
+                  }}
+                  onClick={() => handleItemToggle(item.id)}
+                >
+                  <CardContent sx={{ p: 2 }}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={selectedItems.has(item.id)}
+                          disabled={disabled}
+                          onChange={(e) => e.stopPropagation()}
+                          sx={{
+                            position: 'absolute',
+                            top: 8,
+                            right: 8,
+                            p: 0.5,
+                          }}
+                        />
+                      }
+                      label=""
+                      sx={{ position: 'absolute', top: 0, right: 0, m: 0 }}
+                    />
+                    <Box
+                      sx={{
+                        position: 'relative',
+                        width: '100%',
+                        aspectRatio: '1',
+                        backgroundColor: 'grey.100',
+                        borderRadius: 1,
+                        mb: 2,
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {item.watercolorThumbUrl || item.imageUrl ? (
+                        <Image
+                          src={(item.watercolorThumbUrl || item.imageUrl)!}
+                          alt={item.name}
+                          fill
+                          style={{ objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <Box
+                          sx={{
+                            height: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <Typography variant="h3" sx={{ opacity: 0.5 }}>
+                            📦
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        fontWeight: 600,
+                        mb: 1,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {item.name}
+                    </Typography>
+                    <Chip
+                      label={item.condition || 'Good'}
+                      size="small"
+                      variant="outlined"
+                      sx={{ fontSize: '0.7rem' }}
+                    />
+                  </CardContent>
+                </Card>
+              );
+            })}
           </Box>
 
           {/* Action Buttons */}
