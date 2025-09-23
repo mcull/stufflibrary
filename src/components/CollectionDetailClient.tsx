@@ -612,16 +612,14 @@ export function CollectionDetailClient({
           <Typography
             variant="h1"
             sx={{
-              fontSize: { xs: '2.5rem', sm: '3rem', md: '3.5rem' },
+              fontSize: { xs: '2.25rem', sm: '2.75rem', md: '3.25rem' },
               fontWeight: 800,
               color: brandColors.charcoal,
-              lineHeight: 1.1,
-              // Prevent long unbroken names from overflowing
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
+              lineHeight: 1.15,
+              // Allow natural wrapping; avoid clipping from line-clamp
+              whiteSpace: 'normal',
               overflowWrap: 'anywhere',
+              wordBreak: 'break-word',
             }}
           >
             {library?.name}
