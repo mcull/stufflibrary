@@ -5,7 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { sendBorrowRequestReceivedNotification } from '@/lib/enhanced-notification-service';
-import { sendBorrowRequestNotification } from '@/lib/twilio';
+// import { sendBorrowRequestNotification } from '@/lib/twilio';
 
 // GET - Fetch borrow requests for the current user
 export async function GET(_request: NextRequest) {
@@ -292,75 +292,9 @@ export async function POST(request: NextRequest) {
       // Don't fail the request if notification fails
     }
 
-    // Send SMS and email notification to owner
-    try {
-      if (!item.owner.phone && !item.owner.email) {
-        console.warn(
-          '⚠️ Owner has no phone number or email - notification skipped'
-        );
-      } else {
-        const notificationResult = await sendBorrowRequestNotification({
-          ownerName: item.owner.name || 'Owner',
-          ...(item.owner.phone && { ownerPhone: item.owner.phone }),
-          ...(item.owner.email && { ownerEmail: item.owner.email }),
-          borrowerName: borrower.name || 'Someone',
-          itemName: item.name,
-          approvalUrl: approvalUrl,
-        });
-
-        if (notificationResult.success) {
-          const methods = [];
-          if (notificationResult.sms.success) methods.push('SMS');
-          if (notificationResult.email.success) methods.push('email');
-          console.log(
-            `📱 Notification sent successfully via: ${methods.join(' and ')}`
-          );
-        } else {
-          console.error('❌ All notifications failed:', {
-            sms: notificationResult.sms.error,
-            email: notificationResult.email.error,
-          });
-        }
-      }
-    } catch (notificationError) {
-      console.error('❌ Failed to send notification:', notificationError);
-
-      // Provide specific guidance for common issues
-      if (
-        notificationError instanceof Error &&
-        notificationError.message.includes('accountSid must start with AC')
-      ) {
-        console.error(
-          '🔧 TWILIO CONFIG ERROR: Please update TWILIO_ACCOUNT_SID in your .env file with a valid Account SID from https://console.twilio.com/'
-        );
-      } else if (
-        notificationError instanceof Error &&
-        notificationError.message.includes('RESEND_API_KEY')
-      ) {
-        console.error(
-          '📧 RESEND CONFIG ERROR: Please check RESEND_API_KEY in your .env file'
-        );
-      } else if (
-        notificationError instanceof Error &&
-        notificationError.message.includes(
-          'Phone number is required but was empty'
-        )
-      ) {
-        console.error(
-          '📞 PHONE NUMBER ERROR: Owner does not have a valid phone number set in their profile'
-        );
-      } else if (
-        notificationError instanceof Error &&
-        notificationError.message.includes('Invalid phone number format')
-      ) {
-        console.error(
-          '📞 PHONE FORMAT ERROR: Owner phone number is not in valid E.164 format:',
-          item.owner.phone
-        );
-      }
-
-      // Don't fail the request if notifications fail, but log it
-    }
+    // Email is already handled via enhanced notification service above.
+    // We intentionally skip the legacy sendBorrowRequestNotification here to
+    // prevent duplicate emails.
 
     return NextResponse.json({
       success: true,

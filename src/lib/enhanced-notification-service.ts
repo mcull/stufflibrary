@@ -40,6 +40,8 @@ interface BorrowRequest {
     id: string;
     name: string;
     imageUrl?: string;
+    watercolorUrl?: string | null;
+    watercolorThumbUrl?: string | null;
   };
 }
 
@@ -70,9 +72,11 @@ export async function sendBorrowRequestReceivedNotification(
       if (borrowRequest.borrower.image) {
         templateProps.borrowerImage = borrowRequest.borrower.image;
       }
-      if (borrowRequest.item.imageUrl) {
-        templateProps.itemImage = borrowRequest.item.imageUrl;
-      }
+      const emailImage =
+        borrowRequest.item.watercolorThumbUrl ||
+        borrowRequest.item.watercolorUrl ||
+        borrowRequest.item.imageUrl;
+      if (emailImage) templateProps.itemImage = emailImage;
       if (borrowRequest.videoUrl) {
         templateProps.videoThumbnail = `${borrowRequest.videoUrl}?thumbnail=true`;
       }
@@ -126,9 +130,8 @@ export async function sendBorrowRequestReceivedNotification(
     if (borrowRequest.lender.phone) {
       legacyNotificationData.ownerPhone = borrowRequest.lender.phone;
     }
-    if (borrowRequest.lender.email) {
-      legacyNotificationData.ownerEmail = borrowRequest.lender.email;
-    }
+    // Avoid duplicate emails: enhanced path already sends email via templates
+    // Do NOT include ownerEmail here; use legacy channel only for SMS fallback.
 
     const legacySmsPromise = sendBorrowRequestNotification(
       legacyNotificationData
@@ -183,9 +186,11 @@ export async function sendBorrowRequestApprovedNotification(
         returnDate: borrowRequest.requestedReturnDate.toLocaleDateString(),
       };
 
-      if (borrowRequest.item.imageUrl) {
-        templateProps.itemImage = borrowRequest.item.imageUrl;
-      }
+      const emailImage =
+        borrowRequest.item.watercolorThumbUrl ||
+        borrowRequest.item.watercolorUrl ||
+        borrowRequest.item.imageUrl;
+      if (emailImage) templateProps.itemImage = emailImage;
       if (borrowRequest.lenderMessage) {
         templateProps.lenderMessage = borrowRequest.lenderMessage;
       }
@@ -282,9 +287,11 @@ export async function sendBorrowRequestDeclinedNotification(
         itemName: borrowRequest.item.name,
       };
 
-      if (borrowRequest.item.imageUrl) {
-        templateProps.itemImage = borrowRequest.item.imageUrl;
-      }
+      const emailImage =
+        borrowRequest.item.watercolorThumbUrl ||
+        borrowRequest.item.watercolorUrl ||
+        borrowRequest.item.imageUrl;
+      if (emailImage) templateProps.itemImage = emailImage;
       if (borrowRequest.lenderMessage) {
         templateProps.lenderMessage = borrowRequest.lenderMessage;
       }
@@ -355,9 +362,11 @@ export async function sendItemReturnedNotification(
         returnDate: new Date().toLocaleDateString(),
       };
 
-      if (borrowRequest.item.imageUrl) {
-        templateProps.itemImage = borrowRequest.item.imageUrl;
-      }
+      const emailImage =
+        borrowRequest.item.watercolorThumbUrl ||
+        borrowRequest.item.watercolorUrl ||
+        borrowRequest.item.imageUrl;
+      if (emailImage) templateProps.itemImage = emailImage;
       if (borrowerNotes) {
         templateProps.borrowerNotes = borrowerNotes;
       }
