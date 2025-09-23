@@ -122,7 +122,25 @@ function LibraryMapComponent({
         };
       }
 
-      const newMap = new window.google.maps.Map(mapRef.current, mapOptions);
+      let newMap: any = null;
+      try {
+        newMap = new window.google.maps.Map(mapRef.current, mapOptions);
+      } catch (err) {
+        console.warn(
+          'Google Maps init failed, retrying without tilt/WebGL features',
+          err
+        );
+        try {
+          const fallbackOptions = { ...mapOptions } as any;
+          delete fallbackOptions.tilt;
+          newMap = new window.google.maps.Map(mapRef.current, fallbackOptions);
+        } catch (err2) {
+          console.error('Google Maps failed to initialize', err2);
+          // Show fallback overlay; skip markers
+          setIsLoaded(true);
+          return;
+        }
+      }
       setMap(newMap);
       setIsLoaded(true);
 
@@ -328,6 +346,25 @@ function LibraryMapComponent({
         >
           <Typography variant="body2" color="text.secondary">
             Loading {libraryName} member map...
+          </Typography>
+        </Box>
+      )}
+      {isLoaded && !_map && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            bgcolor: '#f5f5f5',
+          }}
+        >
+          <Typography variant="body2" color="text.secondary">
+            Map unavailable on this device. Items below are still available.
           </Typography>
         </Box>
       )}
