@@ -1,10 +1,11 @@
-import { put } from '@vercel/blob';
+// no direct blob import; use StorageService
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { v4 as uuidv4 } from 'uuid';
 
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { StorageService } from '@/lib/storage';
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,8 +38,12 @@ export async function POST(request: NextRequest) {
     const filename = `items/${uuidv4()}.${fileExtension}`;
 
     console.log('☁️ Uploading image to blob storage:', filename);
-    const blob = await put(filename, image, { access: 'public' });
-    const imageUrl = blob.url;
+    const uploaded = await StorageService.uploadFile(filename, image, {
+      contentType: image.type || 'image/jpeg',
+      retries: 3,
+      retryDelayMs: 250,
+    });
+    const imageUrl = uploaded.url;
     console.log('✅ Image uploaded:', imageUrl);
 
     // Step 2: Create draft item record immediately

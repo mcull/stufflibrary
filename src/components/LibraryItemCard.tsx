@@ -177,10 +177,10 @@ export function LibraryItemCard({ item, libraryId }: LibraryItemCardProps) {
             overflow: 'hidden',
           }}
         >
-          {item.watercolorThumbUrl || item.imageUrl ? (
+          {item.watercolorThumbUrl ? (
             <>
               <Image
-                src={item.watercolorThumbUrl || item.imageUrl!}
+                src={item.watercolorThumbUrl}
                 alt={item.name || 'Item'}
                 fill
                 style={{
@@ -237,9 +237,29 @@ export function LibraryItemCard({ item, libraryId }: LibraryItemCardProps) {
                 })()}
             </>
           ) : (
-            <Typography variant="h4" sx={{ opacity: 0.5 }}>
-              📦
-            </Typography>
+            <Box
+              sx={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'column',
+                gap: 0.5,
+                bgcolor: 'rgba(255,255,255,0.6)',
+              }}
+            >
+              <Typography
+                variant="caption"
+                sx={{
+                  color: brandColors.charcoal,
+                  opacity: 0.8,
+                  fontWeight: 600,
+                }}
+              >
+                Illustrating…
+              </Typography>
+            </Box>
           )}
         </Box>
 

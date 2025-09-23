@@ -81,7 +81,29 @@ export async function GET(
       return NextResponse.json({ error: 'Library not found' }, { status: 404 });
     }
 
-    // Get library items (only active items)
+    // Determine user role before fetching items, to decide visibility of
+    // unillustrated items for owners/admins.
+    const userId =
+      (session.user as any).id ||
+      (session as any).user?.id ||
+      (session as any).userId;
+
+    const userRole = userId === library.ownerId ? 'owner' : null;
+    const membership = library.members.find(
+      (member) => member.userId === userId
+    );
+    const effectiveRole = (userRole || membership?.role || null) as
+      | 'owner'
+      | 'admin'
+      | 'member'
+      | null;
+
+    const includeUnillustrated =
+      effectiveRole === 'owner' || effectiveRole === 'admin';
+
+    // Get library items (only active items). For non-admin/owner, hide items
+    // without watercolor imagery. For owner/admin, include them but do not
+    // expose raw image URLs in the payload to avoid displaying photos.
     const items = await db.item.findMany({
       where: {
         collections: {
@@ -90,6 +112,14 @@ export async function GET(
           },
         },
         active: true, // Only show active items
+        ...(includeUnillustrated
+          ? {}
+          : {
+              OR: [
+                { watercolorUrl: { not: null } },
+                { watercolorThumbUrl: { not: null } },
+              ],
+            }),
       },
       include: {
         owner: {
@@ -133,17 +163,7 @@ export async function GET(
     });
 
     // Check if user has access to this library
-    const userId =
-      (session.user as any).id ||
-      (session as any).user?.id ||
-      (session as any).userId;
-
-    const userRole = userId === library.ownerId ? 'owner' : null;
-    const membership = library.members.find(
-      (member) => member.userId === userId
-    );
-
-    if (!userRole && !membership && !library.isPublic) {
+    if (!effectiveRole && !library.isPublic) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
@@ -157,7 +177,7 @@ export async function GET(
       createdAt: library.createdAt,
       updatedAt: library.updatedAt,
       owner: library.owner,
-      userRole: userRole || membership?.role || null,
+      userRole: effectiveRole,
       memberCount: library._count.members + 1, // +1 for owner
       itemCount: items.length,
       members: [
@@ -183,13 +203,15 @@ export async function GET(
         const pendingRequests = item.borrowRequests.filter(
           (req) => req.status === 'PENDING'
         );
+        const hasWatercolor = !!(item.watercolorThumbUrl || item.watercolorUrl);
 
         return {
           id: item.id,
           name: item.name,
           description: item.description,
           condition: item.condition,
-          imageUrl: item.imageUrl,
+          // Never send raw photos in library payload; rely on watercolor only.
+          imageUrl: hasWatercolor ? item.imageUrl : null,
           watercolorThumbUrl: item.watercolorThumbUrl,
           isAvailable: !item.currentBorrowRequestId,
           createdAt: item.createdAt,
@@ -227,13 +249,16 @@ export async function GET(
           const pendingRequests = item.borrowRequests.filter(
             (req) => req.status === 'PENDING'
           );
+          const hasWatercolor = !!(
+            item.watercolorThumbUrl || item.watercolorUrl
+          );
 
           acc[category].push({
             id: item.id,
             name: item.name,
             description: item.description,
             condition: item.condition,
-            imageUrl: item.imageUrl,
+            imageUrl: hasWatercolor ? item.imageUrl : null,
             watercolorThumbUrl: item.watercolorThumbUrl,
             isAvailable: !item.currentBorrowRequestId,
             createdAt: item.createdAt,
