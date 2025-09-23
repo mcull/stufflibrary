@@ -130,9 +130,8 @@ export async function sendBorrowRequestReceivedNotification(
     if (borrowRequest.lender.phone) {
       legacyNotificationData.ownerPhone = borrowRequest.lender.phone;
     }
-    if (borrowRequest.lender.email) {
-      legacyNotificationData.ownerEmail = borrowRequest.lender.email;
-    }
+    // Avoid duplicate emails: enhanced path already sends email via templates
+    // Do NOT include ownerEmail here; use legacy channel only for SMS fallback.
 
     const legacySmsPromise = sendBorrowRequestNotification(
       legacyNotificationData
