@@ -26,19 +26,19 @@ import { useState, useEffect } from 'react';
 import { useUserItems } from '@/hooks/useUserItems';
 import { brandColors } from '@/theme/brandTokens';
 
-interface CollectionInfo {
+interface LibraryInfo {
   id: string;
   name: string;
   description?: string;
 }
 
-export default function AddToCollectionPage() {
+export default function AddToLibraryPage() {
   const params = useParams();
   const router = useRouter();
   const { data: session } = useSession();
-  const collectionId = params.collectionId as string;
+  const libraryId = params.libraryId as string;
 
-  const [collection, setCollection] = useState<CollectionInfo | null>(null);
+  const [library, setLibrary] = useState<LibraryInfo | null>(null);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,71 +49,65 @@ export default function AddToCollectionPage() {
     error: itemsError,
   } = useUserItems();
 
-  // Fetch collection info
+  // Fetch library info
   useEffect(() => {
-    const fetchCollection = async () => {
+    const fetchLibrary = async () => {
       try {
-        const response = await fetch(`/api/collections/${collectionId}`);
+        const response = await fetch(`/api/collections/${libraryId}`);
         if (!response.ok) {
-          throw new Error('Failed to load collection');
+          throw new Error('Failed to load library');
         }
         const data = await response.json();
-        setCollection(data.collection);
+        setLibrary(data.collection);
       } catch (err) {
-        console.error('Error fetching collection:', err);
-        setError('Failed to load collection information');
+        console.error('Error fetching library:', err);
+        setError('Failed to load library information');
       }
     };
 
-    if (collectionId) {
-      fetchCollection();
+    if (libraryId) {
+      fetchLibrary();
     }
-  }, [collectionId]);
+  }, [libraryId]);
 
-  // Available items (those not currently in the collection and available for sharing)
+  // Available items (those not currently borrowed)
   const availableItems = [...readyToLendItems].filter(
     (item) => !(item as any).currentBorrowRequestId
   );
 
+  const isInThisLibrary = (item: any) => {
+    const libs: Array<{ id: string }> = (item as any).libraries || [];
+    return libs.some((l) => l.id === libraryId);
+  };
+
   const handleItemToggle = (itemId: string) => {
+    const it = availableItems.find((i) => i.id === itemId);
+    if (it && isInThisLibrary(it)) return;
     const newSelected = new Set(selectedItems);
-    if (newSelected.has(itemId)) {
-      newSelected.delete(itemId);
-    } else {
-      newSelected.add(itemId);
-    }
+    if (newSelected.has(itemId)) newSelected.delete(itemId);
+    else newSelected.add(itemId);
     setSelectedItems(newSelected);
   };
 
   const handleSubmit = async () => {
     if (selectedItems.size === 0) return;
-
     setIsSubmitting(true);
     setError(null);
-
     try {
-      // Add selected items to the collection
       const promises = Array.from(selectedItems).map((itemId) =>
         fetch(`/api/items/${itemId}`, {
           method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            addLibraryIds: [collectionId], // Add to this library (preserve others)
-          }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ addLibraryIds: [libraryId] }),
         })
       );
-
       await Promise.all(promises);
-
-      // Navigate back to collection with success message
       router.push(
-        `/library/${collectionId}?message=items_added&count=${selectedItems.size}`
+        `/library/${libraryId}?message=items_added&count=${selectedItems.size}`
       );
     } catch (err) {
-      console.error('Error adding items to collection:', err);
-      setError('Failed to add items to collection');
+      console.error('Error adding items to library:', err);
+      setError('Failed to add items to library');
     } finally {
       setIsSubmitting(false);
     }
@@ -124,7 +118,7 @@ export default function AddToCollectionPage() {
     return null;
   }
 
-  if (itemsLoading || !collection) {
+  if (itemsLoading || !library) {
     return (
       <Container maxWidth="lg" sx={{ py: 4, textAlign: 'center' }}>
         <CircularProgress size={48} />
@@ -151,15 +145,15 @@ export default function AddToCollectionPage() {
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
         <Button
           startIcon={<ArrowBackIcon />}
-          onClick={() => router.push(`/library/${collectionId}`)}
+          onClick={() => router.push(`/library/${libraryId}`)}
           sx={{ mr: 2 }}
         >
-          Back to {collection.name}
+          Back to {library.name}
         </Button>
       </Box>
 
       <Typography variant="h4" component="h1" gutterBottom>
-        Add Items to {collection.name}
+        Add Items to {library.name}
       </Typography>
 
       <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
@@ -188,7 +182,7 @@ export default function AddToCollectionPage() {
             </Button>
             <Button
               variant="outlined"
-              onClick={() => router.push(`/library/${collectionId}`)}
+              onClick={() => router.push(`/library/${libraryId}`)}
             >
               Back to Library
             </Button>
@@ -217,94 +211,99 @@ export default function AddToCollectionPage() {
               mb: 4,
             }}
           >
-            {availableItems.map((item) => (
-              <Card
-                key={item.id}
-                sx={{
-                  position: 'relative',
-                  cursor: 'pointer',
-                  border: selectedItems.has(item.id)
-                    ? `2px solid ${brandColors.inkBlue}`
-                    : '1px solid transparent',
-                  '&:hover': {
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                  },
-                }}
-                onClick={() => handleItemToggle(item.id)}
-              >
-                <CardContent sx={{ p: 2 }}>
-                  {/* Checkbox */}
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={selectedItems.has(item.id)}
-                        onChange={(e) => e.stopPropagation()}
-                        sx={{ position: 'absolute', top: 8, right: 8, p: 0.5 }}
-                      />
-                    }
-                    label=""
-                    sx={{ position: 'absolute', top: 0, right: 0, m: 0 }}
-                  />
-
-                  {/* Item Image */}
-                  <Box
-                    sx={{
-                      position: 'relative',
-                      width: '100%',
-                      aspectRatio: '1',
-                      backgroundColor: 'grey.100',
-                      borderRadius: 1,
-                      mb: 2,
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {item.watercolorThumbUrl || item.imageUrl ? (
-                      <Image
-                        src={(item.watercolorThumbUrl || item.imageUrl)!}
-                        alt={item.name}
-                        fill
-                        style={{ objectFit: 'cover' }}
-                      />
-                    ) : (
-                      <Box
-                        sx={{
-                          height: '100%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Typography variant="h3" sx={{ opacity: 0.5 }}>
-                          📦
-                        </Typography>
-                      </Box>
-                    )}
-                  </Box>
-
-                  {/* Item Name */}
-                  <Typography
-                    variant="subtitle2"
-                    sx={{
-                      fontWeight: 600,
-                      mb: 1,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {item.name}
-                  </Typography>
-
-                  {/* Item Details */}
-                  <Chip
-                    label={item.condition || 'Good'}
-                    size="small"
-                    variant="outlined"
-                    sx={{ fontSize: '0.7rem' }}
-                  />
-                </CardContent>
-              </Card>
-            ))}
+            {availableItems.map((item) => {
+              const disabled = isInThisLibrary(item);
+              return (
+                <Card
+                  key={item.id}
+                  sx={{
+                    position: 'relative',
+                    cursor: disabled ? 'not-allowed' : 'pointer',
+                    opacity: disabled ? 0.5 : 1,
+                    border: selectedItems.has(item.id)
+                      ? `2px solid ${brandColors.inkBlue}`
+                      : '1px solid transparent',
+                    '&:hover': {
+                      boxShadow: disabled
+                        ? 'none'
+                        : '0 4px 12px rgba(0,0,0,0.1)',
+                    },
+                  }}
+                  onClick={() => handleItemToggle(item.id)}
+                >
+                  <CardContent sx={{ p: 2 }}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={selectedItems.has(item.id)}
+                          disabled={disabled}
+                          onChange={(e) => e.stopPropagation()}
+                          sx={{
+                            position: 'absolute',
+                            top: 8,
+                            right: 8,
+                            p: 0.5,
+                          }}
+                        />
+                      }
+                      label=""
+                      sx={{ position: 'absolute', top: 0, right: 0, m: 0 }}
+                    />
+                    <Box
+                      sx={{
+                        position: 'relative',
+                        width: '100%',
+                        aspectRatio: '1',
+                        backgroundColor: 'grey.100',
+                        borderRadius: 1,
+                        mb: 2,
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {item.watercolorThumbUrl || item.imageUrl ? (
+                        <Image
+                          src={(item.watercolorThumbUrl || item.imageUrl)!}
+                          alt={item.name}
+                          fill
+                          style={{ objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <Box
+                          sx={{
+                            height: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <Typography variant="h3" sx={{ opacity: 0.5 }}>
+                            📦
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        fontWeight: 600,
+                        mb: 1,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {item.name}
+                    </Typography>
+                    <Chip
+                      label={item.condition || 'Good'}
+                      size="small"
+                      variant="outlined"
+                      sx={{ fontSize: '0.7rem' }}
+                    />
+                  </CardContent>
+                </Card>
+              );
+            })}
           </Box>
 
           {/* Action Buttons */}
@@ -317,11 +316,10 @@ export default function AddToCollectionPage() {
           >
             <Button
               variant="outlined"
-              onClick={() => router.push(`/collection/${collectionId}`)}
+              onClick={() => router.push(`/library/${libraryId}`)}
             >
               Cancel
             </Button>
-
             <Button
               variant="contained"
               onClick={handleSubmit}

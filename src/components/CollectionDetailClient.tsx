@@ -26,6 +26,8 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
+  Card,
+  CardContent,
 } from '@mui/material';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -175,7 +177,6 @@ export function CollectionDetailClient({
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [addMenuAnchor, setAddMenuAnchor] = useState<null | HTMLElement>(null);
   const addMenuOpen = Boolean(addMenuAnchor);
-
   useEffect(() => {
     const fetchLibrary = async () => {
       try {
@@ -331,7 +332,7 @@ export function CollectionDetailClient({
 
   const handleAddFromInventory = useCallback(() => {
     handleAddMenuClose();
-    router.push(`/stuff/m/add-to-collection/${collectionId}`);
+    router.push(`/stuff/m/add-to-library/${collectionId}`);
   }, [handleAddMenuClose, collectionId, router]);
 
   // Memoize map props at the top level
@@ -1243,6 +1244,104 @@ export function CollectionDetailClient({
               Add Your First Item
             </Button>
           )}
+        </Box>
+      )}
+
+      {/* Add Your Stuff section */}
+      {(library?.userRole === 'owner' || library?.userRole === 'admin') && (
+        <Box sx={{ mt: spacing.xl / 16, mb: spacing.xl / 16 }}>
+          <Typography
+            variant="h5"
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              fontWeight: 700,
+              color: brandColors.charcoal,
+              mb: spacing.md / 16,
+            }}
+          >
+            <span role="img" aria-label="add">
+              ➕📦
+            </span>{' '}
+            Add Your Stuff
+          </Typography>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: 'repeat(2, 1fr)',
+                sm: 'repeat(3, 1fr)',
+                md: 'repeat(4, 1fr)',
+                lg: 'repeat(5, 1fr)',
+              },
+              gap: 1,
+            }}
+          >
+            <Card
+              onClick={handleAddFromInventory}
+              sx={{
+                cursor: 'pointer',
+                position: 'relative',
+                border: '2px dashed',
+                borderColor: brandColors.mustardYellow,
+                backgroundColor: 'rgba(244, 187, 68, 0.1)',
+                borderRadius: 2,
+                overflow: 'visible',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  borderColor: brandColors.charcoal,
+                  backgroundColor: 'rgba(244, 187, 68, 0.2)',
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
+                },
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  top: -8,
+                  right: 20,
+                  width: 60,
+                  height: 16,
+                  backgroundColor: brandColors.mustardYellow,
+                  borderRadius: '8px 8px 0 0',
+                },
+              }}
+            >
+              <CardContent sx={{ p: 2 }}>
+                <Box
+                  sx={{
+                    position: 'relative',
+                    width: '100%',
+                    aspectRatio: '1/1',
+                    backgroundColor: 'rgba(244, 187, 68, 0.1)',
+                    borderRadius: 1,
+                    border: '2px dashed',
+                    borderColor: brandColors.mustardYellow,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mb: 1,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <AddIcon
+                    sx={{ fontSize: 48, color: brandColors.mustardYellow }}
+                  />
+                </Box>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 600,
+                    color: brandColors.charcoal,
+                    textAlign: 'center',
+                  }}
+                >
+                  Add Item
+                </Typography>
+              </CardContent>
+            </Card>
+          </Box>
         </Box>
       )}
 
