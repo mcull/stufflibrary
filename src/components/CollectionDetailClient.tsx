@@ -31,6 +31,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 
+import { useUserItems } from '@/hooks/useUserItems';
 import { brandColors, spacing } from '@/theme/brandTokens';
 
 import { EditCollectionModal } from './EditCollectionModal';
@@ -175,6 +176,9 @@ export function CollectionDetailClient({
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [addMenuAnchor, setAddMenuAnchor] = useState<null | HTMLElement>(null);
   const addMenuOpen = Boolean(addMenuAnchor);
+
+  // User inventory for "+Add" CTA count
+  const { readyToLendItems } = useUserItems();
 
   useEffect(() => {
     const fetchLibrary = async () => {
@@ -988,6 +992,31 @@ export function CollectionDetailClient({
                 />
               );
             })}
+          {/* Add Items CTA as a Chip (owner/admin only) */}
+          {(library?.userRole === 'owner' || library?.userRole === 'admin') &&
+            (() => {
+              const notInThisLibrary = readyToLendItems.filter((it: any) => {
+                const libs: Array<{ id: string }> = it.libraries || [];
+                return !libs.some((l) => l.id === collectionId);
+              }).length;
+              return (
+                <Chip
+                  key="add-items-cta"
+                  label={`+Add ${notInThisLibrary}`}
+                  onClick={handleAddFromInventory}
+                  sx={{
+                    backgroundColor: brandColors.mustardYellow,
+                    color: brandColors.charcoal,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    '&:hover': {
+                      backgroundColor: '#E6A645',
+                      color: brandColors.white,
+                    },
+                  }}
+                />
+              );
+            })()}
         </Stack>
       </Box>
 
