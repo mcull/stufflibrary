@@ -331,7 +331,7 @@ export function CollectionDetailClient({
 
   const handleAddFromInventory = useCallback(() => {
     handleAddMenuClose();
-    router.push(`/stuff/m/add-to-collection/${collectionId}`);
+    router.push(`/stuff/m/add-to-library/${collectionId}`);
   }, [handleAddMenuClose, collectionId, router]);
 
   // Memoize map props at the top level
