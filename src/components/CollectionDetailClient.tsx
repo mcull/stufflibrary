@@ -181,6 +181,13 @@ export function CollectionDetailClient({
 
   // User inventory for "+Add" CTA count
   const _userItems = useUserItems();
+  const addableCount = useMemo(() => {
+    const items = _userItems.readyToLendItems || [];
+    return items.filter((it: any) => {
+      const libs: Array<{ id: string }> = it.libraries || [];
+      return !libs.some((l) => l.id === collectionId);
+    }).length;
+  }, [_userItems.readyToLendItems, collectionId]);
 
   useEffect(() => {
     const fetchLibrary = async () => {
@@ -1311,6 +1318,10 @@ export function CollectionDetailClient({
                   backgroundColor: brandColors.mustardYellow,
                   borderRadius: '8px 8px 0 0',
                 },
+                ...(addableCount === 0 && {
+                  opacity: 0.6,
+                  pointerEvents: 'none',
+                }),
               }}
             >
               <CardContent sx={{ p: 2 }}>
@@ -1343,6 +1354,15 @@ export function CollectionDetailClient({
                   }}
                 >
                   Add Item
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ display: 'block', textAlign: 'center', mt: 0.5 }}
+                >
+                  {addableCount > 0
+                    ? `${addableCount} available from your inventory`
+                    : 'All set — nothing to add'}
                 </Typography>
               </CardContent>
             </Card>
