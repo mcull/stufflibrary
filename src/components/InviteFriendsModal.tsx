@@ -60,6 +60,30 @@ export function InviteFriendsModal({
   const [shareLoading, setShareLoading] = useState(false);
   const [limitPerHour, setLimitPerHour] = useState<number>(5);
 
+  const copyText = useCallback(async (text: string) => {
+    try {
+      if (
+        navigator.clipboard &&
+        typeof navigator.clipboard.writeText === 'function'
+      ) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'absolute';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      return ok;
+    } catch {
+      return false;
+    }
+  }, []);
+
   const loadInvitations = useCallback(async () => {
     setLoadingInvitations(true);
     try {
@@ -285,8 +309,12 @@ export function InviteFriendsModal({
                     const link: string | undefined = data?.link;
                     if (!res.ok || !link)
                       throw new Error(data?.error || 'Failed to create link');
-                    await navigator.clipboard.writeText(link);
-                    setSuccess('Join link copied to clipboard');
+                    const ok = await copyText(link);
+                    setSuccess(
+                      ok
+                        ? 'Join link copied to clipboard'
+                        : `Join link: ${link}`
+                    );
                   } catch (e) {
                     setError(
                       e instanceof Error ? e.message : 'Failed to copy link'
@@ -323,8 +351,12 @@ export function InviteFriendsModal({
                         url: link,
                       });
                     } else {
-                      await navigator.clipboard.writeText(link);
-                      setSuccess('Share link copied to clipboard');
+                      const ok = await copyText(link);
+                      setSuccess(
+                        ok
+                          ? 'Share link copied to clipboard'
+                          : `Join link: ${link}`
+                      );
                     }
                   } catch (e) {
                     setError(
