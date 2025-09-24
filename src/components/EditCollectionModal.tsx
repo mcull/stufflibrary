@@ -25,6 +25,7 @@ interface CollectionData {
   description?: string | undefined;
   location?: string | undefined;
   isPublic: boolean;
+  inviteRateLimitPerHour?: number;
 }
 
 interface EditCollectionModalProps {
@@ -155,6 +156,7 @@ export function EditCollectionModal({
       if (formData.isPublic !== collection.isPublic) {
         changes.isPublic = formData.isPublic;
       }
+      // Invitation rate limit setting is now hidden and defaults to unlimited.
 
       // Only make API call if there are actual changes
       if (Object.keys(changes).length === 0) {
@@ -384,6 +386,8 @@ export function EditCollectionModal({
               }
             />
           </Box>
+
+          {/* Invitation Rate Limit removed (defaults to unlimited) */}
 
           {/* Danger Zone */}
           {(onArchiveCollection || onDeleteCollection) && (
