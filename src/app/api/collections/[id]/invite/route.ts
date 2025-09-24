@@ -23,9 +23,12 @@ export async function POST(
     const libraryId = id;
 
     // Validate request body
-    const { email } = await request.json();
+    const body = await request.json();
+    const email = body?.email as string | undefined;
+    const mode = (body?.mode as 'email' | 'link' | undefined) || 'email';
+    const sendEmail = body?.sendEmail !== false; // default true
 
-    if (!email || typeof email !== 'string') {
+    if (mode !== 'link' && (!email || typeof email !== 'string')) {
       return NextResponse.json(
         { error: 'Valid email is required' },
         { status: 400 }
@@ -34,7 +37,7 @@ export async function POST(
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (mode !== 'link' && !emailRegex.test(email!)) {
       return NextResponse.json(
         { error: 'Invalid email format' },
         { status: 400 }
@@ -62,6 +65,7 @@ export async function POST(
         owner: {
           select: { name: true, email: true },
         },
+        _count: true,
       },
     });
 
@@ -73,13 +77,16 @@ export async function POST(
     }
 
     // Check if user is already a member (active or inactive)
-    const existingMember = await db.collectionMember.findFirst({
-      where: {
-        collectionId: libraryId,
-        user: { email },
-      },
-      select: { id: true, isActive: true },
-    });
+    const existingMember =
+      mode === 'link'
+        ? null
+        : await db.collectionMember.findFirst({
+            where: {
+              collectionId: libraryId,
+              user: { email: email! },
+            },
+            select: { id: true, isActive: true },
+          });
 
     if (existingMember) {
       if (!existingMember.isActive) {
@@ -100,14 +107,17 @@ export async function POST(
     }
 
     // Check for existing pending invitation
-    const existingInvitation = await db.invitation.findFirst({
-      where: {
-        email,
-        libraryId,
-        senderId: userId,
-        status: 'PENDING',
-      },
-    });
+    const existingInvitation =
+      mode === 'link'
+        ? null
+        : await db.invitation.findFirst({
+            where: {
+              email: email!,
+              libraryId,
+              senderId: userId,
+              status: 'PENDING',
+            },
+          });
 
     if (existingInvitation) {
       return NextResponse.json(
@@ -118,6 +128,10 @@ export async function POST(
 
     // Rate limiting: max 5 invitations per hour per user
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const perHourLimit =
+      (library as any).inviteRateLimitPerHour != null
+        ? Number((library as any).inviteRateLimitPerHour)
+        : 5;
     const recentInvitations = await db.invitation.count({
       where: {
         senderId: userId,
@@ -127,11 +141,10 @@ export async function POST(
       },
     });
 
-    if (recentInvitations >= 5) {
+    if (perHourLimit > 0 && recentInvitations >= perHourLimit) {
       return NextResponse.json(
         {
-          error:
-            'Rate limit exceeded. You can send up to 5 invitations per hour.',
+          error: `Rate limit exceeded. You can send up to ${perHourLimit} invitations per hour.`,
         },
         { status: 429 }
       );
@@ -146,7 +159,8 @@ export async function POST(
     // Create invitation record
     const invitation = await db.invitation.create({
       data: {
-        email,
+        email:
+          mode === 'link' ? `link-${token}@share.stufflibrary.local` : email!,
         type: 'library',
         status: 'PENDING',
         token,
@@ -164,16 +178,16 @@ export async function POST(
       },
     });
 
-    // Send invitation email
-    try {
-      const magicLink = `${process.env.NEXTAUTH_URL}/api/invitations/${token}`;
-
-      const resend = new Resend(process.env.RESEND_API_KEY);
-      await resend.emails.send({
-        from: 'StuffLibrary <invites@stufflibrary.org>',
-        to: [email],
-        subject: `You're invited to join ${invitation.collection?.name} on StuffLibrary!`,
-        html: `
+    const magicLink = `${process.env.NEXTAUTH_URL}/api/invitations/${token}`;
+    // Send invitation email (email mode only, or if explicitly requested)
+    if (mode === 'email' && sendEmail) {
+      try {
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        await resend.emails.send({
+          from: 'StuffLibrary <invites@stufflibrary.org>',
+          to: [email!],
+          subject: `You're invited to join ${invitation.collection?.name} on StuffLibrary!`,
+          html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
               <h1 style="color: #2563eb; font-size: 28px; margin: 0;">StuffLibrary</h1>
@@ -212,31 +226,30 @@ export async function POST(
             </p>
           </div>
         `,
-      });
+        });
 
-      // Update invitation status to SENT
-      await db.invitation.update({
-        where: { id: invitation.id },
-        data: {
-          status: 'SENT',
-          sentAt: new Date(),
-        },
-      });
-    } catch (emailError) {
-      console.error('Failed to send invitation email:', emailError);
-
-      // Don't fail the request, but log the error
-      // Invitation still exists in database
-      return NextResponse.json({
-        success: true,
-        invitation: {
-          id: invitation.id,
-          email: invitation.email,
-          status: 'PENDING',
-          expiresAt: invitation.expiresAt,
-        },
-        warning: 'Invitation created but email sending failed',
-      });
+        // Update invitation status to SENT
+        await db.invitation.update({
+          where: { id: invitation.id },
+          data: {
+            status: 'SENT',
+            sentAt: new Date(),
+          },
+        });
+      } catch (emailError) {
+        console.error('Failed to send invitation email:', emailError);
+        return NextResponse.json({
+          success: true,
+          invitation: {
+            id: invitation.id,
+            email: invitation.email,
+            status: 'PENDING',
+            expiresAt: invitation.expiresAt,
+          },
+          link: magicLink,
+          warning: 'Invitation created but email sending failed',
+        });
+      }
     }
 
     return NextResponse.json({
@@ -244,9 +257,10 @@ export async function POST(
       invitation: {
         id: invitation.id,
         email: invitation.email,
-        status: 'SENT',
+        status: mode === 'email' && sendEmail ? 'SENT' : 'PENDING',
         expiresAt: invitation.expiresAt,
       },
+      link: magicLink,
     });
   } catch (error) {
     console.error('Error sending invitation:', error);

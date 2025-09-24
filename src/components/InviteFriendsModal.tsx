@@ -56,6 +56,8 @@ export function InviteFriendsModal({
   const [success, setSuccess] = useState<string | null>(null);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loadingInvitations, setLoadingInvitations] = useState(false);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [limitPerHour, setLimitPerHour] = useState<number>(5);
 
   const loadInvitations = useCallback(async () => {
     setLoadingInvitations(true);
@@ -76,6 +78,15 @@ export function InviteFriendsModal({
   useEffect(() => {
     if (open) {
       loadInvitations();
+      // Load collection to get invite rate limit
+      fetch(`/api/collections/${libraryId}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (data?.collection?.inviteRateLimitPerHour != null) {
+            setLimitPerHour(Number(data.collection.inviteRateLimitPerHour));
+          }
+        })
+        .catch(() => {});
     }
   }, [open, libraryId, loadInvitations]);
 
@@ -230,9 +241,100 @@ export function InviteFriendsModal({
             }}
           >
             <Typography variant="body2" color="text.secondary">
-              💡 You can send up to 5 invitations per hour. Invitations expire
-              after 7 days.
+              💡 You can send up to {limitPerHour} invitations per hour.
+              Invitations expire after 7 days.
             </Typography>
+          </Box>
+
+          {/* Share a Join Link */}
+          <Box
+            sx={{
+              p: 2,
+              bgcolor: 'rgba(16, 185, 129, 0.08)',
+              border: '1px solid rgba(16,185,129,0.25)',
+              borderRadius: 1,
+              mb: 3,
+            }}
+          >
+            <Typography sx={{ fontWeight: 600, mb: 1, color: '#065f46' }}>
+              Prefer to share yourself?
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              Generate a magic join link and share via text, email, or any app.
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Button
+                variant="contained"
+                size="small"
+                disabled={shareLoading}
+                onClick={async () => {
+                  try {
+                    setShareLoading(true);
+                    const res = await fetch(
+                      `/api/collections/${libraryId}/invite`,
+                      {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ mode: 'link' }),
+                      }
+                    );
+                    const data = await res.json();
+                    const link: string | undefined = data?.link;
+                    if (!res.ok || !link)
+                      throw new Error(data?.error || 'Failed to create link');
+                    await navigator.clipboard.writeText(link);
+                    setSuccess('Join link copied to clipboard');
+                  } catch (e) {
+                    setError(
+                      e instanceof Error ? e.message : 'Failed to copy link'
+                    );
+                  } finally {
+                    setShareLoading(false);
+                  }
+                }}
+              >
+                {shareLoading ? 'Preparing…' : 'Copy Join Link'}
+              </Button>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={async () => {
+                  try {
+                    setShareLoading(true);
+                    const res = await fetch(
+                      `/api/collections/${libraryId}/invite`,
+                      {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ mode: 'link' }),
+                      }
+                    );
+                    const data = await res.json();
+                    const link: string | undefined = data?.link;
+                    if (!res.ok || !link)
+                      throw new Error(data?.error || 'Failed to create link');
+                    if (navigator.share) {
+                      await navigator.share({
+                        title: `Join ${libraryName} on StuffLibrary`,
+                        text: `Here’s your invite to ${libraryName}`,
+                        url: link,
+                      });
+                    } else {
+                      await navigator.clipboard.writeText(link);
+                      setSuccess('Share link copied to clipboard');
+                    }
+                  } catch (e) {
+                    setError(
+                      e instanceof Error ? e.message : 'Failed to share link'
+                    );
+                  } finally {
+                    setShareLoading(false);
+                  }
+                }}
+              >
+                Share…
+              </Button>
+            </Box>
           </Box>
 
           {/* Existing Invitations */}

@@ -180,6 +180,7 @@ export async function GET(
       userRole: effectiveRole,
       memberCount: library._count.members + 1, // +1 for owner
       itemCount: items.length,
+      inviteRateLimitPerHour: (library as any).inviteRateLimitPerHour ?? 5,
       members: [
         // Include owner as first member
         {
@@ -320,7 +321,8 @@ export async function PUT(
 
     const { id: libraryId } = await params;
     const body = await request.json();
-    const { name, description, location, isPublic } = body;
+    const { name, description, location, isPublic, inviteRateLimitPerHour } =
+      body;
 
     // Check if user is the owner or admin
     const library = await db.collection.findUnique({
@@ -375,6 +377,12 @@ export async function PUT(
         }),
         ...(location !== undefined && { location: location?.trim() || null }),
         ...(isPublic !== undefined && { isPublic: Boolean(isPublic) }),
+        ...(inviteRateLimitPerHour !== undefined && {
+          inviteRateLimitPerHour: Math.max(
+            0,
+            Number(inviteRateLimitPerHour) || 0
+          ),
+        }),
       },
       include: {
         owner: {
@@ -409,6 +417,8 @@ export async function PUT(
       owner: updatedLibrary.owner,
       memberCount: updatedLibrary._count.members + 1,
       itemCount: updatedLibrary._count.items,
+      inviteRateLimitPerHour:
+        (updatedLibrary as any).inviteRateLimitPerHour ?? 5,
     };
 
     return NextResponse.json({ collection: formattedLibrary });
