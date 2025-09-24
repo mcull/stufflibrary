@@ -43,6 +43,7 @@ interface FormData {
   description: string;
   location: string;
   isPublic: boolean;
+  inviteRateLimitPerHour: number;
 }
 
 interface FormErrors {
@@ -65,6 +66,7 @@ export function EditCollectionModal({
     description: '',
     location: '',
     isPublic: false,
+    inviteRateLimitPerHour: 5,
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -81,6 +83,10 @@ export function EditCollectionModal({
         description: collection.description ?? '',
         location: collection.location ?? '',
         isPublic: collection.isPublic || false,
+        inviteRateLimitPerHour:
+          typeof collection.inviteRateLimitPerHour === 'number'
+            ? collection.inviteRateLimitPerHour
+            : 5,
       });
       setErrors({});
       setApiError(null);
@@ -156,6 +162,7 @@ export function EditCollectionModal({
       if (formData.isPublic !== collection.isPublic) {
         changes.isPublic = formData.isPublic;
       }
+      // Invitation rate limit setting is now hidden and defaults to unlimited.
       // Invitation rate limit setting is now hidden and defaults to unlimited.
 
       // Only make API call if there are actual changes
