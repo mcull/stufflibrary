@@ -24,6 +24,7 @@ import {
   ListItemText,
   Divider,
 } from '@mui/material';
+import { InputAdornment } from '@mui/material';
 import { useState, useEffect, useCallback } from 'react';
 
 import { brandColors } from '@/theme/brandTokens';
@@ -220,7 +221,9 @@ export function InviteFriendsModal({
               disabled={isLoading}
               InputProps={{
                 startAdornment: (
-                  <EmailIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                  <InputAdornment position="start">
+                    <EmailIcon sx={{ color: 'text.secondary' }} />
+                  </InputAdornment>
                 ),
               }}
               sx={{
