@@ -1,5 +1,7 @@
 import OpenAI from 'openai';
 
+import { estimateCostCents } from './ai-pricing';
+import { recordAiUsage } from './ai-usage';
 import { env } from './env';
 
 // Rate limiting configuration
@@ -87,11 +89,36 @@ Requirements:
 - Keep it friendly, concise, and natural. 1–2 sentences after the opener.
 - Return ONLY the script text, no quotes, no markdown.`;
 
+      const t0 = Date.now();
       const res = await client.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 120,
         temperature: 0.7,
+      });
+      const latencyMs = Date.now() - t0;
+      const inputTokens = (res as any).usage?.prompt_tokens as
+        | number
+        | undefined;
+      const outputTokens = (res as any).usage?.completion_tokens as
+        | number
+        | undefined;
+      const costCents = estimateCostCents({
+        provider: 'openai',
+        model: 'gpt-4o-mini',
+        ...(inputTokens != null ? { inputTokens } : {}),
+        ...(outputTokens != null ? { outputTokens } : {}),
+      });
+      await recordAiUsage({
+        action: 'AI_RENDER',
+        provider: 'openai',
+        model: 'gpt-4o-mini',
+        status: 'ok',
+        latencyMs,
+        ...(inputTokens != null ? { inputTokens } : {}),
+        ...(outputTokens != null ? { outputTokens } : {}),
+        costCents,
+        requestId: (res as any).id,
       });
       const content = res.choices[0]?.message?.content?.trim();
       if (!content) {
@@ -100,6 +127,16 @@ Requirements:
       return { success: true, script: content };
     } catch (error) {
       console.error('AI generateBorrowScript error:', error);
+      try {
+        await recordAiUsage({
+          action: 'AI_RENDER',
+          provider: 'openai',
+          model: 'gpt-4o-mini',
+          status: 'error',
+          errorMessage:
+            error instanceof Error ? error.message : 'Unknown error',
+        });
+      } catch {}
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Generation failed',
@@ -178,6 +215,7 @@ Requirements:
       const client = this.getClient();
       const maxTokens = options?.maxTokens || 150;
 
+      const t0 = Date.now();
       const response = await client.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
@@ -205,6 +243,31 @@ Focus on household items, furniture, electronics, kitchenware, tools, books, etc
         ],
         max_tokens: maxTokens,
         temperature: 0.1, // Low temperature for consistent responses
+      });
+
+      const latencyMs = Date.now() - t0;
+      const inputTokens = (response as any).usage?.prompt_tokens as
+        | number
+        | undefined;
+      const outputTokens = (response as any).usage?.completion_tokens as
+        | number
+        | undefined;
+      const costCents = estimateCostCents({
+        provider: 'openai',
+        model: 'gpt-4o-mini',
+        ...(inputTokens != null ? { inputTokens } : {}),
+        ...(outputTokens != null ? { outputTokens } : {}),
+      });
+      await recordAiUsage({
+        action: 'AI_RENDER',
+        provider: 'openai',
+        model: 'gpt-4o-mini',
+        status: 'ok',
+        latencyMs,
+        ...(inputTokens != null ? { inputTokens } : {}),
+        ...(outputTokens != null ? { outputTokens } : {}),
+        costCents,
+        requestId: (response as any).id,
       });
 
       const content = response.choices[0]?.message?.content;
@@ -253,6 +316,16 @@ Focus on household items, furniture, electronics, kitchenware, tools, books, etc
       };
     } catch (error) {
       console.error('AI classification error:', error);
+      try {
+        await recordAiUsage({
+          action: 'AI_RENDER',
+          provider: 'openai',
+          model: 'gpt-4o-mini',
+          status: 'error',
+          errorMessage:
+            error instanceof Error ? error.message : 'Unknown error',
+        });
+      } catch {}
 
       // Handle specific OpenAI errors
       if (error instanceof Error) {

@@ -1,4 +1,4 @@
-// import { db } from './db'; // TODO: Enable when audit_logs table is created
+import { db } from './db';
 
 export type AuditAction =
   | 'BORROW_REQUEST_CREATED'
@@ -48,17 +48,18 @@ export async function logAuditEntry({
 
     console.log('📋 AUDIT LOG:', JSON.stringify(auditEntry, null, 2));
 
-    // TODO: Store in database audit_logs table when created
-    // await db.auditLog.create({
-    //   data: {
-    //     action,
-    //     userId,
-    //     entityType,
-    //     entityId,
-    //     details: details ? JSON.stringify(details) : null,
-    //     metadata: metadata ? JSON.stringify(metadata) : null,
-    //   },
-    // });
+    await db.auditLog.create({
+      data: {
+        action,
+        userId,
+        entityType,
+        entityId,
+        details: (details || {}) as any,
+        metadata: (metadata || {}) as any,
+        ipAddress: metadata?.ipAddress ?? null,
+        userAgent: metadata?.userAgent ?? null,
+      },
+    });
   } catch (error) {
     // Don't let audit logging failure affect main operation
     console.error('❌ Failed to log audit entry:', error);
