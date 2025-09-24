@@ -233,47 +233,7 @@ export function InviteFriendsModal({
             </Alert>
           )}
 
-          <Box sx={{ mb: 3 }}>
-            <TextField
-              fullWidth
-              label="Friend's Email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="friend@example.com"
-              required
-              disabled={isLoading}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <EmailIcon sx={{ color: 'text.secondary' }} />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  backgroundColor: brandColors.white,
-                },
-              }}
-            />
-          </Box>
-
-          {/* Rate limiting notice */}
-          <Box
-            sx={{
-              p: 2,
-              bgcolor: 'rgba(59, 130, 246, 0.1)',
-              borderRadius: 1,
-              mb: 3,
-            }}
-          >
-            <Typography variant="body2" color="text.secondary">
-              💡 You can send up to {limitPerHour} invitations per hour.
-              Invitations expire after 7 days.
-            </Typography>
-          </Box>
-
-          {/* Share a Join Link */}
+          {/* Share a Join Link (top for visibility) */}
           <Box
             sx={{
               p: 2,
@@ -370,6 +330,46 @@ export function InviteFriendsModal({
                 Share…
               </Button>
             </Box>
+          </Box>
+
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              fullWidth
+              label="Friend's Email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="friend@example.com"
+              required
+              disabled={isLoading}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <EmailIcon sx={{ color: 'text.secondary' }} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: brandColors.white,
+                },
+              }}
+            />
+          </Box>
+
+          {/* Rate limiting notice */}
+          <Box
+            sx={{
+              p: 2,
+              bgcolor: 'rgba(59, 130, 246, 0.1)',
+              borderRadius: 1,
+              mb: 3,
+            }}
+          >
+            <Typography variant="body2" color="text.secondary">
+              💡 You can send up to {limitPerHour} invitations per hour.
+              Invitations expire after 7 days.
+            </Typography>
           </Box>
 
           {/* Existing Invitations */}
