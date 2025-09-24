@@ -667,9 +667,6 @@ export function ManageMembersModal({
         {/* +Add Tab (combined invite form + pending list) */}
         {activeTab === 1 && (userRole === 'owner' || userRole === 'admin') && (
           <Box component="section">
-            {console.log(
-              '[ManageMembersModal] rendering share section in +Add'
-            )}
             <Box
               sx={{
                 p: 2,
