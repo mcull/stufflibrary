@@ -26,6 +26,7 @@ export async function GET(
             id: true,
             name: true,
             image: true,
+            status: true,
             addresses: {
               where: { isActive: true },
               select: {
@@ -41,13 +42,14 @@ export async function GET(
           },
         },
         members: {
-          where: { isActive: true },
+          where: { isActive: true, user: { status: 'active' } },
           include: {
             user: {
               select: {
                 id: true,
                 name: true,
                 image: true,
+                status: true,
                 email: true,
                 addresses: {
                   where: { isActive: true },
@@ -112,6 +114,7 @@ export async function GET(
           },
         },
         active: true, // Only show active items
+        owner: { status: 'active' },
         ...(includeUnillustrated
           ? {}
           : {
@@ -178,7 +181,8 @@ export async function GET(
       updatedAt: library.updatedAt,
       owner: library.owner,
       userRole: effectiveRole,
-      memberCount: library._count.members + 1, // +1 for owner
+      memberCount:
+        library.members.length + (library.owner.status === 'active' ? 1 : 0),
       itemCount: items.length,
       inviteRateLimitPerHour: (library as any).inviteRateLimitPerHour ?? 0,
       members: [

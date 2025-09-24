@@ -47,6 +47,7 @@ export async function GET(
       where: {
         collectionId,
         isActive: true,
+        user: { status: 'active' },
       },
       include: {
         user: {
@@ -55,6 +56,7 @@ export async function GET(
             name: true,
             email: true,
             image: true,
+            status: true,
             addresses: {
               where: { isActive: true },
               take: 1,
@@ -85,6 +87,7 @@ export async function GET(
             name: true,
             email: true,
             image: true,
+            status: true,
             addresses: {
               where: { isActive: true },
               take: 1,
@@ -102,8 +105,8 @@ export async function GET(
     });
 
     const allMembers = [
-      // Owner
-      ...(collection?.owner
+      // Owner (only if active)
+      ...(collection?.owner && collection.owner.status === 'active'
         ? [
             {
               id: `owner-${collection.owner.id}`,
