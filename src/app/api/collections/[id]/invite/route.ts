@@ -12,6 +12,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  console.log('[api/collections/:id/invite POST] start', { id });
   try {
     const session = await getServerSession(authOptions);
 
@@ -26,6 +27,10 @@ export async function POST(
     const body = await request.json();
     const email = body?.email as string | undefined;
     const mode = (body?.mode as 'email' | 'link' | undefined) || 'email';
+    console.log('[api/collections/:id/invite] body', {
+      mode,
+      hasEmail: !!email,
+    });
     const sendEmail = body?.sendEmail !== false; // default true
 
     if (mode !== 'link' && (!email || typeof email !== 'string')) {
@@ -126,12 +131,12 @@ export async function POST(
       );
     }
 
-    // Rate limiting: max 5 invitations per hour per user
+    // Rate limiting per library (0 = unlimited)
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     const perHourLimit =
       (library as any).inviteRateLimitPerHour != null
         ? Number((library as any).inviteRateLimitPerHour)
-        : 5;
+        : 0;
     const recentInvitations = await db.invitation.count({
       where: {
         senderId: userId,
@@ -179,6 +184,11 @@ export async function POST(
     });
 
     const magicLink = `${process.env.NEXTAUTH_URL}/api/invitations/${token}`;
+    console.log('[api/collections/:id/invite] created token', {
+      mode,
+      tokenLen: token.length,
+      hasNextAuthUrl: !!process.env.NEXTAUTH_URL,
+    });
     // Send invitation email (email mode only, or if explicitly requested)
     if (mode === 'email' && sendEmail) {
       try {

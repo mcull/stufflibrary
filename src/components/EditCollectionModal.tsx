@@ -43,7 +43,6 @@ interface FormData {
   description: string;
   location: string;
   isPublic: boolean;
-  inviteRateLimitPerHour: number;
 }
 
 interface FormErrors {
@@ -82,10 +81,6 @@ export function EditCollectionModal({
         description: collection.description ?? '',
         location: collection.location ?? '',
         isPublic: collection.isPublic || false,
-        inviteRateLimitPerHour:
-          typeof collection.inviteRateLimitPerHour === 'number'
-            ? collection.inviteRateLimitPerHour
-            : 5,
       });
       setErrors({});
       setApiError(null);
@@ -161,15 +156,7 @@ export function EditCollectionModal({
       if (formData.isPublic !== collection.isPublic) {
         changes.isPublic = formData.isPublic;
       }
-      if (
-        formData.inviteRateLimitPerHour !==
-        (collection.inviteRateLimitPerHour ?? 5)
-      ) {
-        changes.inviteRateLimitPerHour = Math.max(
-          0,
-          Number(formData.inviteRateLimitPerHour) || 0
-        );
-      }
+      // Invitation rate limit setting is now hidden and defaults to unlimited.
 
       // Only make API call if there are actual changes
       if (Object.keys(changes).length === 0) {
@@ -400,25 +387,7 @@ export function EditCollectionModal({
             />
           </Box>
 
-          {/* Invitation Rate Limit */}
-          <TextField
-            label="Invites per hour"
-            type="number"
-            value={formData.inviteRateLimitPerHour}
-            onChange={(e) =>
-              setFormData((prev) => ({
-                ...prev,
-                inviteRateLimitPerHour: Math.max(
-                  0,
-                  Number(e.target.value) || 0
-                ),
-              }))
-            }
-            onKeyDown={handleKeyDown}
-            helperText="Set to 0 for unlimited"
-            disabled={isLoading}
-            fullWidth
-          />
+          {/* Invitation Rate Limit removed (defaults to unlimited) */}
 
           {/* Danger Zone */}
           {(onArchiveCollection || onDeleteCollection) && (

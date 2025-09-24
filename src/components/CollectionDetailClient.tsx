@@ -37,7 +37,6 @@ import { brandColors, spacing } from '@/theme/brandTokens';
 
 import { EditCollectionModal } from './EditCollectionModal';
 import { ExpandableText } from './ExpandableText';
-import { InviteFriendsModal } from './InviteFriendsModal';
 import { LibraryItemCard } from './LibraryItemCard';
 import { LibraryMap } from './LibraryMap';
 import { ManageMembersModal } from './ManageMembersModal';
@@ -167,7 +166,7 @@ export function CollectionDetailClient({
   const [checkoutCardOpen, setCheckoutCardOpen] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [selectedItemName, setSelectedItemName] = useState<string | null>(null);
-  const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [manageInitialTab, setManageInitialTab] = useState<0 | 1>(0);
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
   const [currentUserName, setCurrentUserName] = useState<string | null>(null);
   const [settingsMenuAnchor, setSettingsMenuAnchor] =
@@ -758,7 +757,10 @@ export function CollectionDetailClient({
             {(library?.userRole === 'owner' ||
               library?.userRole === 'admin') && (
               <IconButton
-                onClick={() => setInviteModalOpen(true)}
+                onClick={() => {
+                  setManageInitialTab(1);
+                  setManageMembersModalOpen(true);
+                }}
                 size="small"
                 sx={{
                   bgcolor: 'white',
@@ -1473,14 +1475,6 @@ export function CollectionDetailClient({
         />
       )}
 
-      {/* Invite Friends Modal */}
-      <InviteFriendsModal
-        libraryId={collectionId}
-        libraryName={library?.name || ''}
-        open={inviteModalOpen}
-        onClose={() => setInviteModalOpen(false)}
-      />
-
       {/* Manage Members Modal */}
       <ManageMembersModal
         collectionId={collectionId}
@@ -1488,6 +1482,7 @@ export function CollectionDetailClient({
         userRole={library?.userRole || null}
         open={manageMembersModalOpen}
         onClose={() => setManageMembersModalOpen(false)}
+        initialTab={manageInitialTab}
         onMembershipChanged={handleMembershipChanged}
       />
 
