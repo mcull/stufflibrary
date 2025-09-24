@@ -147,7 +147,7 @@ model Collection {
   isPublic    Boolean            @default(false)
   isArchived  Boolean            @default(false)
   archivedAt  DateTime?
-  inviteRateLimitPerHour Int?    @default(5)
+  inviteRateLimitPerHour Int?    @default(0)
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
   ownerId     String

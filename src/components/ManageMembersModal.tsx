@@ -45,6 +45,7 @@ interface ManageMembersModalProps {
   open: boolean;
   onClose: () => void;
   onMembershipChanged?: () => void; // Callback to refresh collection data
+  initialTab?: 0 | 1; // 0=Members, 1=+Add
 }
 
 interface Invitation {
@@ -86,8 +87,16 @@ export function ManageMembersModal({
   open,
   onClose,
   onMembershipChanged,
+  initialTab = 0,
 }: ManageMembersModalProps) {
-  const [activeTab, setActiveTab] = useState(0);
+  console.log('[ManageMembersModal] props', {
+    collectionId,
+    collectionName,
+    userRole,
+    open,
+    initialTab,
+  });
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -100,6 +109,33 @@ export function ManageMembersModal({
   const [_transferringOwnerId, setTransferringOwnerId] = useState<
     string | null
   >(null);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [limitPerHour, setLimitPerHour] = useState<number>(0);
+
+  const copyText = useCallback(async (text: string) => {
+    try {
+      if (
+        typeof navigator !== 'undefined' &&
+        (navigator as any).clipboard &&
+        typeof (navigator as any).clipboard.writeText === 'function'
+      ) {
+        await (navigator as any).clipboard.writeText(text);
+        return true;
+      }
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'absolute';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      return ok;
+    } catch {
+      return false;
+    }
+  }, []);
 
   const loadData = useCallback(async () => {
     setLoadingData(true);
@@ -127,10 +163,26 @@ export function ManageMembersModal({
   }, [collectionId]);
 
   useEffect(() => {
+    console.log('[ManageMembersModal] open effect', { open, collectionId });
     if (open) {
+      // Sync the active tab with the requested initial tab when opening
+      setActiveTab(initialTab);
       loadData();
+      fetch(`/api/collections/${collectionId}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (data?.collection?.inviteRateLimitPerHour != null) {
+            setLimitPerHour(Number(data.collection.inviteRateLimitPerHour));
+            console.log('[ManageMembersModal] loaded limit', {
+              limit: Number(data.collection.inviteRateLimitPerHour),
+            });
+          }
+        })
+        .catch((e) => {
+          console.log('[ManageMembersModal] failed to load limit', e);
+        });
     }
-  }, [open, loadData]);
+  }, [open, initialTab, loadData]);
 
   const handleInviteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -615,6 +667,119 @@ export function ManageMembersModal({
         {/* +Add Tab (combined invite form + pending list) */}
         {activeTab === 1 && (userRole === 'owner' || userRole === 'admin') && (
           <Box component="section">
+            <Box
+              sx={{
+                p: 2,
+                bgcolor: 'rgba(16, 185, 129, 0.08)',
+                border: '1px solid rgba(16,185,129,0.25)',
+                borderRadius: 1,
+                mb: 3,
+              }}
+            >
+              <Typography sx={{ fontWeight: 600, mb: 1, color: '#065f46' }}>
+                Prefer to share yourself?
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                Generate a magic join link and share via text, email, or any
+                app.
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                <Button
+                  variant="contained"
+                  size="small"
+                  disabled={shareLoading}
+                  onClick={async () => {
+                    try {
+                      setShareLoading(true);
+                      console.log(
+                        '[ManageMembersModal] Copy Join Link clicked'
+                      );
+                      const res = await fetch(
+                        `/api/collections/${collectionId}/invite`,
+                        {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ mode: 'link' }),
+                        }
+                      );
+                      const data = await res.json();
+                      const link: string | undefined = data?.link;
+                      if (!res.ok || !link)
+                        throw new Error(data?.error || 'Failed to create link');
+                      const ok = await copyText(link);
+                      setSuccess(
+                        ok
+                          ? 'Join link copied to clipboard'
+                          : `Join link: ${link}`
+                      );
+                    } catch (e) {
+                      console.log('[ManageMembersModal] copy link failed', e);
+                      setError(
+                        e instanceof Error ? e.message : 'Failed to copy link'
+                      );
+                    } finally {
+                      setShareLoading(false);
+                    }
+                  }}
+                >
+                  {shareLoading ? 'Preparing…' : 'Copy Join Link'}
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={async () => {
+                    try {
+                      setShareLoading(true);
+                      console.log('[ManageMembersModal] Share… clicked');
+                      const res = await fetch(
+                        `/api/collections/${collectionId}/invite`,
+                        {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ mode: 'link' }),
+                        }
+                      );
+                      const data = await res.json();
+                      const link: string | undefined = data?.link;
+                      if (!res.ok || !link)
+                        throw new Error(data?.error || 'Failed to create link');
+                      if (
+                        typeof navigator !== 'undefined' &&
+                        (navigator as any).share
+                      ) {
+                        console.log(
+                          '[ManageMembersModal] using navigator.share'
+                        );
+                        await (navigator as any).share({
+                          title: `Join ${collectionName} on StuffLibrary`,
+                          text: `Here’s your invite to ${collectionName}`,
+                          url: link,
+                        });
+                      } else {
+                        console.log(
+                          '[ManageMembersModal] navigator.share unavailable, copying'
+                        );
+                        const ok = await copyText(link);
+                        setSuccess(
+                          ok
+                            ? 'Share link copied to clipboard'
+                            : `Join link: ${link}`
+                        );
+                      }
+                    } catch (e) {
+                      console.log('[ManageMembersModal] share failed', e);
+                      setError(
+                        e instanceof Error ? e.message : 'Failed to share link'
+                      );
+                    } finally {
+                      setShareLoading(false);
+                    }
+                  }}
+                >
+                  Share…
+                </Button>
+              </Box>
+            </Box>
             <form onSubmit={handleInviteSubmit}>
               <Typography
                 variant="h6"
@@ -655,8 +820,9 @@ export function ManageMembersModal({
                 }}
               >
                 <Typography variant="body2" color="text.secondary">
-                  💡 You can send up to 5 invitations per hour. Invitations
-                  expire after 7 days.
+                  {limitPerHour === 0
+                    ? '💡 Invites are unlimited. Invitations expire after 7 days.'
+                    : `💡 You can send up to ${limitPerHour} invitations per hour. Invitations expire after 7 days.`}
                 </Typography>
               </Box>
 

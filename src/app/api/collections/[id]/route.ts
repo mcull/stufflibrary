@@ -180,7 +180,7 @@ export async function GET(
       userRole: effectiveRole,
       memberCount: library._count.members + 1, // +1 for owner
       itemCount: items.length,
-      inviteRateLimitPerHour: (library as any).inviteRateLimitPerHour ?? 5,
+      inviteRateLimitPerHour: (library as any).inviteRateLimitPerHour ?? 0,
       members: [
         // Include owner as first member
         {
@@ -418,7 +418,7 @@ export async function PUT(
       memberCount: updatedLibrary._count.members + 1,
       itemCount: updatedLibrary._count.items,
       inviteRateLimitPerHour:
-        (updatedLibrary as any).inviteRateLimitPerHour ?? 5,
+        (updatedLibrary as any).inviteRateLimitPerHour ?? 0,
     };
 
     return NextResponse.json({ collection: formattedLibrary });
