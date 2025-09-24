@@ -66,6 +66,7 @@ export function EditCollectionModal({
     description: '',
     location: '',
     isPublic: false,
+    inviteRateLimitPerHour: 5,
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
