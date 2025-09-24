@@ -569,7 +569,8 @@ export async function PATCH(
 
     // Parse request body
     const body = await request.json();
-    const { name, description, location, isPublic } = body;
+    const { name, description, location, isPublic, inviteRateLimitPerHour } =
+      body;
 
     // Validation
     const updates: any = {};
@@ -632,6 +633,17 @@ export async function PATCH(
       updates.isPublic = isPublic;
     }
 
+    if (inviteRateLimitPerHour !== undefined) {
+      const n = Number(inviteRateLimitPerHour);
+      if (Number.isNaN(n) || n < 0) {
+        return NextResponse.json(
+          { error: 'inviteRateLimitPerHour must be a number >= 0' },
+          { status: 400 }
+        );
+      }
+      updates.inviteRateLimitPerHour = Math.floor(n);
+    }
+
     // If no valid updates, return success without making changes
     if (Object.keys(updates).length === 0) {
       const library = await db.collection.findUnique({
@@ -642,6 +654,7 @@ export async function PATCH(
           description: true,
           location: true,
           isPublic: true,
+          inviteRateLimitPerHour: true,
         },
       });
 
@@ -658,6 +671,7 @@ export async function PATCH(
         description: true,
         location: true,
         isPublic: true,
+        inviteRateLimitPerHour: true,
         updatedAt: true,
       },
     });

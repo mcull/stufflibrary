@@ -97,6 +97,7 @@ interface LibraryData {
   description?: string;
   location?: string;
   isPublic: boolean;
+  inviteRateLimitPerHour?: number;
   createdAt: string;
   owner: {
     id: string;
@@ -1460,6 +1461,7 @@ export function CollectionDetailClient({
             description: library?.description ?? undefined,
             location: library?.location ?? undefined,
             isPublic: library?.isPublic,
+            inviteRateLimitPerHour: (library as any).inviteRateLimitPerHour,
           }}
           onSave={handleSaveCollection}
           {...(library?.userRole === 'owner'
