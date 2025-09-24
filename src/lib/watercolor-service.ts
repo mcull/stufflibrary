@@ -314,7 +314,8 @@ Use descriptive, specific labels that would help someone identify the item for b
   private async generateWatercolor(
     imageBuffer: Buffer,
     _mimeType: string,
-    hasPersons: boolean = false
+    hasPersons: boolean = false,
+    context?: { itemId?: string; userId?: string }
   ): Promise<Buffer> {
     const startTime = Date.now();
     console.log('🎨 Starting watercolor generation...');
@@ -381,6 +382,31 @@ Use descriptive, specific labels that would help someone identify the item for b
           console.log(
             `🎨 Total watercolor generation: ${totalTime}ms (resize: ${resizeTime}ms, API: ${apiTime}ms, extract: ${extractTime}ms)`
           );
+          // Log AI usage for Gemini image generation
+          try {
+            const { recordAiUsage } = await import('./ai-usage');
+            const { estimateCostCents } = await import('./ai-pricing');
+            const costCents = estimateCostCents({
+              provider: 'gemini',
+              model: 'gemini-2.5-flash-image-preview',
+              inputBytes: resizedImageBuffer.length,
+              outputBytes: buffer.length,
+            });
+            await recordAiUsage({
+              action: 'AI_RENDER',
+              provider: 'gemini',
+              model: 'gemini-2.5-flash-image-preview',
+              status: 'ok',
+              ...(context?.itemId ? { itemId: context.itemId } : {}),
+              ...(context?.userId ? { userId: context.userId } : {}),
+              latencyMs: apiTime,
+              inputBytes: resizedImageBuffer.length,
+              outputBytes: buffer.length,
+              costCents,
+            });
+          } catch (e) {
+            console.error('Failed to record AI usage (Gemini):', e);
+          }
           return buffer;
         }
       }
@@ -392,6 +418,19 @@ Use descriptive, specific labels that would help someone identify the item for b
         `❌ Watercolor generation failed after ${totalTime}ms:`,
         error
       );
+      try {
+        const { recordAiUsage } = await import('./ai-usage');
+        await recordAiUsage({
+          action: 'AI_RENDER',
+          provider: 'gemini',
+          model: 'gemini-2.5-flash-image-preview',
+          status: 'error',
+          ...(context?.itemId ? { itemId: context.itemId } : {}),
+          ...(context?.userId ? { userId: context.userId } : {}),
+          errorMessage:
+            error instanceof Error ? error.message : 'Unknown error',
+        });
+      } catch {}
       throw new Error('Failed to generate watercolor illustration');
     }
   }
@@ -579,7 +618,8 @@ Use descriptive, specific labels that would help someone identify the item for b
         const watercolorBuffer = await this.generateWatercolor(
           originalImageBuffer,
           mimeType,
-          hasPersons
+          hasPersons,
+          { itemId }
         );
         const watercolorTime = Date.now() - watercolorStart;
         console.log(
