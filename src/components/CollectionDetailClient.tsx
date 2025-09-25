@@ -111,7 +111,7 @@ interface LibraryData {
       formattedAddress?: string;
     }>;
   };
-  userRole: 'owner' | 'admin' | 'member' | null;
+  userRole: 'owner' | 'admin' | 'member' | 'guest' | null;
   memberCount: number;
   itemCount: number;
   members: Array<{
@@ -335,6 +335,27 @@ export function CollectionDetailClient({
     router.push(`/stuff/m/add-to-library/${collectionId}`);
   }, [handleAddMenuClose, collectionId, router]);
 
+  const joinLibrary = useCallback(async () => {
+    if (!library) return;
+    try {
+      const res = await fetch(`/api/collections/${collectionId}/join`, {
+        method: 'POST',
+      });
+      if (res.ok) {
+        window.location.reload();
+      } else if (res.status === 401) {
+        const returnTo = encodeURIComponent(`/collection/${collectionId}`);
+        window.location.href = `/api/auth/signin?callbackUrl=${returnTo}`;
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || 'Failed to join library');
+      }
+    } catch (e) {
+      console.error('Join library failed', e);
+      alert('Failed to join library');
+    }
+  }, [collectionId, library]);
+
   // Memoize map props at the top level
   const mapMembers = useMemo(() => {
     if (!library) return [];
@@ -478,6 +499,31 @@ export function CollectionDetailClient({
 
   return (
     <Container maxWidth="lg" sx={{ py: 4, position: 'relative' }}>
+      {/* Guest Banner (magic link guest pass) */}
+      {library?.userRole === 'guest' && (
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            p: 2,
+            mb: 2,
+            borderRadius: 2,
+            border: '1px solid rgba(25,118,210,0.2)',
+            bgcolor: 'rgba(25,118,210,0.05)',
+          }}
+        >
+          <Typography sx={{ color: brandColors.charcoal }}>
+            You’re viewing as a guest. Join this library to participate.
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button variant="contained" onClick={joinLibrary}>
+              Join Library
+            </Button>
+          </Box>
+        </Box>
+      )}
+
       {/* Welcome Banner for New Members */}
       {showWelcomeBanner && (
         <Alert
@@ -1479,7 +1525,9 @@ export function CollectionDetailClient({
       <ManageMembersModal
         collectionId={collectionId}
         collectionName={library?.name || ''}
-        userRole={library?.userRole || null}
+        userRole={
+          library?.userRole === 'guest' ? null : library?.userRole || null
+        }
         open={manageMembersModalOpen}
         onClose={() => setManageMembersModalOpen(false)}
         initialTab={manageInitialTab}
