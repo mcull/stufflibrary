@@ -16,6 +16,9 @@ export async function GET(
     }
 
     const { id: libraryId } = await params;
+    // Support guest access via invite cookie
+    const inviteToken = request.cookies.get('invite_token')?.value;
+    const inviteLibrary = request.cookies.get('invite_library')?.value;
 
     // Get library details
     const library = await db.collection.findUnique({
@@ -90,7 +93,23 @@ export async function GET(
       (session as any).user?.id ||
       (session as any).userId;
 
-    const userRole = userId === library.ownerId ? 'owner' : null;
+    let userRole = userId === library.ownerId ? 'owner' : null;
+    // Validate invite token for guest role
+    if (!userRole && inviteToken && inviteLibrary === libraryId) {
+      const inv = await db.invitation.findFirst({
+        where: {
+          token: inviteToken,
+          libraryId,
+          type: 'library',
+          status: { in: ['PENDING', 'SENT'] },
+          expiresAt: { gt: new Date() },
+        },
+        select: { id: true },
+      });
+      if (inv) {
+        userRole = 'guest' as any;
+      }
+    }
     const membership = library.members.find(
       (member) => member.userId === userId
     );

@@ -21,7 +21,7 @@ export async function GET(
     const invitation = await db.invitation.findFirst({
       where: {
         token,
-        type: 'collection',
+        type: 'library',
         status: { in: ['PENDING', 'SENT'] },
       },
       include: {
