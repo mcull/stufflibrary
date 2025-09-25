@@ -52,9 +52,24 @@ export async function POST(
       );
     }
 
-    // For now, only allow joining public collections
-    // TODO: Add invitation system for private collections
-    if (!collection.isPublic) {
+    // Allow join if collection is public OR a valid invite cookie is present
+    const inviteToken = request.cookies.get('invite_token')?.value;
+    const inviteLibrary = request.cookies.get('invite_library')?.value;
+    let inviteOk = false;
+    if (inviteToken && inviteLibrary === collectionId) {
+      const inv = await db.invitation.findFirst({
+        where: {
+          token: inviteToken,
+          libraryId: collectionId,
+          type: 'library',
+          status: { in: ['PENDING', 'SENT'] },
+          expiresAt: { gt: new Date() },
+        },
+        select: { id: true },
+      });
+      inviteOk = !!inv;
+    }
+    if (!collection.isPublic && !inviteOk) {
       return NextResponse.json(
         { error: 'This collection is private and requires an invitation' },
         { status: 403 }
@@ -99,6 +114,18 @@ export async function POST(
       });
     }
 
+    // If joined via invite cookie, mark invitation accepted
+    if (inviteOk && inviteToken) {
+      await db.invitation.updateMany({
+        where: { token: inviteToken, libraryId: collectionId },
+        data: {
+          status: 'ACCEPTED',
+          acceptedAt: new Date(),
+          receiverId: userId,
+        },
+      });
+    }
+
     // Get updated collection info
     const updatedCollection = await db.collection.findUnique({
       where: { id: collectionId },
@@ -132,13 +159,17 @@ export async function POST(
       owner: updatedCollection!.owner,
     };
 
-    return NextResponse.json(
+    const res = NextResponse.json(
       {
         message: 'Successfully joined collection',
         collection: formattedCollection,
       },
       { status: 201 }
     );
+    // Clear invite cookies after join
+    res.cookies.set('invite_token', '', { path: '/', maxAge: 0 });
+    res.cookies.set('invite_library', '', { path: '/', maxAge: 0 });
+    return res;
   } catch (error) {
     console.error('Error joining collection:', error);
     return NextResponse.json(
