@@ -159,13 +159,17 @@ export async function POST(
       owner: updatedCollection!.owner,
     };
 
-    return NextResponse.json(
+    const res = NextResponse.json(
       {
         message: 'Successfully joined collection',
         collection: formattedCollection,
       },
       { status: 201 }
     );
+    // Clear invite cookies after join
+    res.cookies.set('invite_token', '', { path: '/', maxAge: 0 });
+    res.cookies.set('invite_library', '', { path: '/', maxAge: 0 });
+    return res;
   } catch (error) {
     console.error('Error joining collection:', error);
     return NextResponse.json(
