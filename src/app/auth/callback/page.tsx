@@ -15,6 +15,9 @@ function AuthCallbackContent() {
 
   const invitationToken = searchParams.get('invitation');
   const libraryId = searchParams.get('library');
+  // Helper to read invite cookies (set by /invite/[token])
+  const getCookie = (name: string) =>
+    `; ${document.cookie}`.split(`; ${name}=`).pop()?.split(';')?.[0];
 
   useEffect(() => {
     if (status === 'loading' || isRedirecting) return;
@@ -37,7 +40,7 @@ function AuthCallbackContent() {
         const data = await response.json();
         const user = data.user;
 
-        // Handle invitation flow
+        // Handle invitation flow from query params (legacy path)
         if (invitationToken && libraryId && user) {
           if (user.profileCompleted) {
             const firstName = user.name?.split(' ')[0] || '';
@@ -57,6 +60,15 @@ function AuthCallbackContent() {
             );
             return;
           }
+        }
+
+        // Handle invite cookie flow (guest pass): redirect to collection
+        const inviteLibrary = getCookie('invite_library');
+        const inviteToken = getCookie('invite_token');
+        if (inviteLibrary && inviteToken) {
+          // Always prefer dropping into the invited collection over profile flows
+          router.replace(`/collection/${inviteLibrary}`);
+          return;
         }
 
         // Normal flow based on profile completion
