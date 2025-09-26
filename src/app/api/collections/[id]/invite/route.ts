@@ -183,7 +183,8 @@ export async function POST(
       },
     });
 
-    const magicLink = `${process.env.NEXTAUTH_URL}/api/invitations/${token}`;
+    const baseUrl = process.env.NEXTAUTH_URL || '';
+    const shareLink = `${baseUrl}/j/${token}`;
     console.log('[api/collections/:id/invite] created token', {
       mode,
       tokenLen: token.length,
@@ -218,7 +219,7 @@ export async function POST(
             </div>
             
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${magicLink}" 
+              <a href="${shareLink}" 
                  style="background-color: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; display: inline-block;">
                 Join ${invitation.collection?.name}
               </a>
@@ -256,7 +257,7 @@ export async function POST(
             status: 'PENDING',
             expiresAt: invitation.expiresAt,
           },
-          link: magicLink,
+          link: shareLink,
           warning: 'Invitation created but email sending failed',
         });
       }
@@ -270,7 +271,7 @@ export async function POST(
         status: mode === 'email' && sendEmail ? 'SENT' : 'PENDING',
         expiresAt: invitation.expiresAt,
       },
-      link: magicLink,
+      link: shareLink,
     });
   } catch (error) {
     console.error('Error sending invitation:', error);
