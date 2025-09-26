@@ -50,7 +50,7 @@ test.describe('Invite Guest Landing Flow', () => {
     libraryId = lib.id;
   });
 
-  test('guest invite sets cookies, shows collection, then after auth lands on collection (currently failing)', async ({
+  test('guest invite sets cookies, shows collection, then after auth lands on collection', async ({
     page,
   }) => {
     // Arrange: Create an invitation for the invitee
@@ -90,8 +90,6 @@ test.describe('Invite Guest Landing Flow', () => {
     await page.click('button[type="submit"]');
 
     // Expectation: After auth, we should be taken back to the invited collection
-    // NOTE: This currently fails because the auth callback reads client cookies,
-    // but invite cookies are httpOnly and not accessible client-side.
     await page.waitForURL(new RegExp(`/collection/${libraryId}$`), {
       timeout: 20000,
     });
