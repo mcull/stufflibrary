@@ -183,7 +183,9 @@ export async function POST(
       },
     });
 
-    const magicLink = `${process.env.NEXTAUTH_URL}/api/invitations/${token}`;
+    const base = process.env.NEXTAUTH_URL || '';
+    const magicLink = `${base}/api/invitations/${token}`;
+    const shareLink = `${base}/invite/${token}`; // guest-browse link for manual sharing
     console.log('[api/collections/:id/invite] created token', {
       mode,
       tokenLen: token.length,
@@ -256,7 +258,7 @@ export async function POST(
             status: 'PENDING',
             expiresAt: invitation.expiresAt,
           },
-          link: magicLink,
+          link: mode === 'link' ? shareLink : magicLink,
           warning: 'Invitation created but email sending failed',
         });
       }
@@ -270,7 +272,7 @@ export async function POST(
         status: mode === 'email' && sendEmail ? 'SENT' : 'PENDING',
         expiresAt: invitation.expiresAt,
       },
-      link: magicLink,
+      link: mode === 'link' ? shareLink : magicLink,
     });
   } catch (error) {
     console.error('Error sending invitation:', error);
