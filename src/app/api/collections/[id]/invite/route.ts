@@ -184,7 +184,6 @@ export async function POST(
     });
 
     const baseUrl = process.env.NEXTAUTH_URL || '';
-    const magicLink = `${baseUrl}/api/invitations/${token}`;
     const shareLink = `${baseUrl}/j/${token}`;
     console.log('[api/collections/:id/invite] created token', {
       mode,
@@ -220,7 +219,7 @@ export async function POST(
             </div>
             
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${magicLink}" 
+              <a href="${shareLink}" 
                  style="background-color: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; display: inline-block;">
                 Join ${invitation.collection?.name}
               </a>
