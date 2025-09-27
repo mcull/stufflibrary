@@ -67,10 +67,21 @@ interface LibraryItemCardProps {
     queueDepth: number;
   };
   libraryId?: string;
+  isGuest?: boolean;
 }
 
-export function LibraryItemCard({ item, libraryId }: LibraryItemCardProps) {
+export function LibraryItemCard({
+  item,
+  libraryId,
+  isGuest = false,
+}: LibraryItemCardProps) {
   const router = useRouter();
+
+  // Helper function to create redacted text effect for guests
+  const getRedactedName = (name?: string) => {
+    if (!isGuest || !name) return name || 'Anonymous';
+    return name.replace(/./g, '█');
+  };
 
   const handleClick = () => {
     const qp = libraryId ? `?src=library&lib=${libraryId}` : '';
@@ -225,13 +236,15 @@ export function LibraryItemCard({ item, libraryId }: LibraryItemCardProps) {
                         border: '1px solid white',
                         boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
                         fontSize: '0.7rem',
+                        filter: isGuest ? 'blur(4px)' : 'none',
                         '&:hover': {
                           transform: 'scale(1.1)',
                           transition: 'transform 0.2s ease',
                         },
                       }}
                     >
-                      {!displayUser?.image && (displayUser?.name?.[0] || '?')}
+                      {!displayUser?.image &&
+                        (getRedactedName(displayUser?.name)?.[0] || '?')}
                     </Avatar>
                   );
                 })()}
@@ -284,7 +297,14 @@ export function LibraryItemCard({ item, libraryId }: LibraryItemCardProps) {
 
         {/* Owner and Status Info */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <Avatar sx={{ width: 16, height: 16, fontSize: '0.6rem' }}>
+          <Avatar
+            sx={{
+              width: 16,
+              height: 16,
+              fontSize: '0.6rem',
+              filter: isGuest ? 'blur(4px)' : 'none',
+            }}
+          >
             {item.owner.image ? (
               <Image
                 src={item.owner.image}
@@ -297,7 +317,7 @@ export function LibraryItemCard({ item, libraryId }: LibraryItemCardProps) {
             )}
           </Avatar>
           <Typography variant="caption" color="text.secondary">
-            {item.owner.name || 'Anonymous'}
+            {getRedactedName(item.owner.name)}
           </Typography>
         </Box>
 

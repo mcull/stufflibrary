@@ -10,15 +10,27 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions);
+    const { id: libraryId } = await params;
+    const cookieInviteToken = request.cookies.get('invite_token')?.value;
+    const cookieInviteLibrary = request.cookies.get('invite_library')?.value;
+    console.log('[collections/:id GET] start', {
+      libraryId,
+      hasSessionUser: !!session?.user,
+      hasCookieInviteToken: !!cookieInviteToken,
+      cookieInviteLibrary,
+      url: request.url,
+    });
 
-    if (!session?.user) {
+    if (!session?.user && !cookieInviteToken) {
+      console.log(
+        '[collections/:id GET] no session and no invite token -> 401'
+      );
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id: libraryId } = await params;
     // Support guest access via invite cookie
-    const inviteToken = request.cookies.get('invite_token')?.value;
-    const inviteLibrary = request.cookies.get('invite_library')?.value;
+    const inviteToken = cookieInviteToken;
+    const inviteLibrary = cookieInviteLibrary;
 
     // Get library details
     const library = await db.collection.findUnique({
@@ -88,14 +100,16 @@ export async function GET(
 
     // Determine user role before fetching items, to decide visibility of
     // unillustrated items for owners/admins.
-    const userId =
-      (session.user as any).id ||
-      (session as any).user?.id ||
-      (session as any).userId;
+    const userId = session?.user
+      ? (session.user as any).id ||
+        (session as any).user?.id ||
+        (session as any).userId
+      : null;
 
     let userRole = userId === library.ownerId ? 'owner' : null;
     // Validate invite token for guest role
     if (!userRole && inviteToken && inviteLibrary === libraryId) {
+      console.log('[collections/:id GET] validating invite for guest role');
       const inv = await db.invitation.findFirst({
         where: {
           token: inviteToken,
@@ -107,6 +121,7 @@ export async function GET(
         select: { id: true },
       });
       if (inv) {
+        console.log('[collections/:id GET] invite valid -> guest role');
         userRole = 'guest' as any;
       }
     }
@@ -186,6 +201,7 @@ export async function GET(
 
     // Check if user has access to this library
     if (!effectiveRole && !library.isPublic) {
+      console.log('[collections/:id GET] access denied (no role, private)');
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
@@ -312,9 +328,14 @@ export async function GET(
       ),
     };
 
+    console.log('[collections/:id GET] success', {
+      role: effectiveRole,
+      memberCount: formattedLibrary.memberCount,
+      itemCount: formattedLibrary.itemCount,
+    });
     return NextResponse.json({ collection: formattedLibrary });
   } catch (error) {
-    console.error('Error fetching library:', error);
+    console.error('[collections/:id GET] error', error);
     return NextResponse.json(
       { error: 'Failed to fetch library' },
       { status: 500 }

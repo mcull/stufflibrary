@@ -1,7 +1,8 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { Suspense } from 'react';
 
 import { BottomNav } from './BottomNav';
 import { GlobalHeader } from './GlobalHeader';
@@ -13,19 +14,24 @@ interface ConditionalNavigationProps {
   backUrl?: string;
 }
 
-export function ConditionalNavigation({
+function NavigationContent({
   title,
   showBackButton = false,
   backUrl,
 }: ConditionalNavigationProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { data: session, status } = useSession();
 
   // Don't show navigation on auth pages or profile creation
   const isAuthPage = pathname.startsWith('/auth/');
   const isProfileCreation = pathname.startsWith('/profile/create');
 
-  if (isAuthPage || isProfileCreation) {
+  // Don't show navigation for guest users on collection pages
+  const isCollectionPage = pathname.startsWith('/collection/');
+  const isGuest = searchParams.get('guest') === '1';
+
+  if (isAuthPage || isProfileCreation || (isCollectionPage && isGuest)) {
     return null;
   }
 
@@ -50,4 +56,12 @@ export function ConditionalNavigation({
 
   // Show marketing header for unauthenticated users
   return <Header />;
+}
+
+export function ConditionalNavigation(props: ConditionalNavigationProps) {
+  return (
+    <Suspense fallback={null}>
+      <NavigationContent {...props} />
+    </Suspense>
+  );
 }

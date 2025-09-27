@@ -28,12 +28,14 @@ interface LibraryMapProps {
     latitude?: number | undefined;
     longitude?: number | undefined;
   };
+  isGuest?: boolean;
 }
 
 function LibraryMapComponent({
   libraryName,
   members,
   currentUser,
+  isGuest = false,
 }: LibraryMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -107,8 +109,11 @@ function LibraryMapComponent({
         zoom: 12,
         tilt: 45, // Re-enable tilt for 3D perspective
         disableDefaultUI: true,
-        zoomControl: true,
-        gestureHandling: 'greedy',
+        zoomControl: !isGuest,
+        gestureHandling: isGuest ? 'none' : 'greedy',
+        draggable: !isGuest,
+        scrollwheel: !isGuest,
+        doubleClickZoom: !isGuest,
       };
       if (process.env.NEXT_PUBLIC_GOOGLE_MAP_ID) {
         mapOptions.mapId = process.env.NEXT_PUBLIC_GOOGLE_MAP_ID;
@@ -198,6 +203,8 @@ function LibraryMapComponent({
         const markerSize = isCurrentUser ? 56 : 40;
         const borderColor = isCurrentUser ? '#1976d2' : '#ffffff';
         const borderWidth = isCurrentUser ? 3 : 2;
+        const blurFilter =
+          isGuest && !isCurrentUser ? 'filter: blur(4px);' : '';
 
         // Create custom marker HTML
         const markerDiv = document.createElement('div');
@@ -219,15 +226,15 @@ function LibraryMapComponent({
             ${
               member.image
                 ? `
-              <img 
-                src="${member.image}" 
-                alt="${member.name || 'Anonymous'}" 
-                style="width: 100%; height: 100%; object-fit: cover;"
-                onerror="this.style.display='none'; this.parentElement.innerHTML='${(member.name || 'A')[0]}'; this.parentElement.style.fontSize='${markerSize * 0.4}px'; this.parentElement.style.fontWeight='bold'; this.parentElement.style.color='#666';"
+              <img
+                src="${member.image}"
+                alt="${member.name || 'Anonymous'}"
+                style="width: 100%; height: 100%; object-fit: cover; ${blurFilter}"
+                onerror="this.style.display='none'; this.parentElement.innerHTML='${(member.name || 'A')[0]}'; this.parentElement.style.fontSize='${markerSize * 0.4}px'; this.parentElement.style.fontWeight='bold'; this.parentElement.style.color='#666'; this.parentElement.style.filter='${isGuest && !isCurrentUser ? 'blur(4px)' : ''}';"
               />
             `
                 : `
-              <span style="font-size: ${markerSize * 0.4}px; font-weight: bold; color: #666;">
+              <span style="font-size: ${markerSize * 0.4}px; font-weight: bold; color: #666; ${blurFilter}">
                 ${(member.name || 'A')[0]}
               </span>
             `
@@ -307,7 +314,7 @@ function LibraryMapComponent({
     };
 
     loadGoogleMaps();
-  }, [members, currentUser]);
+  }, [members, currentUser, isGuest]);
 
   return (
     <Paper
