@@ -54,6 +54,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             image: true,
             phone: true,
             email: true,
+            status: true,
           },
         },
         lender: {
@@ -63,6 +64,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             image: true,
             phone: true,
             email: true,
+            status: true,
           },
         },
         item: {
@@ -85,6 +87,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         { status: 404 }
       );
     }
+
+    // Keep borrow request details visible even if users are inactive - this is historical data
 
     // Check authorization - user must be either borrower or lender
     if (
@@ -178,6 +182,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
             name: true,
             phone: true,
             email: true,
+            status: true,
           },
         },
         lender: {
@@ -186,6 +191,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
             name: true,
             phone: true,
             email: true,
+            status: true,
           },
         },
         item: {

@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
     // Build search conditions
     const whereClause: {
       isPublic: boolean;
+      owner: { status: string };
       AND: Array<{
         ownerId?: { not: string };
         members?: { none: { userId: string; isActive: boolean } };
@@ -39,6 +40,8 @@ export async function GET(request: NextRequest) {
       }>;
     } = {
       isPublic: true,
+      // Only show libraries owned by active users
+      owner: { status: 'active' },
       // Exclude libraries the user is already a member of
       AND: [
         {
@@ -90,6 +93,7 @@ export async function GET(request: NextRequest) {
             id: true,
             name: true,
             image: true,
+            status: true,
           },
         },
         _count: {
