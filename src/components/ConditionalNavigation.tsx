@@ -2,6 +2,7 @@
 
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { Suspense } from 'react';
 
 import { BottomNav } from './BottomNav';
 import { GlobalHeader } from './GlobalHeader';
@@ -13,7 +14,7 @@ interface ConditionalNavigationProps {
   backUrl?: string;
 }
 
-export function ConditionalNavigation({
+function NavigationContent({
   title,
   showBackButton = false,
   backUrl,
@@ -55,4 +56,12 @@ export function ConditionalNavigation({
 
   // Show marketing header for unauthenticated users
   return <Header />;
+}
+
+export function ConditionalNavigation(props: ConditionalNavigationProps) {
+  return (
+    <Suspense fallback={null}>
+      <NavigationContent {...props} />
+    </Suspense>
+  );
 }
