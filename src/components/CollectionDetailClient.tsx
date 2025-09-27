@@ -513,13 +513,18 @@ export function CollectionDetailClient({
             bgcolor: 'rgba(25,118,210,0.05)',
           }}
         >
-          <Typography sx={{ color: brandColors.charcoal }}>
-            You’re viewing as a guest. Join this library to participate.
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button variant="contained" onClick={joinLibrary}>
-              Join Library
-            </Button>
+          <Box>
+            <Typography
+              sx={{ color: brandColors.charcoal, mb: 1, fontWeight: 600 }}
+            >
+              Welcome! Check this out 👋
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              This is a library of &lsquo;stuff&rsquo; — where folks can make
+              their lendable stuff more visible, so it&rsquo;s easier to share
+              more and buy less as a community. Take a look around. Instructions
+              on how to join at the bottom!
+            </Typography>
           </Box>
         </Box>
       )}
@@ -975,9 +980,32 @@ export function CollectionDetailClient({
             libraryName={library?.name}
             members={mapMembers}
             currentUser={mapCurrentUser}
+            isGuest={library?.userRole === 'guest'}
           />
         </Box>
       </Box>
+
+      {/* Privacy explanation for guests - under map */}
+      {library?.userRole === 'guest' && (
+        <Box
+          sx={{
+            p: 2,
+            mb: 3,
+            borderRadius: 2,
+            bgcolor: 'rgba(0, 0, 0, 0.02)',
+            border: '1px solid rgba(0, 0, 0, 0.06)',
+          }}
+        >
+          <Typography
+            variant="body2"
+            sx={{ color: 'text.secondary', textAlign: 'center' }}
+          >
+            We keep member details private until you join—that&rsquo;s just one
+            of the perks of being part of a trusted community! Once you&rsquo;re
+            in, you&rsquo;ll see who&rsquo;s who.
+          </Typography>
+        </Box>
+      )}
 
       {/* Filter Chips - moved below map */}
       <Box sx={{ mb: spacing.lg / 16 }}>
@@ -1109,6 +1137,7 @@ export function CollectionDetailClient({
                           key={item.id}
                           item={item}
                           libraryId={collectionId}
+                          isGuest={library?.userRole === 'guest'}
                         />
                       ))}
                     </Box>
@@ -1178,6 +1207,7 @@ export function CollectionDetailClient({
                           key={item.id}
                           item={item}
                           libraryId={collectionId}
+                          isGuest={library?.userRole === 'guest'}
                         />
                       ))}
                     </Box>
@@ -1291,6 +1321,52 @@ export function CollectionDetailClient({
               Add Your First Item
             </Button>
           )}
+        </Box>
+      )}
+
+      {/* Join section for guests - after items */}
+      {library?.userRole === 'guest' && (
+        <Box
+          sx={{
+            mt: spacing.xl / 16,
+            mb: spacing.xl / 16,
+            p: 3,
+            borderRadius: 2,
+            border: '1px solid rgba(25,118,210,0.2)',
+            bgcolor: 'rgba(25,118,210,0.05)',
+            textAlign: 'center',
+          }}
+        >
+          <Typography
+            variant="body2"
+            sx={{ fontWeight: 600, color: brandColors.charcoal, mb: 2 }}
+          >
+            Ready to join? It&rsquo;s easy:
+          </Typography>
+          <Box
+            component="ol"
+            sx={{
+              pl: 2,
+              m: 0,
+              mb: 3,
+              display: 'inline-block',
+              textAlign: 'left',
+              '& li': {
+                mb: 0.5,
+                fontSize: '0.875rem',
+                color: 'text.secondary',
+              },
+            }}
+          >
+            <li>Fill out a quick library card with your photo and address</li>
+            <li>Get verified by the community (usually same day!)</li>
+            <li>Start borrowing, lending, and saving money together</li>
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+            <Button variant="contained" size="small" onClick={joinLibrary}>
+              Sign me up!
+            </Button>
+          </Box>
         </Box>
       )}
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 
 import { BottomNav } from './BottomNav';
@@ -19,13 +19,18 @@ export function ConditionalNavigation({
   backUrl,
 }: ConditionalNavigationProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { data: session, status } = useSession();
 
   // Don't show navigation on auth pages or profile creation
   const isAuthPage = pathname.startsWith('/auth/');
   const isProfileCreation = pathname.startsWith('/profile/create');
 
-  if (isAuthPage || isProfileCreation) {
+  // Don't show navigation for guest users on collection pages
+  const isCollectionPage = pathname.startsWith('/collection/');
+  const isGuest = searchParams.get('guest') === '1';
+
+  if (isAuthPage || isProfileCreation || (isCollectionPage && isGuest)) {
     return null;
   }
 

@@ -21,8 +21,10 @@ export async function GET(
       url: request.url,
     });
 
-    if (!session?.user) {
-      console.log('[collections/:id GET] no session -> 401');
+    if (!session?.user && !cookieInviteToken) {
+      console.log(
+        '[collections/:id GET] no session and no invite token -> 401'
+      );
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -98,10 +100,11 @@ export async function GET(
 
     // Determine user role before fetching items, to decide visibility of
     // unillustrated items for owners/admins.
-    const userId =
-      (session.user as any).id ||
-      (session as any).user?.id ||
-      (session as any).userId;
+    const userId = session?.user
+      ? (session.user as any).id ||
+        (session as any).user?.id ||
+        (session as any).userId
+      : null;
 
     let userRole = userId === library.ownerId ? 'owner' : null;
     // Validate invite token for guest role
