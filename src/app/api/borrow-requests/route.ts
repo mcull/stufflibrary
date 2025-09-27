@@ -48,6 +48,7 @@ export async function GET(_request: NextRequest) {
             id: true,
             name: true,
             image: true,
+            status: true,
           },
         },
         lender: {
@@ -55,6 +56,7 @@ export async function GET(_request: NextRequest) {
             id: true,
             name: true,
             image: true,
+            status: true,
           },
         },
       },
@@ -63,7 +65,7 @@ export async function GET(_request: NextRequest) {
       },
     });
 
-    // Separate into categories
+    // Separate into categories (keep all requests for history - inactive users should appear in history)
     const sentRequests = borrowRequests.filter(
       (req) => req.borrowerId === userId
     );
@@ -183,9 +185,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get borrower details
-    const borrower = await db.user.findUnique({
-      where: { id: userId },
+    // Get borrower details (only if active)
+    const borrower = await db.user.findFirst({
+      where: { id: userId, status: 'active' },
       select: {
         id: true,
         name: true,
@@ -196,7 +198,7 @@ export async function POST(request: NextRequest) {
 
     if (!borrower) {
       return NextResponse.json(
-        { error: 'Borrower not found' },
+        { error: 'Account not active or not found' },
         { status: 400 }
       );
     }

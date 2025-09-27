@@ -26,6 +26,7 @@ export async function GET(
             id: true,
             name: true,
             image: true,
+            status: true,
           },
         },
         stuffType: {
@@ -55,6 +56,7 @@ export async function GET(
                 id: true,
                 name: true,
                 image: true,
+                status: true,
               },
             },
             lender: {
@@ -62,6 +64,7 @@ export async function GET(
                 id: true,
                 name: true,
                 image: true,
+                status: true,
               },
             },
           },
@@ -85,6 +88,12 @@ export async function GET(
       return NextResponse.json({ error: 'Item not found' }, { status: 404 });
     }
 
+    // Check if owner is active (if not active, hide item from non-owners for discovery)
+    if (item.owner?.status !== 'active' && item.ownerId !== userId) {
+      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+    }
+
+    // Keep all borrow requests for history - inactive users should appear in borrow history
     // Format response
     const activeBorrowRequest = item.borrowRequests?.[0] || null;
     const formattedItem = {
@@ -212,6 +221,7 @@ export async function PUT(
             id: true,
             name: true,
             image: true,
+            status: true,
           },
         },
         stuffType: {
@@ -396,6 +406,7 @@ export async function PATCH(
             id: true,
             name: true,
             image: true,
+            status: true,
           },
         },
         stuffType: {
@@ -425,6 +436,7 @@ export async function PATCH(
                 id: true,
                 name: true,
                 image: true,
+                status: true,
               },
             },
             lender: {
@@ -432,6 +444,7 @@ export async function PATCH(
                 id: true,
                 name: true,
                 image: true,
+                status: true,
               },
             },
           },

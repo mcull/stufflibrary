@@ -94,7 +94,10 @@ export async function GET() {
       where: {
         userId,
         isActive: true,
-        collection: { isArchived: false },
+        collection: {
+          isArchived: false,
+          owner: { status: 'active' },
+        },
       },
       select: {
         role: true,
@@ -107,7 +110,9 @@ export async function GET() {
             location: true,
             isPublic: true,
             createdAt: true,
-            owner: { select: { id: true, name: true, image: true } },
+            owner: {
+              select: { id: true, name: true, image: true, status: true },
+            },
             _count: {
               select: {
                 members: true,

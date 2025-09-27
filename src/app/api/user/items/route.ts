@@ -71,6 +71,7 @@ export async function GET(_request: NextRequest) {
                 id: true,
                 name: true,
                 image: true,
+                status: true,
               },
             },
           },
@@ -82,7 +83,7 @@ export async function GET(_request: NextRequest) {
       },
     });
 
-    // Format the response
+    // Format the response (preserve all borrow history including inactive users)
     const formattedItems = items.map((item) => ({
       id: item.id,
       name: item.name,
@@ -100,7 +101,7 @@ export async function GET(_request: NextRequest) {
         (item as any).collections?.map((il: any) => il.collection) || [],
       owner: (item as any).owner || null,
       isOnLoan: !!item.currentBorrowRequestId,
-      activeBorrower: item.borrowRequests[0]?.borrower || null,
+      activeBorrower: item.borrowRequests[0]?.borrower || null, // Keep all borrower history
     }));
 
     return NextResponse.json({ items: formattedItems });
