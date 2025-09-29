@@ -21,11 +21,11 @@ export default async function CollectionPage({
     const cookieStore = await cookies();
     const inviteToken = cookieStore.get('invite_token')?.value;
     const inviteLibrary = cookieStore.get('invite_library')?.value;
-    console.log('[collection page] redirecting to signin (no session)', {
-      hasInviteToken: !!inviteToken,
-      inviteLibrary,
-    });
-    redirect('/auth/signin');
+    const { id: collectionIdForCheck } = await params;
+    const allowGuest = inviteToken && inviteLibrary === collectionIdForCheck;
+    if (!allowGuest) {
+      redirect('/auth/signin');
+    }
   }
 
   const { id: collectionId } = await params;
