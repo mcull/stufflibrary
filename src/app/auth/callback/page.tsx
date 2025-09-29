@@ -15,9 +15,7 @@ function AuthCallbackContent() {
 
   const invitationToken = searchParams.get('invitation');
   const libraryId = searchParams.get('library');
-  // Helper to read invite cookies (set by /invite/[token])
-  const getCookie = (name: string) =>
-    `; ${document.cookie}`.split(`; ${name}=`).pop()?.split(';')?.[0];
+  // Client cookie reader no longer used; invite handling is server-side
 
   useEffect(() => {
     if (status === 'loading' || isRedirecting) return;
@@ -62,13 +60,28 @@ function AuthCallbackContent() {
           }
         }
 
-        // Handle invite cookie flow (guest pass): redirect to collection
-        const inviteLibrary = getCookie('invite_library');
-        const inviteToken = getCookie('invite_token');
-        if (inviteLibrary && inviteToken) {
-          // Always prefer dropping into the invited collection over profile flows
-          router.replace(`/collection/${inviteLibrary}`);
-          return;
+        // Handle invite cookie flow server-side: create membership and decide destination
+        try {
+          const consumeRes = await fetch('/api/invite/consume', {
+            method: 'POST',
+          });
+          if (consumeRes.ok) {
+            const body = await consumeRes
+              .json()
+              .catch(() => ({}) as { redirect?: string });
+            if (body?.redirect) {
+              const dest = body.redirect as string;
+              if (user?.profileCompleted) {
+                router.replace(dest);
+              } else {
+                const returnTo = encodeURIComponent(dest);
+                router.replace(`/profile/create?returnTo=${returnTo}`);
+              }
+              return;
+            }
+          }
+        } catch {
+          // ignore and continue
         }
 
         // Normal flow based on profile completion
