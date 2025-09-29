@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
         },
         _count: {
           select: {
-            members: { where: { isActive: true } },
+            members: { where: { isActive: true, user: { status: 'active' } } },
             items: true,
             invitations: true,
           },
