@@ -88,7 +88,7 @@ export async function GET(
         },
         _count: {
           select: {
-            members: true,
+            members: { where: { isActive: true } },
           },
         },
       },
@@ -438,7 +438,7 @@ export async function PUT(
         },
         _count: {
           select: {
-            members: true,
+            members: { where: { isActive: true } },
             items: {
               where: {
                 item: { currentBorrowRequestId: null },
@@ -505,7 +505,7 @@ export async function DELETE(
         _count: {
           select: {
             items: true,
-            members: true,
+            members: { where: { isActive: true } },
           },
         },
       },
