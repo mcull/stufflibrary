@@ -12,6 +12,7 @@ export async function POST(
     const session = await getServerSession(authOptions);
 
     if (!session?.user) {
+      console.log('[collections/:id/join] unauthorized: no session');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -109,6 +110,7 @@ export async function POST(
       }
     }
     if (!collection.isPublic && !inviteOk) {
+      console.log('[collections/:id/join] private and no valid invite');
       return NextResponse.json(
         { error: 'This collection is private and requires an invitation' },
         { status: 403 }
@@ -143,6 +145,7 @@ export async function POST(
       }
     } else {
       // Create new membership
+      console.log('[collections/:id/join] creating membership');
       await db.collectionMember.create({
         data: {
           userId,
@@ -214,7 +217,7 @@ export async function POST(
     res.cookies.set('invite_library', '', { path: '/', maxAge: 0 });
     return res;
   } catch (error) {
-    console.error('Error joining collection:', error);
+    console.error('[collections/:id/join] error', error);
     return NextResponse.json(
       { error: 'Failed to join collection' },
       { status: 500 }
