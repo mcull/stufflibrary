@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
       expired: invitation ? new Date() > invitation.expiresAt : undefined,
     });
 
+
     // Build base response now so we can always clear cookies
     const res = NextResponse.json({ redirect: `/collection/${inviteLibrary}` });
     res.cookies.set('invite_token', '', { path: '/', maxAge: 0 });
@@ -78,6 +79,7 @@ export async function POST(request: NextRequest) {
       console.log('[invite/consume] reactivating membership', {
         id: existing.id,
       });
+
       await db.collectionMember.update({
         where: { id: existing.id },
         data: { isActive: true },
@@ -88,6 +90,7 @@ export async function POST(request: NextRequest) {
 
     // Mark invite accepted
     console.log('[invite/consume] marking invite accepted');
+
     await db.invitation.updateMany({
       where: { token: inviteToken, libraryId: inviteLibrary },
       data: { status: 'ACCEPTED', acceptedAt: new Date(), receiverId: userId },
