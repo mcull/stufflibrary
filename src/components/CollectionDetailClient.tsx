@@ -200,9 +200,39 @@ export function CollectionDetailClient({
     fetchLibrary();
   }, [collectionId]);
 
-  // Handle welcome banner for new members
+  // Handle guest invite token storage and welcome banner for new members
   useEffect(() => {
     const message = searchParams.get('message');
+    const isGuest = searchParams.get('guest') === '1';
+
+    // Store invite token for guests (backup for cookie issues during auth flow)
+    if (isGuest && typeof window !== 'undefined') {
+      // Try to get invite token from cookies and store in localStorage as backup
+      const getCookie = (name: string) => {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop()?.split(';').shift();
+        return undefined;
+      };
+
+      const inviteToken = getCookie('invite_token');
+      const inviteLibrary = getCookie('invite_library');
+
+      console.log('[CollectionDetailClient] guest access detected', {
+        collectionId,
+        hasInviteToken: !!inviteToken,
+        hasInviteLibrary: !!inviteLibrary,
+        inviteLibraryMatch: inviteLibrary === collectionId,
+      });
+
+      if (inviteToken && inviteLibrary === collectionId) {
+        localStorage.setItem(`invite_token_${collectionId}`, inviteToken);
+        console.log(
+          '[CollectionDetailClient] stored invite token in localStorage'
+        );
+      }
+    }
+
     if (message === 'joined_successfully') {
       const welcomeName = searchParams.get('welcomeName');
       if (welcomeName) {
@@ -216,7 +246,7 @@ export function CollectionDetailClient({
       newUrl.searchParams.delete('welcomeName');
       window.history.replaceState({}, '', newUrl.toString());
     }
-  }, [searchParams]);
+  }, [searchParams, collectionId]);
 
   const handleCloseCheckoutCard = () => {
     setCheckoutCardOpen(false);
@@ -338,16 +368,48 @@ export function CollectionDetailClient({
   const joinLibrary = useCallback(async () => {
     if (!library) return;
     try {
+      // Try to get invite token from localStorage (backup for lost cookies)
+      const storedInviteToken = localStorage.getItem(
+        `invite_token_${collectionId}`
+      );
+      console.log('[CollectionDetailClient] joinLibrary attempt', {
+        collectionId,
+        hasStoredToken: !!storedInviteToken,
+      });
+
+      const requestBody: { inviteToken?: string } = {};
+      if (storedInviteToken) {
+        requestBody.inviteToken = storedInviteToken;
+      }
+
       const res = await fetch(`/api/collections/${collectionId}/join`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
       });
+
       if (res.ok) {
+        // Clean up stored invite token on successful join
+        localStorage.removeItem(`invite_token_${collectionId}`);
         window.location.reload();
       } else if (res.status === 401) {
+        // Store invite token in localStorage before redirecting to auth
+        if (storedInviteToken) {
+          localStorage.setItem(
+            `invite_token_${collectionId}`,
+            storedInviteToken
+          );
+        }
         const returnTo = encodeURIComponent(`/collection/${collectionId}`);
         window.location.href = `/api/auth/signin?callbackUrl=${returnTo}`;
       } else {
         const data = await res.json().catch(() => ({}));
+        console.error('[CollectionDetailClient] join failed', {
+          status: res.status,
+          error: data.error,
+        });
         alert(data.error || 'Failed to join library');
       }
     } catch (e) {

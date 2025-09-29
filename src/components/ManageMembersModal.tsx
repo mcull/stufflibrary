@@ -113,26 +113,36 @@ export function ManageMembersModal({
   const [limitPerHour, setLimitPerHour] = useState<number>(0);
 
   const copyText = useCallback(async (text: string) => {
+    console.log('[ManageMembersModal] copyText attempt', {
+      textLength: text?.length,
+    });
     try {
-      if (
-        typeof navigator !== 'undefined' &&
-        (navigator as any).clipboard &&
-        typeof (navigator as any).clipboard.writeText === 'function'
-      ) {
-        await (navigator as any).clipboard.writeText(text);
+      // Modern clipboard API (preferred)
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        console.log('[ManageMembersModal] clipboard API success');
         return true;
       }
+
+      // Fallback for older browsers
       const textarea = document.createElement('textarea');
       textarea.value = text;
       textarea.setAttribute('readonly', '');
       textarea.style.position = 'absolute';
       textarea.style.left = '-9999px';
+      textarea.style.top = '0';
       document.body.appendChild(textarea);
+
+      // Select and copy
       textarea.select();
-      const ok = document.execCommand('copy');
+      textarea.setSelectionRange(0, 99999); // For mobile devices
+      const success = document.execCommand('copy');
       document.body.removeChild(textarea);
-      return ok;
-    } catch {
+
+      console.log('[ManageMembersModal] fallback copy result', { success });
+      return success;
+    } catch (error) {
+      console.error('[ManageMembersModal] copy failed', error);
       return false;
     }
   }, []);
@@ -691,6 +701,8 @@ export function ManageMembersModal({
                   onClick={async () => {
                     try {
                       setShareLoading(true);
+                      setError(null);
+                      setSuccess(null);
                       console.log(
                         '[ManageMembersModal] Copy Join Link clicked'
                       );
@@ -703,19 +715,37 @@ export function ManageMembersModal({
                         }
                       );
                       const data = await res.json();
+                      console.log('[ManageMembersModal] invite API response', {
+                        ok: res.ok,
+                        hasLink: !!data?.link,
+                        linkLength: data?.link?.length,
+                      });
+
                       const link: string | undefined = data?.link;
-                      if (!res.ok || !link)
-                        throw new Error(data?.error || 'Failed to create link');
-                      const ok = await copyText(link);
-                      setSuccess(
-                        ok
-                          ? 'Join link copied to clipboard'
-                          : `Join link: ${link}`
-                      );
+                      if (!res.ok) {
+                        throw new Error(
+                          data?.error || `Server error: ${res.status}`
+                        );
+                      }
+                      if (!link) {
+                        throw new Error('No link received from server');
+                      }
+
+                      const copySuccess = await copyText(link);
+                      if (copySuccess) {
+                        setSuccess(
+                          'Join link copied to clipboard! Share it with friends.'
+                        );
+                      } else {
+                        // If copy failed, still show the link so user can manually copy
+                        setSuccess(`Copy failed, but here's the link: ${link}`);
+                      }
                     } catch (e) {
-                      console.log('[ManageMembersModal] copy link failed', e);
+                      console.error('[ManageMembersModal] copy link failed', e);
                       setError(
-                        e instanceof Error ? e.message : 'Failed to copy link'
+                        e instanceof Error
+                          ? e.message
+                          : 'Failed to create or copy link'
                       );
                     } finally {
                       setShareLoading(false);
