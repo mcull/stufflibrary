@@ -23,6 +23,14 @@ export default async function CollectionPage({
     const inviteLibrary = cookieStore.get('invite_library')?.value;
     const { id: collectionIdForCheck } = await params;
     const allowGuest = inviteToken && inviteLibrary === collectionIdForCheck;
+    console.log('[collection page] auth gate', {
+      hasSessionUser: !!session?.user,
+      guestParam: guest,
+      hasInviteToken: !!inviteToken,
+      inviteLibrary,
+      collectionIdForCheck,
+      allowGuest,
+    });
     if (!allowGuest) {
       redirect('/auth/signin');
     }

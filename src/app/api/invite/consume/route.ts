@@ -7,18 +7,27 @@ import { db } from '@/lib/db';
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
+    console.log('[invite/consume] start', {
+      url: request.url,
+      hasSessionUser: !!session?.user,
+      hasCookieInviteToken: !!request.cookies.get('invite_token')?.value,
+      inviteLibrary: request.cookies.get('invite_library')?.value,
+    });
     if (!session?.user) {
+      console.log('[invite/consume] no session user');
       return NextResponse.json({ redirect: null }, { status: 200 });
     }
 
     const inviteToken = request.cookies.get('invite_token')?.value;
     const inviteLibrary = request.cookies.get('invite_library')?.value;
     if (!inviteToken || !inviteLibrary) {
+      console.log('[invite/consume] missing cookies');
       return NextResponse.json({ redirect: null }, { status: 200 });
     }
 
     const userId = (session.user as { id?: string } | undefined)?.id;
     if (!userId) {
+      console.log('[invite/consume] missing userId from session');
       return NextResponse.json({ redirect: null }, { status: 200 });
     }
 
@@ -32,6 +41,11 @@ export async function POST(request: NextRequest) {
       },
       select: { id: true, expiresAt: true },
     });
+    console.log('[invite/consume] invitation lookup', {
+      found: !!invitation,
+      expired: invitation ? new Date() > invitation.expiresAt : undefined,
+    });
+
 
     // Build base response now so we can always clear cookies
     const res = NextResponse.json({ redirect: `/collection/${inviteLibrary}` });
@@ -39,6 +53,7 @@ export async function POST(request: NextRequest) {
     res.cookies.set('invite_library', '', { path: '/', maxAge: 0 });
 
     if (!invitation || new Date() > invitation.expiresAt) {
+      console.log('[invite/consume] invalid or expired invite; returning');
       return res;
     }
 
@@ -48,6 +63,10 @@ export async function POST(request: NextRequest) {
       select: { id: true, isActive: true },
     });
     if (!existing) {
+      console.log('[invite/consume] creating membership', {
+        userId,
+        inviteLibrary,
+      });
       await db.collectionMember.create({
         data: {
           userId,
@@ -57,20 +76,32 @@ export async function POST(request: NextRequest) {
         },
       });
     } else if (!existing.isActive) {
+      console.log('[invite/consume] reactivating membership', {
+        id: existing.id,
+      });
+
       await db.collectionMember.update({
         where: { id: existing.id },
         data: { isActive: true },
       });
+    } else {
+      console.log('[invite/consume] membership already active');
     }
 
     // Mark invite accepted
+    console.log('[invite/consume] marking invite accepted');
+
     await db.invitation.updateMany({
       where: { token: inviteToken, libraryId: inviteLibrary },
       data: { status: 'ACCEPTED', acceptedAt: new Date(), receiverId: userId },
     });
 
+    console.log('[invite/consume] returning redirect', {
+      to: `/collection/${inviteLibrary}`,
+    });
     return res;
-  } catch {
+  } catch (e) {
+    console.error('[invite/consume] error', e);
     return NextResponse.json({ redirect: null }, { status: 200 });
   }
 }
