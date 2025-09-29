@@ -52,10 +52,26 @@ export async function POST(
       );
     }
 
-    // Allow join if collection is public OR a valid invite cookie is present
+    // Allow join if collection is public OR a valid invite is present
     const inviteToken = request.cookies.get('invite_token')?.value;
     const inviteLibrary = request.cookies.get('invite_library')?.value;
+
+    // Also check for invite token in request body (fallback for cookie issues)
+    const body = await request.json().catch(() => ({}));
+    const bodyInviteToken = body?.inviteToken;
+
     let inviteOk = false;
+    let validInviteToken: string | undefined;
+
+    console.log('[collections/:id/join] checking invite access', {
+      collectionId,
+      hasCookieToken: !!inviteToken,
+      hasCookieLibrary: !!inviteLibrary,
+      cookieLibraryMatch: inviteLibrary === collectionId,
+      hasBodyToken: !!bodyInviteToken,
+    });
+
+    // Check cookie-based invite first
     if (inviteToken && inviteLibrary === collectionId) {
       const inv = await db.invitation.findFirst({
         where: {
@@ -67,7 +83,30 @@ export async function POST(
         },
         select: { id: true },
       });
-      inviteOk = !!inv;
+      if (inv) {
+        inviteOk = true;
+        validInviteToken = inviteToken;
+        console.log('[collections/:id/join] valid cookie invite found');
+      }
+    }
+
+    // Check body-based invite as fallback
+    if (!inviteOk && bodyInviteToken) {
+      const inv = await db.invitation.findFirst({
+        where: {
+          token: bodyInviteToken,
+          libraryId: collectionId,
+          type: 'library',
+          status: { in: ['PENDING', 'SENT'] },
+          expiresAt: { gt: new Date() },
+        },
+        select: { id: true },
+      });
+      if (inv) {
+        inviteOk = true;
+        validInviteToken = bodyInviteToken;
+        console.log('[collections/:id/join] valid body invite found');
+      }
     }
     if (!collection.isPublic && !inviteOk) {
       return NextResponse.json(
@@ -114,10 +153,14 @@ export async function POST(
       });
     }
 
-    // If joined via invite cookie, mark invitation accepted
-    if (inviteOk && inviteToken) {
+    // If joined via invite, mark invitation accepted
+    if (inviteOk && validInviteToken) {
+      console.log('[collections/:id/join] marking invitation accepted', {
+        token: validInviteToken.slice(0, 8) + '...',
+        userId,
+      });
       await db.invitation.updateMany({
-        where: { token: inviteToken, libraryId: collectionId },
+        where: { token: validInviteToken, libraryId: collectionId },
         data: {
           status: 'ACCEPTED',
           acceptedAt: new Date(),
