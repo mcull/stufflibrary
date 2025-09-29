@@ -182,7 +182,7 @@ export async function POST(
         },
         _count: {
           select: {
-            members: true,
+            members: { where: { isActive: true } },
             items: true,
           },
         },

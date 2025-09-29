@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
         },
         _count: {
           select: {
-            members: true,
+            members: { where: { isActive: true } },
             items: {
               where: {
                 item: { currentBorrowRequestId: null },

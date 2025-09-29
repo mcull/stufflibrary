@@ -82,7 +82,7 @@ export async function GET() {
         },
         _count: {
           select: {
-            members: true,
+            members: { where: { isActive: true } },
             items: { where: { item: { currentBorrowRequestId: null } } },
           },
         },
@@ -115,7 +115,7 @@ export async function GET() {
             },
             _count: {
               select: {
-                members: true,
+                members: { where: { isActive: true } },
                 items: { where: { item: { currentBorrowRequestId: null } } },
               },
             },
