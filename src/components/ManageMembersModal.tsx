@@ -711,7 +711,7 @@ export function ManageMembersModal({
                       setError(null);
                       setSuccess(null);
                       console.log(
-                        '[ManageMembersModal] Copy Join Link clicked'
+                        '[ManageMembersModal] Share/Copy Join Link clicked'
                       );
                       const res = await fetch(
                         `/api/collections/${collectionId}/invite`,
@@ -738,18 +738,22 @@ export function ManageMembersModal({
                         throw new Error('No link received from server');
                       }
 
+                      // Detect if we're on mobile
+                      const isMobile =
+                        typeof navigator !== 'undefined' &&
+                        /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
                       // On mobile, prefer native share over clipboard (more reliable on iOS)
                       if (
+                        isMobile &&
                         typeof navigator !== 'undefined' &&
-                        (navigator as any).share &&
-                        /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+                        (navigator as any).share
                       ) {
                         console.log(
                           '[ManageMembersModal] using navigator.share on mobile'
                         );
+                        // Only pass url to avoid "text + url" when copying from share sheet
                         await (navigator as any).share({
-                          title: `Join ${collectionName} on StuffLibrary`,
-                          text: `Here's your invite to ${collectionName}`,
                           url: link,
                         });
                         // Don't set success message for share, as the action is self-evident
@@ -768,7 +772,10 @@ export function ManageMembersModal({
                         }
                       }
                     } catch (e) {
-                      console.error('[ManageMembersModal] copy link failed', e);
+                      console.error(
+                        '[ManageMembersModal] share/copy link failed',
+                        e
+                      );
                       // Only show error if it's not user cancellation of share dialog
                       if (
                         !(e instanceof Error && e.name === 'AbortError') &&
@@ -785,61 +792,12 @@ export function ManageMembersModal({
                     }
                   }}
                 >
-                  {shareLoading ? 'Preparing…' : 'Copy Join Link'}
-                </Button>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={async () => {
-                    try {
-                      setShareLoading(true);
-                      console.log('[ManageMembersModal] Share… clicked');
-                      const res = await fetch(
-                        `/api/collections/${collectionId}/invite`,
-                        {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ mode: 'link' }),
-                        }
-                      );
-                      const data = await res.json();
-                      const link: string | undefined = data?.link;
-                      if (!res.ok || !link)
-                        throw new Error(data?.error || 'Failed to create link');
-                      if (
-                        typeof navigator !== 'undefined' &&
-                        (navigator as any).share
-                      ) {
-                        console.log(
-                          '[ManageMembersModal] using navigator.share'
-                        );
-                        await (navigator as any).share({
-                          title: `Join ${collectionName} on StuffLibrary`,
-                          text: `Here’s your invite to ${collectionName}`,
-                          url: link,
-                        });
-                      } else {
-                        console.log(
-                          '[ManageMembersModal] navigator.share unavailable, copying'
-                        );
-                        const ok = await copyText(link);
-                        setSuccess(
-                          ok
-                            ? 'Share link copied to clipboard'
-                            : `Join link: ${link}`
-                        );
-                      }
-                    } catch (e) {
-                      console.log('[ManageMembersModal] share failed', e);
-                      setError(
-                        e instanceof Error ? e.message : 'Failed to share link'
-                      );
-                    } finally {
-                      setShareLoading(false);
-                    }
-                  }}
-                >
-                  Share…
+                  {shareLoading
+                    ? 'Preparing…'
+                    : typeof navigator !== 'undefined' &&
+                        /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+                      ? 'Share Link'
+                      : 'Copy Join Link'}
                 </Button>
               </Box>
             </Box>
