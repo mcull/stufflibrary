@@ -488,7 +488,7 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
       const blob = await response.blob();
 
       // If we don't have a draft item yet, create one
-      let itemId = draftItemId;
+      let itemId: string = draftItemId || '';
       if (!itemId) {
         const draftFormData = new FormData();
         draftFormData.append('image', blob, 'capture.jpg');
@@ -503,7 +503,7 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
         }
 
         const draftResult = await draftResponse.json();
-        itemId = draftResult.itemId;
+        itemId = draftResult.itemId as string;
         setDraftItemId(itemId);
         console.log('✅ Draft item created:', itemId);
       }
