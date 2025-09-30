@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import {
@@ -33,6 +33,7 @@ export function ProfileCreationHandler({
   const [loadingUser, setLoadingUser] = useState(false);
   const [userId, setUserId] = useState<string | undefined>(userIdProp);
   const [user, setUser] = useState<typeof userProp>(userProp);
+  const searchParams = useSearchParams();
 
   // Ensure we have the current user and id; redirect if unauthorized
   useEffect(() => {
@@ -135,8 +136,18 @@ export function ProfileCreationHandler({
       // Clear any draft data
       localStorage.removeItem('profile-wizard-draft');
 
-      // Redirect to lobby with welcome message
-      router.push('/stacks?welcome=true');
+      // Redirect to intended destination if provided, otherwise to lobby
+      const returnTo = searchParams?.get('returnTo');
+      if (returnTo) {
+        try {
+          const decoded = decodeURIComponent(returnTo);
+          router.push(decoded);
+        } catch {
+          router.push('/stacks?welcome=true');
+        }
+      } else {
+        router.push('/stacks?welcome=true');
+      }
       router.refresh(); // Refresh to update session data
     } catch (error) {
       alert(

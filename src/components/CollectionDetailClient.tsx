@@ -402,8 +402,10 @@ export function CollectionDetailClient({
             storedInviteToken
           );
         }
-        const returnTo = encodeURIComponent(`/collection/${collectionId}`);
-        window.location.href = `/api/auth/signin?callbackUrl=${returnTo}`;
+        // Always route through our smart auth callback so invite consumption
+        // and profile completion logic can run before landing on the library
+        const callback = encodeURIComponent('/auth/callback');
+        window.location.href = `/auth/signin?callbackUrl=${callback}`;
       } else {
         const data = await res.json().catch(() => ({}));
         console.error('[CollectionDetailClient] join failed', {
