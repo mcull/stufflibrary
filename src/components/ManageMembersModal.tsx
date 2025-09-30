@@ -117,25 +117,32 @@ export function ManageMembersModal({
       textLength: text?.length,
     });
     try {
-      // Modern clipboard API (preferred)
+      // Try modern clipboard API first
       if (navigator?.clipboard?.writeText) {
         await navigator.clipboard.writeText(text);
         console.log('[ManageMembersModal] clipboard API success');
         return true;
       }
 
-      // Fallback for older browsers
+      // Fallback for browsers without clipboard API
+      // Create a temporary textarea element
       const textarea = document.createElement('textarea');
       textarea.value = text;
       textarea.setAttribute('readonly', '');
-      textarea.style.position = 'absolute';
-      textarea.style.left = '-9999px';
+      // Make it visible but off-screen for iOS
+      textarea.style.position = 'fixed';
+      textarea.style.left = '0';
       textarea.style.top = '0';
+      textarea.style.opacity = '0';
+      textarea.style.pointerEvents = 'none';
       document.body.appendChild(textarea);
 
-      // Select and copy
+      // Focus and select the text
+      textarea.focus();
       textarea.select();
-      textarea.setSelectionRange(0, 99999); // For mobile devices
+      textarea.setSelectionRange(0, textarea.value.length);
+
+      // Try to copy
       const success = document.execCommand('copy');
       document.body.removeChild(textarea);
 
@@ -731,22 +738,48 @@ export function ManageMembersModal({
                         throw new Error('No link received from server');
                       }
 
-                      const copySuccess = await copyText(link);
-                      if (copySuccess) {
-                        setSuccess(
-                          'Join link copied to clipboard! Share it with friends.'
+                      // On mobile, prefer native share over clipboard (more reliable on iOS)
+                      if (
+                        typeof navigator !== 'undefined' &&
+                        (navigator as any).share &&
+                        /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+                      ) {
+                        console.log(
+                          '[ManageMembersModal] using navigator.share on mobile'
                         );
+                        await (navigator as any).share({
+                          title: `Join ${collectionName} on StuffLibrary`,
+                          text: `Here's your invite to ${collectionName}`,
+                          url: link,
+                        });
+                        // Don't set success message for share, as the action is self-evident
                       } else {
-                        // If copy failed, still show the link so user can manually copy
-                        setSuccess(`Copy failed, but here's the link: ${link}`);
+                        // Desktop: use clipboard
+                        const copySuccess = await copyText(link);
+                        if (copySuccess) {
+                          setSuccess(
+                            'Join link copied to clipboard! Share it with friends.'
+                          );
+                        } else {
+                          // If copy failed, still show the link so user can manually copy
+                          setSuccess(
+                            `Copy failed, but here's the link: ${link}`
+                          );
+                        }
                       }
                     } catch (e) {
                       console.error('[ManageMembersModal] copy link failed', e);
-                      setError(
-                        e instanceof Error
-                          ? e.message
-                          : 'Failed to create or copy link'
-                      );
+                      // Only show error if it's not user cancellation of share dialog
+                      if (
+                        !(e instanceof Error && e.name === 'AbortError') &&
+                        !(e instanceof DOMException && e.name === 'AbortError')
+                      ) {
+                        setError(
+                          e instanceof Error
+                            ? e.message
+                            : 'Failed to create or share link'
+                        );
+                      }
                     } finally {
                       setShareLoading(false);
                     }
