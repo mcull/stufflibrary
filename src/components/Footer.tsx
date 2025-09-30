@@ -13,26 +13,15 @@ const footerSections = [
   {
     title: 'Product',
     links: [
-      { label: 'How It Works', href: '#' },
-      { label: 'Features', href: '#' },
-      { label: 'Safety', href: '#' },
-    ],
-  },
-  {
-    title: 'Company',
-    links: [
+      { label: 'Features & FAQ', href: '/features' },
       { label: 'About Us', href: '/about' },
-      { label: 'Our Mission', href: '#' },
-      { label: 'Success Stories', href: '#' },
     ],
   },
   {
     title: 'Support',
     links: [
-      { label: 'Community Guidelines', href: '#' },
       { label: 'Feedback', href: '/feedback' },
       { label: 'Contact Us', href: 'mailto:hello@stufflibrary.org' },
-      { label: 'Report Issue', href: '#' },
     ],
   },
 ];
