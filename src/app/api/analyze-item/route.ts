@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const image = formData.get('image') as File;
+    const nameHint = formData.get('nameHint') as string | null;
 
     if (!image) {
       return NextResponse.json({ error: 'No image provided' }, { status: 400 });
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
             {
               type: 'text',
               text: `Analyze this image and identify the main object. This is for a community sharing library that only accepts normal household goods.
-
+${nameHint ? `\n              USER HINT: The user indicated this might be a "${nameHint}". Use this hint to help identify the object in the image, but still verify it matches what you see.\n` : ''}
               IMPORTANT CONTENT RESTRICTIONS:
               - REJECT items that are: illegal, unsafe, inappropriate, nudity, weapons, firearms, alcohol, tobacco, drugs, age-restricted items, or anything requiring ID verification
               - REJECT items that appear dangerous, hazardous, or could cause harm

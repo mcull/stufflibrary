@@ -16,6 +16,7 @@ import {
   CircularProgress,
   Alert,
   IconButton,
+  TextField,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { useRef, useState, useCallback, useEffect } from 'react';
@@ -119,6 +120,8 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
   const [isGeneratingWatercolor, setIsGeneratingWatercolor] = useState(false);
   const [watercolorUrl, setWatercolorUrl] = useState<string | null>(null);
   const [showWatercolor, setShowWatercolor] = useState(false);
+  const [showHintInput, setShowHintInput] = useState(false);
+  const [nameHint, setNameHint] = useState('');
 
   // Request camera permission and start stream
   const startCamera = useCallback(async () => {
@@ -304,6 +307,10 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
           // Step 2: Get AI analysis
           const analysisFormData = new FormData();
           analysisFormData.append('image', blob, 'capture.jpg');
+          // Include hint if available (empty string means no hint)
+          if (nameHint) {
+            analysisFormData.append('nameHint', nameHint);
+          }
 
           const analysisResponse = await fetch('/api/analyze-item', {
             method: 'POST',
@@ -399,7 +406,7 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
       'image/jpeg',
       0.8
     );
-  }, [shouldMirrorCamera]);
+  }, [shouldMirrorCamera, nameHint]);
 
   // Add item and navigate to metadata page
   const addItem = useCallback(async () => {
@@ -459,8 +466,145 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
     setIsGeneratingWatercolor(false);
     setWatercolorUrl(null);
     setShowWatercolor(false);
+    setShowHintInput(false);
+    setNameHint('');
     setState('streaming');
   }, []);
+
+  // Retry analysis with hint on the existing captured image
+  const retryWithHint = useCallback(async () => {
+    if (!capturedImageUrl || !nameHint.trim()) {
+      return;
+    }
+
+    console.log('🔄 Retrying analysis with hint:', nameHint);
+    setIsAnalyzing(true);
+    setState('capturing');
+    setError(null);
+
+    try {
+      // Convert data URL back to blob
+      const response = await fetch(capturedImageUrl);
+      const blob = await response.blob();
+
+      // If we don't have a draft item yet, create one
+      let itemId = draftItemId;
+      if (!itemId) {
+        const draftFormData = new FormData();
+        draftFormData.append('image', blob, 'capture.jpg');
+
+        const draftResponse = await fetch('/api/items/create-draft', {
+          method: 'POST',
+          body: draftFormData,
+        });
+
+        if (!draftResponse.ok) {
+          throw new Error('Failed to create draft item');
+        }
+
+        const draftResult = await draftResponse.json();
+        itemId = draftResult.itemId;
+        setDraftItemId(itemId);
+        console.log('✅ Draft item created:', itemId);
+      }
+
+      // Analyze with hint
+      const analysisFormData = new FormData();
+      analysisFormData.append('image', blob, 'capture.jpg');
+      analysisFormData.append('nameHint', nameHint.trim());
+
+      const analysisResponse = await fetch('/api/analyze-item', {
+        method: 'POST',
+        body: analysisFormData,
+      });
+
+      if (!analysisResponse.ok) {
+        throw new Error('Analysis failed');
+      }
+
+      const analysisResult = await analysisResponse.json();
+      console.log('🔍 Analysis result with hint:', analysisResult);
+
+      if (analysisResult.recognized && analysisResult.name) {
+        // Update item with analysis results
+        const updateAnalysisResponse = await fetch(
+          '/api/items/update-analysis',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              itemId: itemId,
+              name: analysisResult.name,
+              description: analysisResult.description,
+              category: analysisResult.category,
+            }),
+          }
+        );
+
+        if (updateAnalysisResponse.ok) {
+          console.log('✅ Item updated with analysis');
+        }
+
+        // Set recognition results for UI
+        setRecognitionResult({
+          name: analysisResult.name,
+          description: analysisResult.description || '',
+          confidence: analysisResult.confidence || 0,
+          category: analysisResult.category || 'other',
+        });
+
+        setUploadedItem({
+          id: itemId,
+          name: analysisResult.name,
+        });
+
+        setIsAnalyzing(false);
+        setState('recognized');
+        setShowHintInput(false);
+
+        // Start watercolor generation
+        setIsGeneratingWatercolor(true);
+
+        fetch('/api/items/render-watercolor', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ itemId: itemId }),
+        })
+          .then(async (watercolorResponse) => {
+            if (watercolorResponse.ok) {
+              const watercolorResult = await watercolorResponse.json();
+              console.log(
+                '🎨 Watercolor generated:',
+                watercolorResult.watercolorUrl
+              );
+              setWatercolorUrl(watercolorResult.watercolorUrl);
+              setTimeout(() => {
+                setShowWatercolor(true);
+                setIsGeneratingWatercolor(false);
+              }, 100);
+            } else {
+              console.error('❌ Watercolor generation failed');
+              setIsGeneratingWatercolor(false);
+            }
+          })
+          .catch((error) => {
+            console.error('❌ Watercolor generation failed:', error);
+            setIsGeneratingWatercolor(false);
+          });
+      } else {
+        setError(
+          'Still could not identify the item with that hint. Please try a new photo or different hint.'
+        );
+        setState('error');
+        setIsAnalyzing(false);
+      }
+    } catch (err) {
+      console.error('❌ Error retrying with hint:', err);
+      setError('Failed to analyze with hint. Please try again.');
+      setState('error');
+      setIsAnalyzing(false);
+    }
+  }, [capturedImageUrl, nameHint, draftItemId]);
 
   // Handle library selection completion
   const handleLibrarySelectionComplete = useCallback(
@@ -900,7 +1044,7 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
 
       case 'error':
         return (
-          <Box sx={{ textAlign: 'center', py: 4 }}>
+          <Box sx={{ textAlign: 'center', py: 4, px: 2 }}>
             <ErrorIcon sx={{ fontSize: 64, color: 'error.main', mb: 2 }} />
             <Typography variant="h6" gutterBottom>
               Oops!
@@ -908,13 +1052,99 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
             <Alert severity="error" sx={{ mb: 3, maxWidth: 400, mx: 'auto' }}>
               {error}
             </Alert>
-            <Button
-              variant="contained"
-              onClick={retryCapture}
-              sx={{ borderRadius: 2 }}
-            >
-              Try Again
-            </Button>
+
+            {/* Show captured image if available */}
+            {capturedImageUrl && (
+              <Box
+                sx={{
+                  mb: 3,
+                  maxWidth: 300,
+                  mx: 'auto',
+                  borderRadius: 2,
+                  overflow: 'hidden',
+                  boxShadow: 2,
+                }}
+              >
+                <img
+                  src={capturedImageUrl}
+                  alt="Captured item"
+                  style={{ width: '100%', display: 'block' }}
+                />
+              </Box>
+            )}
+
+            {/* Show hint input or hint input button */}
+            {showHintInput ? (
+              <Box sx={{ mb: 3, maxWidth: 400, mx: 'auto' }}>
+                <Typography
+                  variant="body2"
+                  sx={{ mb: 2, color: 'text.secondary' }}
+                >
+                  Give us a hint about what this item is, and we&apos;ll try
+                  again with this photo.
+                </Typography>
+                <TextField
+                  fullWidth
+                  label="What is this item?"
+                  placeholder="e.g., gas can, radial saw, ladder..."
+                  value={nameHint}
+                  onChange={(e) => setNameHint(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && nameHint.trim()) {
+                      retryWithHint();
+                    }
+                  }}
+                  autoFocus
+                  sx={{ mb: 2 }}
+                />
+                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+                  <Button
+                    variant="outlined"
+                    onClick={() => {
+                      setShowHintInput(false);
+                      setNameHint('');
+                    }}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="contained"
+                    onClick={retryWithHint}
+                    disabled={!nameHint.trim() || isAnalyzing}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    {isAnalyzing ? 'Analyzing...' : 'Try with Hint'}
+                  </Button>
+                </Box>
+              </Box>
+            ) : (
+              <Box
+                sx={{
+                  display: 'flex',
+                  gap: 2,
+                  justifyContent: 'center',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <Button
+                  variant="outlined"
+                  onClick={retryCapture}
+                  sx={{ borderRadius: 2 }}
+                >
+                  Take New Photo
+                </Button>
+                {capturedImageUrl && (
+                  <Button
+                    variant="contained"
+                    onClick={() => setShowHintInput(true)}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    Try Again with Hint
+                  </Button>
+                )}
+              </Box>
+            )}
           </Box>
         );
 
