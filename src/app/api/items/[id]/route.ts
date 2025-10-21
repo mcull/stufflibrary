@@ -468,14 +468,15 @@ export async function PATCH(
       if (libraryIds && Array.isArray(libraryIds)) {
         // Replacement mode
         await db.itemCollection.deleteMany({ where: { itemId } });
-        if (libraryIds.length > 0) {
-          await db.$transaction(
-            libraryIds.map((libraryId: string) =>
-              db.itemCollection.create({
-                data: { itemId, collectionId: libraryId },
-              })
-            )
-          );
+        const uniqueLibraryIds = Array.from(new Set(libraryIds as string[]));
+        if (uniqueLibraryIds.length > 0) {
+          await db.itemCollection.createMany({
+            data: uniqueLibraryIds.map((libraryId) => ({
+              itemId,
+              collectionId: libraryId,
+            })),
+            skipDuplicates: true,
+          });
         }
       } else {
         // Incremental mode

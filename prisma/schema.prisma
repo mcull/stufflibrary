@@ -85,6 +85,7 @@ model User {
   complianceReports     ComplianceReport[]
   feedbackVotes         FeedbackVote[]
   complianceAdmin       ComplianceReport[] @relation("ComplianceAdmin")
+  itemConcepts          ItemConcept[]
 
   @@map("users")
 }
@@ -215,8 +216,39 @@ model Item {
   collections            ItemCollection[]
   reports                UserReport[]
   disputes               Dispute[]
+  concepts               ItemConcept[]
 
   @@map("items")
+}
+
+model ItemConcept {
+  id               String             @id @default(cuid())
+  batchId          String
+  ownerId          String
+  inputName        String?
+  inputDescription String?
+  inputBrand       String?
+  generatedName    String?
+  generatedDetails Json?
+  sourceType       ConceptSourceType
+  sourceAttribution Json?
+  originalImageUrl String?
+  watercolorUrl    String?
+  watercolorThumbUrl String?
+  status           ItemConceptStatus  @default(PENDING)
+  expiresAt        DateTime
+  consumedAt       DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  itemId           String?
+  owner            User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  item             Item?              @relation(fields: [itemId], references: [id])
+
+  @@index([ownerId])
+  @@index([batchId])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("item_concepts")
 }
 
 model BorrowRequest {
@@ -358,6 +390,19 @@ enum BorrowRequestStatus {
   ACTIVE
   RETURNED
   CANCELLED
+}
+
+enum ItemConceptStatus {
+  PENDING
+  READY
+  CONSUMED
+  EXPIRED
+  DISCARDED
+}
+
+enum ConceptSourceType {
+  OPENVERSE
+  GENERATIVE
 }
 
 model UserReport {

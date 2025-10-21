@@ -148,6 +148,11 @@ All environment variables are documented in `.env.example` with examples and des
 - `npm run db:migrate` - Run database migrations
 - `npm run db:studio` - Open Prisma Studio
 
+## Item Intake Modes
+
+- **Use Camera:** Capture an item photo for automatic recognition and watercolor rendering. Works best when the item is in front of you.
+- **Describe Instead:** Provide a name, brand, and details to receive three safe watercolor illustrations generated from licensed references or de-identified AI renderings—no digging items out of storage required.
+
 ## Tech Stack
 
 - **Framework**: Next.js 15 with App Router
