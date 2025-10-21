@@ -17,9 +17,13 @@ import {
   Alert,
   IconButton,
   TextField,
+  Tabs,
+  Tab,
+  Stack,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { useRef, useState, useCallback, useEffect } from 'react';
+import type { SyntheticEvent } from 'react';
 
 import { brandColors } from '@/theme/brandTokens';
 
@@ -85,6 +89,17 @@ type CaptureState =
   | 'uploaded'
   | 'error';
 
+type AddMode = 'camera' | 'describe';
+
+interface ConceptOption {
+  conceptId: string;
+  watercolorUrl: string | null;
+  watercolorThumbUrl: string | null;
+  sourceType: 'OPENVERSE' | 'GENERATIVE';
+  generatedName?: string | null;
+  sourceAttribution?: Record<string, unknown> | null;
+}
+
 interface RecognitionResult {
   name: string;
   description: string;
@@ -107,6 +122,7 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
+  const [mode, setMode] = useState<AddMode>('camera');
   const [state, setState] = useState<CaptureState>('permission');
   const [error, setError] = useState<string | null>(null);
   const [recognitionResult, setRecognitionResult] =
@@ -122,6 +138,17 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
   const [showWatercolor, setShowWatercolor] = useState(false);
   const [showHintInput, setShowHintInput] = useState(false);
   const [nameHint, setNameHint] = useState('');
+  const [conceptBatchId, setConceptBatchId] = useState<string | null>(null);
+  const [conceptOptions, setConceptOptions] = useState<ConceptOption[]>([]);
+  const [isGeneratingConcepts, setIsGeneratingConcepts] = useState(false);
+  const [conceptError, setConceptError] = useState<string | null>(null);
+  const [describeName, setDescribeName] = useState('');
+  const [describeDescription, setDescribeDescription] = useState('');
+  const [describeBrand, setDescribeBrand] = useState('');
+  const [selectedConceptId, setSelectedConceptId] = useState<string | null>(
+    null
+  );
+  const [isCreatingFromConcept, setIsCreatingFromConcept] = useState(false);
 
   // Request camera permission and start stream
   const startCamera = useCallback(async () => {
@@ -606,6 +633,120 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
     }
   }, [capturedImageUrl, nameHint, draftItemId]);
 
+  const handleModeChange = useCallback(
+    (_event: SyntheticEvent, newMode: AddMode) => {
+      setMode(newMode);
+      if (newMode === 'camera') {
+        setError(null);
+        setState('permission');
+      }
+    },
+    []
+  );
+
+  const handleGenerateConcepts = useCallback(async () => {
+    if (!describeName.trim()) {
+      setConceptError('Please provide a name for your item.');
+      return;
+    }
+
+    setIsGeneratingConcepts(true);
+    setConceptError(null);
+    setSelectedConceptId(null);
+    setConceptOptions([]);
+
+    try {
+      const response = await fetch('/api/items/suggest-visuals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: describeName.trim(),
+          description: describeDescription.trim() || undefined,
+          brand: describeBrand.trim() || undefined,
+          discardBatchId: conceptBatchId || undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        const message =
+          data.message || data.error || 'Failed to generate visuals';
+        throw new Error(message);
+      }
+
+      const data = await response.json();
+      setConceptBatchId(data.batchId || null);
+      const options = (data.options as ConceptOption[] | undefined) ?? [];
+      setConceptOptions(options);
+
+      if (options.length === 0) {
+        setConceptError(
+          'No visuals found. Try adding more detail or a brand name.'
+        );
+      }
+    } catch (conceptErr) {
+      console.error('Concept generation failed:', conceptErr);
+      setConceptError(
+        conceptErr instanceof Error
+          ? conceptErr.message
+          : 'Failed to generate visuals'
+      );
+    } finally {
+      setIsGeneratingConcepts(false);
+    }
+  }, [describeName, describeDescription, describeBrand, conceptBatchId]);
+
+  const handleCreateFromConcept = useCallback(async () => {
+    if (!selectedConceptId) {
+      setConceptError('Please choose one of the illustrations first.');
+      return;
+    }
+
+    setIsCreatingFromConcept(true);
+    setConceptError(null);
+
+    try {
+      const response = await fetch('/api/items/create-from-concept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conceptId: selectedConceptId,
+          name: describeName.trim(),
+          description: describeDescription.trim() || undefined,
+          libraryIds: libraryId ? [libraryId] : undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to add item');
+      }
+
+      const data = await response.json();
+      const newItem = data.item as { id: string; name: string } | undefined;
+      if (newItem) {
+        setUploadedItem({ id: newItem.id, name: newItem.name });
+      }
+
+      setConceptBatchId(null);
+      setConceptOptions([]);
+      setSelectedConceptId(null);
+      setDescribeName('');
+      setDescribeDescription('');
+      setDescribeBrand('');
+      setShowLibraryModal(true);
+    } catch (conceptErr) {
+      console.error('Failed to create item from concept:', conceptErr);
+      setConceptError(
+        conceptErr instanceof Error
+          ? conceptErr.message
+          : 'Failed to add item from concept'
+      );
+    } finally {
+      setIsCreatingFromConcept(false);
+    }
+  }, [selectedConceptId, describeName, describeDescription, libraryId]);
+
   // Handle library selection completion
   const handleLibrarySelectionComplete = useCallback(
     (_selectedLibraryIds: string[]) => {
@@ -658,7 +799,241 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
     };
   }, [startCamera, stopCamera]);
 
+  useEffect(() => {
+    if (mode === 'describe') {
+      stopCamera();
+    } else {
+      setConceptError(null);
+      setConceptOptions([]);
+      setSelectedConceptId(null);
+    }
+  }, [mode, stopCamera]);
+
+  const renderDescribeContent = () => {
+    const helperText =
+      'Share a clear name and a few details. We will keep your library safe and suggest watercolor illustrations for you to choose from.';
+
+    return (
+      <Box sx={{ py: 4, pb: 6 }}>
+        <Typography variant="h5" gutterBottom>
+          Describe Your Item
+        </Typography>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ maxWidth: 520, mb: 3 }}
+        >
+          {helperText}
+        </Typography>
+
+        <Stack spacing={2.5} sx={{ maxWidth: 520 }}>
+          <TextField
+            label="Item name"
+            value={describeName}
+            onChange={(event) => setDescribeName(event.target.value)}
+            required
+            placeholder="e.g. DeWalt cordless drill"
+            fullWidth
+          />
+          <TextField
+            label="Brand (optional)"
+            value={describeBrand}
+            onChange={(event) => setDescribeBrand(event.target.value)}
+            placeholder="e.g. DeWalt, KitchenAid, Trek"
+            fullWidth
+          />
+          <TextField
+            label="Details (optional)"
+            value={describeDescription}
+            onChange={(event) => setDescribeDescription(event.target.value)}
+            placeholder="Share notable features, color, size, or accessories"
+            fullWidth
+            multiline
+            minRows={3}
+          />
+
+          {conceptError && (
+            <Alert severity="error" onClose={() => setConceptError(null)}>
+              {conceptError}
+            </Alert>
+          )}
+
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <Button
+              variant="contained"
+              onClick={handleGenerateConcepts}
+              disabled={isGeneratingConcepts}
+            >
+              {isGeneratingConcepts ? 'Sketching...' : 'Generate Visuals'}
+            </Button>
+            {conceptOptions.length > 0 && (
+              <Button
+                variant="outlined"
+                onClick={handleGenerateConcepts}
+                disabled={isGeneratingConcepts}
+              >
+                Regenerate
+              </Button>
+            )}
+          </Stack>
+        </Stack>
+
+        {isGeneratingConcepts && (
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              mt: 4,
+              color: brandColors.inkBlue,
+            }}
+          >
+            <CircularProgress size={20} sx={{ color: brandColors.inkBlue }} />
+            <Typography variant="body2">
+              Creating watercolor options…
+            </Typography>
+          </Box>
+        )}
+
+        {conceptOptions.length > 0 && (
+          <Box sx={{ mt: 4, pb: 6 }}>
+            <Typography variant="subtitle1" gutterBottom>
+              Choose your favorite illustration
+            </Typography>
+            <Box
+              sx={{
+                display: 'grid',
+                gap: 3,
+                gridTemplateColumns: {
+                  xs: '1fr',
+                  sm: 'repeat(2, minmax(0, 1fr))',
+                  md: 'repeat(3, minmax(0, 1fr))',
+                },
+                alignItems: 'stretch',
+              }}
+            >
+              {conceptOptions.map((option, index) => {
+                const imageSrc =
+                  option.watercolorThumbUrl || option.watercolorUrl;
+                const isSelected = option.conceptId === selectedConceptId;
+                const attributionRecord = option.sourceAttribution as {
+                  attribution?: unknown;
+                } | null;
+                const attributionText =
+                  attributionRecord &&
+                  typeof attributionRecord.attribution === 'string'
+                    ? attributionRecord.attribution
+                    : null;
+                const optionNames = ['one', 'two', 'three', 'four', 'five'];
+                const optionLabel =
+                  index < optionNames.length
+                    ? `Option ${optionNames[index]}`
+                    : `Option ${index + 1}`;
+                const optionDescription =
+                  option.generatedName || describeName || 'Illustration';
+                return (
+                  <Paper
+                    key={option.conceptId}
+                    elevation={isSelected ? 6 : 1}
+                    sx={{
+                      borderRadius: 2,
+                      overflow: 'hidden',
+                      border: isSelected
+                        ? `2px solid ${brandColors.inkBlue}`
+                        : `1px solid ${brandColors.softGray}`,
+                      cursor: 'pointer',
+                      transition: 'transform 0.2s ease',
+                      transform: isSelected ? 'translateY(-4px)' : 'none',
+                      maxWidth: { xs: '100%', md: 220 },
+                      width: '100%',
+                      justifySelf: 'center',
+                    }}
+                    onClick={() => setSelectedConceptId(option.conceptId)}
+                  >
+                    <Box
+                      sx={{
+                        px: 2,
+                        py: 1.5,
+                        borderBottom: `1px solid ${brandColors.softGray}`,
+                        backgroundColor: brandColors.warmCream,
+                      }}
+                    >
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ fontWeight: 700, textTransform: 'uppercase' }}
+                      >
+                        {optionLabel}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ lineHeight: 1.3 }}
+                      >
+                        {optionDescription}
+                      </Typography>
+                    </Box>
+                    <Box
+                      component="img"
+                      src={imageSrc || ''}
+                      alt={optionDescription}
+                      sx={{
+                        width: '100%',
+                        aspectRatio: '1 / 1',
+                        objectFit: 'cover',
+                        backgroundColor: brandColors.softGray,
+                        height: { xs: 'auto', md: 180 },
+                      }}
+                    />
+                    <Box sx={{ p: 2 }}>
+                      {attributionText && (
+                        <Typography variant="caption" color="text.secondary">
+                          {attributionText}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Paper>
+                );
+              })}
+            </Box>
+
+            {conceptOptions.length > 0 && conceptOptions.length < 3 && (
+              <Alert severity="info" sx={{ mt: 3 }}>
+                Only {conceptOptions.length} illustration
+                {conceptOptions.length === 1 ? '' : 's'} found so far. Try
+                adding more detail or regenerate for new options.
+              </Alert>
+            )}
+
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={2}
+              sx={{ mt: 4 }}
+              alignItems={{ xs: 'stretch', sm: 'center' }}
+            >
+              <Button
+                variant="contained"
+                size="large"
+                onClick={handleCreateFromConcept}
+                disabled={isCreatingFromConcept || !selectedConceptId}
+              >
+                {isCreatingFromConcept ? 'Saving…' : 'Add Item'}
+              </Button>
+              <Typography variant="body2" color="text.secondary">
+                We will store your choice, clean up unused drafts, and route you
+                to library selection.
+              </Typography>
+            </Stack>
+          </Box>
+        )}
+      </Box>
+    );
+  };
+
   const renderContent = () => {
+    if (mode === 'describe') {
+      return renderDescribeContent();
+    }
+
     console.log('🎯 Current state:', state);
     switch (state) {
       case 'permission':
@@ -1159,8 +1534,8 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
       sx={{
         px: 1,
         pt: 1,
-        pb: 2,
-        height: '100vh',
+        pb: 4,
+        minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
         bgcolor: 'background.default',
@@ -1179,14 +1554,31 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
         </IconButton>
       </Box>
 
+      <Tabs
+        value={mode}
+        onChange={handleModeChange}
+        variant="fullWidth"
+        sx={{ mb: 2 }}
+        textColor="primary"
+        indicatorColor="primary"
+      >
+        <Tab label="Use Camera" value="camera" />
+        <Tab label="Describe Instead" value="describe" />
+      </Tabs>
+
       {/* Content */}
       <Box
         sx={{
-          flex: 1,
+          flex: mode === 'describe' ? '0 0 auto' : '1 1 auto',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: state === 'streaming' ? 'flex-start' : 'center',
-          position: 'relative',
+          justifyContent:
+            mode === 'describe' || state === 'streaming'
+              ? 'flex-start'
+              : 'center',
+          position: mode === 'describe' ? 'static' : 'relative',
+          overflowY: mode === 'describe' ? 'visible' : 'hidden',
+          pb: mode === 'describe' ? 4 : 0,
         }}
       >
         {renderContent()}
