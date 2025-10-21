@@ -402,9 +402,10 @@ export function CollectionDetailClient({
             storedInviteToken
           );
         }
-        // Always route through /auth/callback so invite consumption runs post-auth
-        const callback = encodeURIComponent(`/auth/callback`);
-        window.location.href = `/api/auth/signin?callbackUrl=${callback}`;
+        // Always route through our smart auth callback so invite consumption
+        // and profile completion logic can run before landing on the library
+        const callback = encodeURIComponent('/auth/callback');
+        window.location.href = `/auth/signin?callbackUrl=${callback}`;
       } else {
         const data = await res.json().catch(() => ({}));
         console.error('[CollectionDetailClient] join failed', {

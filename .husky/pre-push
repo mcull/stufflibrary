@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+
+echo "🔍 Running type check before push..."
+npm run typecheck
+
+if [ $? -ne 0 ]; then
+  echo "❌ Type check failed. Fix errors before pushing."
+  exit 1
+fi
+
+echo "✅ Type check passed!"

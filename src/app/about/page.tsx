@@ -20,32 +20,43 @@ export default function AboutPage() {
         py: { xs: spacing.sm, md: spacing.lg },
       }}
     >
-      <Container maxWidth="lg">
-        {/* Hero Section */}
+      <Container maxWidth="md">
+        {/* Personal Intro */}
         <Box sx={{ textAlign: 'center', mb: 6 }}>
+          {/* Optional: Add photo when ready */}
+          {/* <Avatar
+            src="/assets/marc-cull.jpg"
+            alt="Marc Cull"
+            sx={{
+              width: 120,
+              height: 120,
+              mx: 'auto',
+              mb: 3,
+              border: `4px solid ${brandColors.inkBlue}`,
+            }}
+          /> */}
           <Typography
-            variant="h2"
+            variant="h3"
             component="h1"
             sx={{
               fontWeight: 700,
               color: brandColors.charcoal,
-              mb: 3,
-              fontSize: { xs: '2rem', md: '3rem' },
+              mb: 2,
+              fontSize: { xs: '2rem', md: '2.5rem' },
             }}
           >
-            Share more, buy less.
+            Hi, I&apos;m Marc.
           </Typography>
           <Typography
-            variant="h5"
+            variant="h6"
             sx={{
               color: brandColors.charcoal,
               opacity: 0.8,
-              lineHeight: 1.6,
-              maxWidth: '600px',
-              mx: 'auto',
+              fontWeight: 400,
+              mb: 4,
             }}
           >
-            The idea behind stuff libraries
+            I made this because I wanted it to exist.
           </Typography>
         </Box>
 
@@ -55,41 +66,90 @@ export default function AboutPage() {
           <Card sx={{ backgroundColor: brandColors.white }}>
             <CardContent sx={{ p: { xs: 3, md: 4 } }}>
               <Typography
-                variant="h4"
+                variant="h5"
                 component="h2"
                 sx={{
                   fontWeight: 600,
                   color: brandColors.charcoal,
-                  mb: 3,
+                  mb: 2,
                 }}
               >
-                🏠 Too Much Stuff, Not Enough Use
+                We buy so much stuff we barely use.
               </Typography>
               <Typography
                 variant="body1"
                 sx={{
                   color: brandColors.charcoal,
-                  lineHeight: 1.7,
+                  lineHeight: 1.8,
                   fontSize: '1.1rem',
                   mb: 2,
                 }}
               >
-                Think about your garage or closet. How many things do you have
-                that you only use once in a while? Maybe it&apos;s a drill for
-                hanging pictures, or a fancy cake pan for birthdays, or camping
-                gear you use twice a year.
+                Think about your garage or closet. How much of it do you
+                actually use regularly? For me, it&apos;s maybe 20%. The rest
+                sits there—a drill I need twice a year, camping gear that gets
+                one summer trip, kitchen gadgets for special occasions.
               </Typography>
               <Typography
                 variant="body1"
                 sx={{
                   color: brandColors.charcoal,
-                  lineHeight: 1.7,
+                  lineHeight: 1.8,
                   fontSize: '1.1rem',
                 }}
               >
-                Now think about your neighbors. They probably have the same
-                problem! Everyone buying the same things, using them rarely, and
-                running out of space to store them all.
+                And here&apos;s the thing: my neighbors probably have the exact
+                same stuff, also sitting unused. We&apos;re all storing the same
+                things, all paying for them, all running out of space. It just
+                feels wasteful.
+              </Typography>
+            </CardContent>
+          </Card>
+
+          {/* The Aha */}
+          <Card
+            sx={{
+              backgroundColor: brandColors.inkBlue,
+              color: 'white',
+            }}
+          >
+            <CardContent sx={{ p: { xs: 3, md: 4 } }}>
+              <Typography
+                variant="h5"
+                component="h2"
+                sx={{
+                  fontWeight: 600,
+                  color: 'white',
+                  mb: 2,
+                }}
+              >
+                What if we just... shared?
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{
+                  color: 'white',
+                  lineHeight: 1.8,
+                  fontSize: '1.1rem',
+                  mb: 2,
+                }}
+              >
+                Not in a complicated way. Just: &quot;Hey, I have a ladder if
+                you need one.&quot; &quot;Can I borrow your leaf blower this
+                weekend?&quot; That&apos;s it.
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{
+                  color: 'white',
+                  lineHeight: 1.8,
+                  fontSize: '1.1rem',
+                }}
+              >
+                The awkwardness is what stops us. You don&apos;t want to impose.
+                You don&apos;t know who has what. You feel weird asking to
+                borrow from someone you barely know. So we all just buy more
+                stuff instead.
               </Typography>
             </CardContent>
           </Card>
@@ -98,108 +158,111 @@ export default function AboutPage() {
           <Card sx={{ backgroundColor: brandColors.white }}>
             <CardContent sx={{ p: { xs: 3, md: 4 } }}>
               <Typography
-                variant="h4"
+                variant="h5"
                 component="h2"
                 sx={{
                   fontWeight: 600,
                   color: brandColors.charcoal,
-                  mb: 3,
+                  mb: 2,
                 }}
               >
-                🤝 So let&apos;s make it easier to share.
+                So I built StuffLibrary.
               </Typography>
               <Typography
                 variant="body1"
                 sx={{
                   color: brandColors.charcoal,
-                  lineHeight: 1.7,
+                  lineHeight: 1.8,
                   fontSize: '1.1rem',
                   mb: 2,
                 }}
               >
-                What if it were easier for us to pool our stuff among friends
-                and neighbors? What if it were easier to see what the folks
-                around us have and are willing to share?
+                It&apos;s pretty simple: you can see what your neighbors have
+                and are willing to share. They can see what you have. When you
+                need something, you check the library first. No awkward knocking
+                on doors, no guessing who might have a power drill.
               </Typography>
               <Typography
                 variant="body1"
                 sx={{
                   color: brandColors.charcoal,
-                  lineHeight: 1.7,
+                  lineHeight: 1.8,
                   fontSize: '1.1rem',
                 }}
               >
-                When communities work together to use things more wisely,
-                everyone wins. Instead of everyone owning everything, we share
-                what we have.
+                I wanted to make something useful and kind of beautiful, without
+                it having to be commercial. No ads, no data mining, no
+                &quot;growth hacking.&quot; Just neighbors helping neighbors,
+                with nice design that doesn&apos;t feel like a corporate
+                product.
               </Typography>
             </CardContent>
           </Card>
 
-          {/* The Research */}
-          <Card sx={{ backgroundColor: brandColors.inkBlue, color: 'white' }}>
+          {/* Why It Matters */}
+          <Card sx={{ backgroundColor: brandColors.mustardYellow }}>
             <CardContent sx={{ p: { xs: 3, md: 4 } }}>
               <Typography
-                variant="h4"
+                variant="h5"
                 component="h2"
                 sx={{
                   fontWeight: 600,
-                  color: 'white',
-                  mb: 3,
-                }}
-              >
-                🏛️ But does sharing actually work?
-              </Typography>
-              <Typography
-                variant="body1"
-                sx={{
-                  color: 'white',
-                  lineHeight: 1.7,
-                  fontSize: '1.1rem',
+                  color: brandColors.charcoal,
                   mb: 2,
                 }}
               >
-                A lot of people are skeptical about sharing in practice.
-                Won&apos;t things get broken, or unfairly used if there&apos;s
-                no central authority to supervise?
+                Why this matters
               </Typography>
-              <Typography
-                variant="body1"
-                sx={{
-                  color: 'white',
-                  lineHeight: 1.7,
-                  fontSize: '1.1rem',
-                  mb: 2,
-                }}
-              >
-                Nobel Prize-winning economist Elinor Ostrom discovered that
-                communities all over the world are great at sharing common
-                resources. When it works well, it&apos;s because these
-                principles are in place: clear boundaries, collective choice,
-                monitoring, graduated sanctions, conflict resolution,
-                recognition of rights, nested enterprises, and accountable
-                governance.
-              </Typography>
-              <Typography
-                variant="body1"
-                sx={{
-                  color: 'white',
-                  lineHeight: 1.7,
-                  fontSize: '1.1rem',
-                }}
-              >
-                Inspired by her research, we&apos;ve designed this app to help
-                communities of friends and neighbors share well and buy less
-                stuff.
-              </Typography>
+              <Stack spacing={2}>
+                <Box>
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      color: brandColors.charcoal,
+                      lineHeight: 1.8,
+                      fontSize: '1.05rem',
+                    }}
+                  >
+                    <strong>Save money.</strong> Borrow instead of buying things
+                    you&apos;ll use once or twice.
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      color: brandColors.charcoal,
+                      lineHeight: 1.8,
+                      fontSize: '1.05rem',
+                    }}
+                  >
+                    <strong>Less waste.</strong> The stuff we already own gets
+                    used more. We buy less new stuff.
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      color: brandColors.charcoal,
+                      lineHeight: 1.8,
+                      fontSize: '1.05rem',
+                    }}
+                  >
+                    <strong>Actual community.</strong> You get to know your
+                    neighbors. Not in a forced way—just through the normal act
+                    of helping each other out.
+                  </Typography>
+                </Box>
+              </Stack>
             </CardContent>
           </Card>
 
           {/* How It Works */}
-          <Card sx={{ backgroundColor: brandColors.mustardYellow }}>
+          <Card sx={{ backgroundColor: brandColors.white }}>
             <CardContent sx={{ p: { xs: 3, md: 4 } }}>
               <Typography
-                variant="h4"
+                variant="h5"
                 component="h2"
                 sx={{
                   fontWeight: 600,
@@ -207,14 +270,13 @@ export default function AboutPage() {
                   mb: 3,
                 }}
               >
-                ✨ How Stuff Libraries Work
+                How it works
               </Typography>
               <Box
                 sx={{
                   display: 'flex',
                   flexDirection: { xs: 'column', md: 'row' },
                   gap: 3,
-                  justifyContent: 'space-between',
                 }}
               >
                 <Box sx={{ textAlign: 'center', flex: 1 }}>
@@ -235,7 +297,7 @@ export default function AboutPage() {
                       mb: 1,
                     }}
                   >
-                    Share Your Stuff
+                    Add your stuff
                   </Typography>
                   <Typography
                     variant="body2"
@@ -244,8 +306,7 @@ export default function AboutPage() {
                       lineHeight: 1.6,
                     }}
                   >
-                    Take pictures of things you don&apos;t use often and share
-                    them with neighbors
+                    Snap a photo of things you don&apos;t use often
                   </Typography>
                 </Box>
                 <Box sx={{ textAlign: 'center', flex: 1 }}>
@@ -266,7 +327,7 @@ export default function AboutPage() {
                       mb: 1,
                     }}
                   >
-                    Find What You Need
+                    Browse what&apos;s available
                   </Typography>
                   <Typography
                     variant="body2"
@@ -275,7 +336,7 @@ export default function AboutPage() {
                       lineHeight: 1.6,
                     }}
                   >
-                    Look for things you need instead of buying them new
+                    See what your neighbors are sharing
                   </Typography>
                 </Box>
                 <Box sx={{ textAlign: 'center', flex: 1 }}>
@@ -296,7 +357,7 @@ export default function AboutPage() {
                       mb: 1,
                     }}
                   >
-                    Make Friends
+                    Coordinate & borrow
                   </Typography>
                   <Typography
                     variant="body2"
@@ -305,264 +366,71 @@ export default function AboutPage() {
                       lineHeight: 1.6,
                     }}
                   >
-                    Get to know your neighbors while helping each other out
+                    Work out pickup/return that works for both of you
                   </Typography>
                 </Box>
               </Box>
             </CardContent>
           </Card>
 
-          {/* Platform Features Mapped to Ostrom's Principles */}
-          <Card sx={{ backgroundColor: brandColors.white }}>
-            <CardContent sx={{ p: { xs: 3, md: 4 } }}>
-              <Typography
-                variant="h4"
-                component="h2"
-                sx={{
-                  fontWeight: 600,
-                  color: brandColors.charcoal,
-                  mb: 3,
-                }}
-              >
-                🔧 How the platform supports good sharing
-              </Typography>
-              <Box
-                sx={{
-                  display: 'flex',
-                  flexDirection: { xs: 'column', md: 'row' },
-                  gap: 3,
-                }}
-              >
-                <Box sx={{ flex: 1 }}>
-                  <Stack spacing={2}>
-                    <Box>
-                      <Typography
-                        variant="h6"
-                        sx={{
-                          fontWeight: 600,
-                          color: brandColors.charcoal,
-                          mb: 1,
-                        }}
-                      >
-                        🏠 Clear Boundaries
-                      </Typography>
-                      <Typography
-                        variant="body1"
-                        sx={{
-                          color: brandColors.charcoal,
-                          lineHeight: 1.6,
-                        }}
-                      >
-                        Library membership defines who can participate and
-                        access shared items.
-                      </Typography>
-                    </Box>
-                    <Box>
-                      <Typography
-                        variant="h6"
-                        sx={{
-                          fontWeight: 600,
-                          color: brandColors.charcoal,
-                          mb: 1,
-                        }}
-                      >
-                        🗳️ Collective Choice
-                      </Typography>
-                      <Typography
-                        variant="body1"
-                        sx={{
-                          color: brandColors.charcoal,
-                          lineHeight: 1.6,
-                        }}
-                      >
-                        [Placeholder for community governance features]
-                      </Typography>
-                    </Box>
-                    <Box>
-                      <Typography
-                        variant="h6"
-                        sx={{
-                          fontWeight: 600,
-                          color: brandColors.charcoal,
-                          mb: 1,
-                        }}
-                      >
-                        👀 Monitoring
-                      </Typography>
-                      <Typography
-                        variant="body1"
-                        sx={{
-                          color: brandColors.charcoal,
-                          lineHeight: 1.6,
-                        }}
-                      >
-                        Borrow/return tracking and item condition reporting
-                        provide transparency.
-                      </Typography>
-                    </Box>
-                    <Box>
-                      <Typography
-                        variant="h6"
-                        sx={{
-                          fontWeight: 600,
-                          color: brandColors.charcoal,
-                          mb: 1,
-                        }}
-                      >
-                        ⚖️ Graduated Sanctions
-                      </Typography>
-                      <Typography
-                        variant="body1"
-                        sx={{
-                          color: brandColors.charcoal,
-                          lineHeight: 1.6,
-                        }}
-                      >
-                        [Placeholder for community moderation system]
-                      </Typography>
-                    </Box>
-                  </Stack>
-                </Box>
-                <Box sx={{ flex: 1 }}>
-                  <Stack spacing={2}>
-                    <Box>
-                      <Typography
-                        variant="h6"
-                        sx={{
-                          fontWeight: 600,
-                          color: brandColors.charcoal,
-                          mb: 1,
-                        }}
-                      >
-                        🤝 Conflict Resolution
-                      </Typography>
-                      <Typography
-                        variant="body1"
-                        sx={{
-                          color: brandColors.charcoal,
-                          lineHeight: 1.6,
-                        }}
-                      >
-                        Direct messaging and community guidelines help resolve
-                        issues.
-                      </Typography>
-                    </Box>
-                    <Box>
-                      <Typography
-                        variant="h6"
-                        sx={{
-                          fontWeight: 600,
-                          color: brandColors.charcoal,
-                          mb: 1,
-                        }}
-                      >
-                        🏅 Recognition of Rights
-                      </Typography>
-                      <Typography
-                        variant="body1"
-                        sx={{
-                          color: brandColors.charcoal,
-                          lineHeight: 1.6,
-                        }}
-                      >
-                        Clear ownership records and borrower/lender protections
-                        respect everyone&apos;s rights.
-                      </Typography>
-                    </Box>
-                    <Box>
-                      <Typography
-                        variant="h6"
-                        sx={{
-                          fontWeight: 600,
-                          color: brandColors.charcoal,
-                          mb: 1,
-                        }}
-                      >
-                        🌐 Nested Enterprises
-                      </Typography>
-                      <Typography
-                        variant="body1"
-                        sx={{
-                          color: brandColors.charcoal,
-                          lineHeight: 1.6,
-                        }}
-                      >
-                        Multiple libraries can connect and coordinate at
-                        different scales.
-                      </Typography>
-                    </Box>
-                    <Box>
-                      <Typography
-                        variant="h6"
-                        sx={{
-                          fontWeight: 600,
-                          color: brandColors.charcoal,
-                          mb: 1,
-                        }}
-                      >
-                        📋 Accountable Governance
-                      </Typography>
-                      <Typography
-                        variant="body1"
-                        sx={{
-                          color: brandColors.charcoal,
-                          lineHeight: 1.6,
-                        }}
-                      >
-                        [Placeholder for community leadership and accountability
-                        features]
-                      </Typography>
-                    </Box>
-                  </Stack>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-
-          {/* Call to Action */}
+          {/* Where We Are */}
           <Card
             sx={{
               backgroundColor: brandColors.charcoal,
               color: 'white',
-              textAlign: 'center',
             }}
           >
             <CardContent sx={{ p: { xs: 3, md: 4 } }}>
               <Typography
-                variant="h4"
+                variant="h5"
                 component="h2"
                 sx={{
                   fontWeight: 600,
                   color: 'white',
-                  mb: 3,
+                  mb: 2,
                 }}
               >
-                ✨ Share more, buy less, see how it goes!
+                We&apos;re just getting started.
               </Typography>
               <Typography
                 variant="body1"
                 sx={{
                   color: 'white',
-                  lineHeight: 1.7,
+                  lineHeight: 1.8,
                   fontSize: '1.1rem',
                   mb: 2,
-                  maxWidth: '600px',
-                  mx: 'auto',
                 }}
               >
-                Communities are pretty good at sharing when they have the right
-                tools and structure. We&apos;re building those tools.
+                I soft-launched this in Oakland with friends and family. We
+                &apos;re learning what works, what doesn&apos;t, and what people
+                actually need.
               </Typography>
               <Typography
                 variant="body1"
                 sx={{
                   color: 'white',
-                  lineHeight: 1.7,
+                  lineHeight: 1.8,
                   fontSize: '1.1rem',
-                  fontWeight: 600,
+                  mb: 2,
                 }}
               >
-                Want to try it out with your friends and neighbors?
+                This is a side project, not a startup. I&apos;m the CTO at a
+                nonprofit called FreeWorld, and I built StuffLibrary because I
+                wanted to make something useful that doesn&apos;t have to be a
+                business.
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{
+                  color: 'white',
+                  lineHeight: 1.8,
+                  fontSize: '1.1rem',
+                }}
+              >
+                If you&apos;re in the Bay Area and want to start a library in
+                your neighborhood, give it a try. If you have feedback, I
+                &apos;d love to hear it. Let&apos;s see if we can make sharing
+                less awkward and more normal.
               </Typography>
             </CardContent>
           </Card>
