@@ -4,4 +4,5 @@ import { rateLimit } from './rate-limit';
 export const sendCodeLimiter = rateLimit({
   interval: 10 * 60 * 1000, // 10 minutes
   uniqueTokenPerInterval: 100,
+  name: 'send-code',
 });

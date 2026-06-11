@@ -4,6 +4,14 @@ const mockCheckSpendCap = vi.hoisted(() => vi.fn());
 const mockRecordSpend = vi.hoisted(() => vi.fn());
 const mockCreate = vi.hoisted(() => vi.fn());
 const mockRecordAiUsage = vi.hoisted(() => vi.fn());
+const mockLimiterCheck = vi.hoisted(() => vi.fn());
+
+vi.mock('@/lib/rate-limit', () => ({
+  rateLimit: vi.fn(() => ({
+    check: mockLimiterCheck,
+    reset: vi.fn(),
+  })),
+}));
 
 vi.mock('@/lib/spend-cap', () => ({
   checkSpendCap: mockCheckSpendCap,
@@ -30,6 +38,22 @@ describe('AIService.generateBorrowScript', () => {
     mockCheckSpendCap.mockResolvedValue({ allowed: true });
     mockRecordSpend.mockResolvedValue(undefined);
     mockRecordAiUsage.mockResolvedValue(undefined);
+    mockLimiterCheck.mockResolvedValue(undefined);
+  });
+
+  it('fails without calling OpenAI when the shared rate limiter rejects', async () => {
+    mockLimiterCheck.mockRejectedValue(new Error('Rate limit exceeded'));
+    const { AIService } = await import('../ai');
+
+    const result = await AIService.generateBorrowScript({
+      itemName: 'ladder',
+      identifier: 'user_1',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/rate limit/i);
+    expect(mockLimiterCheck).toHaveBeenCalledWith(60, 'user_1');
+    expect(mockCreate).not.toHaveBeenCalled();
   });
 
   it('fails without calling OpenAI when the daily spend cap is reached', async () => {

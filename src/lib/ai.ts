@@ -3,6 +3,7 @@ import OpenAI from 'openai';
 import { estimateCostCents } from './ai-pricing';
 import { recordAiUsage } from './ai-usage';
 import { env } from './env';
+import { rateLimit } from './rate-limit';
 import { checkSpendCap, recordSpend } from './spend-cap';
 
 // Rate limiting configuration
@@ -11,8 +12,11 @@ const RATE_LIMIT = {
   windowMs: 60 * 1000, // 1 minute
 };
 
-// Simple in-memory rate limiting (production should use Redis or similar)
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const aiRateLimiter = rateLimit({
+  interval: RATE_LIMIT.windowMs,
+  uniqueTokenPerInterval: 500,
+  name: 'ai',
+});
 
 /**
  * AI Service with rate limiting and error handling
@@ -34,31 +38,6 @@ export class AIService {
   }
 
   /**
-   * Check rate limit for a given identifier (IP, user ID, etc.)
-   */
-  private static checkRateLimit(identifier: string): boolean {
-    const now = Date.now();
-    const key = `ai_${identifier}`;
-    const existing = rateLimitMap.get(key);
-
-    if (!existing || now > existing.resetTime) {
-      // Reset or create new window
-      rateLimitMap.set(key, {
-        count: 1,
-        resetTime: now + RATE_LIMIT.windowMs,
-      });
-      return true;
-    }
-
-    if (existing.count >= RATE_LIMIT.maxRequests) {
-      return false;
-    }
-
-    existing.count++;
-    return true;
-  }
-
-  /**
    * Generate a friendly 10-second borrow request script
    */
   static async generateBorrowScript(args: {
@@ -69,7 +48,9 @@ export class AIService {
   }): Promise<{ success: boolean; script?: string; error?: string }> {
     try {
       const identifier = args.identifier || 'anonymous';
-      if (!this.checkRateLimit(identifier)) {
+      try {
+        await aiRateLimiter.check(RATE_LIMIT.maxRequests, identifier);
+      } catch {
         return {
           success: false,
           error: 'Rate limit exceeded. Please try later.',
