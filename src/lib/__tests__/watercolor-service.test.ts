@@ -5,6 +5,15 @@ import { WatercolorService } from '../watercolor-service';
 // Skip tests that require actual API calls if Google AI API key is not available (e.g., in CI)
 const skipApiTests = !process.env.GOOGLE_AI_API_KEY;
 
+// Pass-through mock so tests never hit the real Redis-backed spend cap
+vi.mock('../spend-cap', () => ({
+  withGeminiSpendCap: vi.fn((_model: string, call: () => Promise<unknown>) =>
+    call()
+  ),
+  checkSpendCap: vi.fn().mockResolvedValue({ allowed: true }),
+  recordSpend: vi.fn().mockResolvedValue(undefined),
+}));
+
 // Mock the dependencies
 vi.mock('@google/genai', () => ({
   GoogleGenAI: vi.fn().mockImplementation(() => ({

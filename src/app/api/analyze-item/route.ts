@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import OpenAI from 'openai';
 
+import { estimateCostCents } from '@/lib/ai-pricing';
 import { authOptions } from '@/lib/auth';
+import { checkSpendCap, recordSpend } from '@/lib/spend-cap';
 
 function getOpenAIClient() {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -54,6 +56,11 @@ export async function POST(request: NextRequest) {
     const bytes = await image.arrayBuffer();
     const buffer = Buffer.from(bytes);
     const base64Image = buffer.toString('base64');
+
+    const spendCap = await checkSpendCap('openai');
+    if (!spendCap.allowed) {
+      return NextResponse.json({ error: spendCap.reason }, { status: 429 });
+    }
 
     // Analyze image with GPT-4 Vision
     const openai = getOpenAIClient();
@@ -107,6 +114,16 @@ ${nameHint ? `\n              USER HINT: The user indicated this might be a "${n
       max_tokens: 200,
       temperature: 0.1,
     });
+
+    await recordSpend(
+      'openai',
+      estimateCostCents({
+        provider: 'openai',
+        model: 'gpt-4o',
+        inputTokens: response.usage?.prompt_tokens ?? 0,
+        outputTokens: response.usage?.completion_tokens ?? 0,
+      })
+    );
 
     const content = response.choices[0]?.message?.content;
 

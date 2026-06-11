@@ -10,6 +10,7 @@ import {
 
 import { db } from './db';
 import { PromptSafetyService } from './prompt-safety-service';
+import { withGeminiSpendCap } from './spend-cap';
 import { WatercolorService } from './watercolor-service';
 
 interface ConceptInput {
@@ -292,6 +293,7 @@ export class ItemConceptService {
       console.warn('Generative AI unavailable; skipping concept generation');
       return null;
     }
+    const genAI = this.genAI;
 
     const prompt = this.buildGenerativePrompt(input);
 
@@ -310,19 +312,23 @@ export class ItemConceptService {
         },
       });
 
-      const response = await this.genAI.models.generateContent({
-        model: 'gemini-2.5-flash-image-preview',
-        contents: [
-          {
-            role: 'user',
-            parts: [
+      const response = await withGeminiSpendCap(
+        'gemini-2.5-flash-image-preview',
+        () =>
+          genAI.models.generateContent({
+            model: 'gemini-2.5-flash-image-preview',
+            contents: [
               {
-                text: prompt,
+                role: 'user',
+                parts: [
+                  {
+                    text: prompt,
+                  },
+                ],
               },
             ],
-          },
-        ],
-      });
+          })
+      );
 
       const imagePart = response.candidates?.[0]?.content?.parts?.find(
         (part) => part.inlineData?.data

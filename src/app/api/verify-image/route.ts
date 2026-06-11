@@ -1,8 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
 import OpenAI from 'openai';
+
+import { estimateCostCents } from '@/lib/ai-pricing';
+import { authOptions } from '@/lib/auth';
+import { checkSpendCap, recordSpend } from '@/lib/spend-cap';
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const spendCap = await checkSpendCap('openai');
+    if (!spendCap.allowed) {
+      return NextResponse.json({ error: spendCap.reason }, { status: 429 });
+    }
+
     // Check if OpenAI API key is configured
     if (!process.env.OPENAI_API_KEY) {
       console.warn(
@@ -76,6 +91,16 @@ Do not include any other text, explanations, or formatting. Only return the JSON
       max_tokens: 150,
       temperature: 0.3,
     });
+
+    await recordSpend(
+      'openai',
+      estimateCostCents({
+        provider: 'openai',
+        model: 'gpt-4o-mini',
+        inputTokens: response.usage?.prompt_tokens ?? 0,
+        outputTokens: response.usage?.completion_tokens ?? 0,
+      })
+    );
 
     const result = response.choices[0]?.message?.content;
 
