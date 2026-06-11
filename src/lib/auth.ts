@@ -49,7 +49,7 @@ export const authOptions: NextAuthOptions = {
           // Clear rate limit on successful verification
           try {
             const { sendCodeLimiter } = await import('./auth-rate-limit');
-            sendCodeLimiter.reset(credentials.email);
+            await sendCodeLimiter.reset(credentials.email);
           } catch {
             // ignore rate limit reset errors
           }
