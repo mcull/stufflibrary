@@ -1,20 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { requireAdminAuth } from '@/lib/admin-auth';
 import { db } from '@/lib/db';
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
-    // Check if this is an admin request (you can add proper auth here)
-    const authHeader = request.headers.get('authorization');
-    const isAdmin =
-      authHeader === `Bearer ${process.env.ADMIN_API_KEY}` ||
-      request.nextUrl.searchParams.get('admin_key') ===
-        process.env.ADMIN_API_KEY;
+    await requireAdminAuth();
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
-    if (!isAdmin && process.env.NODE_ENV === 'production') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
+  try {
     // Check critical tables exist
     const tablesQuery = `
       SELECT table_name 
