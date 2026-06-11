@@ -6,8 +6,10 @@ import OpenAI from 'openai';
 import { Resend } from 'resend';
 import { v4 as uuidv4 } from 'uuid';
 
+import { estimateCostCents } from '@/lib/ai-pricing';
 import { authOptions } from '@/lib/auth';
 import { makeFeedbackSlug } from '@/lib/feedback-slug';
+import { checkSpendCap, recordSpend } from '@/lib/spend-cap';
 
 export async function POST(request: NextRequest) {
   try {
@@ -84,16 +86,32 @@ Format your response as JSON:
   "comment": "..."
 }`;
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: enhancementPrompt }],
-      temperature: 0.7,
-    });
+    // Skip the AI enhancement (and use the fallback below) when the daily
+    // spend cap is reached — feedback submission itself must still work.
+    const spendCap = await checkSpendCap('openai');
+    let content: string | null = null;
+    if (spendCap.allowed) {
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: enhancementPrompt }],
+        temperature: 0.7,
+      });
+      await recordSpend(
+        'openai',
+        estimateCostCents({
+          provider: 'openai',
+          model: 'gpt-3.5-turbo',
+          inputTokens: completion.usage?.prompt_tokens ?? 0,
+          outputTokens: completion.usage?.completion_tokens ?? 0,
+        })
+      );
+      content = completion.choices[0]?.message?.content ?? null;
+    }
 
     let enhancement;
     try {
-      const content = completion.choices[0]?.message?.content;
-      enhancement = content ? JSON.parse(content) : {};
+      if (!content) throw new Error('No enhancement content');
+      enhancement = JSON.parse(content);
     } catch {
       // Fallback if OpenAI response isn't valid JSON
       enhancement = {

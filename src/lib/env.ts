@@ -32,6 +32,10 @@ const envSchema = z.object({
   // AI Services
   OPENAI_API_KEY: z.string().optional(),
 
+  // Hard daily spend cap (in cents) on paid third-party APIs (OpenAI,
+  // Gemini, Google Places). Defaults to 1000 ($10/day) in spend-cap.ts.
+  DAILY_SPEND_CAP_CENTS: z.coerce.number().int().positive().optional(),
+
   // File Storage (Vercel Blob)
   BLOB_READ_WRITE_TOKEN: z.string().optional(),
   BLOB_BASE_URL: z.string().url().optional(),

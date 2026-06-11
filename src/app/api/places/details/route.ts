@@ -1,45 +1,73 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+
+import { authOptions } from '@/lib/auth';
+import { checkSpendCap, recordSpend } from '@/lib/spend-cap';
+
+// Places API (New) Place Details with address fields is ~1.7¢ per request.
+const PLACE_DETAILS_COST_CENTS = 2;
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const placeId = searchParams.get('place_id');
 
     if (!placeId) {
-      return NextResponse.json({ error: 'place_id parameter is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'place_id parameter is required' },
+        { status: 400 }
+      );
+    }
+
+    const spendCap = await checkSpendCap('places');
+    if (!spendCap.allowed) {
+      return NextResponse.json({ error: spendCap.reason }, { status: 429 });
     }
 
     const apiKey = process.env.GOOGLE_PLACES_API_KEY;
     if (!apiKey) {
       console.error('Google Places API key not configured');
-      return NextResponse.json({ error: 'API not configured' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'API not configured' },
+        { status: 500 }
+      );
     }
 
     // Use the new Places API (New) - Place Details endpoint
     const url = `https://places.googleapis.com/v1/places/${placeId}`;
-    
+
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'X-Goog-Api-Key': apiKey,
-        'X-Goog-FieldMask': 'id,formattedAddress,addressComponents,location'
-      }
+        'X-Goog-FieldMask': 'id,formattedAddress,addressComponents,location',
+      },
     });
+
+    await recordSpend('places', PLACE_DETAILS_COST_CENTS);
 
     if (!response.ok) {
       const errorData = await response.json();
       console.error('Place details API (New) error:', errorData);
-      return NextResponse.json({ error: 'Failed to fetch place details', details: errorData }, { status: response.status });
+      return NextResponse.json(
+        { error: 'Failed to fetch place details', details: errorData },
+        { status: response.status }
+      );
     }
 
     const place = await response.json();
-    
+
     // Parse address components into structured format (New API format)
     const addressComponents: Record<string, string> = {};
-    
+
     place.addressComponents?.forEach((component: any) => {
       const types = component.types;
-      
+
       if (types.includes('street_number')) {
         addressComponents.street_number = component.longText;
       }
@@ -67,10 +95,9 @@ export async function GET(request: NextRequest) {
     });
 
     // Construct address1 (street number + route)
-    const address1 = [
-      addressComponents.street_number,
-      addressComponents.route
-    ].filter(Boolean).join(' ');
+    const address1 = [addressComponents.street_number, addressComponents.route]
+      .filter(Boolean)
+      .join(' ');
 
     // address2 is for apt/suite/unit numbers
     const address2 = addressComponents.unit || null;
@@ -78,8 +105,10 @@ export async function GET(request: NextRequest) {
     // Construct full zip code (postal code + suffix if available)
     const zip = [
       addressComponents.postal_code,
-      addressComponents.postal_code_suffix
-    ].filter(Boolean).join('-');
+      addressComponents.postal_code_suffix,
+    ]
+      .filter(Boolean)
+      .join('-');
 
     const parsedAddress = {
       place_id: place.id,

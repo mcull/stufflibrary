@@ -4,6 +4,7 @@ import { GoogleGenAI } from '@google/genai';
 import sharp from 'sharp';
 
 // no direct blob import; use StorageService
+import { withGeminiSpendCap } from './spend-cap';
 import { StorageService } from './storage';
 
 interface WatercolorRenderOptions {
@@ -107,16 +108,18 @@ Use descriptive, specific labels that would help someone identify the item for b
     ];
 
     try {
-      const response = await this.genAI.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-          thinkingConfig: {
-            thinkingBudget: 0, // Disable thinking for better object detection
+      const response = await withGeminiSpendCap('gemini-2.5-flash', () =>
+        this.genAI.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: prompt,
+          config: {
+            responseMimeType: 'application/json',
+            thinkingConfig: {
+              thinkingBudget: 0, // Disable thinking for better object detection
+            },
           },
-        },
-      });
+        })
+      );
 
       const responseText =
         response.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
@@ -294,10 +297,12 @@ Use descriptive, specific labels that would help someone identify the item for b
     ];
 
     try {
-      const response = await this.genAI.models.generateContent({
-        model: 'gemini-2.0-flash-exp',
-        contents: prompt,
-      });
+      const response = await withGeminiSpendCap('gemini-2.0-flash-exp', () =>
+        this.genAI.models.generateContent({
+          model: 'gemini-2.0-flash-exp',
+          contents: prompt,
+        })
+      );
 
       const text =
         response.candidates?.[0]?.content?.parts?.[0]?.text
@@ -362,10 +367,14 @@ Use descriptive, specific labels that would help someone identify the item for b
       const apiStart = Date.now();
       console.log('🌐 Sending watercolor request to Gemini API...');
 
-      const response = await this.genAI.models.generateContent({
-        model: 'gemini-2.5-flash-image-preview',
-        contents: prompt,
-      });
+      const response = await withGeminiSpendCap(
+        'gemini-2.5-flash-image-preview',
+        () =>
+          this.genAI.models.generateContent({
+            model: 'gemini-2.5-flash-image-preview',
+            contents: prompt,
+          })
+      );
 
       const apiTime = Date.now() - apiStart;
       console.log(`🌐 Gemini API responded in ${apiTime}ms`);
@@ -466,10 +475,14 @@ Use descriptive, specific labels that would help someone identify the item for b
     ];
 
     try {
-      const response = await this.genAI.models.generateContent({
-        model: 'gemini-2.5-flash-image-preview',
-        contents: prompt,
-      });
+      const response = await withGeminiSpendCap(
+        'gemini-2.5-flash-image-preview',
+        () =>
+          this.genAI.models.generateContent({
+            model: 'gemini-2.5-flash-image-preview',
+            contents: prompt,
+          })
+      );
 
       // Extract image data from response
       for (const part of response.candidates?.[0]?.content?.parts || []) {
