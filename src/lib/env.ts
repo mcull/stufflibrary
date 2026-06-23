@@ -36,6 +36,13 @@ const envSchema = z.object({
   // Gemini, Google Places). Defaults to 1000 ($10/day) in spend-cap.ts.
   DAILY_SPEND_CAP_CENTS: z.coerce.number().int().positive().optional(),
 
+  // Error tracking (Sentry) — all optional; Sentry is a no-op until set
+  SENTRY_DSN: z.string().optional(),
+  NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
+  SENTRY_ORG: z.string().optional(),
+  SENTRY_PROJECT: z.string().optional(),
+  SENTRY_AUTH_TOKEN: z.string().optional(),
+
   // File Storage (Vercel Blob)
   BLOB_READ_WRITE_TOKEN: z.string().optional(),
   BLOB_BASE_URL: z.string().url().optional(),
