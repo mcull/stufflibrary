@@ -36,6 +36,10 @@ const envSchema = z.object({
   // Gemini, Google Places). Defaults to 1000 ($10/day) in spend-cap.ts.
   DAILY_SPEND_CAP_CENTS: z.coerce.number().int().positive().optional(),
 
+  // Admin access — comma-separated email allowlist; admins can also be
+  // granted via GitHub username (see admin-auth.ts).
+  ADMIN_EMAILS: z.string().optional(),
+
   // Error tracking (Sentry) — all optional; Sentry is a no-op until set
   SENTRY_DSN: z.string().optional(),
   NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
