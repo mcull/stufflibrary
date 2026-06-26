@@ -104,6 +104,10 @@ export async function GET(
       },
     });
 
+    // The owner is surfaced separately (below), and may ALSO have a
+    // CollectionMember row (e.g. if they followed their own join link). Drop
+    // that row here so the owner isn't listed twice.
+    const ownerId = collection?.owner?.id;
     const allMembers = [
       // Owner (only if active)
       ...(collection?.owner && collection.owner.status === 'active'
@@ -116,13 +120,15 @@ export async function GET(
             },
           ]
         : []),
-      // Regular members
-      ...members.map((member) => ({
-        id: member.id,
-        role: member.role,
-        joinedAt: member.joinedAt,
-        user: member.user,
-      })),
+      // Regular members (excluding the owner, who is added above)
+      ...members
+        .filter((member) => member.userId !== ownerId)
+        .map((member) => ({
+          id: member.id,
+          role: member.role,
+          joinedAt: member.joinedAt,
+          user: member.user,
+        })),
     ];
 
     return NextResponse.json({
