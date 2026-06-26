@@ -15,7 +15,7 @@ interface DashboardMetrics {
 
 interface MetricCardProps {
   title: string;
-  value: number;
+  value: number | undefined;
   subtitle?: string;
   trend?: {
     value: number;
@@ -39,7 +39,9 @@ function MetricCard({ title, value, subtitle, trend, icon }: MetricCardProps) {
                 {title}
               </dt>
               <dd className="text-lg font-medium text-gray-900">
-                {value.toLocaleString()}
+                {/* Tolerate a missing/undefined metric instead of crashing the
+                    whole dashboard if the API contract drifts. */}
+                {typeof value === 'number' ? value.toLocaleString() : '—'}
               </dd>
               {subtitle && (
                 <dd className="text-sm text-gray-500">{subtitle}</dd>
