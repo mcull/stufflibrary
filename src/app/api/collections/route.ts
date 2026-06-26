@@ -126,6 +126,12 @@ export async function GET() {
       },
     });
 
+    // A user can own a library AND hold a (stray) membership row in it — e.g.
+    // if they followed their own join link. Owned libraries are listed below,
+    // so drop any membership that points at a library they already own to avoid
+    // listing it twice.
+    const ownedIds = new Set(owned.map((library) => library.id));
+
     const collections = [
       ...owned.map((library) => ({
         id: library.id,
@@ -144,18 +150,20 @@ export async function GET() {
         },
         members: library.members,
       })),
-      ...memberships.map((m) => ({
-        id: m.collection.id,
-        name: m.collection.name,
-        description: m.collection.description,
-        location: m.collection.location,
-        isPublic: m.collection.isPublic,
-        role: m.role,
-        memberCount: m.collection._count.members + 1,
-        itemCount: m.collection._count.items,
-        joinedAt: m.joinedAt,
-        owner: m.collection.owner,
-      })),
+      ...memberships
+        .filter((m) => !ownedIds.has(m.collection.id))
+        .map((m) => ({
+          id: m.collection.id,
+          name: m.collection.name,
+          description: m.collection.description,
+          location: m.collection.location,
+          isPublic: m.collection.isPublic,
+          role: m.role,
+          memberCount: m.collection._count.members + 1,
+          itemCount: m.collection._count.items,
+          joinedAt: m.joinedAt,
+          owner: m.collection.owner,
+        })),
     ];
 
     return NextResponse.json({ collections });
