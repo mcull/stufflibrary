@@ -6,6 +6,13 @@ import GitHubProvider from 'next-auth/providers/github';
 import { verifyAuthCode } from './auth-codes';
 import { db } from './db';
 import { env } from './env';
+import { trackFailedLogin, trackSuccessfulLogin } from './security-logger';
+
+function clientIpFromHeaders(headers?: Record<string, string>): string {
+  const xff = headers?.['x-forwarded-for'];
+  if (xff) return xff.split(',')[0]!.trim();
+  return headers?.['x-real-ip'] ?? 'unknown';
+}
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(db),
@@ -30,10 +37,13 @@ export const authOptions: NextAuthOptions = {
         email: { label: 'Email', type: 'email' },
         code: { label: 'Code', type: 'text' },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.code) {
           return null;
         }
+
+        const ipAddress = clientIpFromHeaders(req?.headers);
+        const userAgent = req?.headers?.['user-agent'];
 
         try {
           // Verify the auth code
@@ -43,6 +53,7 @@ export const authOptions: NextAuthOptions = {
           );
 
           if (!isValidCode) {
+            await trackFailedLogin(ipAddress, userAgent);
             return null;
           }
 
@@ -67,6 +78,8 @@ export const authOptions: NextAuthOptions = {
               profileCompleted: false,
             },
           });
+
+          await trackSuccessfulLogin(ipAddress, user.id, userAgent);
 
           return {
             id: user.id,

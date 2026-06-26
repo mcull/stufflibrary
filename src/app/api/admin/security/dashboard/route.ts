@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { requireAdminAuth } from '@/lib/admin-auth';
-// TODO: Uncomment when schema is migrated
-// import { db } from '@/lib/db';
+import { db } from '@/lib/db';
 import { getSecurityMetrics } from '@/lib/security-logger';
 
 export async function GET(request: NextRequest) {
@@ -30,69 +29,55 @@ export async function GET(request: NextRequest) {
         startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     }
 
-    // TODO: Replace with actual database queries once schema is migrated
-    const securityMetrics = await getSecurityMetrics(startDate, endDate);
-    const recentCriticalEvents: any[] = [];
-    const activeBlockedIPs = 0;
-    const suspiciousIPs: {
-      ipAddress: string;
-      _count: { ipAddress: number };
-    }[] = [];
+    const [
+      securityMetrics,
+      recentCriticalEvents,
+      activeBlockedIPs,
+      suspiciousIPs,
+    ] = await Promise.all([
+      // Aggregated security metrics from the security-logger service
+      getSecurityMetrics(startDate, endDate),
 
-    // Uncomment when schema is migrated:
-    // const [securityMetrics, recentCriticalEvents, activeBlockedIPs, suspiciousIPs] = await Promise.all([
-    //   // Get security metrics from our security logger service
-    //   getSecurityMetrics(startDate, endDate),
-    //
-    //   // Recent critical security events (last 24 hours)
-    //   db.securityEvent.findMany({
-    //     where: {
-    //       severity: { in: ['HIGH', 'CRITICAL'] },
-    //       createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-    //     },
-    //     include: {
-    //       user: {
-    //         select: { id: true, name: true, email: true },
-    //       },
-    //     },
-    //     orderBy: { createdAt: 'desc' },
-    //     take: 10,
-    //   }),
-    //
-    //   // Currently active blocked IPs
-    //   db.blockedIP.count({
-    //     where: {
-    //       isActive: true,
-    //       OR: [
-    //         { expiresAt: null },
-    //         { expiresAt: { gt: new Date() } }
-    //       ],
-    //     },
-    //   }),
-    //
-    //   // IPs with multiple failed login attempts in last hour
-    //   db.securityEvent.groupBy({
-    //     by: ['ipAddress'],
-    //     where: {
-    //       type: 'LOGIN_FAILED',
-    //       createdAt: { gte: new Date(Date.now() - 60 * 60 * 1000) },
-    //       ipAddress: { not: null },
-    //     },
-    //     _count: { ipAddress: true },
-    //     having: {
-    //       ipAddress: { _count: { gt: 2 } },
-    //     },
-    //     orderBy: {
-    //       _count: { ipAddress: 'desc' },
-    //     },
-    //     take: 10,
-    //   }),
-    // ]);
+      // Recent critical security events (last 24 hours)
+      db.securityEvent.findMany({
+        where: {
+          severity: { in: ['HIGH', 'CRITICAL'] },
+          createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+        },
+        include: {
+          user: { select: { id: true, name: true, email: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+
+      // Currently active blocked IPs
+      db.blockedIP.count({
+        where: {
+          isActive: true,
+          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+        },
+      }),
+
+      // IPs with multiple failed login attempts in the last hour
+      db.securityEvent.groupBy({
+        by: ['ipAddress'],
+        where: {
+          type: 'LOGIN_FAILED',
+          createdAt: { gte: new Date(Date.now() - 60 * 60 * 1000) },
+          ipAddress: { not: null },
+        },
+        _count: { ipAddress: true },
+        having: { ipAddress: { _count: { gt: 2 } } },
+        orderBy: { _count: { ipAddress: 'desc' } },
+        take: 10,
+      }),
+    ]);
 
     // Calculate threat level based on recent activity
     const criticalEventsLast24h = recentCriticalEvents.length;
     const failedLoginsLast24h =
-      securityMetrics.eventsByType.find((e: any) => e.type === 'LOGIN_FAILED')
+      securityMetrics.eventsByType.find((e) => e.type === 'LOGIN_FAILED')
         ?._count.type || 0;
 
     let threatLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
@@ -116,7 +101,7 @@ export async function GET(request: NextRequest) {
       },
       metrics: securityMetrics,
       recentCriticalEvents,
-      suspiciousIPs: suspiciousIPs.map((ip: any) => ({
+      suspiciousIPs: suspiciousIPs.map((ip) => ({
         ipAddress: ip.ipAddress,
         failedAttempts: ip._count.ipAddress,
       })),
