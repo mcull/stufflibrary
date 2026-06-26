@@ -12,6 +12,10 @@ const nextConfig = {
   typescript: {
     // P0-12: fail the build on type errors instead of suppressing them.
     ignoreBuildErrors: false,
+    // Build-only tsconfig that excludes test files, so the production build
+    // doesn't type-check test-only devDeps (which aren't resolvable in the
+    // deploy build). `npm run typecheck` still uses tsconfig.json for tests.
+    tsconfigPath: 'tsconfig.build.json',
   },
   images: {
     remotePatterns: [
