@@ -1,6 +1,6 @@
-// TODO: Uncomment when schema is migrated
-// import { db } from './db';
-// import { RedisService } from './redis';
+import type { Prisma } from '@prisma/client';
+
+import { db } from './db';
 
 export type SecurityEventType =
   | 'LOGIN_SUCCESS'
@@ -50,42 +50,159 @@ export interface BlockedIPData {
   blockedBy?: string;
 }
 
-// Temporary mock implementation until database schema is migrated
+function isTest(): boolean {
+  return process.env.NODE_ENV === 'test';
+}
+
+/**
+ * Persist a security event. Logging must never break the request path, so all
+ * DB errors are swallowed (and surfaced to the console outside tests).
+ */
 export async function logSecurityEvent(
   eventData: SecurityEventData
 ): Promise<void> {
-  console.log('🔒 SECURITY EVENT:', eventData);
+  try {
+    await db.securityEvent.create({
+      data: {
+        type: eventData.type,
+        severity: eventData.severity ?? 'INFO',
+        message: eventData.message,
+        ...(eventData.details !== undefined
+          ? { details: eventData.details as Prisma.InputJsonValue }
+          : {}),
+        ipAddress: eventData.ipAddress ?? null,
+        userAgent: eventData.userAgent ?? null,
+        userId: eventData.userId ?? null,
+        endpoint: eventData.endpoint ?? null,
+        method: eventData.method ?? null,
+        statusCode: eventData.statusCode ?? null,
+      },
+    });
+  } catch (error) {
+    if (!isTest()) {
+      console.error('Failed to persist security event:', error);
+    }
+  }
 }
 
+/**
+ * Block (or re-block) an IP. Unlike logging, errors propagate so the calling
+ * admin route can report failure.
+ */
 export async function blockIP(blockData: BlockedIPData): Promise<void> {
-  console.log('🚫 BLOCK IP:', blockData);
+  await db.blockedIP.upsert({
+    where: { ipAddress: blockData.ipAddress },
+    create: {
+      ipAddress: blockData.ipAddress,
+      reason: blockData.reason,
+      description: blockData.description ?? null,
+      expiresAt: blockData.expiresAt ?? null,
+      blockedBy: blockData.blockedBy ?? null,
+      isActive: true,
+    },
+    update: {
+      reason: blockData.reason,
+      description: blockData.description ?? null,
+      expiresAt: blockData.expiresAt ?? null,
+      blockedBy: blockData.blockedBy ?? null,
+      isActive: true,
+      blockedAt: new Date(),
+    },
+  });
+
+  await logSecurityEvent({
+    type: 'IP_BLOCKED',
+    severity: 'HIGH',
+    message: `IP ${blockData.ipAddress} blocked (${blockData.reason})`,
+    ipAddress: blockData.ipAddress,
+    ...(blockData.blockedBy ? { userId: blockData.blockedBy } : {}),
+  });
 }
 
-export async function isIPBlocked(_ipAddress: string): Promise<boolean> {
-  return false; // Always return false until schema is migrated
+/**
+ * Whether an IP currently has an active, unexpired block. Fails open (returns
+ * false) so a DB hiccup can never lock out all traffic.
+ */
+export async function isIPBlocked(ipAddress: string): Promise<boolean> {
+  try {
+    const block = await db.blockedIP.findFirst({
+      where: {
+        ipAddress,
+        isActive: true,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      },
+      select: { id: true },
+    });
+    return block !== null;
+  } catch (error) {
+    if (!isTest()) {
+      console.error('isIPBlocked check failed:', error);
+    }
+    return false;
+  }
 }
 
 export async function unblockIP(
   ipAddress: string,
   adminId?: string
 ): Promise<void> {
-  console.log('🔓 UNBLOCK IP:', ipAddress, 'by:', adminId);
+  await db.blockedIP.updateMany({
+    where: { ipAddress },
+    data: { isActive: false },
+  });
+
+  await logSecurityEvent({
+    type: 'ADMIN_ACTION',
+    severity: 'INFO',
+    message: `IP ${ipAddress} unblocked`,
+    ipAddress,
+    ...(adminId ? { userId: adminId } : {}),
+  });
 }
 
-export async function getSecurityMetrics(_startDate: Date, _endDate: Date) {
-  // Mock data until schema is migrated
+export async function getSecurityMetrics(startDate: Date, endDate: Date) {
+  const where: Prisma.SecurityEventWhereInput = {
+    createdAt: { gte: startDate, lte: endDate },
+  };
+
+  const [
+    eventsByType,
+    eventsBySeverity,
+    blockedIPCount,
+    recentHighSeverityEvents,
+    totalEvents,
+  ] = await Promise.all([
+    db.securityEvent.groupBy({
+      by: ['type'],
+      where,
+      _count: { type: true },
+    }),
+    db.securityEvent.groupBy({
+      by: ['severity'],
+      where,
+      _count: { severity: true },
+    }),
+    db.blockedIP.count({
+      where: {
+        isActive: true,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      },
+    }),
+    db.securityEvent.findMany({
+      where: { ...where, severity: { in: ['HIGH', 'CRITICAL'] } },
+      include: { user: { select: { name: true, email: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    }),
+    db.securityEvent.count({ where }),
+  ]);
+
   return {
-    eventsByType: [
-      { type: 'LOGIN_FAILED', _count: { type: 15 } },
-      { type: 'LOGIN_SUCCESS', _count: { type: 45 } },
-    ],
-    eventsBySeverity: [
-      { severity: 'INFO', _count: { severity: 50 } },
-      { severity: 'HIGH', _count: { severity: 3 } },
-    ],
-    blockedIPCount: 0,
-    recentHighSeverityEvents: [],
-    totalEvents: 60,
+    eventsByType,
+    eventsBySeverity,
+    blockedIPCount,
+    recentHighSeverityEvents,
+    totalEvents,
   };
 }
 

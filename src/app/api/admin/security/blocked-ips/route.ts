@@ -1,8 +1,8 @@
+import { $Enums, type Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { requireAdminAuth } from '@/lib/admin-auth';
-// TODO: Uncomment when schema is migrated
-// import { db } from '@/lib/db';
+import { db } from '@/lib/db';
 import { blockIP, unblockIP, type BlockedIPData } from '@/lib/security-logger';
 
 export async function GET(request: NextRequest) {
@@ -21,33 +21,26 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit;
 
     // Build where clause
-    const where: Record<string, unknown> = {};
+    const where: Prisma.BlockedIPWhereInput = {};
 
     if (activeOnly) {
       where.isActive = true;
       where.OR = [{ expiresAt: null }, { expiresAt: { gt: new Date() } }];
     }
 
-    if (reason) {
-      where.reason = reason;
+    if (reason && reason in $Enums.BlockedIPReason) {
+      where.reason = reason as $Enums.BlockedIPReason;
     }
 
-    // TODO: Replace with actual database once schema is migrated
-    const blockedIPs: any[] = [];
-    const totalCount = 0;
-
-    // Uncomment when schema is migrated:
-    // const [blockedIPs, totalCount] = await Promise.all([
-    //   db.blockedIP.findMany({
-    //     where,
-    //     orderBy: {
-    //       createdAt: 'desc',
-    //     },
-    //     skip: offset,
-    //     take: limit,
-    //   }),
-    //   db.blockedIP.count({ where }),
-    // ]);
+    const [blockedIPs, totalCount] = await Promise.all([
+      db.blockedIP.findMany({
+        where,
+        orderBy: { blockedAt: 'desc' },
+        skip: offset,
+        take: limit,
+      }),
+      db.blockedIP.count({ where }),
+    ]);
 
     return NextResponse.json({
       blockedIPs,
@@ -83,11 +76,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // blockedBy is a FK to users.id — use the admin's id, not their email.
+    const adminId = (session.user as { id?: string } | undefined)?.id;
     const blockData: BlockedIPData = {
       ipAddress,
       reason,
       description,
-      blockedBy: session.user?.email || 'admin',
+      ...(adminId ? { blockedBy: adminId } : {}),
     };
     if (expiresAt) {
       blockData.expiresAt = new Date(expiresAt);
@@ -118,7 +113,10 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    await unblockIP(ipAddress, session.user?.email || 'admin');
+    await unblockIP(
+      ipAddress,
+      (session.user as { id?: string } | undefined)?.id
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {
