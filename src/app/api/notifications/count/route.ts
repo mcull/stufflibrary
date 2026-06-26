@@ -5,7 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { getUnreadNotificationCount } from '@/lib/notification-service';
 
 // GET /api/notifications/count - Get unread notification count
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 

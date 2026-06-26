@@ -5,10 +5,13 @@ import { withSentryConfig } from '@sentry/nextjs';
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
-    ignoreDuringBuilds: true,
+    // P0-12: surface lint errors at build time. `next build` fails on ESLint
+    // *errors* (not warnings), so type/lint regressions can't silently ship.
+    ignoreDuringBuilds: false,
   },
   typescript: {
-    ignoreBuildErrors: true,
+    // P0-12: fail the build on type errors instead of suppressing them.
+    ignoreBuildErrors: false,
   },
   images: {
     remotePatterns: [
