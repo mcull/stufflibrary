@@ -187,7 +187,6 @@ export const EmailTemplates = {
   borrowRequestReceived({
     recipientName,
     borrowerName,
-    borrowerImage,
     itemName,
     itemImage,
     videoThumbnail,
@@ -202,7 +201,7 @@ export const EmailTemplates = {
       
       <p style="font-size: 16px; color: #374151;">
         <strong>${borrowerName}</strong> would like to borrow your <strong>"${itemName}"</strong>. 
-        ${videoThumbnail ? "They've sent you a video request explaining what they need it for." : ""}
+        ${videoThumbnail ? "They've sent you a video request explaining what they need it for." : ''}
       </p>
 
       <div class="item-card">
@@ -213,19 +212,27 @@ export const EmailTemplates = {
         <div style="clear: both;"></div>
       </div>
 
-      ${requestMessage ? `
+      ${
+        requestMessage
+          ? `
         <div class="message-box">
           <strong>Message from ${borrowerName}:</strong>
           <p style="margin: 8px 0 0 0;">"${requestMessage}"</p>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
 
-      ${videoThumbnail ? `
+      ${
+        videoThumbnail
+          ? `
         <div style="text-align: center; margin: 30px 0;">
           <p style="color: #6b7280; margin-bottom: 16px;">Video Request from ${borrowerName}</p>
           <img src="${videoThumbnail}" alt="Video thumbnail" style="max-width: 300px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
         </div>
-      ` : ''}
+      `
+          : ''
+      }
 
       <div style="text-align: center; margin: 40px 0;">
         <a href="${approvalUrl}" class="button">
@@ -273,12 +280,16 @@ export const EmailTemplates = {
         <div style="clear: both;"></div>
       </div>
 
-      ${lenderMessage ? `
+      ${
+        lenderMessage
+          ? `
         <div class="message-box" style="background-color: #d1fae5; border-color: #10b981;">
           <strong>Message from ${lenderName}:</strong>
           <p style="margin: 8px 0 0 0;">"${lenderMessage}"</p>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
 
       <div style="background-color: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 20px; margin: 20px 0;">
         <h3 style="margin: 0 0 12px 0; color: #0c4a6e;">Next Steps:</h3>
@@ -325,12 +336,16 @@ export const EmailTemplates = {
         <div style="clear: both;"></div>
       </div>
 
-      ${lenderMessage ? `
+      ${
+        lenderMessage
+          ? `
         <div class="message-box" style="background-color: #fef2f2; border-color: #ef4444;">
           <strong>Message from ${lenderName}:</strong>
           <p style="margin: 8px 0 0 0;">"${lenderMessage}"</p>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
 
       <p style="font-size: 16px; color: #374151;">
         Don't worry! There are other ways to find what you need:
@@ -340,7 +355,7 @@ export const EmailTemplates = {
         <li>Browse other items in your local libraries</li>
         <li>Check back later - availability changes frequently</li>
         <li>Ask neighbors if they have similar items</li>
-        ${suggestedAlternatives?.map(alt => `<li>${alt}</li>`).join('') || ''}
+        ${suggestedAlternatives?.map((alt) => `<li>${alt}</li>`).join('') || ''}
       </ul>
 
       <div style="text-align: center; margin: 30px 0;">
@@ -387,20 +402,28 @@ export const EmailTemplates = {
         <div style="clear: both;"></div>
       </div>
 
-      ${borrowerNotes ? `
+      ${
+        borrowerNotes
+          ? `
         <div class="message-box" style="background-color: #f0f9ff; border-color: #0ea5e9;">
           <strong>Note from ${borrowerName}:</strong>
           <p style="margin: 8px 0 0 0;">"${borrowerNotes}"</p>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
 
-      ${confirmReturnUrl ? `
+      ${
+        confirmReturnUrl
+          ? `
         <div style="text-align: center; margin: 30px 0;">
           <a href="${confirmReturnUrl}" class="button">
             Confirm Return Received
           </a>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
 
       <p style="font-size: 16px; color: #374151;">
         Your item is now available for future borrow requests. Thank you for being 

@@ -5,7 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { markAllNotificationsAsRead } from '@/lib/notification-service';
 
 // PATCH /api/notifications/read-all - Mark all notifications as read
-export async function PATCH(request: NextRequest) {
+export async function PATCH(_request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -24,8 +24,8 @@ export async function PATCH(request: NextRequest) {
 
     const result = await markAllNotificationsAsRead(userId);
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       updatedCount: result.count,
     });
   } catch (error) {

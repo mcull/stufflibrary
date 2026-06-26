@@ -2,7 +2,6 @@
 
 import {
   ArrowBack as ArrowBackIcon,
-  LocationOn as LocationIcon,
   CalendarToday as CalendarIcon,
   Inventory as InventoryIcon,
 } from '@mui/icons-material';
@@ -76,13 +75,13 @@ export function PublicProfileView({ user }: PublicProfileViewProps) {
           Back
         </Button>
         <Typography variant="h5" component="h1">
-          {user.name}'s Profile
+          {user.name}&apos;s Profile
         </Typography>
       </Box>
 
       <Grid container spacing={4}>
         {/* Profile Information */}
-        <Grid {...({item: true, xs: 12, md: 4} as any)}>
+        <Grid {...({ item: true, xs: 12, md: 4 } as any)}>
           <Card sx={{ mb: 3 }}>
             <CardContent sx={{ textAlign: 'center', p: 4 }}>
               <Avatar
@@ -97,7 +96,7 @@ export function PublicProfileView({ user }: PublicProfileViewProps) {
               >
                 {!user.image && user.name?.[0]}
               </Avatar>
-              
+
               <Typography variant="h4" gutterBottom>
                 {user.name || 'Anonymous User'}
               </Typography>
@@ -112,19 +111,36 @@ export function PublicProfileView({ user }: PublicProfileViewProps) {
                 </Typography>
               )}
 
-              <Stack direction="row" spacing={2} justifyContent="center" sx={{ mb: 3 }}>
+              <Stack
+                direction="row"
+                spacing={2}
+                justifyContent="center"
+                sx={{ mb: 3 }}
+              >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <CalendarIcon sx={{ fontSize: '1rem', color: 'text.secondary' }} />
+                  <CalendarIcon
+                    sx={{ fontSize: '1rem', color: 'text.secondary' }}
+                  />
                   <Typography variant="body2" color="text.secondary">
                     Joined {joinDate}
                   </Typography>
                 </Box>
               </Stack>
 
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
-                <InventoryIcon sx={{ fontSize: '1.2rem', color: brandColors.inkBlue }} />
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  justifyContent: 'center',
+                }}
+              >
+                <InventoryIcon
+                  sx={{ fontSize: '1.2rem', color: brandColors.inkBlue }}
+                />
                 <Typography variant="h6" color="primary">
-                  {user._count.items} item{user._count.items !== 1 ? 's' : ''} shared
+                  {user._count.items} item{user._count.items !== 1 ? 's' : ''}{' '}
+                  shared
                 </Typography>
               </Box>
             </CardContent>
@@ -154,11 +170,11 @@ export function PublicProfileView({ user }: PublicProfileViewProps) {
         </Grid>
 
         {/* Items Grid */}
-        <Grid {...({item: true, xs: 12, md: 8} as any)}>
+        <Grid {...({ item: true, xs: 12, md: 8 } as any)}>
           <Typography variant="h5" gutterBottom>
             Available Items
           </Typography>
-          
+
           {user.items.length === 0 ? (
             <Paper
               sx={{
@@ -167,18 +183,23 @@ export function PublicProfileView({ user }: PublicProfileViewProps) {
                 backgroundColor: 'grey.50',
               }}
             >
-              <InventoryIcon sx={{ fontSize: '4rem', color: 'grey.400', mb: 2 }} />
+              <InventoryIcon
+                sx={{ fontSize: '4rem', color: 'grey.400', mb: 2 }}
+              />
               <Typography variant="h6" color="text.secondary" gutterBottom>
                 No items available
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                {user.name} hasn't shared any items yet.
+                {user.name} hasn&apos;t shared any items yet.
               </Typography>
             </Paper>
           ) : (
             <Grid container spacing={3}>
               {user.items.map((item) => (
-                <Grid {...({item: true, xs: 12, sm: 6, md: 4, key: item.id} as any)}>
+                <Grid
+                  key={item.id}
+                  {...({ item: true, xs: 12, sm: 6, md: 4 } as any)}
+                >
                   <Card
                     onClick={() => handleItemClick(item.id)}
                     sx={{
@@ -220,7 +241,7 @@ export function PublicProfileView({ user }: PublicProfileViewProps) {
                         </Box>
                       )}
                     </Box>
-                    
+
                     <CardContent sx={{ p: 2 }}>
                       <Typography
                         variant="subtitle1"
@@ -234,7 +255,7 @@ export function PublicProfileView({ user }: PublicProfileViewProps) {
                       >
                         {item.name}
                       </Typography>
-                      
+
                       {item.description && (
                         <Typography
                           variant="body2"
@@ -252,7 +273,13 @@ export function PublicProfileView({ user }: PublicProfileViewProps) {
                         </Typography>
                       )}
 
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}
+                      >
                         {item.stuffType && (
                           <Chip
                             label={item.stuffType.category}
@@ -261,7 +288,7 @@ export function PublicProfileView({ user }: PublicProfileViewProps) {
                             sx={{ textTransform: 'capitalize' }}
                           />
                         )}
-                        
+
                         <Typography
                           variant="caption"
                           color="text.secondary"

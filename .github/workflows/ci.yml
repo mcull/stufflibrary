@@ -29,9 +29,8 @@ jobs:
       - name: TypeScript type check
         run: npm run typecheck
 
-      - name: ESLint check (warnings only)
-        run: npm run lint || echo "ESLint warnings found but not blocking build"
-        continue-on-error: true
+      - name: ESLint check
+        run: npm run lint
 
       - name: Run unit tests
         run: npm run test:ci

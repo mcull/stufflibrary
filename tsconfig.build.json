@@ -1,0 +1,28 @@
+{
+  // Production build type-check config (used by `next build` via
+  // next.config.mjs typescript.tsconfigPath). Identical to tsconfig.json but
+  // EXCLUDES test files so the app build never depends on test-only devDeps
+  // (e.g. @testing-library/jest-dom), which aren't resolvable in the deploy
+  // build. `npm run typecheck` still uses tsconfig.json and covers tests.
+  "extends": "./tsconfig.json",
+  "include": [
+    "**/*.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "next-env.d.ts",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "playwright.config.ts",
+    "playwright-report",
+    "test-results",
+    "tests",
+    "temp",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/__tests__/**",
+    "src/test/**",
+    "src/types/jest-dom.d.ts"
+  ]
+}
