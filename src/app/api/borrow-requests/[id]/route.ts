@@ -10,7 +10,20 @@ import {
   sendBorrowRequestDeclinedNotification,
   sendItemReturnedNotification,
 } from '@/lib/enhanced-notification-service';
+import { createNotification } from '@/lib/notification-service';
 import { sendCancellationNotification } from '@/lib/twilio';
+
+// Shared helpers for return condition validation
+const VALID_CONDITIONS = ['OK', 'MINOR_WEAR', 'DAMAGED'] as const;
+type ConditionInput = (typeof VALID_CONDITIONS)[number];
+
+function computeReturnedLate(
+  requestedReturnDate: Date,
+  returnedAt: Date | null
+): boolean {
+  const back = returnedAt ?? new Date();
+  return back.getTime() > new Date(requestedReturnDate).getTime();
+}
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -118,7 +131,14 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
     const body = await request.json();
-    const { action, message, actualReturnDate } = body;
+    const {
+      action,
+      message,
+      actualReturnDate,
+      condition,
+      conditionNote,
+      photoUrl,
+    } = body;
 
     // For magic link approve/decline, no authentication required
     // For all other actions, require authentication
@@ -161,12 +181,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         'cancel',
         'confirm-return',
         'lender-return',
+        'report-problem',
       ].includes(action)
     ) {
       return NextResponse.json(
         {
           error:
-            'Action must be one of: approve, decline, return, cancel, confirm-return, lender-return',
+            'Action must be one of: approve, decline, return, cancel, confirm-return, lender-return, report-problem',
         },
         { status: 400 }
       );
@@ -251,30 +272,26 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         break;
 
       case 'return':
-        // Only borrower can mark as returned
         if (borrowRequest.borrowerId !== userId) {
           return NextResponse.json(
             { error: 'Only the borrower can mark items as returned' },
             { status: 403 }
           );
         }
-
-        // Can only return active borrows
         if (borrowRequest.status !== 'ACTIVE') {
           return NextResponse.json(
             { error: 'Can only return items that are currently active' },
             { status: 400 }
           );
         }
-
         authorizedUser = true;
-        newStatus = 'RETURNED';
+        newStatus = 'RETURN_PENDING';
         updateData = {
           status: newStatus,
           returnedAt: actualReturnDate
             ? new Date(actualReturnDate)
             : new Date(),
-          borrowerNotes: message || null,
+          borrowerReturnNote: message || null,
         };
         break;
 
@@ -314,45 +331,53 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         break;
 
       case 'confirm-return':
-        // Only lender can confirm return of RETURNED requests
         if (borrowRequest.lenderId !== userId) {
           return NextResponse.json(
             { error: 'Only the item owner can confirm returns' },
             { status: 403 }
           );
         }
-
-        // Can only confirm return of returned items
-        if (borrowRequest.status !== 'RETURNED') {
+        if (borrowRequest.status !== 'RETURN_PENDING') {
+          return NextResponse.json(
+            { error: 'Can only confirm items awaiting return confirmation' },
+            { status: 400 }
+          );
+        }
+        if (
+          !condition ||
+          !VALID_CONDITIONS.includes(condition as ConditionInput)
+        ) {
           return NextResponse.json(
             {
-              error: 'Can only confirm items that have been marked as returned',
+              error: 'A return condition (OK, MINOR_WEAR, DAMAGED) is required',
             },
             { status: 400 }
           );
         }
-
         authorizedUser = true;
-        newStatus = 'RETURNED'; // Keep as RETURNED - confirmation is implicit
+        newStatus = 'RETURNED';
         updateData = {
           status: newStatus,
-          // Mark the return as confirmed by updating the lender message
+          returnCondition: condition,
+          returnConditionNote: conditionNote || null,
+          returnPhotoUrl: photoUrl || null,
+          returnConfirmedAt: new Date(),
+          returnConfirmedBy: userId,
+          returnedLate: computeReturnedLate(
+            borrowRequest.requestedReturnDate,
+            borrowRequest.returnedAt
+          ),
           lenderMessage: message || 'Return confirmed by lender',
-          // Update timestamp to indicate confirmation
-          updatedAt: new Date(),
         };
         break;
 
       case 'lender-return':
-        // Only lender can mark as returned directly
         if (borrowRequest.lenderId !== userId) {
           return NextResponse.json(
             { error: 'Only the item owner can check in items' },
             { status: 403 }
           );
         }
-
-        // Can only return active or approved borrows
         if (!['ACTIVE', 'APPROVED'].includes(borrowRequest.status)) {
           return NextResponse.json(
             {
@@ -362,17 +387,100 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
             { status: 400 }
           );
         }
-
+        if (
+          !condition ||
+          !VALID_CONDITIONS.includes(condition as ConditionInput)
+        ) {
+          return NextResponse.json(
+            {
+              error: 'A return condition (OK, MINOR_WEAR, DAMAGED) is required',
+            },
+            { status: 400 }
+          );
+        }
         authorizedUser = true;
         newStatus = 'RETURNED';
-        updateData = {
-          status: newStatus,
-          returnedAt: actualReturnDate
+        {
+          const back = actualReturnDate
             ? new Date(actualReturnDate)
-            : new Date(),
-          lenderMessage: message || 'Item checked in by owner',
-        };
+            : new Date();
+          updateData = {
+            status: newStatus,
+            returnedAt: back,
+            returnCondition: condition,
+            returnConditionNote: conditionNote || null,
+            returnPhotoUrl: photoUrl || null,
+            returnConfirmedAt: new Date(),
+            returnConfirmedBy: userId,
+            returnedLate: computeReturnedLate(
+              borrowRequest.requestedReturnDate,
+              back
+            ),
+            lenderMessage: message || 'Item checked in by owner',
+          };
+        }
         break;
+
+      case 'report-problem': {
+        const isParty =
+          borrowRequest.borrowerId === userId ||
+          borrowRequest.lenderId === userId;
+        if (!isParty) {
+          return NextResponse.json(
+            { error: 'Only the borrower or owner can report a problem' },
+            { status: 403 }
+          );
+        }
+        if (!['RETURN_PENDING', 'RETURNED'].includes(borrowRequest.status)) {
+          return NextResponse.json(
+            { error: 'Problems can only be reported on a returned borrow' },
+            { status: 400 }
+          );
+        }
+        const reference = borrowRequest.returnedAt ?? new Date();
+        const ageMs = Date.now() - new Date(reference).getTime();
+        if (ageMs > 7 * 24 * 60 * 60 * 1000) {
+          return NextResponse.json(
+            { error: 'The 7-day window to report a problem has passed' },
+            { status: 400 }
+          );
+        }
+        const validTypes = [
+          'ITEM_DAMAGED',
+          'ITEM_NOT_RETURNED',
+          'ITEM_NOT_AS_DESCRIBED',
+          'OTHER',
+        ];
+        const disputeType = validTypes.includes(body.disputeType)
+          ? body.disputeType
+          : 'OTHER';
+        const otherPartyId =
+          borrowRequest.borrowerId === userId
+            ? borrowRequest.lenderId
+            : borrowRequest.borrowerId;
+
+        await db.dispute.create({
+          data: {
+            type: disputeType,
+            status: 'OPEN',
+            title: (body.title as string) || 'Reported problem',
+            description: (message as string) || '',
+            partyAId: userId!,
+            partyBId: otherPartyId,
+            itemId: borrowRequest.itemId,
+            borrowRequestId: borrowRequest.id,
+          },
+        });
+
+        await createNotification({
+          userId: otherPartyId,
+          type: 'PROBLEM_REPORTED',
+          title: 'A problem was reported',
+          message: `A problem was reported on a borrow: ${(body.title as string) || disputeType}`,
+        });
+
+        return NextResponse.json({ success: true });
+      }
     }
 
     if (!authorizedUser) {
@@ -419,7 +527,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     await updateItemAvailability(
       borrowRequest.item.id,
       borrowRequest.id,
-      newStatus as 'APPROVED' | 'DECLINED' | 'RETURNED' | 'CANCELLED',
+      newStatus as
+        | 'APPROVED'
+        | 'DECLINED'
+        | 'RETURNED'
+        | 'CANCELLED'
+        | 'RETURN_PENDING',
       userId // This can be undefined for magic link actions
     );
 
