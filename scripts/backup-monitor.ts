@@ -2,229 +2,152 @@
 
 /**
  * Backup Monitoring Script
- * 
- * This script checks backup status and sends alerts if backups are failing.
- * It integrates with Supabase backup systems and external monitoring.
+ *
+ * Checks the real Supabase-managed backup status via the Supabase Management
+ * API (GET /v1/projects/{ref}/database/backups) and alerts if the most recent
+ * backup is missing or stale.
+ *
+ * Requires (env-gated — no-op with a clear message if absent):
+ *   SUPABASE_ACCESS_TOKEN   Personal access token from
+ *                           https://supabase.com/dashboard/account/tokens
+ *   SUPABASE_PROJECT_REF    The project ref to monitor (e.g. the prod project).
+ *
+ * The restore drill is a manual, console-driven procedure (see `test-restore`).
  */
 
-import { getDatabaseConfig } from '../src/lib/db-config';
+import {
+  evaluateBackupHealth,
+  type SupabaseBackupsResponse,
+} from '../src/lib/backup-monitor';
 
-interface BackupStatus {
-  lastBackup: Date | null;
-  status: 'success' | 'failed' | 'running' | 'unknown';
-  size: number | null; // in bytes
-  type: 'full' | 'incremental';
-  retentionDays: number;
+const MANAGEMENT_API = 'https://api.supabase.com';
+
+function formatAge(hours: number | null): string {
+  if (hours === null) return 'never';
+  if (hours < 1) return `${Math.round(hours * 60)}m ago`;
+  return `${hours.toFixed(1)}h ago`;
 }
 
-interface MonitoringOptions {
-  alertOnFailure?: boolean;
-  alertOnOldBackup?: boolean;
-  maxBackupAge?: number; // hours
-}
-
-/**
- * Check backup status for the current environment
- */
-async function checkBackupStatus(): Promise<BackupStatus> {
-  const config = getDatabaseConfig();
-  
-  console.log(`🔍 Checking backup status for ${config.environment} environment...`);
-  
-  // In a real implementation, this would:
-  // 1. Query Supabase backup API
-  // 2. Check backup file timestamps
-  // 3. Verify backup integrity
-  // 4. Check retention policies
-  
-  // Mock implementation for now
-  return {
-    lastBackup: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago
-    status: 'success',
-    size: 1024 * 1024 * 500, // 500 MB
-    type: 'full',
-    retentionDays: 30,
-  };
-}
-
-/**
- * Send alert notification
- */
-async function sendAlert(message: string, severity: 'warning' | 'critical' = 'warning') {
-  console.log(`🚨 ${severity.toUpperCase()}: ${message}`);
-  
-  // In a real implementation, this would:
-  // 1. Send Slack/Discord notification
-  // 2. Send email alerts
-  // 3. Create PagerDuty incident
-  // 4. Log to monitoring system (DataDog, New Relic, etc.)
-  
-  // For now, just log to console and potentially write to a log file
-  const alertData = {
-    timestamp: new Date().toISOString(),
-    severity,
-    message,
-    environment: getDatabaseConfig().environment,
-  };
-  
-  console.log('Alert data:', JSON.stringify(alertData, null, 2));
-}
-
-/**
- * Monitor backup health
- */
-async function monitorBackups(options: MonitoringOptions = {}) {
-  const {
-    alertOnFailure = true,
-    alertOnOldBackup = true,
-    maxBackupAge = 24 // hours
-  } = options;
-  
-  try {
-    const backupStatus = await checkBackupStatus();
-    const config = getDatabaseConfig();
-    
-    console.log('\n📊 Backup Status:');
-    console.log(`   Environment: ${config.environment}`);
-    console.log(`   Last Backup: ${backupStatus.lastBackup?.toISOString() || 'Never'}`);
-    console.log(`   Status: ${backupStatus.status}`);
-    console.log(`   Size: ${backupStatus.size ? formatBytes(backupStatus.size) : 'Unknown'}`);
-    console.log(`   Type: ${backupStatus.type}`);
-    console.log(`   Retention: ${backupStatus.retentionDays} days`);
-    
-    // Check for backup failures
-    if (alertOnFailure && backupStatus.status === 'failed') {
-      await sendAlert(
-        `Backup failed for ${config.environment} database!`,
-        'critical'
-      );
-    }
-    
-    // Check for old backups
-    if (alertOnOldBackup && backupStatus.lastBackup) {
-      const hoursSinceBackup = (Date.now() - backupStatus.lastBackup.getTime()) / (1000 * 60 * 60);
-      
-      if (hoursSinceBackup > maxBackupAge) {
-        await sendAlert(
-          `No recent backup for ${config.environment} database! Last backup: ${hoursSinceBackup.toFixed(1)} hours ago`,
-          config.isProduction ? 'critical' : 'warning'
-        );
-      }
-    }
-    
-    // Check backup size (should not be zero or suspiciously small)
-    if (backupStatus.size !== null && backupStatus.size < 1024 * 1024) { // Less than 1MB
-      await sendAlert(
-        `Backup size suspiciously small: ${formatBytes(backupStatus.size)}`,
-        'warning'
-      );
-    }
-    
-    // Production-specific checks
-    if (config.isProduction) {
-      console.log('\n🔒 Production-specific checks:');
-      
-      // Check if we can restore from backup (point-in-time recovery)
-      console.log('   ✅ Point-in-time recovery: Available');
-      
-      // Check backup encryption
-      console.log('   ✅ Backup encryption: Enabled');
-      
-      // Check geographic replication
-      console.log('   ✅ Geographic backup: Enabled');
-    }
-    
-    console.log('\n✅ Backup monitoring completed');
-    
-  } catch (error) {
-    console.error('❌ Backup monitoring failed:', error);
-    
-    await sendAlert(
-      `Backup monitoring failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      'critical'
+async function fetchBackups(
+  ref: string,
+  token: string
+): Promise<SupabaseBackupsResponse> {
+  const res = await fetch(
+    `${MANAGEMENT_API}/v1/projects/${ref}/database/backups`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(
+      `Supabase Management API returned ${res.status} ${res.statusText}${
+        body ? `: ${body.slice(0, 200)}` : ''
+      }`
     );
-    
+  }
+  return (await res.json()) as SupabaseBackupsResponse;
+}
+
+async function monitorBackups(maxBackupAgeHours: number) {
+  const token = process.env.SUPABASE_ACCESS_TOKEN;
+  const ref = process.env.SUPABASE_PROJECT_REF;
+
+  if (!token || !ref) {
+    console.log(
+      '⏭️  Backup monitoring skipped — set SUPABASE_ACCESS_TOKEN and ' +
+        'SUPABASE_PROJECT_REF to enable the real Supabase backup check.'
+    );
+    console.log(
+      '    Token: https://supabase.com/dashboard/account/tokens · ' +
+        'Ref: Supabase project settings.'
+    );
+    return;
+  }
+
+  console.log(`🔍 Checking Supabase backups for project ${ref}...`);
+  const data = await fetchBackups(ref, token);
+  const health = evaluateBackupHealth(data, {
+    maxBackupAgeHours,
+    now: Date.now(),
+  });
+
+  console.log('\n📊 Backup Status:');
+  console.log(`   Project: ${ref}${data.region ? ` (${data.region})` : ''}`);
+  console.log(
+    `   Last backup: ${health.lastBackup?.toISOString() ?? 'never'} (${formatAge(health.ageHours)})`
+  );
+  console.log(`   Backups returned: ${data.backups?.length ?? 0}`);
+  console.log(
+    `   PITR: ${health.pitrEnabled ? 'enabled' : 'disabled (daily backups only)'}`
+  );
+
+  if (!health.healthy) {
+    for (const alert of health.alerts) {
+      console.error(`🚨 CRITICAL: ${alert}`);
+    }
     process.exit(1);
   }
+
+  console.log('\n✅ Backups look healthy.');
 }
 
-/**
- * Test backup restore procedure
- */
-async function testBackupRestore(dryRun: boolean = true) {
-  console.log(`🧪 Testing backup restore procedure (${dryRun ? 'DRY RUN' : 'LIVE TEST'})...`);
-  
-  const config = getDatabaseConfig();
-  
-  if (config.isProduction && !dryRun) {
-    throw new Error('Live restore test not allowed in production environment');
-  }
-  
-  // In a real implementation, this would:
-  // 1. Create a test database
-  // 2. Restore from the latest backup
-  // 3. Verify data integrity
-  // 4. Test application connectivity
-  // 5. Clean up test resources
-  
-  console.log('   📥 Downloading latest backup...');
-  console.log('   🗄️ Creating temporary restore database...');
-  console.log('   ⚡ Restoring data...');
-  console.log('   🔍 Verifying data integrity...');
-  console.log('   🧹 Cleaning up resources...');
-  
-  if (dryRun) {
-    console.log('   ✅ Dry run completed successfully');
-  } else {
-    console.log('   ✅ Restore test completed successfully');
-  }
-}
-
-/**
- * Format bytes to human readable string
- */
-function formatBytes(bytes: number): string {
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-  if (bytes === 0) return '0 Bytes';
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+function printRestoreRunbook() {
+  console.log('🧪 Backup restore drill — this is a MANUAL procedure.');
+  console.log('');
+  console.log(
+    'Supabase-managed restores are performed from the dashboard, not'
+  );
+  console.log(
+    'scripted here (restoring into the live project is destructive).'
+  );
+  console.log('');
+  console.log('Drill steps:');
+  console.log('  1. Supabase → (project) → Database → Backups.');
+  console.log('  2. Restore the latest daily backup into a THROWAWAY project');
+  console.log('     (or a new branch), never the live one.');
+  console.log(
+    '  3. Verify row counts / a few key tables in the restored copy.'
+  );
+  console.log('  4. Record the wall-clock restore time (your RTO) and the');
+  console.log('     backup date (your worst-case RPO).');
+  console.log('  5. Tear down the throwaway project.');
+  console.log('');
+  console.log(
+    'Run `tsx scripts/backup-monitor.ts monitor` to confirm a recent'
+  );
+  console.log('backup exists before/after the drill.');
 }
 
 // CLI interface
 const command = process.argv[2];
-const options: MonitoringOptions = {
-  maxBackupAge: parseInt(process.argv[3] || '24') || 24,
-};
+const maxBackupAgeHours = parseInt(process.argv[3] || '26', 10) || 26;
 
 if (command === '--help' || !command) {
   console.log('Backup Monitoring Script');
   console.log('');
-  console.log('Usage: tsx scripts/backup-monitor.ts <command> [options]');
+  console.log('Usage: tsx scripts/backup-monitor.ts <command> [max-age-hours]');
   console.log('');
   console.log('Commands:');
-  console.log('  monitor           Monitor backup status and send alerts');
-  console.log('  test-restore      Test backup restore procedure (dry run)');
-  console.log('  test-restore-live Test backup restore procedure (live test)');
+  console.log(
+    '  monitor         Check real Supabase backup status (alerts if stale)'
+  );
+  console.log('  test-restore    Print the manual restore-drill runbook');
   console.log('');
-  console.log('Options:');
-  console.log('  [max-age-hours]   Maximum backup age before alert (default: 24)');
-  console.log('');
-  console.log('Examples:');
-  console.log('  tsx scripts/backup-monitor.ts monitor');
-  console.log('  tsx scripts/backup-monitor.ts monitor 12');
-  console.log('  tsx scripts/backup-monitor.ts test-restore');
+  console.log('Env: SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF');
   process.exit(0);
 }
 
 switch (command) {
   case 'monitor':
-    monitorBackups(options);
+    monitorBackups(maxBackupAgeHours).catch((err) => {
+      console.error(
+        `❌ Backup monitoring failed: ${err instanceof Error ? err.message : err}`
+      );
+      process.exit(1);
+    });
     break;
   case 'test-restore':
-    testBackupRestore(true);
-    break;
   case 'test-restore-live':
-    testBackupRestore(false);
+    printRestoreRunbook();
     break;
   default:
     console.error(`Unknown command: ${command}`);
