@@ -508,6 +508,48 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       data: updateData,
     });
 
+    // Auto-create a Dispute when the owner marks the return as DAMAGED
+    if (
+      (action === 'confirm-return' || action === 'lender-return') &&
+      condition === 'DAMAGED'
+    ) {
+      await db.dispute.create({
+        data: {
+          type: 'ITEM_DAMAGED',
+          status: 'OPEN',
+          title: `Item returned damaged: ${borrowRequest.item.name}`,
+          description:
+            (conditionNote as string) ||
+            (message as string) ||
+            'Marked damaged on return.',
+          partyAId: userId!, // owner who assessed
+          partyBId: borrowRequest.borrowerId,
+          itemId: borrowRequest.itemId,
+          borrowRequestId: borrowRequest.id,
+        },
+      });
+      await createNotification({
+        userId: borrowRequest.borrowerId,
+        type: 'PROBLEM_REPORTED',
+        title: 'Item reported damaged',
+        message: `${borrowRequest.lender.name || 'The owner'} reported "${borrowRequest.item.name}" as damaged on return.`,
+      });
+      if (userId) {
+        await logAuditEntry({
+          action: 'DISPUTE_REPORTED',
+          userId,
+          entityType: 'BORROW_REQUEST',
+          entityId: borrowRequest.id,
+          details: {
+            trigger: 'condition_damaged',
+            disputeType: 'ITEM_DAMAGED',
+            itemId: borrowRequest.itemId,
+            itemName: borrowRequest.item.name,
+          },
+        });
+      }
+    }
+
     // Log status change for audit trail (skip if no userId for magic link)
     if (userId) {
       await logBorrowRequestStatusChange(
