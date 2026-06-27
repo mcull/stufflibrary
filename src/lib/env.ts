@@ -5,8 +5,12 @@ import { z } from 'zod';
 config();
 
 const envSchema = z.object({
-  // Database (Supabase)
-  DATABASE_URL: z.string().url(),
+  // Database (Supabase). Optional here because the resolved DB URL is
+  // environment-specific (DATABASE_URL for dev, STAGING_* for preview,
+  // PRODUCTION_* for prod) — db-config.ts is the authority and throws a clear
+  // per-environment error if none resolves. Requiring DATABASE_URL here would
+  // 500 every route on a preview deploy that (correctly) uses STAGING_* only.
+  DATABASE_URL: z.string().url().optional(),
   DIRECT_URL: z.string().url().optional(),
 
   // Staging Database
