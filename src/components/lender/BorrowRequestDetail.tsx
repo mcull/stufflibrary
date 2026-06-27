@@ -61,7 +61,7 @@ interface BorrowRequest {
   updatedAt: string;
   approvedAt?: string;
   returnedAt?: string;
-  borrowerNotes?: string;
+  borrowerReturnNote?: string;
   borrower: {
     id: string;
     name: string;
@@ -569,7 +569,7 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
                   ).toLocaleDateString()}
                   .
                 </Typography>
-                {request.borrowerNotes && (
+                {request.borrowerReturnNote && (
                   <Box
                     sx={{
                       mt: 2,
@@ -585,7 +585,7 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
                         fontStyle: 'italic',
                       }}
                     >
-                      &ldquo;{request.borrowerNotes}&rdquo;
+                      &ldquo;{request.borrowerReturnNote}&rdquo;
                     </Typography>
                   </Box>
                 )}
@@ -912,13 +912,13 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
               : `${request.borrower.name} has marked this item as returned. Please confirm that you have received it back and record its condition.`}
           </Typography>
 
-          {request.borrowerNotes && (
+          {request.borrowerReturnNote && (
             <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
               <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
                 Borrower&apos;s return notes:
               </Typography>
               <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
-                &ldquo;{request.borrowerNotes}&rdquo;
+                &ldquo;{request.borrowerReturnNote}&rdquo;
               </Typography>
             </Box>
           )}

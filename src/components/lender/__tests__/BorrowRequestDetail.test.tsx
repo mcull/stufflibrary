@@ -136,6 +136,29 @@ describe('lender BorrowRequestDetail', () => {
     );
   });
 
+  it('displays the borrower return note to the owner', async () => {
+    const requestWithNote = {
+      ...mockReturnPendingRequest,
+      borrowerReturnNote: 'left it on the porch',
+    };
+
+    (fetch as any).mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ borrowRequest: requestWithNote }),
+      })
+    );
+
+    render(<BorrowRequestDetail requestId="request-1" />);
+
+    await waitFor(
+      () => {
+        expect(screen.getByText(/left it on the porch/)).toBeInTheDocument();
+      },
+      { timeout: 10000 }
+    );
+  });
+
   it('opens the report-problem dialog and submits a dispute', async () => {
     render(<BorrowRequestDetail requestId="request-1" />);
 
