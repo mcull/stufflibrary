@@ -106,6 +106,16 @@ describe('getDatabaseConfig', () => {
     expect(() => getDatabaseConfig()).toThrow(/production database/i);
   });
 
+  it('does NOT throw during next build even if the url resolves to prod (no queries run at build)', () => {
+    setEnv('NODE_ENV', 'production');
+    setEnv('VERCEL_ENV', 'preview');
+    setEnv('NEXT_PHASE', 'phase-production-build');
+    setEnv('PRODUCTION_DATABASE_URL', PROD_URL);
+    setEnv('DATABASE_URL', PROD_URL);
+
+    expect(() => getDatabaseConfig()).not.toThrow();
+  });
+
   it('allows a preview deploy whose DATABASE_URL is staging (not prod)', () => {
     setEnv('NODE_ENV', 'production');
     setEnv('VERCEL_ENV', 'preview');

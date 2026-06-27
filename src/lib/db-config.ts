@@ -140,11 +140,15 @@ export function getDatabaseConfig(): DatabaseConfig {
   }
 
   // Safety net: a non-production environment must NEVER resolve to the
-  // production database. This catches a DATABASE_URL that was mis-scoped to the
-  // prod connection string on a preview/staging deploy — fail loud instead of
-  // silently reading/writing production data.
+  // production database at RUNTIME. This catches a DATABASE_URL that was
+  // mis-scoped to the prod connection string on a preview/staging deploy —
+  // fail loud instead of silently reading/writing production data.
+  // Skipped during `next build` (page-data collection loads modules but runs no
+  // real queries), so a not-yet-wired preview still builds; it then fails loud
+  // at request time until STAGING_DATABASE_URL is set.
   if (
     config.environment !== 'production' &&
+    !isBuildTime &&
     process.env.PRODUCTION_DATABASE_URL &&
     config.url === process.env.PRODUCTION_DATABASE_URL
   ) {
