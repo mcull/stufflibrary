@@ -6,6 +6,7 @@ export type AuditAction =
   | 'BORROW_REQUEST_DECLINED'
   | 'BORROW_REQUEST_CANCELLED'
   | 'BORROW_REQUEST_RETURNED'
+  | 'DISPUTE_REPORTED'
   | 'ITEM_AVAILABILITY_UPDATED';
 
 export interface AuditLogEntry {

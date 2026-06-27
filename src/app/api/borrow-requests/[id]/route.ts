@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
-import { logBorrowRequestStatusChange } from '@/lib/audit-log';
+import { logAuditEntry, logBorrowRequestStatusChange } from '@/lib/audit-log';
 import { authOptions } from '@/lib/auth';
 import { updateItemAvailability } from '@/lib/borrow-request-utils';
 import { db } from '@/lib/db';
@@ -163,14 +163,6 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         );
       }
     }
-
-    console.log(`🚀 DEBUG API request received:`, {
-      borrowRequestId: id,
-      action,
-      message,
-      userId,
-      actualReturnDate,
-    });
 
     // Validate action
     if (
@@ -472,6 +464,23 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           },
         });
 
+        if (userId) {
+          await logAuditEntry({
+            action: 'DISPUTE_REPORTED',
+            userId,
+            entityType: 'BORROW_REQUEST',
+            entityId: borrowRequest.id,
+            details: {
+              action: 'report-problem',
+              disputeType,
+              borrowRequestId: borrowRequest.id,
+              itemId: borrowRequest.item.id,
+              itemName: borrowRequest.item.name,
+              reportedTo: otherPartyId,
+            },
+          });
+        }
+
         await createNotification({
           userId: otherPartyId,
           type: 'PROBLEM_REPORTED',
@@ -516,14 +525,6 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     // Update item availability based on new status
-    console.log(`🚀 DEBUG About to call updateItemAvailability:`, {
-      itemId: borrowRequest.item.id,
-      borrowRequestId: borrowRequest.id,
-      newStatus,
-      userId,
-      action,
-    });
-
     await updateItemAvailability(
       borrowRequest.item.id,
       borrowRequest.id,
@@ -535,8 +536,6 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         | 'RETURN_PENDING',
       userId // This can be undefined for magic link actions
     );
-
-    console.log(`🚀 DEBUG Finished calling updateItemAvailability`);
 
     // Send notifications based on action
     try {
@@ -644,12 +643,18 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           notificationSent = true;
         }
       } else if (action === 'confirm-return' || action === 'lender-return') {
-        // Notify the borrower that the owner confirmed the return
+        // Notify the borrower that the owner confirmed/recorded the return
+        const ownerName = borrowRequest.lender.name || 'The owner';
+        const itemName = borrowRequest.item.name;
+        const returnMessage =
+          action === 'confirm-return'
+            ? `${ownerName} confirmed the return of "${itemName}".`
+            : `${ownerName} marked "${itemName}" as returned (checked in).`;
         await createNotification({
           userId: borrowRequest.borrowerId,
           type: 'RETURN_CONFIRMED',
           title: 'Return confirmed',
-          message: `${borrowRequest.lender.name || 'The owner'} confirmed the return of "${borrowRequest.item.name}".`,
+          message: returnMessage,
         });
         notificationSent = true;
       }

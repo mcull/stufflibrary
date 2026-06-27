@@ -580,6 +580,40 @@ describe('Phase 1A — PATCH route state machine', () => {
     });
   });
 
+  it("borrower-initiated 'report-problem' sets partyA=borrower, partyB=lender", async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: 'borrower_1' } });
+    mockBorrowRequestFindUnique.mockResolvedValue({
+      ...baseBorrowRequestStub,
+      id: 'br_1',
+      status: 'RETURNED',
+      borrowerId: 'borrower_1',
+      lenderId: 'lender_1',
+      itemId: 'item_1',
+      returnedAt: new Date(),
+      requestedReturnDate: new Date(),
+    });
+    mockDisputeCreate.mockResolvedValue({ id: 'd_2' });
+    const res = await PATCH(
+      makeReq({
+        action: 'report-problem',
+        disputeType: 'ITEM_NOT_AS_DESCRIBED',
+        title: 'Wrong item',
+        message: 'Not what was described',
+      }),
+      { params: Promise.resolve({ id: 'br_1' }) }
+    );
+    expect(res.status).toBe(200);
+    const data = mockDisputeCreate.mock.calls[0]![0].data;
+    expect(data).toMatchObject({
+      type: 'ITEM_NOT_AS_DESCRIBED',
+      status: 'OPEN',
+      partyAId: 'borrower_1',
+      partyBId: 'lender_1',
+      borrowRequestId: 'br_1',
+      itemId: 'item_1',
+    });
+  });
+
   it("'report-problem' rejected outside the 7-day window", async () => {
     mockGetServerSession.mockResolvedValue({ user: { id: 'lender_1' } });
     const old = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
