@@ -9,6 +9,7 @@ import {
   PlayArrow,
   CalendarToday,
   Message,
+  ReportProblem,
 } from '@mui/icons-material';
 import {
   Container,
@@ -30,6 +31,9 @@ import {
   FormControlLabel,
   Switch,
   Stack,
+  ToggleButton,
+  ToggleButtonGroup,
+  MenuItem,
 } from '@mui/material';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
@@ -46,6 +50,7 @@ interface BorrowRequest {
     | 'APPROVED'
     | 'DECLINED'
     | 'ACTIVE'
+    | 'RETURN_PENDING'
     | 'RETURNED'
     | 'CANCELLED';
   requestMessage?: string;
@@ -83,14 +88,35 @@ interface BorrowRequestDetailProps {
 
 type ResponseType = 'approve' | 'decline' | null;
 
+type Condition = 'OK' | 'MINOR_WEAR' | 'DAMAGED';
+type DisputeType =
+  | 'ITEM_DAMAGED'
+  | 'ITEM_NOT_RETURNED'
+  | 'ITEM_NOT_AS_DESCRIBED'
+  | 'OTHER';
+
 const statusColors = {
   PENDING: 'warning',
   APPROVED: 'success',
   DECLINED: 'error',
   ACTIVE: 'info',
+  RETURN_PENDING: 'warning',
   RETURNED: 'success',
   CANCELLED: 'default',
 } as const;
+
+const conditionOptions: { value: Condition; label: string }[] = [
+  { value: 'OK', label: 'OK' },
+  { value: 'MINOR_WEAR', label: 'Minor wear' },
+  { value: 'DAMAGED', label: 'Damaged' },
+];
+
+const disputeTypeOptions: { value: DisputeType; label: string }[] = [
+  { value: 'ITEM_DAMAGED', label: 'Item damaged' },
+  { value: 'ITEM_NOT_RETURNED', label: 'Item not returned' },
+  { value: 'ITEM_NOT_AS_DESCRIBED', label: 'Item not as described' },
+  { value: 'OTHER', label: 'Other' },
+];
 
 const suggestedDeclineReasons = [
   'I need the item during that time period',
@@ -113,6 +139,23 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
   const [newReturnDate, setNewReturnDate] = useState('');
   const [confirmingReturn, setConfirmingReturn] = useState(false);
   const [confirmReturnDialog, setConfirmReturnDialog] = useState(false);
+  // Condition capture (confirm-return / lender-return)
+  const [returnAction, setReturnAction] = useState<
+    'confirm-return' | 'lender-return'
+  >('confirm-return');
+  const [condition, setCondition] = useState<Condition | null>(null);
+  const [conditionNote, setConditionNote] = useState('');
+  const [conditionMessage, setConditionMessage] = useState('');
+  const [conditionPhotoUrl, setConditionPhotoUrl] = useState<string | null>(
+    null
+  );
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  // Report a problem
+  const [reportDialog, setReportDialog] = useState(false);
+  const [reporting, setReporting] = useState(false);
+  const [disputeType, setDisputeType] = useState<DisputeType>('ITEM_DAMAGED');
+  const [reportTitle, setReportTitle] = useState('');
+  const [reportMessage, setReportMessage] = useState('');
 
   const fetchRequest = async () => {
     try {
@@ -148,7 +191,6 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
       fetchRequest();
     }
   }, [status, requestId, router, fetchRequest]);
-
 
   const handleResponse = async (decision: 'approve' | 'decline') => {
     if (!request) return;
@@ -190,8 +232,48 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
     }
   };
 
+  const openConfirmReturnDialog = (
+    action: 'confirm-return' | 'lender-return'
+  ) => {
+    setReturnAction(action);
+    setCondition(null);
+    setConditionNote('');
+    setConditionMessage('');
+    setConditionPhotoUrl(null);
+    setError(null);
+    setConfirmReturnDialog(true);
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingPhoto(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to upload photo');
+      }
+
+      const data = await response.json();
+      setConditionPhotoUrl(data.url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to upload photo');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   const handleConfirmReturn = async () => {
-    if (!request) return;
+    if (!request || !condition) return;
 
     setConfirmingReturn(true);
 
@@ -202,7 +284,11 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          action: 'confirm-return',
+          action: returnAction,
+          condition,
+          conditionNote: conditionNote || undefined,
+          photoUrl: conditionPhotoUrl || undefined,
+          message: conditionMessage || undefined,
         }),
       });
 
@@ -215,11 +301,50 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
       await fetchRequest();
       setConfirmReturnDialog(false);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to confirm return'
-      );
+      setError(err instanceof Error ? err.message : 'Failed to confirm return');
     } finally {
       setConfirmingReturn(false);
+    }
+  };
+
+  const openReportDialog = () => {
+    setDisputeType('ITEM_DAMAGED');
+    setReportTitle('');
+    setReportMessage('');
+    setError(null);
+    setReportDialog(true);
+  };
+
+  const handleReportProblem = async () => {
+    if (!request) return;
+
+    setReporting(true);
+
+    try {
+      const response = await fetch(`/api/borrow-requests/${request.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'report-problem',
+          disputeType,
+          title: reportTitle,
+          message: reportMessage,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to report problem');
+      }
+
+      await fetchRequest();
+      setReportDialog(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to report problem');
+    } finally {
+      setReporting(false);
     }
   };
 
@@ -276,8 +401,12 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
 
   const isPending = request.status === 'PENDING';
   const isReturned = request.status === 'RETURNED';
+  const isReturnPending = request.status === 'RETURN_PENDING';
+  const isActive = request.status === 'ACTIVE' || request.status === 'APPROVED';
   const canRespond = isPending;
-  const canConfirmReturn = isReturned;
+  const canConfirmReturn = isReturnPending;
+  const canCheckInDirectly = isActive;
+  const canReportProblem = isReturnPending || isReturned;
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -297,7 +426,11 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
           Borrowing Request
         </Typography>
         <Chip
-          label={request.status}
+          label={
+            request.status === 'RETURN_PENDING'
+              ? 'Awaiting your confirmation'
+              : request.status
+          }
           color={statusColors[request.status]}
           sx={{ mb: 2 }}
         />
@@ -411,24 +544,47 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
           )}
 
           {/* Return Information */}
-          {isReturned && (
+          {(isReturned || isReturnPending) && (
             <Card sx={{ mb: 3, bgcolor: 'success.light' }}>
               <CardContent>
-                <Typography 
-                  variant="h6" 
-                  gutterBottom 
-                  sx={{ display: 'flex', alignItems: 'center', color: 'success.contrastText' }}
+                <Typography
+                  variant="h6"
+                  gutterBottom
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    color: 'success.contrastText',
+                  }}
                 >
                   <CheckCircle sx={{ mr: 1 }} />
                   Item Returned by Borrower
                 </Typography>
-                <Typography variant="body2" sx={{ color: 'success.contrastText', mb: 2 }}>
+                <Typography
+                  variant="body2"
+                  sx={{ color: 'success.contrastText', mb: 2 }}
+                >
                   {request.borrower.name} marked this item as returned on{' '}
-                  {new Date(request.returnedAt || request.updatedAt).toLocaleDateString()}.
+                  {new Date(
+                    request.returnedAt || request.updatedAt
+                  ).toLocaleDateString()}
+                  .
                 </Typography>
                 {request.borrowerNotes && (
-                  <Box sx={{ mt: 2, p: 2, bgcolor: 'rgba(255,255,255,0.2)', borderRadius: 1 }}>
-                    <Typography variant="body2" sx={{ color: 'success.contrastText', fontStyle: 'italic' }}>
+                  <Box
+                    sx={{
+                      mt: 2,
+                      p: 2,
+                      bgcolor: 'rgba(255,255,255,0.2)',
+                      borderRadius: 1,
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: 'success.contrastText',
+                        fontStyle: 'italic',
+                      }}
+                    >
                       &ldquo;{request.borrowerNotes}&rdquo;
                     </Typography>
                   </Box>
@@ -436,7 +592,6 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
               </CardContent>
             </Card>
           )}
-        
         </Box>
 
         {/* Sidebar */}
@@ -547,14 +702,15 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
 
           {/* Return Confirmation */}
           {canConfirmReturn && (
-            <Card>
+            <Card sx={{ mb: 3 }}>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
                   Confirm Return
                 </Typography>
                 <Typography variant="body2" color="textSecondary" paragraph>
-                  {request.borrower.name} has marked this item as returned. 
-                  Please confirm that you have received it back in good condition.
+                  {request.borrower.name} has marked this item as returned.
+                  Please confirm that you have received it back and record its
+                  condition.
                 </Typography>
 
                 <Button
@@ -563,7 +719,7 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
                   size="large"
                   fullWidth
                   startIcon={<CheckCircle />}
-                  onClick={() => setConfirmReturnDialog(true)}
+                  onClick={() => openConfirmReturnDialog('confirm-return')}
                 >
                   Confirm Return Received
                 </Button>
@@ -571,6 +727,57 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
             </Card>
           )}
 
+          {/* Check in directly (owner has the item back) */}
+          {canCheckInDirectly && (
+            <Card sx={{ mb: 3 }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Check In Item
+                </Typography>
+                <Typography variant="body2" color="textSecondary" paragraph>
+                  Already have the item back? Check it in directly and record
+                  its condition.
+                </Typography>
+
+                <Button
+                  variant="outlined"
+                  color="success"
+                  size="large"
+                  fullWidth
+                  startIcon={<CheckCircle />}
+                  onClick={() => openConfirmReturnDialog('lender-return')}
+                >
+                  Check In Item
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Report a problem */}
+          {canReportProblem && (
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Something wrong?
+                </Typography>
+                <Typography variant="body2" color="textSecondary" paragraph>
+                  If there was an issue with this return, you can report a
+                  problem within 7 days.
+                </Typography>
+
+                <Button
+                  variant="outlined"
+                  color="error"
+                  size="large"
+                  fullWidth
+                  startIcon={<ReportProblem />}
+                  onClick={openReportDialog}
+                >
+                  Report a Problem
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </Box>
       </Box>
 
@@ -693,13 +900,16 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
         fullWidth
       >
         <DialogTitle>
-          Confirm Return of &quot;{request.item.name}&quot;
+          {returnAction === 'lender-return'
+            ? `Check In "${request.item.name}"`
+            : `Confirm Return of "${request.item.name}"`}
         </DialogTitle>
 
         <DialogContent>
           <Typography variant="body2" color="textSecondary" paragraph>
-            {request.borrower.name} has marked this item as returned. Please confirm 
-            that you have received it back and that it&apos;s in acceptable condition.
+            {returnAction === 'lender-return'
+              ? 'Record the condition of the item as you check it back in.'
+              : `${request.borrower.name} has marked this item as returned. Please confirm that you have received it back and record its condition.`}
           </Typography>
 
           {request.borrowerNotes && (
@@ -713,9 +923,102 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
             </Box>
           )}
 
+          {/* Condition selector (required) */}
+          <Box sx={{ mt: 3 }}>
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 600, mb: 1 }}
+              component="label"
+              id="condition-label"
+            >
+              Condition *
+            </Typography>
+            <ToggleButtonGroup
+              value={condition}
+              exclusive
+              onChange={(_e, value) => {
+                if (value) setCondition(value as Condition);
+              }}
+              aria-labelledby="condition-label"
+              fullWidth
+              color="primary"
+            >
+              {conditionOptions.map((opt) => (
+                <ToggleButton key={opt.value} value={opt.value}>
+                  {opt.label}
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+          </Box>
+
+          {/* Condition note (optional) */}
+          <TextField
+            fullWidth
+            multiline
+            rows={2}
+            label="Condition note (optional)"
+            placeholder="e.g. small scratch on the handle"
+            value={conditionNote}
+            onChange={(e) => setConditionNote(e.target.value)}
+            sx={{ mt: 2 }}
+          />
+
+          {/* Photo upload (optional) */}
+          <Box sx={{ mt: 2 }}>
+            <Button
+              variant="outlined"
+              component="label"
+              disabled={uploadingPhoto}
+              startIcon={
+                uploadingPhoto ? <CircularProgress size={18} /> : undefined
+              }
+            >
+              {uploadingPhoto
+                ? 'Uploading...'
+                : conditionPhotoUrl
+                  ? 'Replace photo'
+                  : 'Add photo (optional)'}
+              <input
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={handlePhotoUpload}
+              />
+            </Button>
+            {conditionPhotoUrl && (
+              <Box
+                component="img"
+                src={conditionPhotoUrl}
+                alt="Return condition"
+                sx={{
+                  display: 'block',
+                  mt: 1,
+                  maxWidth: '100%',
+                  maxHeight: 160,
+                  borderRadius: 1,
+                }}
+              />
+            )}
+          </Box>
+
+          {/* Message (optional) */}
+          <TextField
+            fullWidth
+            multiline
+            rows={2}
+            label="Message to borrower (optional)"
+            value={conditionMessage}
+            onChange={(e) => setConditionMessage(e.target.value)}
+            sx={{ mt: 2 }}
+          />
+
           <Box sx={{ mt: 2, p: 2, bgcolor: 'success.light', borderRadius: 1 }}>
-            <Typography variant="caption" sx={{ color: 'success.contrastText' }}>
-              ✓ Confirming will mark this transaction as complete and make your item available for lending again
+            <Typography
+              variant="caption"
+              sx={{ color: 'success.contrastText' }}
+            >
+              ✓ Confirming will mark this transaction as complete and make your
+              item available for lending again
             </Typography>
           </Box>
         </DialogContent>
@@ -726,10 +1029,84 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
             onClick={handleConfirmReturn}
             variant="contained"
             color="success"
-            disabled={confirmingReturn}
-            startIcon={confirmingReturn ? <CircularProgress size={20} /> : <CheckCircle />}
+            disabled={confirmingReturn || !condition}
+            startIcon={
+              confirmingReturn ? (
+                <CircularProgress size={20} />
+              ) : (
+                <CheckCircle />
+              )
+            }
           >
-            {confirmingReturn ? 'Confirming...' : 'Confirm Return'}
+            {confirmingReturn
+              ? 'Confirming...'
+              : returnAction === 'lender-return'
+                ? 'Check In'
+                : 'Confirm Return'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Report Problem Dialog */}
+      <Dialog
+        open={reportDialog}
+        onClose={() => setReportDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Report a Problem</DialogTitle>
+
+        <DialogContent>
+          <Typography variant="body2" color="textSecondary" paragraph>
+            Let us know what went wrong with this return. This will open a
+            report for review.
+          </Typography>
+
+          <TextField
+            select
+            fullWidth
+            label="Problem type"
+            value={disputeType}
+            onChange={(e) => setDisputeType(e.target.value as DisputeType)}
+            sx={{ mt: 1, mb: 2 }}
+          >
+            {disputeTypeOptions.map((opt) => (
+              <MenuItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          <TextField
+            fullWidth
+            label="Title"
+            value={reportTitle}
+            onChange={(e) => setReportTitle(e.target.value)}
+            sx={{ mb: 2 }}
+          />
+
+          <TextField
+            fullWidth
+            multiline
+            rows={4}
+            label="Describe the problem"
+            value={reportMessage}
+            onChange={(e) => setReportMessage(e.target.value)}
+          />
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={() => setReportDialog(false)}>Cancel</Button>
+          <Button
+            onClick={handleReportProblem}
+            variant="contained"
+            color="error"
+            disabled={reporting || !reportTitle || !reportMessage}
+            startIcon={
+              reporting ? <CircularProgress size={20} /> : <ReportProblem />
+            }
+          >
+            {reporting ? 'Submitting...' : 'Submit Report'}
           </Button>
         </DialogActions>
       </Dialog>
