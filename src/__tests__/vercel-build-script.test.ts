@@ -1,5 +1,12 @@
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, chmodSync, rmSync } from 'node:fs';
+import {
+  mkdtempSync,
+  writeFileSync,
+  chmodSync,
+  rmSync,
+  readFileSync,
+  existsSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -34,7 +41,10 @@ beforeEach(() => {
   writeFake(
     'npx',
     `
-if [[ "$*" == *"migrate deploy"* ]]; then exit "\${FAKE_MIGRATE_EXIT:-0}"; fi
+if [[ "$*" == *"migrate deploy"* ]]; then
+  [[ -n "\${MIGRATE_RECORD:-}" ]] && printf '%s' "\${DATABASE_URL:-}" > "\$MIGRATE_RECORD"
+  exit "\${FAKE_MIGRATE_EXIT:-0}"
+fi
 exit 0
 `
   );
@@ -60,9 +70,16 @@ function runBuild(env: Record<string, string>) {
       ...process.env,
       PATH: `${fakeBin}:${process.env.PATH}`,
       DATABASE_URL: 'postgres://fake/db',
+      MIGRATE_RECORD: path.join(fakeBin, 'migrate-target'),
       ...env,
     },
   });
+}
+
+// The DATABASE_URL that `prisma migrate deploy` actually ran against, or null.
+function migrateTarget(): string | null {
+  const f = path.join(fakeBin, 'migrate-target');
+  return existsSync(f) ? readFileSync(f, 'utf8') : null;
 }
 
 describe('scripts/vercel-build.sh', () => {
@@ -95,6 +112,39 @@ describe('scripts/vercel-build.sh', () => {
   it('still propagates a real build failure', () => {
     const result = runBuild({ VERCEL_ENV: 'production', FAKE_BUILD_EXIT: '1' });
     expect(result.status).not.toBe(0);
+  });
+
+  it('a PREVIEW deploy migrates the staging DB, not production', () => {
+    const result = runBuild({
+      VERCEL_ENV: 'preview',
+      STAGING_DATABASE_URL: 'postgres://staging/db',
+      PRODUCTION_DATABASE_URL: 'postgres://prod/db',
+      DATABASE_URL: 'postgres://prod/db',
+    });
+    expect(result.status).toBe(0);
+    expect(migrateTarget()).toBe('postgres://staging/db');
+  });
+
+  it('a PREVIEW deploy refuses to migrate the production DB', () => {
+    // No STAGING_DATABASE_URL, and DATABASE_URL is the prod connection string.
+    const result = runBuild({
+      VERCEL_ENV: 'preview',
+      STAGING_DATABASE_URL: '',
+      PRODUCTION_DATABASE_URL: 'postgres://prod/db',
+      DATABASE_URL: 'postgres://prod/db',
+    });
+    expect(result.status).not.toBe(0);
+    expect(migrateTarget()).toBeNull();
+  });
+
+  it('a PRODUCTION deploy migrates the production DB', () => {
+    const result = runBuild({
+      VERCEL_ENV: 'production',
+      PRODUCTION_DATABASE_URL: 'postgres://prod/db',
+      DATABASE_URL: 'postgres://ignored/db',
+    });
+    expect(result.status).toBe(0);
+    expect(migrateTarget()).toBe('postgres://prod/db');
   });
 
   it('skips migrations for non-prod/preview builds and still builds', () => {
