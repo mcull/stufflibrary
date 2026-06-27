@@ -643,6 +643,15 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           await sendCancellationNotification(cancellationData);
           notificationSent = true;
         }
+      } else if (action === 'confirm-return' || action === 'lender-return') {
+        // Notify the borrower that the owner confirmed the return
+        await createNotification({
+          userId: borrowRequest.borrowerId,
+          type: 'RETURN_CONFIRMED',
+          title: 'Return confirmed',
+          message: `${borrowRequest.lender.name || 'The owner'} confirmed the return of "${borrowRequest.item.name}".`,
+        });
+        notificationSent = true;
       }
 
       if (notificationSent) {

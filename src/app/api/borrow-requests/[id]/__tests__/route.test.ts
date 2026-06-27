@@ -10,9 +10,14 @@ const mockItemUpdate = vi.hoisted(() => vi.fn());
 const mockNotificationFindFirst = vi.hoisted(() => vi.fn());
 const mockNotificationCreate = vi.hoisted(() => vi.fn());
 const mockNotificationUpdate = vi.hoisted(() => vi.fn());
+const mockCreateNotification = vi.hoisted(() => vi.fn());
 
 vi.mock('next-auth', () => ({
   getServerSession: mockGetServerSession,
+}));
+
+vi.mock('@/lib/notification-service', () => ({
+  createNotification: mockCreateNotification,
 }));
 
 vi.mock('@/lib/db', () => ({
@@ -477,6 +482,36 @@ describe('Phase 1A — PATCH route state machine', () => {
     expect(data.returnCondition).toBe('OK');
     expect(data.returnedLate).toBe(true);
     expect(data.returnConfirmedBy).toBe('lender_1');
+  });
+
+  it("'confirm-return' notifies the borrower with RETURN_CONFIRMED", async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: 'lender_1' } });
+    mockBorrowRequestFindUnique.mockResolvedValue({
+      ...baseBorrowRequestStub,
+      id: 'br_1',
+      status: 'RETURN_PENDING',
+      borrowerId: 'borrower_1',
+      lenderId: 'lender_1',
+      itemId: 'item_1',
+      requestedReturnDate: new Date('2026-06-01'),
+      returnedAt: new Date('2026-06-05'),
+    });
+    mockBorrowRequestUpdate.mockResolvedValue({
+      id: 'br_1',
+      status: 'RETURNED',
+    });
+
+    const res = await PATCH(
+      makeReq({ action: 'confirm-return', condition: 'OK' }),
+      { params: Promise.resolve({ id: 'br_1' }) }
+    );
+    expect(res.status).toBe(200);
+    expect(mockCreateNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'borrower_1',
+        type: 'RETURN_CONFIRMED',
+      })
+    );
   });
 
   // ── Task 4: lender-return captures condition ──────────────────────────────
