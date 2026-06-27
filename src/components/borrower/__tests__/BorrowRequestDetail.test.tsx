@@ -128,7 +128,7 @@ describe('BorrowRequestDetail', () => {
           screen.getByText('Mark "Test Item" as Returned')
         ).toBeInTheDocument();
         expect(
-          screen.getByLabelText('Return notes (optional)')
+          screen.getByLabelText('Note for the owner (optional)')
         ).toBeInTheDocument();
       },
       { timeout: 10000 }
@@ -159,7 +159,7 @@ describe('BorrowRequestDetail', () => {
     await screen.findByText('Mark "Test Item" as Returned');
 
     // Add return notes
-    const notesField = screen.getByLabelText('Return notes (optional)');
+    const notesField = screen.getByLabelText('Note for the owner (optional)');
     fireEvent.change(notesField, {
       target: { value: 'Returned in good condition' },
     });
@@ -253,6 +253,31 @@ describe('BorrowRequestDetail', () => {
     await waitFor(
       () => {
         expect(screen.getByText('Network error')).toBeInTheDocument();
+      },
+      { timeout: 10000 }
+    );
+  });
+
+  it('shows awaiting confirmation state for RETURN_PENDING and hides mark returned button', async () => {
+    const mockReturnPendingRequest = {
+      ...mockActiveRequest,
+      status: 'RETURN_PENDING',
+    };
+
+    (fetch as any).mockClear();
+    (fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({ borrowRequest: mockReturnPendingRequest }),
+    });
+
+    render(<BorrowRequestDetail requestId="request-1" />);
+
+    await waitFor(
+      () => {
+        expect(
+          screen.getByText('Awaiting Owner Confirmation')
+        ).toBeInTheDocument();
+        expect(screen.queryByText('Mark as Returned')).not.toBeInTheDocument();
       },
       { timeout: 10000 }
     );
