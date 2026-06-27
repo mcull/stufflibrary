@@ -4,6 +4,16 @@ import { logAuditEntry, logItemAvailabilityChange } from './audit-log';
 import { db } from './db';
 
 /**
+ * Pure helper: returns true if the given status means the item is no longer
+ * in active use and should be freed (currentBorrowRequestId cleared).
+ */
+export function statusFreesItem(status: string): boolean {
+  return ['RETURNED', 'CANCELLED', 'DECLINED', 'RETURN_PENDING'].includes(
+    status
+  );
+}
+
+/**
  * Check if an item is available for borrowing
  */
 export async function isItemAvailable(itemId: string): Promise<boolean> {
@@ -59,7 +69,7 @@ export async function updateItemAvailability(
   const wasAvailable = !currentItem?.currentBorrowRequestId;
 
   // Set currentBorrowRequestId when request becomes APPROVED or ACTIVE
-  // Clear it when request is RETURNED, CANCELLED, or DECLINED
+  // Clear it when request is RETURNED, CANCELLED, DECLINED, or RETURN_PENDING
   if (['APPROVED', 'ACTIVE'].includes(newStatus)) {
     console.log(
       `🔧 DEBUG Setting currentBorrowRequestId to ${borrowRequestId} for status ${newStatus}`
@@ -71,7 +81,7 @@ export async function updateItemAvailability(
     console.log(
       `🔧 DEBUG Successfully updated item ${itemId} with borrowRequestId ${borrowRequestId}`
     );
-  } else if (['RETURNED', 'CANCELLED', 'DECLINED'].includes(newStatus)) {
+  } else if (statusFreesItem(newStatus)) {
     console.log(
       `🔧 DEBUG Clearing currentBorrowRequestId for status ${newStatus}`
     );
@@ -88,9 +98,7 @@ export async function updateItemAvailability(
 
   // Log availability change if userId provided
   if (userId) {
-    const isNowAvailable = ['RETURNED', 'CANCELLED', 'DECLINED'].includes(
-      newStatus
-    );
+    const isNowAvailable = statusFreesItem(newStatus);
 
     if (wasAvailable !== isNowAvailable) {
       await logItemAvailabilityChange(

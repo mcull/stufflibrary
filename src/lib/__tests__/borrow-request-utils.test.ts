@@ -1,5 +1,48 @@
 import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 
+// Pure helper tests — no DB needed
+describe('statusFreesItem (pure)', () => {
+  let statusFreesItem: (status: string) => boolean;
+
+  beforeAll(async () => {
+    // Stub db so the module loads without env validation
+    vi.mock('../db', () => ({
+      db: {
+        item: { findUnique: vi.fn(), update: vi.fn() },
+        borrowRequest: {
+          create: vi.fn(),
+          findUnique: vi.fn(),
+          update: vi.fn(),
+        },
+      },
+    }));
+    vi.mock('../audit-log', () => ({
+      logBorrowRequestStatusChange: vi.fn(),
+      logAuditEntry: vi.fn(),
+      logItemAvailabilityChange: vi.fn(),
+    }));
+    const mod = await import('../borrow-request-utils');
+    statusFreesItem = mod.statusFreesItem;
+  });
+
+  it('RETURN_PENDING frees the item', () => {
+    expect(statusFreesItem('RETURN_PENDING')).toBe(true);
+    expect(statusFreesItem('ACTIVE')).toBe(false);
+  });
+
+  it('RETURNED, CANCELLED, DECLINED also free the item', () => {
+    expect(statusFreesItem('RETURNED')).toBe(true);
+    expect(statusFreesItem('CANCELLED')).toBe(true);
+    expect(statusFreesItem('DECLINED')).toBe(true);
+  });
+
+  it('ACTIVE and APPROVED do not free the item', () => {
+    expect(statusFreesItem('ACTIVE')).toBe(false);
+    expect(statusFreesItem('APPROVED')).toBe(false);
+    expect(statusFreesItem('PENDING')).toBe(false);
+  });
+});
+
 // Skip all tests if database environment variables are not available (e.g., in CI)
 const skipTests = !process.env.DATABASE_URL;
 
