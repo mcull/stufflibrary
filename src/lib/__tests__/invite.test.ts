@@ -5,6 +5,7 @@ const mockMemberCreate = vi.hoisted(() => vi.fn());
 const mockMemberUpdate = vi.hoisted(() => vi.fn());
 const mockInvitationUpdateMany = vi.hoisted(() => vi.fn());
 const mockInvitationFindFirst = vi.hoisted(() => vi.fn());
+const mockGetServerSession = vi.hoisted(() => vi.fn());
 
 vi.mock('@/lib/db', () => ({
   db: {
@@ -20,10 +21,14 @@ vi.mock('@/lib/db', () => ({
   },
 }));
 
+vi.mock('next-auth', () => ({ getServerSession: mockGetServerSession }));
+vi.mock('@/lib/auth', () => ({ authOptions: {} }));
+
 import {
   ensureActiveMembership,
   acceptInvitation,
   validateLibraryInvite,
+  handleInviteLanding,
 } from '../invite';
 
 beforeEach(() => {
@@ -109,5 +114,57 @@ describe('validateLibraryInvite', () => {
       ok: false,
       reason: 'expired',
     });
+  });
+});
+
+describe('handleInviteLanding', () => {
+  it('authenticated user joins and is redirected to the collection', async () => {
+    mockInvitationFindFirst.mockResolvedValue({
+      libraryId: 'c1',
+      expiresAt: new Date(Date.now() + 86400000),
+    });
+    mockGetServerSession.mockResolvedValue({ user: { id: 'u1' } });
+    mockMemberFindUnique.mockResolvedValue(null);
+    const res = await handleInviteLanding(
+      { url: 'https://x/j/tok' } as any,
+      'tok'
+    );
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toContain(
+      '/collection/c1?message=joined_successfully'
+    );
+    expect(mockMemberCreate).toHaveBeenCalled();
+  });
+  it('invalid token redirects home with invite=invalid', async () => {
+    mockInvitationFindFirst.mockResolvedValue(null);
+    const res = await handleInviteLanding(
+      { url: 'https://x/j/tok' } as any,
+      'tok'
+    );
+    expect(res.headers.get('location')).toContain('/?invite=invalid');
+  });
+  it('expired token redirects home with invite=expired', async () => {
+    mockInvitationFindFirst.mockResolvedValue({
+      libraryId: 'c1',
+      expiresAt: new Date(Date.now() - 1000),
+    });
+    const res = await handleInviteLanding(
+      { url: 'https://x/j/tok' } as any,
+      'tok'
+    );
+    expect(res.headers.get('location')).toContain('/?invite=expired');
+  });
+  it('unauthenticated user gets guest cookies and redirected to collection?guest=1', async () => {
+    mockInvitationFindFirst.mockResolvedValue({
+      libraryId: 'c1',
+      expiresAt: new Date(Date.now() + 86400000),
+    });
+    mockGetServerSession.mockResolvedValue(null);
+    const res = await handleInviteLanding(
+      { url: 'https://x/j/tok' } as any,
+      'tok'
+    );
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toContain('/collection/c1?guest=1');
   });
 });

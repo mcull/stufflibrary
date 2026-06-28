@@ -1,5 +1,7 @@
-import { NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
 
+import { authOptions } from './auth';
 import { db } from './db';
 
 const INVITE_COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
@@ -81,4 +83,44 @@ export function setInviteCookies(
 export function clearInviteCookies(res: NextResponse): void {
   res.cookies.set('invite_token', '', { path: '/', maxAge: 0 });
   res.cookies.set('invite_library', '', { path: '/', maxAge: 0 });
+}
+
+export async function handleInviteLanding(
+  request: NextRequest,
+  token: string
+): Promise<NextResponse> {
+  try {
+    if (!token || typeof token !== 'string') {
+      return NextResponse.redirect(new URL('/?invite=invalid', request.url));
+    }
+
+    const result = await validateLibraryInvite(token);
+    if (!result.ok) {
+      return NextResponse.redirect(
+        new URL(`/?invite=${result.reason}`, request.url)
+      );
+    }
+    const libId = result.invitation.libraryId;
+
+    const session = await getServerSession(authOptions);
+    const userId = (session?.user as { id?: string } | undefined)?.id;
+
+    if (userId) {
+      await ensureActiveMembership(userId, libId);
+      await acceptInvitation(token, libId, userId);
+      const res = NextResponse.redirect(
+        new URL(`/collection/${libId}?message=joined_successfully`, request.url)
+      );
+      clearInviteCookies(res);
+      return res;
+    }
+
+    const res = NextResponse.redirect(
+      new URL(`/collection/${libId}?guest=1`, request.url)
+    );
+    setInviteCookies(res, token, libId);
+    return res;
+  } catch {
+    return NextResponse.redirect(new URL('/?invite=error', request.url));
+  }
 }
