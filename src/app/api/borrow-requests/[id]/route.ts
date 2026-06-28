@@ -11,6 +11,7 @@ import {
   sendItemReturnedNotification,
 } from '@/lib/enhanced-notification-service';
 import { createNotification } from '@/lib/notification-service';
+import { recomputeUserTrustScore } from '@/lib/trust-score';
 import { sendCancellationNotification } from '@/lib/twilio';
 
 // Shared helpers for return condition validation
@@ -464,6 +465,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           },
         });
 
+        await recomputeUserTrustScore(borrowRequest.borrowerId);
+
         if (userId) {
           await logAuditEntry({
             action: 'DISPUTE_REPORTED',
@@ -508,6 +511,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       data: updateData,
     });
 
+    // Recompute trust score on return confirmation / check-in
+    if (action === 'confirm-return' || action === 'lender-return') {
+      await recomputeUserTrustScore(borrowRequest.borrowerId);
+    }
+
     // Auto-create a Dispute when the owner marks the return as DAMAGED
     if (
       (action === 'confirm-return' || action === 'lender-return') &&
@@ -548,6 +556,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           },
         });
       }
+      await recomputeUserTrustScore(borrowRequest.borrowerId);
     }
 
     // Log status change for audit trail (skip if no userId for magic link)
