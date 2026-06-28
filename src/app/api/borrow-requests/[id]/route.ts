@@ -69,6 +69,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             phone: true,
             email: true,
             status: true,
+            trustTier: true,
           },
         },
         lender: {

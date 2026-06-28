@@ -136,6 +136,29 @@ describe('lender BorrowRequestDetail', () => {
     );
   });
 
+  it('shows the borrower trust tier badge to the owner', async () => {
+    const requestWithTier = {
+      ...mockReturnPendingRequest,
+      borrower: { ...mockReturnPendingRequest.borrower, trustTier: 'TRUSTED' },
+    };
+
+    (fetch as any).mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ borrowRequest: requestWithTier }),
+      })
+    );
+
+    render(<BorrowRequestDetail requestId="request-1" />);
+
+    await waitFor(
+      () => {
+        expect(screen.getByText('Trusted')).toBeInTheDocument();
+      },
+      { timeout: 10000 }
+    );
+  });
+
   it('displays the borrower return note to the owner', async () => {
     const requestWithNote = {
       ...mockReturnPendingRequest,

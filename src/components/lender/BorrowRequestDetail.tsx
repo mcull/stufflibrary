@@ -41,6 +41,8 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
+import { TrustBadge } from '../TrustBadge';
+
 import { VideoPlayer } from './VideoPlayer';
 
 interface BorrowRequest {
@@ -67,6 +69,7 @@ interface BorrowRequest {
     name: string;
     image?: string;
     email?: string;
+    trustTier?: string | null;
   };
   lender: {
     id: string;
@@ -614,7 +617,12 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
                   <Person />
                 </Avatar>
                 <Box>
-                  <Typography variant="h6">{request.borrower.name}</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="h6">
+                      {request.borrower.name}
+                    </Typography>
+                    <TrustBadge tier={request.borrower.trustTier} />
+                  </Box>
                   <Typography variant="body2" color="textSecondary">
                     Member since 2024
                   </Typography>
