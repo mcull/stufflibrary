@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth';
-import { db } from '@/lib/db';
+import {
+  acceptInvitation,
+  clearInviteCookies,
+  ensureActiveMembership,
+  validateLibraryInvite,
+} from '@/lib/invite';
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,70 +36,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ redirect: null }, { status: 200 });
     }
 
-    // Validate invite
-    const invitation = await db.invitation.findFirst({
-      where: {
-        token: inviteToken,
-        libraryId: inviteLibrary,
-        type: 'library',
-        status: { in: ['PENDING', 'SENT'] },
-      },
-      select: { id: true, expiresAt: true },
-    });
-    console.log('[invite/consume] invitation lookup', {
-      found: !!invitation,
-      expired: invitation ? new Date() > invitation.expiresAt : undefined,
-    });
-
-
     // Build base response now so we can always clear cookies
     const res = NextResponse.json({ redirect: `/collection/${inviteLibrary}` });
-    res.cookies.set('invite_token', '', { path: '/', maxAge: 0 });
-    res.cookies.set('invite_library', '', { path: '/', maxAge: 0 });
+    clearInviteCookies(res);
 
-    if (!invitation || new Date() > invitation.expiresAt) {
+    // Validate invite
+    const validation = await validateLibraryInvite(inviteToken);
+    console.log('[invite/consume] invitation lookup', {
+      found: validation.ok,
+      expired: !validation.ok && validation.reason === 'expired',
+    });
+
+    if (!validation.ok) {
       console.log('[invite/consume] invalid or expired invite; returning');
       return res;
     }
 
     // Ensure membership
-    const existing = await db.collectionMember.findUnique({
-      where: { userId_collectionId: { userId, collectionId: inviteLibrary } },
-      select: { id: true, isActive: true },
-    });
-    if (!existing) {
-      console.log('[invite/consume] creating membership', {
-        userId,
-        inviteLibrary,
-      });
-      await db.collectionMember.create({
-        data: {
-          userId,
-          collectionId: inviteLibrary,
-          role: 'member',
-          isActive: true,
-        },
-      });
-    } else if (!existing.isActive) {
-      console.log('[invite/consume] reactivating membership', {
-        id: existing.id,
-      });
-
-      await db.collectionMember.update({
-        where: { id: existing.id },
-        data: { isActive: true },
-      });
-    } else {
-      console.log('[invite/consume] membership already active');
-    }
+    await ensureActiveMembership(userId, inviteLibrary);
 
     // Mark invite accepted
     console.log('[invite/consume] marking invite accepted');
-
-    await db.invitation.updateMany({
-      where: { token: inviteToken, libraryId: inviteLibrary },
-      data: { status: 'ACCEPTED', acceptedAt: new Date(), receiverId: userId },
-    });
+    await acceptInvitation(inviteToken, inviteLibrary, userId);
 
     console.log('[invite/consume] returning redirect', {
       to: `/collection/${inviteLibrary}`,

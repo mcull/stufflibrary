@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { acceptInvitation, ensureActiveMembership } from '@/lib/invite';
 
 export async function POST(
   request: NextRequest,
@@ -26,7 +27,7 @@ export async function POST(
       );
     }
 
-    // Find and validate invitation
+    // Find and validate invitation (keep full include for response shape)
     const invitation = await db.invitation.findFirst({
       where: {
         token,
@@ -82,63 +83,26 @@ export async function POST(
       );
     }
 
-    // Check if user is already a member (active or inactive)
-    const existingMembership = await db.collectionMember.findFirst({
-      where: {
-        userId,
-        collectionId: invitation.libraryId!,
-      },
-      select: { id: true, isActive: true, role: true },
-    });
+    const libId = invitation.libraryId!;
 
-    if (existingMembership) {
-      // Reactivate if needed
-      if (!existingMembership.isActive) {
-        await db.collectionMember.update({
-          where: { id: existingMembership.id },
-          data: { isActive: true },
-        });
-      }
-      // Mark invitation as accepted anyway
-      await db.invitation.update({
-        where: { id: invitation.id },
-        data: {
-          status: 'ACCEPTED',
-          acceptedAt: new Date(),
-          receiverId: userId,
-        },
-      });
+    // Ensure membership (create new or reactivate inactive)
+    const { created } = await ensureActiveMembership(userId, libId);
 
+    // Mark invitation accepted
+    await acceptInvitation(token, libId, userId);
+
+    if (!created) {
+      // User already had a membership (active or just reactivated)
       return NextResponse.json({
         success: true,
         message: 'You are already a member of this library',
         library: {
           id: invitation.collection!.id,
           name: invitation.collection!.name,
-          role: existingMembership.role,
+          role: 'member',
         },
       });
     }
-
-    // Create library membership and mark invitation as accepted
-    const [libraryMember] = await db.$transaction([
-      db.collectionMember.create({
-        data: {
-          userId,
-          collectionId: invitation.libraryId!,
-          role: 'member',
-          isActive: true,
-        },
-      }),
-      db.invitation.update({
-        where: { id: invitation.id },
-        data: {
-          status: 'ACCEPTED',
-          acceptedAt: new Date(),
-          receiverId: userId,
-        },
-      }),
-    ]);
 
     // Get user's name for welcome banner
     const userDetails = await db.user.findUnique({
@@ -153,7 +117,7 @@ export async function POST(
         id: invitation.collection!.id,
         name: invitation.collection!.name,
         location: invitation.collection!.location,
-        role: libraryMember.role,
+        role: 'member',
       },
       user: {
         firstName,

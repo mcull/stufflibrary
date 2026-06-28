@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { storeAuthCode } from '@/lib/auth-codes';
 import { db } from '@/lib/db';
+import { acceptInvitation, ensureActiveMembership } from '@/lib/invite';
 
 export async function GET(request: NextRequest) {
   try {
@@ -57,45 +58,9 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Create library membership if needed
-    const existingMembership = await db.collectionMember.findFirst({
-      where: {
-        userId: user.id,
-        collectionId: invitation.libraryId!,
-        isActive: true,
-      },
-    });
-
-    if (!existingMembership) {
-      await db.$transaction([
-        db.collectionMember.create({
-          data: {
-            userId: user.id,
-            collectionId: invitation.libraryId!,
-            role: 'member',
-            isActive: true,
-          },
-        }),
-        db.invitation.update({
-          where: { id: invitation.id },
-          data: {
-            status: 'ACCEPTED',
-            acceptedAt: new Date(),
-            receiverId: user.id,
-          },
-        }),
-      ]);
-    } else {
-      // Mark invitation as accepted even if already member
-      await db.invitation.update({
-        where: { id: invitation.id },
-        data: {
-          status: 'ACCEPTED',
-          acceptedAt: new Date(),
-          receiverId: user.id,
-        },
-      });
-    }
+    // Ensure library membership and mark invitation accepted
+    await ensureActiveMembership(user.id, invitation.libraryId!);
+    await acceptInvitation(invitationToken, invitation.libraryId!, user.id);
 
     // Generate a temporary auth code and redirect to sign-in with auto-fill
     const tempCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit code

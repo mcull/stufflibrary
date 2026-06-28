@@ -3,6 +3,11 @@ import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import {
+  acceptInvitation,
+  clearInviteCookies,
+  ensureActiveMembership,
+} from '@/lib/invite';
 
 export async function POST(
   request: NextRequest,
@@ -117,43 +122,18 @@ export async function POST(
       );
     }
 
-    // Check if user is already a member
-    const existingMembership = await db.collectionMember.findUnique({
-      where: {
-        userId_collectionId: {
-          userId,
-          collectionId,
-        },
-      },
-    });
+    // Ensure membership (create or reactivate); detect already-active case
+    const { created, reactivated } = await ensureActiveMembership(
+      userId,
+      collectionId
+    );
 
-    if (existingMembership) {
-      if (existingMembership.isActive) {
-        return NextResponse.json(
-          { error: 'You are already a member of this collection' },
-          { status: 400 }
-        );
-      } else {
-        // Reactivate membership
-        await db.collectionMember.update({
-          where: { id: existingMembership.id },
-          data: {
-            isActive: true,
-            joinedAt: new Date(),
-          },
-        });
-      }
-    } else {
-      // Create new membership
-      console.log('[collections/:id/join] creating membership');
-      await db.collectionMember.create({
-        data: {
-          userId,
-          collectionId,
-          role: 'member',
-          isActive: true,
-        },
-      });
+    if (!created && !reactivated) {
+      // Already an active member
+      return NextResponse.json(
+        { error: 'You are already a member of this collection' },
+        { status: 400 }
+      );
     }
 
     // If joined via invite, mark invitation accepted
@@ -162,14 +142,7 @@ export async function POST(
         token: validInviteToken.slice(0, 8) + '...',
         userId,
       });
-      await db.invitation.updateMany({
-        where: { token: validInviteToken, libraryId: collectionId },
-        data: {
-          status: 'ACCEPTED',
-          acceptedAt: new Date(),
-          receiverId: userId,
-        },
-      });
+      await acceptInvitation(validInviteToken, collectionId, userId);
     }
 
     // Get updated collection info
@@ -213,8 +186,7 @@ export async function POST(
       { status: 201 }
     );
     // Clear invite cookies after join
-    res.cookies.set('invite_token', '', { path: '/', maxAge: 0 });
-    res.cookies.set('invite_library', '', { path: '/', maxAge: 0 });
+    clearInviteCookies(res);
     return res;
   } catch (error) {
     console.error('[collections/:id/join] error', error);
