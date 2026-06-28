@@ -67,6 +67,8 @@ export async function GET(request: Request) {
         shareInterests: true,
         borrowInterests: true,
         movedInDate: true,
+        trustScore: true,
+        trustTier: true,
         createdAt: true,
         updatedAt: true,
         _count: {
@@ -109,7 +111,6 @@ export async function GET(request: Request) {
           new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
       ).length;
 
-      const totalItems = user._count.items;
       const totalRequests = user._count.borrowRequests;
 
       // Simple activity level calculation
@@ -120,12 +121,8 @@ export async function GET(request: Request) {
         activityLevel = 'medium';
       }
 
-      // Simple trust score calculation
-      const profileScore = user.profileCompleted ? 25 : 0;
-      const phoneScore = user.phoneVerified ? 25 : 0;
-      const itemsScore = Math.min(totalItems * 5, 25);
-      const activityScore = Math.min(totalRequests * 2, 25);
-      const trustScore = profileScore + phoneScore + itemsScore + activityScore;
+      // Use the persisted, recomputed trust score
+      const trustScore = user.trustScore;
 
       return {
         ...user,
