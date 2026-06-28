@@ -22,6 +22,7 @@ export default async function PublicProfilePage({
       bio: true,
       shareInterests: true,
       createdAt: true,
+      trustTier: true,
       items: {
         where: {
           currentBorrowRequestId: null, // Only show available items on public profile

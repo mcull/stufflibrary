@@ -11,9 +11,14 @@ const mockNotificationFindFirst = vi.hoisted(() => vi.fn());
 const mockNotificationCreate = vi.hoisted(() => vi.fn());
 const mockNotificationUpdate = vi.hoisted(() => vi.fn());
 const mockCreateNotification = vi.hoisted(() => vi.fn());
+const mockRecompute = vi.hoisted(() => vi.fn());
 
 vi.mock('next-auth', () => ({
   getServerSession: mockGetServerSession,
+}));
+
+vi.mock('@/lib/trust-score', () => ({
+  recomputeUserTrustScore: mockRecompute,
 }));
 
 vi.mock('@/lib/notification-service', () => ({
@@ -678,5 +683,29 @@ describe('Phase 1A — PATCH route state machine', () => {
       { params: Promise.resolve({ id: 'br_1' }) }
     );
     expect(res.status).toBe(400);
+  });
+
+  // ── Task 4: trust score recomputed on key events ──────────────────────────
+
+  it('confirm-return recomputes the borrower trust score', async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: 'lender_1' } });
+    mockBorrowRequestFindUnique.mockResolvedValue({
+      ...baseBorrowRequestStub,
+      id: 'br_1',
+      status: 'RETURN_PENDING',
+      borrowerId: 'borrower_1',
+      lenderId: 'lender_1',
+      itemId: 'item_1',
+      requestedReturnDate: new Date(),
+      returnedAt: new Date(),
+    });
+    mockBorrowRequestUpdate.mockResolvedValue({
+      id: 'br_1',
+      status: 'RETURNED',
+    });
+    await PATCH(makeReq({ action: 'confirm-return', condition: 'OK' }), {
+      params: Promise.resolve({ id: 'br_1' }),
+    });
+    expect(mockRecompute).toHaveBeenCalledWith('borrower_1');
   });
 });

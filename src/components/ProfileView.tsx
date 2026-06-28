@@ -24,6 +24,7 @@ import { z } from 'zod';
 import { brandColors } from '@/theme/brandTokens';
 
 import { AddressAutocomplete } from './AddressAutocomplete';
+import { TrustBadge } from './TrustBadge';
 
 const profileSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -44,6 +45,8 @@ interface User {
   profileCompleted: boolean;
   onboardingStep: string | null;
   currentAddressId: string | null;
+  trustScore?: number | null;
+  trustTier?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -278,6 +281,39 @@ export function ProfileView({
             </Typography>
           </Box>
         </Box>
+
+        {/* Trust Section */}
+        {(user.trustScore != null || user.trustTier) && (
+          <Box
+            sx={{
+              mb: 4,
+              p: 3,
+              borderRadius: '12px',
+              border: `1px solid ${brandColors.softGray}`,
+            }}
+          >
+            <Box
+              sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}
+            >
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                Trust
+              </Typography>
+              {user.trustScore != null && (
+                <Typography
+                  variant="h6"
+                  sx={{ fontWeight: 700, color: brandColors.inkBlue }}
+                >
+                  {Math.round(user.trustScore)}
+                </Typography>
+              )}
+              <TrustBadge tier={user.trustTier} />
+            </Box>
+            <Typography variant="body2" color="text.secondary">
+              Complete your profile and return items on time to raise your
+              score.
+            </Typography>
+          </Box>
+        )}
 
         <Box component="form" onSubmit={handleSubmit(onSubmit)}>
           <Stack spacing={4}>

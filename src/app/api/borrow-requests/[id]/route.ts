@@ -11,6 +11,7 @@ import {
   sendItemReturnedNotification,
 } from '@/lib/enhanced-notification-service';
 import { createNotification } from '@/lib/notification-service';
+import { recomputeUserTrustScore } from '@/lib/trust-score';
 import { sendCancellationNotification } from '@/lib/twilio';
 
 // Shared helpers for return condition validation
@@ -68,6 +69,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             phone: true,
             email: true,
             status: true,
+            trustTier: true,
           },
         },
         lender: {
@@ -464,6 +466,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           },
         });
 
+        await recomputeUserTrustScore(borrowRequest.borrowerId);
+
         if (userId) {
           await logAuditEntry({
             action: 'DISPUTE_REPORTED',
@@ -508,6 +512,15 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       data: updateData,
     });
 
+    // Recompute trust score on return confirmation / check-in
+    // Skip when condition is DAMAGED — the auto-dispute block below will recompute
+    if (
+      (action === 'confirm-return' || action === 'lender-return') &&
+      condition !== 'DAMAGED'
+    ) {
+      await recomputeUserTrustScore(borrowRequest.borrowerId);
+    }
+
     // Auto-create a Dispute when the owner marks the return as DAMAGED
     if (
       (action === 'confirm-return' || action === 'lender-return') &&
@@ -548,6 +561,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           },
         });
       }
+      await recomputeUserTrustScore(borrowRequest.borrowerId);
     }
 
     // Log status change for audit trail (skip if no userId for magic link)

@@ -53,7 +53,8 @@ model User {
   currentAddressId    String?
   movedInDate         DateTime?
   status              String          @default("active")
-  trustScore          Float           @default(1000.0)
+  trustScore          Float           @default(50.0)
+  trustTier           String?
   warningCount        Int             @default(0)
   suspensionCount     Int             @default(0)
   lastWarningAt       DateTime?
