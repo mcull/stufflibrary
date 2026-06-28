@@ -14,5 +14,8 @@
       "ENABLE_EXPERIMENTAL_COREPACK": "1"
     }
   },
-  "crons": [{ "path": "/api/cron/overdue", "schedule": "0 16 * * *" }]
+  "crons": [
+    { "path": "/api/cron/overdue", "schedule": "0 16 * * *" },
+    { "path": "/api/cron/recompute-trust", "schedule": "30 16 * * *" }
+  ]
 }
