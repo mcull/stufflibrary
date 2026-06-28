@@ -36,6 +36,7 @@ interface BorrowRequest {
     | 'APPROVED'
     | 'DECLINED'
     | 'ACTIVE'
+    | 'RETURN_PENDING'
     | 'RETURNED'
     | 'CANCELLED';
   requestMessage?: string;
@@ -62,6 +63,7 @@ const statusColors = {
   APPROVED: 'success',
   DECLINED: 'error',
   ACTIVE: 'info',
+  RETURN_PENDING: 'warning',
   RETURNED: 'success',
   CANCELLED: 'default',
 } as const;
@@ -71,8 +73,19 @@ const statusIcons = {
   APPROVED: <CheckCircle />,
   DECLINED: <Cancel />,
   ACTIVE: <PlayArrow />,
+  RETURN_PENDING: <AccessTime />,
   RETURNED: <CheckCircle />,
   CANCELLED: <Cancel />,
+};
+
+const statusLabels: Record<BorrowRequest['status'], string> = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  DECLINED: 'DECLINED',
+  ACTIVE: 'ACTIVE',
+  RETURN_PENDING: 'Awaiting your confirmation',
+  RETURNED: 'RETURNED',
+  CANCELLED: 'CANCELLED',
 };
 
 export function LenderRequestsPage() {
@@ -121,7 +134,7 @@ export function LenderRequestsPage() {
         return requests.filter((req) => req.status === 'PENDING');
       case 'active':
         return requests.filter((req) =>
-          ['APPROVED', 'ACTIVE'].includes(req.status)
+          ['APPROVED', 'ACTIVE', 'RETURN_PENDING'].includes(req.status)
         );
       case 'completed':
         return requests.filter((req) =>
@@ -160,8 +173,12 @@ export function LenderRequestsPage() {
     (req) => req.status === 'PENDING'
   ).length;
   const activeCount = requests.filter((req) =>
-    ['APPROVED', 'ACTIVE'].includes(req.status)
+    ['APPROVED', 'ACTIVE', 'RETURN_PENDING'].includes(req.status)
   ).length;
+  const returnPendingRequests = requests.filter(
+    (req) => req.status === 'RETURN_PENDING'
+  );
+  const returnPendingCount = returnPendingRequests.length;
   const completedCount = requests.filter((req) =>
     ['DECLINED', 'RETURNED', 'CANCELLED'].includes(req.status)
   ).length;
@@ -177,6 +194,44 @@ export function LenderRequestsPage() {
           Review and respond to borrowing requests for your items
         </Typography>
       </Box>
+
+      {/* Returns awaiting confirmation */}
+      {returnPendingCount > 0 && (
+        <Alert
+          severity="warning"
+          icon={<AccessTime />}
+          sx={{ mb: 3 }}
+          action={
+            <Button
+              color="inherit"
+              size="small"
+              onClick={() => setTabValue('active')}
+            >
+              View
+            </Button>
+          }
+        >
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            {returnPendingCount === 1
+              ? '1 item returned — needs your confirmation'
+              : `${returnPendingCount} items returned — need your confirmation`}
+          </Typography>
+          <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            {returnPendingRequests.map((req) => (
+              <Button
+                key={req.id}
+                component={Link}
+                href={`/lender/requests/${req.id}`}
+                size="small"
+                variant="outlined"
+                color="warning"
+              >
+                {req.item.name}
+              </Button>
+            ))}
+          </Box>
+        </Alert>
+      )}
 
       {/* Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
@@ -273,7 +328,7 @@ export function LenderRequestsPage() {
                   <Box sx={{ mb: 2 }}>
                     <Chip
                       icon={statusIcons[request.status]}
-                      label={request.status}
+                      label={statusLabels[request.status]}
                       color={statusColors[request.status]}
                       size="small"
                     />
@@ -352,14 +407,25 @@ export function LenderRequestsPage() {
                     component={Link}
                     href={`/lender/requests/${request.id}`}
                     variant={
-                      request.status === 'PENDING' ? 'contained' : 'outlined'
+                      request.status === 'PENDING' ||
+                      request.status === 'RETURN_PENDING'
+                        ? 'contained'
+                        : 'outlined'
                     }
                     fullWidth
-                    color={request.status === 'PENDING' ? 'primary' : 'inherit'}
+                    color={
+                      request.status === 'PENDING'
+                        ? 'primary'
+                        : request.status === 'RETURN_PENDING'
+                          ? 'warning'
+                          : 'inherit'
+                    }
                   >
                     {request.status === 'PENDING'
                       ? 'Review & Respond'
-                      : 'View Details'}
+                      : request.status === 'RETURN_PENDING'
+                        ? 'Confirm Return'
+                        : 'View Details'}
                   </Button>
                 </CardActions>
               </Card>

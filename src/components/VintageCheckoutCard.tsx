@@ -221,6 +221,23 @@ export function VintageCheckoutCard({
                   {formatDate(record.returnedAt)}
                 </Typography>
               )}
+              {record &&
+                !record.returnedAt &&
+                record.status === 'RETURN_PENDING' && (
+                  <Typography
+                    className="vintage-impact-label"
+                    sx={{
+                      fontSize: { xs: '0.65rem', sm: '0.75rem' },
+                      color: '#b45309',
+                      fontWeight: 'bold',
+                      textTransform: 'uppercase',
+                      letterSpacing: '1px',
+                      transform: `rotate(${record.stampRotation}deg)`,
+                    }}
+                  >
+                    Awaiting confirmation
+                  </Typography>
+                )}
             </Box>
           </Box>
         );

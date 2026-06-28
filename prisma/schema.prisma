@@ -266,6 +266,17 @@ model BorrowRequest {
   borrowerId           String
   lenderId             String
   itemId               String
+  returnCondition       ReturnCondition?
+  returnConditionNote   String?
+  returnPhotoUrl        String?
+  returnConfirmedAt     DateTime?
+  returnConfirmedBy     String?
+  returnedLate          Boolean?
+  borrowerReturnNote    String?
+  lastOverdueReminderAt DateTime?
+  cancelledAt           DateTime?
+  cancellationReason    String?
+  cancelledBy           String?
   borrower             User                @relation(fields: [borrowerId], references: [id], onDelete: Cascade)
   item                 Item                @relation(fields: [itemId], references: [id], onDelete: Cascade)
   lender               User                @relation("Lender", fields: [lenderId], references: [id], onDelete: Cascade)
@@ -388,8 +399,15 @@ enum BorrowRequestStatus {
   APPROVED
   DECLINED
   ACTIVE
+  RETURN_PENDING
   RETURNED
   CANCELLED
+}
+
+enum ReturnCondition {
+  OK
+  MINOR_WEAR
+  DAMAGED
 }
 
 enum ItemConceptStatus {
@@ -534,12 +552,13 @@ enum AdminActionType {
 enum NotificationType {
   BORROW_REQUEST_RECEIVED    // New request received by lender
   BORROW_REQUEST_APPROVED    // Request approved by lender
-  BORROW_REQUEST_DECLINED    // Request declined by lender  
+  BORROW_REQUEST_DECLINED    // Request declined by lender
   BORROW_REQUEST_CANCELLED   // Request cancelled by borrower/lender
   ITEM_DUE_TOMORROW         // Return reminder 24h before
   ITEM_OVERDUE              // Item past due date
   ITEM_RETURNED             // Borrower marked as returned
   RETURN_CONFIRMED          // Lender confirmed return
+  PROBLEM_REPORTED          // Damage or issue reported on return
   LIBRARY_INVITATION        // Invited to join library
   SYSTEM_ANNOUNCEMENT       // General system messages
 }

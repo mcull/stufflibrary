@@ -43,6 +43,7 @@ interface BorrowRequest {
     | 'APPROVED'
     | 'DECLINED'
     | 'ACTIVE'
+    | 'RETURN_PENDING'
     | 'RETURNED'
     | 'CANCELLED';
   requestMessage?: string;
@@ -83,6 +84,7 @@ const statusColors = {
   APPROVED: 'success',
   DECLINED: 'error',
   ACTIVE: 'info',
+  RETURN_PENDING: 'warning',
   RETURNED: 'success',
   CANCELLED: 'default',
 } as const;
@@ -223,6 +225,7 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
   }
 
   const isActive = request.status === 'ACTIVE';
+  const isReturnPending = request.status === 'RETURN_PENDING';
   const isReturned = request.status === 'RETURNED';
   const canReturn = isActive;
 
@@ -392,6 +395,33 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
               </Card>
             )}
 
+            {/* Awaiting Owner Confirmation */}
+            {isReturnPending && (
+              <Card
+                sx={{
+                  mb: 3,
+                  bgcolor: 'warning.light',
+                  color: 'warning.contrastText',
+                }}
+              >
+                <CardContent>
+                  <Typography
+                    variant="h6"
+                    gutterBottom
+                    sx={{ display: 'flex', alignItems: 'center' }}
+                  >
+                    <AccessTime sx={{ mr: 1 }} />
+                    Awaiting Owner Confirmation
+                  </Typography>
+                  <Typography variant="body2">
+                    You&apos;ve marked this item as returned.{' '}
+                    {request.lender.name} has been notified and will confirm the
+                    return.
+                  </Typography>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Return Confirmation */}
             {isReturned && (
               <Card
@@ -527,6 +557,26 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
                 </CardContent>
               </Card>
             )}
+
+            {/* Awaiting Confirmation Sidebar */}
+            {isReturnPending && (
+              <Card sx={{ bgcolor: 'warning.light' }}>
+                <CardContent>
+                  <Typography
+                    variant="h6"
+                    gutterBottom
+                    sx={{ display: 'flex', alignItems: 'center' }}
+                  >
+                    <AccessTime sx={{ mr: 1 }} />
+                    Awaiting confirmation
+                  </Typography>
+                  <Typography variant="body2">
+                    {request.lender.name} needs to confirm the return before
+                    this borrow is closed.
+                  </Typography>
+                </CardContent>
+              </Card>
+            )}
           </Box>
         </Box>
 
@@ -551,7 +601,7 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
               fullWidth
               multiline
               rows={3}
-              label="Return notes (optional)"
+              label="Note for the owner (optional)"
               placeholder="Item returned in good condition. Thanks for letting me borrow it!"
               value={returnNotes}
               onChange={(e) => setReturnNotes(e.target.value)}

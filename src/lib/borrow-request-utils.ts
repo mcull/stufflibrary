@@ -4,6 +4,16 @@ import { logAuditEntry, logItemAvailabilityChange } from './audit-log';
 import { db } from './db';
 
 /**
+ * Pure helper: returns true if the given status means the item is no longer
+ * in active use and should be freed (currentBorrowRequestId cleared).
+ */
+export function statusFreesItem(status: string): boolean {
+  return ['RETURNED', 'CANCELLED', 'DECLINED', 'RETURN_PENDING'].includes(
+    status
+  );
+}
+
+/**
  * Check if an item is available for borrowing
  */
 export async function isItemAvailable(itemId: string): Promise<boolean> {
@@ -38,59 +48,31 @@ export async function updateItemAvailability(
   newStatus: BorrowRequestStatus,
   userId?: string
 ): Promise<void> {
-  console.log(`🔧 DEBUG updateItemAvailability called:`, {
-    itemId,
-    borrowRequestId,
-    newStatus,
-    userId,
-  });
-
   // Get current state for audit logging
   const currentItem = await db.item.findUnique({
     where: { id: itemId },
     select: { currentBorrowRequestId: true },
   });
 
-  console.log(`🔧 DEBUG current item state:`, {
-    itemId,
-    currentBorrowRequestId: currentItem?.currentBorrowRequestId,
-  });
-
   const wasAvailable = !currentItem?.currentBorrowRequestId;
 
   // Set currentBorrowRequestId when request becomes APPROVED or ACTIVE
-  // Clear it when request is RETURNED, CANCELLED, or DECLINED
+  // Clear it when request is RETURNED, CANCELLED, DECLINED, or RETURN_PENDING
   if (['APPROVED', 'ACTIVE'].includes(newStatus)) {
-    console.log(
-      `🔧 DEBUG Setting currentBorrowRequestId to ${borrowRequestId} for status ${newStatus}`
-    );
     await db.item.update({
       where: { id: itemId },
       data: { currentBorrowRequestId: borrowRequestId },
     });
-    console.log(
-      `🔧 DEBUG Successfully updated item ${itemId} with borrowRequestId ${borrowRequestId}`
-    );
-  } else if (['RETURNED', 'CANCELLED', 'DECLINED'].includes(newStatus)) {
-    console.log(
-      `🔧 DEBUG Clearing currentBorrowRequestId for status ${newStatus}`
-    );
+  } else if (statusFreesItem(newStatus)) {
     await db.item.update({
       where: { id: itemId },
       data: { currentBorrowRequestId: null },
     });
-    console.log(
-      `🔧 DEBUG Successfully cleared currentBorrowRequestId for item ${itemId}`
-    );
-  } else {
-    console.log(`🔧 DEBUG No action needed for status ${newStatus}`);
   }
 
   // Log availability change if userId provided
   if (userId) {
-    const isNowAvailable = ['RETURNED', 'CANCELLED', 'DECLINED'].includes(
-      newStatus
-    );
+    const isNowAvailable = statusFreesItem(newStatus);
 
     if (wasAvailable !== isNowAvailable) {
       await logItemAvailabilityChange(

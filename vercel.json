@@ -13,5 +13,6 @@
     "env": {
       "ENABLE_EXPERIMENTAL_COREPACK": "1"
     }
-  }
+  },
+  "crons": [{ "path": "/api/cron/overdue", "schedule": "0 16 * * *" }]
 }
