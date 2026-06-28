@@ -121,13 +121,9 @@ export async function GET(request: Request) {
         activityLevel = 'medium';
       }
 
-      // Use the persisted, recomputed trust score
-      const trustScore = user.trustScore;
-
       return {
         ...user,
         activityLevel,
-        trustScore,
         recentActivity,
       };
     });

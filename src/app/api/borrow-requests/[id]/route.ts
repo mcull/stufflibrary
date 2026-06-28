@@ -513,7 +513,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     });
 
     // Recompute trust score on return confirmation / check-in
-    if (action === 'confirm-return' || action === 'lender-return') {
+    // Skip when condition is DAMAGED — the auto-dispute block below will recompute
+    if (
+      (action === 'confirm-return' || action === 'lender-return') &&
+      condition !== 'DAMAGED'
+    ) {
       await recomputeUserTrustScore(borrowRequest.borrowerId);
     }
 

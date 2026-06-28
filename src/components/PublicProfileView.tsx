@@ -21,6 +21,7 @@ import {
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
+import { TrustBadge } from '@/components/TrustBadge';
 import { brandColors } from '@/theme/brandTokens';
 
 interface UserData {
@@ -30,6 +31,7 @@ interface UserData {
   bio: string | null;
   shareInterests: string[];
   createdAt: Date;
+  trustTier?: string | null;
   items: Array<{
     id: string;
     name: string;
@@ -100,6 +102,12 @@ export function PublicProfileView({ user }: PublicProfileViewProps) {
               <Typography variant="h4" gutterBottom>
                 {user.name || 'Anonymous User'}
               </Typography>
+
+              {user.trustTier && (
+                <Box sx={{ mb: 2 }}>
+                  <TrustBadge tier={user.trustTier} />
+                </Box>
+              )}
 
               {user.bio && (
                 <Typography
