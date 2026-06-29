@@ -86,7 +86,10 @@ export function getCapabilities(f: CapabilityFacts): Capabilities {
   if (!canLend && incomplete) reasons.canLend = incomplete;
   if (!canCreateLibrary && incomplete) reasons.canCreateLibrary = incomplete;
   if (!canBorrow) reasons.canBorrow = incomplete ?? 'AT_BORROW_LIMIT';
-  if (!canInvite) reasons.canInvite = 'NEEDS_TRUST_TIER';
+  if (!canInvite)
+    reasons.canInvite = canEnter
+      ? 'NEEDS_TRUST_TIER'
+      : (incomplete ?? 'NEEDS_TERMS');
 
   return {
     canEnter,

@@ -111,6 +111,16 @@ describe('getCapabilities — trust axis', () => {
     expect(c.reasons.canInvite).toBe('NEEDS_TRUST_TIER');
   });
 
+  it('invite reason reflects missing terms, not tier, when not yet minimal', () => {
+    const c = getCapabilities({
+      ...full,
+      hasAcceptedTerms: false,
+      isLibraryOwnerOrAdmin: true,
+    });
+    expect(c.canInvite).toBe(false);
+    expect(c.reasons.canInvite).toBe('NEEDS_TERMS');
+  });
+
   it('TRUSTED member can invite', () => {
     expect(getCapabilities({ ...full, trustTier: 'TRUSTED' }).canInvite).toBe(
       true
