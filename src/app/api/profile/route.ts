@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { authOptions } from '@/lib/auth';
 import { TERMS_VERSION } from '@/lib/capabilities';
 import { db } from '@/lib/db';
+import { getUserCapabilities } from '@/lib/user-capabilities';
 
 const createProfileSchema = z.object({
   mode: z.enum(['minimal', 'full']).optional().default('full'),
@@ -492,9 +493,11 @@ export async function GET(_request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    const capabilities = await getUserCapabilities(user.id);
     return NextResponse.json({
       success: true,
       user,
+      capabilities,
     });
   } catch (error) {
     console.error('Get profile error:', error);

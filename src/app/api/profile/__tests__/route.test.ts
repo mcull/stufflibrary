@@ -6,6 +6,7 @@ const mockUserFindUnique = vi.hoisted(() => vi.fn());
 const mockUserUpdate = vi.hoisted(() => vi.fn());
 const mockUserCreate = vi.hoisted(() => vi.fn());
 const mockGetServerSession = vi.hoisted(() => vi.fn());
+const mockGetUserCapabilities = vi.hoisted(() => vi.fn());
 
 vi.mock('@/lib/db', () => ({
   db: {
@@ -27,8 +28,11 @@ vi.mock('@/lib/db', () => ({
 }));
 vi.mock('next-auth', () => ({ getServerSession: mockGetServerSession }));
 vi.mock('@/lib/auth', () => ({ authOptions: {} }));
+vi.mock('@/lib/user-capabilities', () => ({
+  getUserCapabilities: mockGetUserCapabilities,
+}));
 
-import { POST } from '../route';
+import { POST, GET } from '../route';
 
 function req(body: unknown) {
   return new Request('http://t/api/profile', {
@@ -94,5 +98,33 @@ describe('POST /api/profile full mode persists terms', () => {
     expect(data.profileCompleted).toBe(true);
     expect(data.agreedToTermsAt).toBeInstanceOf(Date);
     expect(data.agreedTermsVersion).toBe(TERMS_VERSION);
+  });
+});
+
+describe('GET /api/profile', () => {
+  it('returns a capabilities object', async () => {
+    mockGetServerSession.mockResolvedValue({
+      user: { id: 'u1', email: 'a@b.c' },
+    });
+    mockUserFindUnique.mockResolvedValue({
+      id: 'u1',
+      name: 'Jo',
+      agreedToTermsAt: new Date(),
+    });
+    mockGetUserCapabilities.mockResolvedValue({
+      canEnter: true,
+      canLend: false,
+      canBorrow: false,
+      canCreateLibrary: false,
+      canInvite: false,
+      concurrentBorrowLimit: 2,
+      atBorrowLimit: false,
+      reasons: {},
+    });
+    const res = await GET(new Request('http://t/api/profile') as any);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.capabilities).toBeDefined();
+    expect(typeof json.capabilities.canBorrow).toBe('boolean');
   });
 });
