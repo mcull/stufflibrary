@@ -6,6 +6,7 @@ import { Resend } from 'resend';
 
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { getUserCapabilities } from '@/lib/user-capabilities';
 
 export async function POST(
   request: NextRequest,
@@ -50,7 +51,7 @@ export async function POST(
     }
 
     // Check if user is library owner or admin
-    const library = await db.collection.findFirst({
+    let library = await db.collection.findFirst({
       where: {
         id: libraryId,
         OR: [
@@ -75,10 +76,49 @@ export async function POST(
     });
 
     if (!library) {
-      return NextResponse.json(
-        { error: 'Library not found or insufficient permissions' },
-        { status: 403 }
-      );
+      // Not an owner/admin — check whether the requester is an active member
+      // who has earned invite rights (trust tier >= TRUSTED).
+      const member = await db.collectionMember.findFirst({
+        where: { collectionId: libraryId, userId, isActive: true },
+        select: { id: true },
+      });
+
+      if (!member) {
+        return NextResponse.json(
+          { error: 'Library not found or insufficient permissions' },
+          { status: 403 }
+        );
+      }
+
+      const caps = await getUserCapabilities(userId, { libraryId });
+      if (!caps.canInvite) {
+        return NextResponse.json(
+          {
+            error:
+              'You need to reach the Trusted tier before inviting others to this library.',
+            reason: caps.reasons.canInvite,
+          },
+          { status: 403 }
+        );
+      }
+
+      // Permitted member — re-load the collection for the email payload.
+      library = await db.collection.findFirst({
+        where: { id: libraryId },
+        include: {
+          owner: {
+            select: { name: true, email: true },
+          },
+          _count: true,
+        },
+      });
+
+      if (!library) {
+        return NextResponse.json(
+          { error: 'Library not found' },
+          { status: 404 }
+        );
+      }
     }
 
     // Check if user is already a member (active or inactive)
