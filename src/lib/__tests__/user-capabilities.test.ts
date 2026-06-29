@@ -61,6 +61,16 @@ describe('getUserCapabilities', () => {
     expect(c.reasons.canLend).toBe('NEEDS_ADDRESS');
   });
 
+  it('an inactive address means not full profile', async () => {
+    mockAddressFindUnique.mockResolvedValue({
+      isActive: false,
+      verificationMethod: 'google_places',
+    });
+    const c = await getUserCapabilities('u1');
+    expect(c.canLend).toBe(false);
+    expect(c.reasons.canLend).toBe('NEEDS_ADDRESS');
+  });
+
   it('missing currentAddressId means not full profile', async () => {
     mockUserFindUnique.mockResolvedValue({
       name: 'Jo',

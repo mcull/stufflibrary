@@ -51,8 +51,7 @@ export async function getUserCapabilities(
   }
 
   const openBorrowCount = await db.borrowRequest.count({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    where: { borrowerId: userId, status: { in: OPEN_BORROW_STATUSES as any } },
+    where: { borrowerId: userId, status: { in: [...OPEN_BORROW_STATUSES] } },
   });
 
   let isLibraryOwnerOrAdmin = false;
