@@ -38,6 +38,9 @@ function AuthCallbackContent() {
         const data = await response.json();
         const user = data.user;
 
+        // A "minimal" profile (name + accepted terms) is enough to enter the app.
+        const minimalDone = Boolean(user?.name && user?.agreedToTermsAt);
+
         // Handle invitation flow from query params (legacy path)
         if (invitationToken && libraryId && user) {
           if (user.profileCompleted) {
@@ -71,7 +74,7 @@ function AuthCallbackContent() {
               .catch(() => ({}) as { redirect?: string });
             if (body?.redirect) {
               const dest = body.redirect as string;
-              if (user?.profileCompleted) {
+              if (minimalDone) {
                 router.replace(dest);
               } else {
                 const returnTo = encodeURIComponent(dest);
@@ -84,8 +87,8 @@ function AuthCallbackContent() {
           // ignore and continue
         }
 
-        // Normal flow based on profile completion
-        if (user?.profileCompleted) {
+        // Normal flow based on minimal onboarding completion
+        if (minimalDone) {
           router.replace('/stacks');
         } else {
           router.replace('/profile/create');

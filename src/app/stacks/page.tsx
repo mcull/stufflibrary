@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 
 import { LobbyClient } from '@/components/LobbyClient';
 import { authOptions } from '@/lib/auth';
+import { hasMinimalProfile } from '@/lib/capabilities';
 import { db } from '@/lib/db';
 
 interface LobbyPageProps {
@@ -37,6 +38,7 @@ export default async function LobbyPage({ searchParams }: LobbyPageProps) {
         shareInterests: true,
         borrowInterests: true,
         profileCompleted: true,
+        agreedToTermsAt: true,
         createdAt: true,
       },
     });
@@ -52,6 +54,7 @@ export default async function LobbyPage({ searchParams }: LobbyPageProps) {
         shareInterests: true,
         borrowInterests: true,
         profileCompleted: true,
+        agreedToTermsAt: true,
         createdAt: true,
       },
     });
@@ -61,8 +64,8 @@ export default async function LobbyPage({ searchParams }: LobbyPageProps) {
     redirect('/auth/signin');
   }
 
-  // If profile is not completed, redirect to profile creation
-  if (!user.profileCompleted) {
+  // If the user hasn't done the minimal onboarding, redirect to profile creation
+  if (!hasMinimalProfile(user)) {
     redirect('/profile/create');
   }
 

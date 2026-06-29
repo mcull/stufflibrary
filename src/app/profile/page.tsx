@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 
 import { ProfileView } from '@/components/ProfileView';
 import { authOptions } from '@/lib/auth';
+import { hasMinimalProfile } from '@/lib/capabilities';
 import { db } from '@/lib/db';
 
 export default async function ProfilePage() {
@@ -32,6 +33,7 @@ export default async function ProfilePage() {
         shareInterests: true,
         borrowInterests: true,
         profileCompleted: true,
+        agreedToTermsAt: true,
         onboardingStep: true,
         currentAddressId: true,
         trustScore: true,
@@ -52,6 +54,7 @@ export default async function ProfilePage() {
         shareInterests: true,
         borrowInterests: true,
         profileCompleted: true,
+        agreedToTermsAt: true,
         onboardingStep: true,
         currentAddressId: true,
         trustScore: true,
@@ -66,8 +69,8 @@ export default async function ProfilePage() {
     redirect('/auth/signin');
   }
 
-  // If profile isn't completed, redirect to profile creation
-  if (!user.profileCompleted) {
+  // If the user hasn't done the minimal onboarding, redirect to profile creation
+  if (!hasMinimalProfile(user)) {
     redirect('/profile/create');
   }
 
