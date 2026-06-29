@@ -61,3 +61,30 @@ it('rejects a non-member entirely (403)', async () => {
   const res = await call({ email: 'x@y.z', mode: 'email' });
   expect(res.status).toBe(403);
 });
+
+it('lets a permitted member send an invite (re-loads library, 200)', async () => {
+  mockMemberFindFirst.mockResolvedValue({ id: 'm1' }); // active member
+  mockGetUserCapabilities.mockResolvedValue({ canInvite: true, reasons: {} });
+  mockCollectionFindFirst
+    .mockResolvedValueOnce(null) // owner/admin lookup misses
+    .mockResolvedValueOnce({
+      // re-load for the email payload
+      id: 'lib1',
+      name: 'Lib',
+      location: null,
+      owner: { name: 'O', email: 'o@x.z' },
+      inviteRateLimitPerHour: 0,
+      _count: {},
+    });
+  mockInvitationFindFirst.mockResolvedValue(null);
+  mockInvitationCount.mockResolvedValue(0);
+  mockInvitationCreate.mockResolvedValue({
+    id: 'inv1',
+    email: 'link-...@share.stufflibrary.local',
+    expiresAt: new Date(),
+    collection: { name: 'Lib', location: null },
+    sender: { name: 'M' },
+  });
+  const res = await call({ mode: 'link' });
+  expect(res.status).toBe(200);
+});

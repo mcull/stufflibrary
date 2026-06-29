@@ -90,7 +90,7 @@ export async function POST(
         );
       }
 
-      const caps = await getUserCapabilities(userId, { libraryId });
+      const caps = await getUserCapabilities(userId);
       if (!caps.canInvite) {
         return NextResponse.json(
           {
