@@ -247,10 +247,23 @@ export function UserItemCard({ item, status }: ItemCardProps) {
   );
 }
 
-export function AddItemCard() {
+interface AddItemCardProps {
+  /** When false, clicking calls onBlocked instead of navigating to add-item. */
+  canLend?: boolean;
+  onBlocked?: () => void;
+}
+
+export function AddItemCard({
+  canLend = true,
+  onBlocked,
+}: AddItemCardProps = {}) {
   const router = useRouter();
 
   const handleClick = () => {
+    if (!canLend) {
+      onBlocked?.();
+      return;
+    }
     router.push('/add-item');
   };
 

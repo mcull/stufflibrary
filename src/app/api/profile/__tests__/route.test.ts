@@ -126,5 +126,34 @@ describe('GET /api/profile', () => {
     const json = await res.json();
     expect(json.capabilities).toBeDefined();
     expect(typeof json.capabilities.canBorrow).toBe('boolean');
+    expect(mockGetUserCapabilities).toHaveBeenCalledWith('u1', undefined);
+  });
+
+  it('forwards ?libraryId as capability context', async () => {
+    mockGetServerSession.mockResolvedValue({
+      user: { id: 'u1', email: 'a@b.c' },
+    });
+    mockUserFindUnique.mockResolvedValue({
+      id: 'u1',
+      name: 'Jo',
+      agreedToTermsAt: new Date(),
+    });
+    mockGetUserCapabilities.mockResolvedValue({
+      canEnter: true,
+      canLend: false,
+      canBorrow: false,
+      canCreateLibrary: false,
+      canInvite: true,
+      concurrentBorrowLimit: 2,
+      atBorrowLimit: false,
+      reasons: {},
+    });
+    const res = await GET(
+      new Request('http://t/api/profile?libraryId=lib1') as any
+    );
+    expect(res.status).toBe(200);
+    expect(mockGetUserCapabilities).toHaveBeenCalledWith('u1', {
+      libraryId: 'lib1',
+    });
   });
 });

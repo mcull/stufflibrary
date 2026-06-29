@@ -89,6 +89,10 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
     }
     setIsCreateModalOpen(true);
   };
+
+  const handleLendBlocked = () => {
+    setPromptReason(capabilities?.reasons.canLend ?? 'NEEDS_PHOTO');
+  };
   const [activeTab, setActiveTab] = useState('others-stuff');
   const [itemFilter, setItemFilter] = useState<FilterType>('all');
   const [collectionFilter, setCollectionFilter] =
@@ -164,7 +168,12 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
             gap: 1,
           }}
         >
-          {showAddItem && <AddItemCard />}
+          {showAddItem && (
+            <AddItemCard
+              canLend={capabilities?.canLend ?? true}
+              onBlocked={handleLendBlocked}
+            />
+          )}
           {items.map((item) => (
             <UserItemCard
               key={`${statusType}-${item.id}`}

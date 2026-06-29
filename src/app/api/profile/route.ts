@@ -421,7 +421,7 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -493,7 +493,13 @@ export async function GET(_request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const capabilities = await getUserCapabilities(user.id);
+    // Optional library context lets capabilities reflect owner/admin status
+    // (e.g. canInvite) for a specific library rather than the global view.
+    const libraryId = new URL(request.url).searchParams.get('libraryId');
+    const capabilities = await getUserCapabilities(
+      user.id,
+      libraryId ? { libraryId } : undefined
+    );
     return NextResponse.json({
       success: true,
       user,

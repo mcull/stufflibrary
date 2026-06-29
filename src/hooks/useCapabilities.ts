@@ -13,16 +13,23 @@ interface UseCapabilitiesResult {
  * Reads the current user's capability flags from `GET /api/profile`.
  * Server enforcement is the authority; this drives just-in-time UX
  * (disabled affordances + the complete-profile prompt).
+ *
+ * Pass `libraryId` to get library-scoped capabilities — needed for
+ * `canInvite`, which depends on owner/admin status in that library.
  */
-export function useCapabilities(): UseCapabilitiesResult {
+export function useCapabilities(libraryId?: string): UseCapabilitiesResult {
   const [capabilities, setCapabilities] = useState<Capabilities | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
+    setLoading(true);
     (async () => {
       try {
-        const resp = await fetch('/api/profile');
+        const url = libraryId
+          ? `/api/profile?libraryId=${encodeURIComponent(libraryId)}`
+          : '/api/profile';
+        const resp = await fetch(url);
         if (!resp.ok) return;
         const data = await resp.json();
         if (mounted && data?.capabilities) {
@@ -37,7 +44,7 @@ export function useCapabilities(): UseCapabilitiesResult {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [libraryId]);
 
   return { capabilities, loading };
 }
