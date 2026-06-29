@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { sendBorrowRequestReceivedNotification } from '@/lib/enhanced-notification-service';
+import { getUserCapabilities } from '@/lib/user-capabilities';
 // import { sendBorrowRequestNotification } from '@/lib/twilio';
 
 // GET - Fetch borrow requests for the current user
@@ -116,6 +117,23 @@ export async function POST(request: NextRequest) {
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
+    }
+
+    // Tiered onboarding gate: require a full profile and enforce the
+    // tier-scaled concurrent-borrow cap before any db work or the active-borrower
+    // check below.
+    const caps = await getUserCapabilities(userId);
+    if (!caps.canBorrow) {
+      const atLimit = caps.atBorrowLimit;
+      return NextResponse.json(
+        {
+          error: atLimit
+            ? `You already have ${caps.concurrentBorrowLimit} active borrows. Return an item before borrowing more.`
+            : 'Complete your profile (photo + verified address) to borrow.',
+          reason: caps.reasons.canBorrow,
+        },
+        { status: atLimit ? 409 : 403 }
+      );
     }
 
     // Check if this is form data (Mux flow) or JSON (new schema flow)
