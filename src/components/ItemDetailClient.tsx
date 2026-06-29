@@ -40,8 +40,11 @@ import { useState, useEffect, useRef } from 'react';
 import { EditModeCue } from '@/components/EditModeCue';
 import { useBorrowHistory } from '@/hooks/useBorrowHistory';
 import { useBorrowRequests } from '@/hooks/useBorrowRequests';
+import { useCapabilities } from '@/hooks/useCapabilities';
 import { useCollections } from '@/hooks/useCollections';
+import type { CapabilityReason } from '@/lib/capabilities';
 
+import { CompleteProfilePrompt } from './CompleteProfilePrompt';
 import { VintageCheckoutCard } from './VintageCheckoutCard';
 
 interface ItemData {
@@ -101,6 +104,9 @@ export function ItemDetailClient({
 }: ItemDetailClientProps) {
   const router = useRouter();
   const { data: session } = useSession();
+  const { capabilities } = useCapabilities();
+  const [borrowPromptReason, setBorrowPromptReason] =
+    useState<CapabilityReason | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -177,6 +183,11 @@ export function ItemDetailClient({
 
   // Handle borrow request
   const handleBorrowRequest = () => {
+    // Gate on profile completeness / borrow limit (server still enforces).
+    if (capabilities && !capabilities.canBorrow) {
+      setBorrowPromptReason(capabilities.reasons.canBorrow ?? 'NEEDS_ADDRESS');
+      return;
+    }
     const params = new URLSearchParams({ item: itemId });
     if (refSource === 'library' && refLibraryId) {
       params.set('src', 'library');
@@ -1613,6 +1624,13 @@ export function ItemDetailClient({
             <CloseIcon fontSize="small" />
           </IconButton>
         }
+      />
+
+      {/* Just-in-time complete-profile prompt for a locked borrow */}
+      <CompleteProfilePrompt
+        reason={borrowPromptReason}
+        open={borrowPromptReason !== null}
+        onClose={() => setBorrowPromptReason(null)}
       />
     </Container>
   );
