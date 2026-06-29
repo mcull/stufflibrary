@@ -50,6 +50,8 @@ model User {
   borrowInterests     String[]
   profileCompleted    Boolean         @default(false)
   onboardingStep      String?
+  agreedToTermsAt     DateTime?
+  agreedTermsVersion  String?
   currentAddressId    String?
   movedInDate         DateTime?
   status              String          @default("active")
