@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { StorageService } from '@/lib/storage';
+import { getUserCapabilities } from '@/lib/user-capabilities';
 import { WatercolorService } from '@/lib/watercolor-service';
 
 export async function POST(request: NextRequest) {
@@ -23,6 +24,18 @@ export async function POST(request: NextRequest) {
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
+    }
+
+    const caps = await getUserCapabilities(userId);
+    if (!caps.canLend) {
+      return NextResponse.json(
+        {
+          error:
+            'Complete your profile (photo + verified address) to list an item.',
+          reason: caps.reasons.canLend,
+        },
+        { status: 403 }
+      );
     }
 
     const formData = await request.formData();
