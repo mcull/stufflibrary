@@ -108,6 +108,18 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    if (
+      !validatedData.parsedAddress?.address1 ||
+      !validatedData.parsedAddress?.city ||
+      !validatedData.parsedAddress?.state ||
+      !validatedData.parsedAddress?.zip
+    ) {
+      return NextResponse.json(
+        { error: 'A verified address is required to complete your profile' },
+        { status: 400 }
+      );
+    }
+
     // Use a transaction to create address and update user
     const result = await db.$transaction(async (tx) => {
       let addressId = null;

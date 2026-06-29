@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
+import { TERMS_VERSION } from '@/lib/capabilities';
+
 const mockUserFindUnique = vi.hoisted(() => vi.fn());
 const mockUserUpdate = vi.hoisted(() => vi.fn());
 const mockUserCreate = vi.hoisted(() => vi.fn());
@@ -61,6 +63,7 @@ describe('POST /api/profile minimal mode', () => {
     const data = mockUserUpdate.mock.calls[0]![0].data;
     expect(data.onboardingStep).toBe('minimal');
     expect(data.agreedToTermsAt).toBeInstanceOf(Date);
+    expect(data.agreedTermsVersion).toBe(TERMS_VERSION);
     expect(data.profileCompleted).toBeUndefined();
   });
 
@@ -75,11 +78,21 @@ describe('POST /api/profile minimal mode', () => {
 describe('POST /api/profile full mode persists terms', () => {
   it('full completion sets agreedToTermsAt and profileCompleted', async () => {
     const res = await POST(
-      req({ name: 'Jo', address: '1 St', agreedToTerms: true })
+      req({
+        name: 'Jo',
+        agreedToTerms: true,
+        parsedAddress: {
+          address1: '1 St',
+          city: 'Town',
+          state: 'CA',
+          zip: '90001',
+        },
+      })
     );
     expect(res.status).toBe(200);
     const data = mockUserUpdate.mock.calls[0]![0].data;
     expect(data.profileCompleted).toBe(true);
     expect(data.agreedToTermsAt).toBeInstanceOf(Date);
+    expect(data.agreedTermsVersion).toBe(TERMS_VERSION);
   });
 });
