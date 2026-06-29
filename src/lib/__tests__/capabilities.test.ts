@@ -29,6 +29,12 @@ describe('getCapabilities — completeness axis', () => {
     expect(c.canBorrow).toBe(false);
     expect(c.canCreateLibrary).toBe(false);
     expect(c.reasons.canLend).toBe('NEEDS_PHOTO');
+    expect(c.reasons.canCreateLibrary).toBe('NEEDS_PHOTO');
+  });
+
+  it('missing name (with terms) reports NEEDS_NAME', () => {
+    const c = getCapabilities({ ...full, hasName: false });
+    expect(c.reasons.canLend).toBe('NEEDS_NAME');
   });
 
   it('missing terms blocks entry and reports NEEDS_TERMS', () => {

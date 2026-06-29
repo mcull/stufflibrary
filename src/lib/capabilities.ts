@@ -78,8 +78,9 @@ export function getCapabilities(f: CapabilityFacts): Capabilities {
   const canCreateLibrary = isFull;
   const canBorrow = isFull && !atBorrowLimit;
   const canInvite =
-    f.isLibraryOwnerOrAdmin ||
-    TIER_RANK[effectiveTier] >= TIER_RANK[MIN_TIER_TO_INVITE];
+    canEnter &&
+    (f.isLibraryOwnerOrAdmin ||
+      TIER_RANK[effectiveTier] >= TIER_RANK[MIN_TIER_TO_INVITE]);
 
   const reasons: Partial<Record<GatedCapability, CapabilityReason>> = {};
   if (!canLend && incomplete) reasons.canLend = incomplete;
