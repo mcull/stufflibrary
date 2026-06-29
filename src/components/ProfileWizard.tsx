@@ -112,14 +112,18 @@ function StepIcon(props: {
 }
 
 const steps = [
-  { label: 'Basic Info', component: ProfileStep1 },
-  { label: 'A bit about you', component: ProfileStep2 },
-  { label: 'Review & Complete', component: ProfileStep3 },
+  { label: 'Get started', component: ProfileStep1 },
+  { label: 'Add a photo', component: ProfileStep2 },
+  { label: 'Address & finish', component: ProfileStep3 },
 ];
 
+export type ProfileSubmitMode = 'minimal' | 'full';
+
 interface ProfileWizardProps {
-  onComplete: (data: ProfileFormData) => void;
+  onComplete: (data: ProfileFormData, mode: ProfileSubmitMode) => void;
   initialData?: Partial<ProfileFormData>;
+  initialStep?: number;
+  isSubmittingMinimal?: boolean;
   user?:
     | {
         id: string;
@@ -135,9 +139,11 @@ interface ProfileWizardProps {
 export function ProfileWizard({
   onComplete,
   initialData,
+  initialStep,
+  isSubmittingMinimal,
   user,
 }: ProfileWizardProps) {
-  const [activeStep, setActiveStep] = useState(0);
+  const [activeStep, setActiveStep] = useState(initialStep ?? 0);
   const [profilePicturePreviewUrl, setProfilePicturePreviewUrl] = useState<
     string | null
   >(null);
@@ -160,7 +166,7 @@ export function ProfileWizard({
     mode: 'onBlur',
   });
 
-  const { handleSubmit, trigger, watch } = methods;
+  const { handleSubmit, trigger, watch, getValues } = methods;
 
   // Watch profilePicture to create/update preview URL
   const profilePicture = watch('profilePicture');
@@ -274,23 +280,48 @@ export function ProfileWizard({
 
     // Skip interstitial and go directly to onComplete callback
     // which will handle the redirect to lobby
-    onComplete(data);
+    onComplete(data, 'full');
+  };
+
+  // Minimal entry: name + agreements only. Bypasses the full zod schema
+  // (which requires address + photo); UI gating in Step 1 enforces the
+  // agreements via canSubmitMinimal.
+  const handleMinimalSubmit = () => {
+    const data = getValues();
+    if (
+      !data.agreedToHouseholdGoods ||
+      !data.agreedToTrustAndCare ||
+      !data.agreedToCommunityValues ||
+      !data.agreedToAgeRestrictions ||
+      !data.agreedToTerms ||
+      !data.name?.trim()
+    ) {
+      return;
+    }
+
+    const draftKey = user?.email
+      ? `profile-wizard-draft-${user.email}`
+      : 'profile-wizard-draft-temp';
+    localStorage.removeItem(draftKey);
+
+    onComplete(data, 'minimal');
   };
 
   function getFieldsForStep(step: number): (keyof ProfileFormData)[] {
     switch (step) {
       case 0:
-        return ['name', 'address'];
-      case 1:
-        return ['profilePicture'];
-      case 2:
         return [
+          'name',
           'agreedToHouseholdGoods',
           'agreedToTrustAndCare',
           'agreedToCommunityValues',
           'agreedToAgeRestrictions',
           'agreedToTerms',
         ];
+      case 1:
+        return ['profilePicture'];
+      case 2:
+        return ['address'];
       default:
         return [];
     }
@@ -413,6 +444,8 @@ export function ProfileWizard({
                 isFirstStep={activeStep === 0}
                 isLastStep={activeStep === steps.length - 1}
                 profilePicturePreviewUrl={profilePicturePreviewUrl}
+                onMinimalSubmit={handleMinimalSubmit}
+                isSubmittingMinimal={Boolean(isSubmittingMinimal)}
               />
             )}
           </Box>

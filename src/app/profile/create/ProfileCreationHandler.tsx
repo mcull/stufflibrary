@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import {
   ProfileWizard,
   type ProfileFormData,
+  type ProfileSubmitMode,
 } from '@/components/ProfileWizard';
 
 interface ProfileCreationHandlerProps {
@@ -30,6 +31,7 @@ export function ProfileCreationHandler({
 }: ProfileCreationHandlerProps) {
   const router = useRouter();
   const [_isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmittingMinimal, setIsSubmittingMinimal] = useState(false);
   const [loadingUser, setLoadingUser] = useState(false);
   const [userId, setUserId] = useState<string | undefined>(userIdProp);
   const [user, setUser] = useState<typeof userProp>(userProp);
@@ -71,7 +73,47 @@ export function ProfileCreationHandler({
     };
   }, [userId, user, router]);
 
-  const handleProfileComplete = async (data: ProfileFormData) => {
+  const handleMinimalComplete = async (data: ProfileFormData) => {
+    setIsSubmittingMinimal(true);
+    try {
+      const response = await fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'minimal',
+          name: data.name,
+          agreedToTerms: true,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(
+          error.error || error.message || 'Failed to get started'
+        );
+      }
+
+      const draftKey = user?.email
+        ? `profile-wizard-draft-${user.email}`
+        : 'profile-wizard-draft-temp';
+      localStorage.removeItem(draftKey);
+
+      router.replace('/stacks?welcome=true');
+      router.refresh();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Failed to get started');
+      setIsSubmittingMinimal(false);
+    }
+  };
+
+  const handleProfileComplete = async (
+    data: ProfileFormData,
+    mode: ProfileSubmitMode
+  ) => {
+    if (mode === 'minimal') {
+      await handleMinimalComplete(data);
+      return;
+    }
     setIsSubmitting(true);
 
     try {
@@ -171,6 +213,8 @@ export function ProfileCreationHandler({
         <ProfileWizard
           onComplete={handleProfileComplete}
           user={user}
+          isSubmittingMinimal={isSubmittingMinimal}
+          {...(searchParams?.get('continue') ? { initialStep: 1 } : {})}
           {...(initialData ? { initialData } : {})}
         />
       )}
