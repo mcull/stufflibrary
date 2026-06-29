@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { Suspense } from 'react';
 import { useEffect, useState } from 'react';
 
+import { hasMinimalProfile } from '@/lib/capabilities';
 import { brandColors } from '@/theme/brandTokens';
 
 function AuthCallbackContent() {
@@ -39,10 +40,16 @@ function AuthCallbackContent() {
         const user = data.user;
 
         // A "minimal" profile (name + accepted terms) is enough to enter the app.
-        const minimalDone = Boolean(user?.name && user?.agreedToTermsAt);
+        const minimalDone = user
+          ? hasMinimalProfile({
+              name: user.name ?? null,
+              agreedToTermsAt: user.agreedToTermsAt ?? null,
+            })
+          : false;
 
         // Handle invitation flow from query params (legacy path)
         if (invitationToken && libraryId && user) {
+          // Intentional: the library welcome flow requires a full profile; revisit when the wizard split (Task 11) lands.
           if (user.profileCompleted) {
             const firstName = user.name?.split(' ')[0] || '';
             const welcomeUrl = new URL(
