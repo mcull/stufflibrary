@@ -3,11 +3,15 @@ import { getServerSession } from 'next-auth';
 import { z } from 'zod';
 
 import { authOptions } from '@/lib/auth';
+import { TERMS_VERSION } from '@/lib/capabilities';
 import { db } from '@/lib/db';
+import { getUserCapabilities } from '@/lib/user-capabilities';
 
 const createProfileSchema = z.object({
+  mode: z.enum(['minimal', 'full']).optional().default('full'),
+  agreedToTerms: z.boolean().optional().default(false),
   name: z.string().min(1, 'Name is required'),
-  address: z.string().min(1, 'Address is required to find your neighbors'),
+  address: z.string().optional(),
   bio: z.preprocess(
     (val) => (val === '' || val === null ? undefined : val),
     z.string().optional()
@@ -79,6 +83,44 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = createProfileSchema.parse(body);
 
+    if (validatedData.mode === 'minimal') {
+      if (!validatedData.agreedToTerms) {
+        return NextResponse.json(
+          { error: 'You must accept the terms to continue' },
+          { status: 400 }
+        );
+      }
+      const minimalUser = await db.user.update({
+        where: { id: user.id },
+        data: {
+          name: validatedData.name,
+          onboardingStep: 'minimal',
+          agreedToTermsAt: new Date(),
+          agreedTermsVersion: TERMS_VERSION,
+        },
+      });
+      return NextResponse.json({
+        success: true,
+        user: {
+          id: minimalUser.id,
+          name: minimalUser.name,
+          onboardingStep: 'minimal',
+        },
+      });
+    }
+
+    if (
+      !validatedData.parsedAddress?.address1 ||
+      !validatedData.parsedAddress?.city ||
+      !validatedData.parsedAddress?.state ||
+      !validatedData.parsedAddress?.zip
+    ) {
+      return NextResponse.json(
+        { error: 'A verified address is required to complete your profile' },
+        { status: 400 }
+      );
+    }
+
     // Use a transaction to create address and update user
     const result = await db.$transaction(async (tx) => {
       let addressId = null;
@@ -132,6 +174,8 @@ export async function POST(request: NextRequest) {
           currentAddressId: addressId,
           profileCompleted: true,
           onboardingStep: 'complete',
+          agreedToTermsAt: new Date(),
+          agreedTermsVersion: TERMS_VERSION,
         },
       });
 
@@ -407,6 +451,7 @@ export async function GET(_request: NextRequest) {
           shareInterests: true,
           borrowInterests: true,
           profileCompleted: true,
+          agreedToTermsAt: true,
           onboardingStep: true,
           currentAddressId: true,
           movedInDate: true,
@@ -431,6 +476,7 @@ export async function GET(_request: NextRequest) {
           shareInterests: true,
           borrowInterests: true,
           profileCompleted: true,
+          agreedToTermsAt: true,
           onboardingStep: true,
           currentAddressId: true,
           movedInDate: true,
@@ -447,9 +493,11 @@ export async function GET(_request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    const capabilities = await getUserCapabilities(user.id);
     return NextResponse.json({
       success: true,
       user,
+      capabilities,
     });
   } catch (error) {
     console.error('Get profile error:', error);

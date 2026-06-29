@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { Suspense } from 'react';
 import { useEffect, useState } from 'react';
 
+import { hasMinimalProfile } from '@/lib/capabilities';
 import { brandColors } from '@/theme/brandTokens';
 
 function AuthCallbackContent() {
@@ -38,8 +39,17 @@ function AuthCallbackContent() {
         const data = await response.json();
         const user = data.user;
 
+        // A "minimal" profile (name + accepted terms) is enough to enter the app.
+        const minimalDone = user
+          ? hasMinimalProfile({
+              name: user.name ?? null,
+              agreedToTermsAt: user.agreedToTermsAt ?? null,
+            })
+          : false;
+
         // Handle invitation flow from query params (legacy path)
         if (invitationToken && libraryId && user) {
+          // Intentional: the library welcome flow requires a full profile; revisit when the wizard split (Task 11) lands.
           if (user.profileCompleted) {
             const firstName = user.name?.split(' ')[0] || '';
             const welcomeUrl = new URL(
@@ -71,7 +81,7 @@ function AuthCallbackContent() {
               .catch(() => ({}) as { redirect?: string });
             if (body?.redirect) {
               const dest = body.redirect as string;
-              if (user?.profileCompleted) {
+              if (minimalDone) {
                 router.replace(dest);
               } else {
                 const returnTo = encodeURIComponent(dest);
@@ -84,8 +94,8 @@ function AuthCallbackContent() {
           // ignore and continue
         }
 
-        // Normal flow based on profile completion
-        if (user?.profileCompleted) {
+        // Normal flow based on minimal onboarding completion
+        if (minimalDone) {
           router.replace('/stacks');
         } else {
           router.replace('/profile/create');

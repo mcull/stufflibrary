@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { getUserCapabilities } from '@/lib/user-capabilities';
 
 export async function GET() {
   try {
@@ -192,6 +193,18 @@ export async function POST(request: NextRequest) {
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
+    }
+
+    const caps = await getUserCapabilities(userId);
+    if (!caps.canCreateLibrary) {
+      return NextResponse.json(
+        {
+          error:
+            'Complete your profile (photo + verified address) to create a library.',
+          reason: caps.reasons.canCreateLibrary,
+        },
+        { status: 403 }
+      );
     }
 
     const body = await request.json();
