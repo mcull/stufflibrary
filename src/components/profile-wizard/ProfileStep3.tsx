@@ -7,15 +7,13 @@ import {
   Button,
   Card,
   CardContent,
-  Checkbox,
-  FormControlLabel,
+  Stack,
   Typography,
   CircularProgress,
-  Link,
 } from '@mui/material';
-import React from 'react';
 import { useFormContext, Controller } from 'react-hook-form';
 
+import { AddressAutocomplete } from '@/components/AddressAutocomplete';
 import { brandColors } from '@/theme/brandTokens';
 
 import type { ProfileFormData } from '../ProfileWizard';
@@ -26,6 +24,8 @@ interface ProfileStep3Props {
   isFirstStep: boolean;
   isLastStep: boolean;
   profilePicturePreviewUrl?: string | null;
+  onMinimalSubmit?: () => void;
+  isSubmittingMinimal?: boolean;
 }
 
 export function ProfileStep3({
@@ -35,31 +35,24 @@ export function ProfileStep3({
   const {
     watch,
     control,
+    setValue,
     formState: { errors, isSubmitting },
   } = useFormContext<ProfileFormData>();
 
   const formData = watch();
-  const {
-    name,
-    bio,
-    profilePicture,
-    profilePictureUrl,
-    agreedToHouseholdGoods,
-    agreedToTrustAndCare,
-    agreedToCommunityValues,
-    agreedToAgeRestrictions,
-    agreedToTerms,
-    parsedAddress,
-  } = formData;
+  const { name, bio, profilePicture, profilePictureUrl, parsedAddress } =
+    formData;
 
   const currentImageUrl = profilePicturePreviewUrl || profilePictureUrl;
-  const canProceed =
-    agreedToTerms &&
-    agreedToHouseholdGoods &&
-    agreedToTrustAndCare &&
-    agreedToCommunityValues &&
-    agreedToAgeRestrictions &&
-    profilePicture;
+
+  // Address must be verified (parsed) and a photo must have been added.
+  const hasVerifiedAddress = Boolean(
+    parsedAddress?.address1 &&
+      parsedAddress?.city &&
+      parsedAddress?.state &&
+      parsedAddress?.zip
+  );
+  const canProceed = hasVerifiedAddress && Boolean(profilePicture);
 
   return (
     <Box sx={{ minHeight: '600px' }}>
@@ -83,8 +76,8 @@ export function ProfileStep3({
             mb: 4,
           }}
         >
-          Review your profile information and agree to our terms to complete
-          your registration.
+          Verify your address so we can connect you with nearby neighbors, then
+          finish up.
         </Typography>
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -135,278 +128,33 @@ export function ProfileStep3({
             </CardContent>
           </Card>
 
-          {/* Community Guidelines */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {/* Address */}
+          <Stack spacing={1}>
             <Typography
               variant="subtitle1"
-              sx={{ fontWeight: 600, color: brandColors.charcoal, mb: 1 }}
+              sx={{ fontWeight: 600, color: brandColors.charcoal }}
             >
-              Community Guidelines
+              Your address
             </Typography>
-
             <Controller
-              name="agreedToHouseholdGoods"
+              name="address"
               control={control}
-              render={({ field: { onChange, value } }) => (
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={value || false}
-                      onChange={(e) => onChange(e.target.checked)}
-                      sx={{
-                        color: brandColors.inkBlue,
-                        '&.Mui-checked': {
-                          color: brandColors.inkBlue,
-                        },
-                      }}
-                    />
-                  }
-                  label={
-                    <Typography
-                      variant="body2"
-                      sx={{ color: brandColors.charcoal }}
-                    >
-                      I understand that Stuff Library is for sharing normal
-                      household goods only. Sharing anything illegal, unsafe, or
-                      inappropriate will result in account closure.
-                    </Typography>
-                  }
-                />
-              )}
-            />
-
-            <Controller
-              name="agreedToTrustAndCare"
-              control={control}
-              render={({ field: { onChange, value } }) => (
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={value || false}
-                      onChange={(e) => onChange(e.target.checked)}
-                      sx={{
-                        color: brandColors.inkBlue,
-                        '&.Mui-checked': {
-                          color: brandColors.inkBlue,
-                        },
-                      }}
-                    />
-                  }
-                  label={
-                    <Typography
-                      variant="body2"
-                      sx={{ color: brandColors.charcoal }}
-                    >
-                      I&apos;ll do my best to take care of borrowed items, and I
-                      won&apos;t share anything irreplaceable or where normal
-                      wear and tear would upset me.
-                    </Typography>
-                  }
-                />
-              )}
-            />
-
-            <Controller
-              name="agreedToCommunityValues"
-              control={control}
-              render={({ field: { onChange, value } }) => (
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={value || false}
-                      onChange={(e) => onChange(e.target.checked)}
-                      sx={{
-                        color: brandColors.inkBlue,
-                        '&.Mui-checked': {
-                          color: brandColors.inkBlue,
-                        },
-                      }}
-                    />
-                  }
-                  label={
-                    <Typography
-                      variant="body2"
-                      sx={{ color: brandColors.charcoal }}
-                    >
-                      I&apos;m here to build community through sharing.
-                      I&apos;ll treat neighbors with kindness and
-                      respect—hurtful behavior won&apos;t be tolerated.
-                    </Typography>
-                  }
-                />
-              )}
-            />
-
-            <Controller
-              name="agreedToAgeRestrictions"
-              control={control}
-              render={({ field: { onChange, value } }) => (
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={value || false}
-                      onChange={(e) => onChange(e.target.checked)}
-                      sx={{
-                        color: brandColors.inkBlue,
-                        '&.Mui-checked': {
-                          color: brandColors.inkBlue,
-                        },
-                      }}
-                    />
-                  }
-                  label={
-                    <Typography
-                      variant="body2"
-                      sx={{ color: brandColors.charcoal }}
-                    >
-                      I understand that Stuff Library doesn&apos;t verify ages,
-                      so I won&apos;t share age-restricted items like alcohol,
-                      tobacco, firearms, or anything requiring ID.
-                    </Typography>
-                  }
-                />
-              )}
-            />
-          </Box>
-
-          {/* Terms Agreement */}
-          <Controller
-            name="agreedToTerms"
-            control={control}
-            render={({ field: { onChange, value } }) => (
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={value || false}
-                    onChange={(e) => onChange(e.target.checked)}
-                    disabled={
-                      !agreedToHouseholdGoods ||
-                      !agreedToTrustAndCare ||
-                      !agreedToCommunityValues ||
-                      !agreedToAgeRestrictions
+              render={({ field }) => (
+                <AddressAutocomplete
+                  value={field.value}
+                  onChange={(value, addr) => {
+                    field.onChange(value);
+                    if (addr) {
+                      setValue('parsedAddress', addr);
                     }
-                    sx={{
-                      color: brandColors.inkBlue,
-                      '&.Mui-checked': {
-                        color: brandColors.inkBlue,
-                      },
-                      '&.Mui-disabled': {
-                        color: brandColors.softGray,
-                      },
-                    }}
-                  />
-                }
-                label={
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color:
-                        !agreedToHouseholdGoods ||
-                        !agreedToTrustAndCare ||
-                        !agreedToCommunityValues ||
-                        !agreedToAgeRestrictions
-                          ? brandColors.softGray
-                          : brandColors.charcoal,
-                    }}
-                  >
-                    I agree to the{' '}
-                    <Link
-                      href="/terms"
-                      target="_blank"
-                      sx={{
-                        color:
-                          !agreedToHouseholdGoods ||
-                          !agreedToTrustAndCare ||
-                          !agreedToCommunityValues ||
-                          !agreedToAgeRestrictions
-                            ? brandColors.softGray
-                            : brandColors.inkBlue,
-                      }}
-                    >
-                      Terms of Service
-                    </Link>{' '}
-                    and{' '}
-                    <Link
-                      href="/privacy"
-                      target="_blank"
-                      sx={{
-                        color:
-                          !agreedToHouseholdGoods ||
-                          !agreedToTrustAndCare ||
-                          !agreedToCommunityValues ||
-                          !agreedToAgeRestrictions
-                            ? brandColors.softGray
-                            : brandColors.inkBlue,
-                      }}
-                    >
-                      Privacy Policy
-                    </Link>
-                  </Typography>
-                }
-              />
-            )}
-          />
-
-          {/* Error Messages */}
-          {errors.agreedToHouseholdGoods && (
-            <Typography
-              variant="caption"
-              sx={{
-                color: 'error.main',
-                display: 'block',
-              }}
-            >
-              {errors.agreedToHouseholdGoods.message}
-            </Typography>
-          )}
-
-          {errors.agreedToTrustAndCare && (
-            <Typography
-              variant="caption"
-              sx={{
-                color: 'error.main',
-                display: 'block',
-              }}
-            >
-              {errors.agreedToTrustAndCare.message}
-            </Typography>
-          )}
-
-          {errors.agreedToCommunityValues && (
-            <Typography
-              variant="caption"
-              sx={{
-                color: 'error.main',
-                display: 'block',
-              }}
-            >
-              {errors.agreedToCommunityValues.message}
-            </Typography>
-          )}
-
-          {errors.agreedToAgeRestrictions && (
-            <Typography
-              variant="caption"
-              sx={{
-                color: 'error.main',
-                display: 'block',
-              }}
-            >
-              {errors.agreedToAgeRestrictions.message}
-            </Typography>
-          )}
-
-          {errors.agreedToTerms && (
-            <Typography
-              variant="caption"
-              sx={{
-                color: 'error.main',
-                display: 'block',
-              }}
-            >
-              {errors.agreedToTerms.message}
-            </Typography>
-          )}
+                  }}
+                  error={!!errors.address}
+                  helperText={errors.address?.message || undefined}
+                  placeholder="123 Main Street, City, State"
+                />
+              )}
+            />
+          </Stack>
         </Box>
       </Box>
 

@@ -33,6 +33,8 @@ interface ProfileStep2Props {
   isFirstStep: boolean;
   isLastStep: boolean;
   profilePicturePreviewUrl?: string | null;
+  onMinimalSubmit?: () => void;
+  isSubmittingMinimal?: boolean;
 }
 
 interface ImageVerificationResult {

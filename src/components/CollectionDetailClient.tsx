@@ -33,8 +33,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 
+import { useCapabilities } from '@/hooks/useCapabilities';
+import type { CapabilityReason } from '@/lib/capabilities';
 import { brandColors, spacing } from '@/theme/brandTokens';
 
+import { CompleteProfilePrompt } from './CompleteProfilePrompt';
 import { EditCollectionModal } from './EditCollectionModal';
 import { ExpandableText } from './ExpandableText';
 import { LibraryItemCard } from './LibraryItemCard';
@@ -174,6 +177,9 @@ export function CollectionDetailClient({
   const [editModalOpen, setEditModalOpen] = useState(false);
   // const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [manageMembersModalOpen, setManageMembersModalOpen] = useState(false);
+  const { capabilities: libCapabilities } = useCapabilities(collectionId);
+  const [invitePromptReason, setInvitePromptReason] =
+    useState<CapabilityReason | null>(null);
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [addMenuAnchor, setAddMenuAnchor] = useState<null | HTMLElement>(null);
   const addMenuOpen = Boolean(addMenuAnchor);
@@ -870,9 +876,18 @@ export function CollectionDetailClient({
               <AddIcon fontSize="small" />
             </IconButton>
             {(library?.userRole === 'owner' ||
-              library?.userRole === 'admin') && (
+              library?.userRole === 'admin' ||
+              library?.userRole === 'member') && (
               <IconButton
                 onClick={() => {
+                  // Trusted members may invite; sub-tier members get the
+                  // locked prompt. Server enforcement remains the authority.
+                  if (libCapabilities && !libCapabilities.canInvite) {
+                    setInvitePromptReason(
+                      libCapabilities.reasons.canInvite ?? 'NEEDS_TRUST_TIER'
+                    );
+                    return;
+                  }
                   setManageInitialTab(1);
                   setManageMembersModalOpen(true);
                 }}
@@ -1672,6 +1687,13 @@ export function CollectionDetailClient({
         onClose={() => setManageMembersModalOpen(false)}
         initialTab={manageInitialTab}
         onMembershipChanged={handleMembershipChanged}
+      />
+
+      {/* Just-in-time prompt when a member can't yet invite */}
+      <CompleteProfilePrompt
+        reason={invitePromptReason}
+        open={invitePromptReason !== null}
+        onClose={() => setInvitePromptReason(null)}
       />
 
       {/* CollectionSettingsModal removed */}

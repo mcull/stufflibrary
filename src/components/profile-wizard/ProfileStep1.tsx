@@ -1,13 +1,22 @@
 'use client';
 
 import { ArrowForward, Person } from '@mui/icons-material';
-import { Box, Button, Stack, TextField, Typography } from '@mui/material';
-import { useFormContext, Controller } from 'react-hook-form';
+import {
+  Box,
+  Button,
+  CircularProgress,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material';
+import { useFormContext } from 'react-hook-form';
 
-import { AddressAutocomplete } from '@/components/AddressAutocomplete';
 import { brandColors } from '@/theme/brandTokens';
 
 import type { ProfileFormData } from '../ProfileWizard';
+
+import { CommunityAgreements } from './CommunityAgreements';
+import { canSubmitMinimal } from './minimalEntry';
 
 interface ProfileStep1Props {
   onNext: () => void;
@@ -15,15 +24,30 @@ interface ProfileStep1Props {
   isFirstStep: boolean;
   isLastStep: boolean;
   profilePicturePreviewUrl?: string | null;
+  onMinimalSubmit?: () => void;
+  isSubmittingMinimal?: boolean;
 }
 
-export function ProfileStep1({ onNext }: ProfileStep1Props) {
+export function ProfileStep1({
+  onNext,
+  onMinimalSubmit,
+  isSubmittingMinimal,
+}: ProfileStep1Props) {
   const {
     register,
-    control,
-    setValue,
+    watch,
     formState: { errors },
   } = useFormContext<ProfileFormData>();
+
+  const values = watch();
+  const canStart = canSubmitMinimal({
+    name: values.name ?? '',
+    agreedToHouseholdGoods: !!values.agreedToHouseholdGoods,
+    agreedToTrustAndCare: !!values.agreedToTrustAndCare,
+    agreedToCommunityValues: !!values.agreedToCommunityValues,
+    agreedToAgeRestrictions: !!values.agreedToAgeRestrictions,
+    agreedToTerms: !!values.agreedToTerms,
+  });
 
   return (
     <Box sx={{ minHeight: '400px' }}>
@@ -47,10 +71,11 @@ export function ProfileStep1({ onNext }: ProfileStep1Props) {
             mb: 4,
           }}
         >
-          Who you are and where your stuff is.
+          Tell us your name and agree to a few community basics. You can add a
+          photo and your address in a minute.
         </Typography>
 
-        <Stack spacing={3}>
+        <Stack spacing={4}>
           <TextField
             {...register('name')}
             label="Full Name"
@@ -90,36 +115,26 @@ export function ProfileStep1({ onNext }: ProfileStep1Props) {
             }}
           />
 
-          <Controller
-            name="address"
-            control={control}
-            render={({ field }) => (
-              <AddressAutocomplete
-                value={field.value}
-                onChange={(value, parsedAddress) => {
-                  field.onChange(value);
-                  // Store parsed address data in form for submission
-                  if (parsedAddress) {
-                    setValue('parsedAddress', parsedAddress);
-                  }
-                }}
-                error={!!errors.address}
-                helperText={errors.address?.message || undefined}
-                placeholder="123 Main Street, City, State"
-              />
-            )}
-          />
+          <CommunityAgreements />
         </Stack>
       </Box>
 
       {/* Navigation */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 2 }}>
+      <Box sx={{ pt: 2 }}>
+        {/* Primary: minimal entry */}
         <Button
           variant="contained"
-          onClick={onNext}
-          endIcon={<ArrowForward />}
+          onClick={onMinimalSubmit}
+          disabled={!canStart || !!isSubmittingMinimal}
+          endIcon={
+            isSubmittingMinimal ? (
+              <CircularProgress size={16} />
+            ) : (
+              <ArrowForward />
+            )
+          }
+          fullWidth
           sx={{
-            px: 4,
             py: 1.5,
             fontSize: '1rem',
             fontWeight: 600,
@@ -130,10 +145,35 @@ export function ProfileStep1({ onNext }: ProfileStep1Props) {
               boxShadow: '0 6px 20px 0 rgba(30, 58, 95, 0.3)',
               transform: 'translateY(-1px)',
             },
+            '&:disabled': {
+              backgroundColor: brandColors.softGray,
+              color: brandColors.charcoal,
+              opacity: 0.6,
+            },
             transition: 'all 0.2s ease',
           }}
         >
-          Continue
+          {isSubmittingMinimal ? 'Getting started…' : 'Get started'}
+        </Button>
+
+        {/* Secondary: continue to the full profile now */}
+        <Button
+          variant="text"
+          onClick={onNext}
+          disabled={!canStart || !!isSubmittingMinimal}
+          fullWidth
+          sx={{
+            mt: 1.5,
+            py: 1,
+            fontSize: '0.875rem',
+            fontWeight: 500,
+            textTransform: 'none',
+            color: brandColors.charcoal,
+            opacity: 0.8,
+            '&:hover': { opacity: 1, backgroundColor: 'transparent' },
+          }}
+        >
+          Add a photo &amp; address now
         </Button>
       </Box>
     </Box>

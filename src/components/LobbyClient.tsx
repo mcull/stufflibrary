@@ -24,12 +24,15 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 import { useBorrowRequests } from '@/hooks/useBorrowRequests';
+import { useCapabilities } from '@/hooks/useCapabilities';
 import { useCollections } from '@/hooks/useCollections';
 import { useUserItems } from '@/hooks/useUserItems';
+import type { CapabilityReason } from '@/lib/capabilities';
 import { brandColors } from '@/theme/brandTokens';
 
 import { CollectionCard, CreateCollectionCard } from './CollectionCard';
 import { CollectionCreationModal } from './CollectionCreationModal';
+import { CompleteProfilePrompt } from './CompleteProfilePrompt';
 import { TabbedFolderPane, type TabItem } from './TabbedFolderPane';
 import { UserItemCard, AddItemCard } from './UserItemCard';
 
@@ -74,6 +77,22 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
     isLoading: itemsLoading,
   } = useUserItems();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const { capabilities } = useCapabilities();
+  const [promptReason, setPromptReason] = useState<CapabilityReason | null>(
+    null
+  );
+
+  const handleCreateLibraryClick = () => {
+    if (capabilities && !capabilities.canCreateLibrary) {
+      setPromptReason(capabilities.reasons.canCreateLibrary ?? 'NEEDS_ADDRESS');
+      return;
+    }
+    setIsCreateModalOpen(true);
+  };
+
+  const handleLendBlocked = () => {
+    setPromptReason(capabilities?.reasons.canLend ?? 'NEEDS_PHOTO');
+  };
   const [activeTab, setActiveTab] = useState('others-stuff');
   const [itemFilter, setItemFilter] = useState<FilterType>('all');
   const [collectionFilter, setCollectionFilter] =
@@ -149,7 +168,12 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
             gap: 1,
           }}
         >
-          {showAddItem && <AddItemCard />}
+          {showAddItem && (
+            <AddItemCard
+              canLend={capabilities?.canLend ?? true}
+              onBlocked={handleLendBlocked}
+            />
+          )}
           {items.map((item) => (
             <UserItemCard
               key={`${statusType}-${item.id}`}
@@ -236,7 +260,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
           }}
         >
           {showCreateCard && (
-            <CreateCollectionCard onClick={() => setIsCreateModalOpen(true)} />
+            <CreateCollectionCard onClick={handleCreateLibraryClick} />
           )}
           {sectionCollections.map((collection) => (
             <CollectionCard key={collection.id} collection={collection} />
@@ -678,7 +702,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
               variant="contained"
               size="large"
               startIcon={<AddIcon />}
-              onClick={() => setIsCreateModalOpen(true)}
+              onClick={handleCreateLibraryClick}
               sx={{
                 borderRadius: 3,
                 px: 4,
@@ -896,6 +920,13 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
         onClose={() => setIsCreateModalOpen(false)}
         onSuccess={handleCreateCollection}
         createCollection={createCollection}
+      />
+
+      {/* Just-in-time complete-profile prompt for locked actions */}
+      <CompleteProfilePrompt
+        reason={promptReason}
+        open={promptReason !== null}
+        onClose={() => setPromptReason(null)}
       />
 
       {/* Success Message */}
