@@ -8,19 +8,31 @@ export function generateAuthCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+// Normalize an email to a stable storage/lookup key. Codes are stored and
+// verified under this key so casing/whitespace differences between the send
+// and verify paths (e.g. iOS auto-capitalizing the address) can't cause a
+// "code not found" miss.
+export function normalizeAuthEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 // Store auth code in database with expiration
-export async function storeAuthCode(email: string, code: string): Promise<void> {
+export async function storeAuthCode(
+  email: string,
+  code: string
+): Promise<void> {
+  const key = normalizeAuthEmail(email);
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
   await db.authCode.upsert({
-    where: { email },
+    where: { email: key },
     update: {
       code,
       expiresAt,
       createdAt: new Date(),
     },
     create: {
-      email,
+      email: key,
       code,
       expiresAt,
     },
@@ -28,9 +40,13 @@ export async function storeAuthCode(email: string, code: string): Promise<void> 
 }
 
 // Verify auth code
-export async function verifyAuthCode(email: string, code: string): Promise<boolean> {
+export async function verifyAuthCode(
+  email: string,
+  code: string
+): Promise<boolean> {
+  const key = normalizeAuthEmail(email);
   const authCode = await db.authCode.findUnique({
-    where: { email },
+    where: { email: key },
   });
 
   if (!authCode) {
@@ -44,7 +60,7 @@ export async function verifyAuthCode(email: string, code: string): Promise<boole
 
   // Delete the code after successful verification
   await db.authCode.delete({
-    where: { email },
+    where: { email: key },
   });
 
   return true;
@@ -60,7 +76,7 @@ export async function sendAuthCode(email: string): Promise<void> {
   await storeAuthCode(email, code);
 
   const resend = new Resend(env.RESEND_API_KEY);
-  
+
   await resend.emails.send({
     from: 'StuffLibrary <noreply@stufflibrary.org>',
     to: email,

@@ -587,6 +587,10 @@ function SignInForm() {
                 name="email"
                 type="email"
                 autoComplete="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                inputMode="email"
+                spellCheck={false}
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}

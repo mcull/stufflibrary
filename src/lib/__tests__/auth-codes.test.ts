@@ -135,6 +135,36 @@ if (skipTests) {
         });
       });
 
+      it('normalizes email case/whitespace before lookup (mobile auto-capitalization)', async () => {
+        const futureDate = new Date();
+        futureDate.setMinutes(futureDate.getMinutes() + 5);
+
+        vi.mocked(db.authCode.findUnique).mockResolvedValue({
+          email: 'test@example.com',
+          code: mockCode,
+          expiresAt: futureDate,
+          createdAt: new Date(),
+        });
+        vi.mocked(db.authCode.delete).mockResolvedValue({
+          email: 'test@example.com',
+          code: mockCode,
+          expiresAt: futureDate,
+          createdAt: new Date(),
+        });
+
+        // Stored under the lowercased email (send path lowercases); the user
+        // submits a mobile-capitalized, padded variant.
+        const result = await verifyAuthCode('  Test@Example.com ', mockCode);
+
+        expect(result).toBe(true);
+        expect(db.authCode.findUnique).toHaveBeenCalledWith({
+          where: { email: 'test@example.com' },
+        });
+        expect(db.authCode.delete).toHaveBeenCalledWith({
+          where: { email: 'test@example.com' },
+        });
+      });
+
       it('should return false if auth code not found', async () => {
         vi.mocked(db.authCode.findUnique).mockResolvedValue(null);
 
