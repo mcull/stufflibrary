@@ -20,7 +20,7 @@ import { brandColors } from '@/theme/brandTokens';
 interface CollectionCreationModalProps {
   open: boolean;
   onClose: () => void;
-  onSuccess: (collection: { name?: string }) => void;
+  onSuccess: (collection: { id?: string; name?: string }) => void;
   createCollection?: (collectionData: {
     name: string;
     description?: string;
@@ -60,7 +60,7 @@ export function CollectionCreationModal({
       if (createCollection) {
         // Use the provided createCollection function
         const collection = await createCollection(formData);
-        onSuccess(collection as { name?: string });
+        onSuccess(collection as { id?: string; name?: string });
       } else {
         // Fallback to direct API call if createCollection not provided
         const response = await fetch('/api/collections', {
@@ -77,7 +77,7 @@ export function CollectionCreationModal({
         }
 
         const { collection } = await response.json();
-        onSuccess(collection as { name?: string });
+        onSuccess(collection as { id?: string; name?: string });
       }
 
       handleClose();

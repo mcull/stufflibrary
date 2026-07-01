@@ -21,6 +21,7 @@ import {
   Snackbar,
 } from '@mui/material';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import { useBorrowRequests } from '@/hooks/useBorrowRequests';
@@ -57,6 +58,7 @@ type FilterType = 'all' | 'ready-to-lend' | 'on-loan' | 'offline' | 'borrowed';
 type CollectionFilterType = 'all' | 'started' | 'joined';
 
 export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
+  const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { collections, isLoading, createCollection } = useCollections();
@@ -100,11 +102,18 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [createdCollectionName, setCreatedCollectionName] = useState('');
 
-  const handleCreateCollection = (collection: { name?: string }) => {
+  const handleCreateCollection = (collection: {
+    id?: string;
+    name?: string;
+  }) => {
+    // Drop the user straight into their new library so it's obvious how to
+    // start adding stuff, rather than back on the stacks list.
+    if (collection.id) {
+      router.push(`/collection/${collection.id}`);
+      return;
+    }
     setCreatedCollectionName(collection.name || 'Your collection');
     setShowSuccessMessage(true);
-
-    // Hide success message after 4 seconds
     setTimeout(() => {
       setShowSuccessMessage(false);
     }, 4000);
