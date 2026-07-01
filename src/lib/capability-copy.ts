@@ -25,18 +25,22 @@ export function capabilityCopy(reason: CapabilityReason): CapabilityCopy {
         cta: 'Review terms',
         href: PROFILE_HREF,
       };
+    // Lending, borrowing, and creating a library all require a full profile —
+    // both a photo and a verified address. Even though a single reason names
+    // the first missing piece, the prompt names the whole ask so the user
+    // isn't surprised by a second step.
     case 'NEEDS_PHOTO':
       return {
-        title: 'Add a profile photo',
-        body: 'Neighbors like to know who they are sharing with. Add a photo to lend and borrow.',
-        cta: 'Add photo',
+        title: 'Finish your profile first',
+        body: 'Add a profile photo and verify your address so neighbors know who they are sharing with. It only takes a minute.',
+        cta: 'Finish profile',
         href: PROFILE_HREF,
       };
     case 'NEEDS_ADDRESS':
       return {
         title: 'Verify your address',
-        body: 'Verify your address so we can connect you with nearby neighbors before you lend or borrow.',
-        cta: 'Verify address',
+        body: 'Add your verified address (and a photo, if you have not yet) so we can connect you with nearby neighbors.',
+        cta: 'Finish profile',
         href: PROFILE_HREF,
       };
     case 'NEEDS_TRUST_TIER':
