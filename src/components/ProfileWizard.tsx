@@ -338,28 +338,30 @@ export function ProfileWizard({
   // Derive card completeness for the indicator that replaced the stepper.
   const pa = watchedValues.parsedAddress;
   const cardStatus = profileCardStatus({
-    hasBasics: canSubmitMinimal({
-      name: watchedValues.name ?? '',
-      agreedToHouseholdGoods: !!watchedValues.agreedToHouseholdGoods,
-      agreedToTrustAndCare: !!watchedValues.agreedToTrustAndCare,
-      agreedToCommunityValues: !!watchedValues.agreedToCommunityValues,
-      agreedToAgeRestrictions: !!watchedValues.agreedToAgeRestrictions,
-      agreedToTerms: !!watchedValues.agreedToTerms,
-    }),
+    // Past the entry step, basics are necessarily done (either completed here
+    // on step 0, or previously via minimal entry when arriving from a prompt —
+    // the wizard form is blank in that case, so don't rely on it).
+    hasBasics:
+      activeStep > 0 ||
+      canSubmitMinimal({
+        name: watchedValues.name ?? '',
+        agreedToHouseholdGoods: !!watchedValues.agreedToHouseholdGoods,
+        agreedToTrustAndCare: !!watchedValues.agreedToTrustAndCare,
+        agreedToCommunityValues: !!watchedValues.agreedToCommunityValues,
+        agreedToAgeRestrictions: !!watchedValues.agreedToAgeRestrictions,
+        agreedToTerms: !!watchedValues.agreedToTerms,
+      }),
     hasPhoto:
       watchedValues.profilePicture instanceof File ||
       Boolean(watchedValues.profilePictureUrl),
     hasAddress: Boolean(pa?.address1 && pa?.city && pa?.state && pa?.zip),
   });
 
-  // You-are-here highlight: basics on step 0; on the combined completion step,
-  // point at whichever of photo/address is still outstanding.
-  const currentCardKey: CompletenessKey =
-    activeStep === 0
-      ? 'basics'
-      : cardStatus.find((i) => i.key === 'photo')?.done
-        ? 'address'
-        : 'photo';
+  // What's being filled in on the current screen: basics on step 0; both
+  // photo and address on the combined completion screen (each checks off
+  // independently as it's completed).
+  const currentCardKeys: CompletenessKey[] =
+    activeStep === 0 ? ['basics'] : ['photo', 'address'];
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
@@ -460,7 +462,10 @@ export function ProfileWizard({
         {/* Card completeness — what the library card holds, filling in as you
             go (replaces the linear 1-2-3 stepper). */}
         <Box sx={{ mb: 4 }}>
-          <ProfileCompleteness items={cardStatus} currentKey={currentCardKey} />
+          <ProfileCompleteness
+            items={cardStatus}
+            currentKeys={currentCardKeys}
+          />
           <Typography
             variant="caption"
             sx={{
