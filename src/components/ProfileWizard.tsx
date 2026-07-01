@@ -19,13 +19,6 @@ import { z } from 'zod';
 
 import { brandColors } from '@/theme/brandTokens';
 
-import {
-  profileCardStatus,
-  completedCardCount,
-  type CompletenessKey,
-} from './profile-wizard/completeness';
-import { canSubmitMinimal } from './profile-wizard/minimalEntry';
-import { ProfileCompleteness } from './profile-wizard/ProfileCompleteness';
 import { ProfileStep1 } from './profile-wizard/ProfileStep1';
 import { ProfileStep2 } from './profile-wizard/ProfileStep2';
 import { Wordmark } from './Wordmark';
@@ -335,34 +328,6 @@ export function ProfileWizard({
 
   const CurrentStepComponent = steps[activeStep]?.component;
 
-  // Derive card completeness for the indicator that replaced the stepper.
-  const pa = watchedValues.parsedAddress;
-  const cardStatus = profileCardStatus({
-    // Past the entry step, basics are necessarily done (either completed here
-    // on step 0, or previously via minimal entry when arriving from a prompt —
-    // the wizard form is blank in that case, so don't rely on it).
-    hasBasics:
-      activeStep > 0 ||
-      canSubmitMinimal({
-        name: watchedValues.name ?? '',
-        agreedToHouseholdGoods: !!watchedValues.agreedToHouseholdGoods,
-        agreedToTrustAndCare: !!watchedValues.agreedToTrustAndCare,
-        agreedToCommunityValues: !!watchedValues.agreedToCommunityValues,
-        agreedToAgeRestrictions: !!watchedValues.agreedToAgeRestrictions,
-        agreedToTerms: !!watchedValues.agreedToTerms,
-      }),
-    hasPhoto:
-      watchedValues.profilePicture instanceof File ||
-      Boolean(watchedValues.profilePictureUrl),
-    hasAddress: Boolean(pa?.address1 && pa?.city && pa?.state && pa?.zip),
-  });
-
-  // What's being filled in on the current screen: basics on step 0; both
-  // photo and address on the combined completion screen (each checks off
-  // independently as it's completed).
-  const currentCardKeys: CompletenessKey[] =
-    activeStep === 0 ? ['basics'] : ['photo', 'address'];
-
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
       <Paper
@@ -457,29 +422,6 @@ export function ProfileWizard({
                 : "Add a photo and your address so neighbors know who they're sharing with."}
             </Typography>
           </Box>
-        </Box>
-
-        {/* Card completeness — what the library card holds, filling in as you
-            go (replaces the linear 1-2-3 stepper). */}
-        <Box sx={{ mb: 4 }}>
-          <ProfileCompleteness
-            items={cardStatus}
-            currentKeys={currentCardKeys}
-          />
-          <Typography
-            variant="caption"
-            sx={{
-              display: 'block',
-              textAlign: 'center',
-              mt: 1.5,
-              color: brandColors.charcoal,
-              opacity: 0.6,
-            }}
-          >
-            {completedCardCount(cardStatus) < cardStatus.length
-              ? 'You can fill in the rest anytime.'
-              : 'Your card is all set!'}
-          </Typography>
         </Box>
 
         {/* Form Content */}
