@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from '@mui/material';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 import type { CapabilityReason } from '@/lib/capabilities';
 import { capabilityCopy } from '@/lib/capability-copy';
@@ -28,9 +29,15 @@ export function CompleteProfilePrompt({
   open,
   onClose,
 }: CompleteProfilePromptProps) {
+  const pathname = usePathname();
   if (!reason) return null;
 
   const copy = capabilityCopy(reason);
+  // Return the user to wherever they launched the wizard from.
+  const href =
+    copy.href && pathname
+      ? `${copy.href}&returnTo=${encodeURIComponent(pathname)}`
+      : copy.href;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
@@ -40,12 +47,12 @@ export function CompleteProfilePrompt({
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={onClose} color="inherit">
-          {copy.href ? 'Not now' : copy.cta}
+          {href ? 'Not now' : copy.cta}
         </Button>
-        {copy.href && (
+        {href && (
           <Button
             component={Link}
-            href={copy.href}
+            href={href}
             variant="contained"
             onClick={onClose}
           >
