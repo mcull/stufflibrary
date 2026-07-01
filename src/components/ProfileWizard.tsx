@@ -338,14 +338,19 @@ export function ProfileWizard({
   // Derive card completeness for the indicator that replaced the stepper.
   const pa = watchedValues.parsedAddress;
   const cardStatus = profileCardStatus({
-    hasBasics: canSubmitMinimal({
-      name: watchedValues.name ?? '',
-      agreedToHouseholdGoods: !!watchedValues.agreedToHouseholdGoods,
-      agreedToTrustAndCare: !!watchedValues.agreedToTrustAndCare,
-      agreedToCommunityValues: !!watchedValues.agreedToCommunityValues,
-      agreedToAgeRestrictions: !!watchedValues.agreedToAgeRestrictions,
-      agreedToTerms: !!watchedValues.agreedToTerms,
-    }),
+    // Past the entry step, basics are necessarily done (either completed here
+    // on step 0, or previously via minimal entry when arriving from a prompt —
+    // the wizard form is blank in that case, so don't rely on it).
+    hasBasics:
+      activeStep > 0 ||
+      canSubmitMinimal({
+        name: watchedValues.name ?? '',
+        agreedToHouseholdGoods: !!watchedValues.agreedToHouseholdGoods,
+        agreedToTrustAndCare: !!watchedValues.agreedToTrustAndCare,
+        agreedToCommunityValues: !!watchedValues.agreedToCommunityValues,
+        agreedToAgeRestrictions: !!watchedValues.agreedToAgeRestrictions,
+        agreedToTerms: !!watchedValues.agreedToTerms,
+      }),
     hasPhoto:
       watchedValues.profilePicture instanceof File ||
       Boolean(watchedValues.profilePictureUrl),

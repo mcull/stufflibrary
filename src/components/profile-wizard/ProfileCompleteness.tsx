@@ -1,10 +1,6 @@
 'use client';
 
-import {
-  CheckCircle,
-  RadioButtonUnchecked,
-  RadioButtonChecked,
-} from '@mui/icons-material';
+import { CheckCircle, RadioButtonUnchecked } from '@mui/icons-material';
 import { Box, Typography } from '@mui/material';
 
 import { brandColors } from '@/theme/brandTokens';
@@ -52,10 +48,11 @@ export function ProfileCompleteness({
               minWidth: 72,
             }}
           >
+            {/* Done = check; still-to-do = a hollow ring (highlighted in brand
+                color when it's the part being filled in). No filled radios,
+                which read like a selectable form control. */}
             {item.done ? (
               <CheckCircle sx={{ color }} />
-            ) : isCurrent ? (
-              <RadioButtonChecked sx={{ color }} />
             ) : (
               <RadioButtonUnchecked sx={{ color }} />
             )}
