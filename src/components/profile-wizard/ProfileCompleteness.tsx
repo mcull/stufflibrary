@@ -9,8 +9,8 @@ import type { CompletenessItem, CompletenessKey } from './completeness';
 
 interface ProfileCompletenessProps {
   items: CompletenessItem[];
-  /** The part the user is currently filling in (for a gentle you-are-here). */
-  currentKey?: CompletenessKey;
+  /** The parts being filled in on the current screen (gentle you-are-here). */
+  currentKeys?: CompletenessKey[];
 }
 
 /**
@@ -20,7 +20,7 @@ interface ProfileCompletenessProps {
  */
 export function ProfileCompleteness({
   items,
-  currentKey,
+  currentKeys,
 }: ProfileCompletenessProps) {
   return (
     <Box
@@ -33,7 +33,8 @@ export function ProfileCompleteness({
       }}
     >
       {items.map((item) => {
-        const isCurrent = item.key === currentKey && !item.done;
+        const isCurrent =
+          !item.done && (currentKeys?.includes(item.key) ?? false);
         const active = item.done || isCurrent;
         const color = active ? brandColors.inkBlue : brandColors.softGray;
 
