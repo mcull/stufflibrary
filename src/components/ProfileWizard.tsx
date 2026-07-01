@@ -3,6 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Check, Logout as LogoutIcon } from '@mui/icons-material';
 import {
+  Alert,
   Box,
   Container,
   Paper,
@@ -17,6 +18,7 @@ import {
 } from '@mui/material';
 import { signOut } from 'next-auth/react';
 import { useEffect, useState } from 'react';
+import type { FieldErrors } from 'react-hook-form';
 import { useForm, FormProvider } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -136,6 +138,35 @@ interface ProfileWizardProps {
     | undefined;
 }
 
+/**
+ * A friendly, field-aware explanation for why a full-profile submit was
+ * blocked. Prevents the "button looks active but does nothing" dead end by
+ * turning silent react-hook-form validation failures into visible guidance.
+ */
+export function profileSubmitBlockMessage(
+  errors: FieldErrors<ProfileFormData>
+): string {
+  if (errors.profilePicture) {
+    return 'Please add a profile photo before you finish.';
+  }
+  if (errors.address || errors.parsedAddress) {
+    return 'Please pick your address from the suggestions so we can verify it.';
+  }
+  if (errors.name) {
+    return 'Please enter your name.';
+  }
+  if (
+    errors.agreedToHouseholdGoods ||
+    errors.agreedToTrustAndCare ||
+    errors.agreedToCommunityValues ||
+    errors.agreedToAgeRestrictions ||
+    errors.agreedToTerms
+  ) {
+    return 'Please accept the community agreements to continue.';
+  }
+  return 'Please complete the highlighted fields to continue.';
+}
+
 export function ProfileWizard({
   onComplete,
   initialData,
@@ -144,6 +175,7 @@ export function ProfileWizard({
   user,
 }: ProfileWizardProps) {
   const [activeStep, setActiveStep] = useState(initialStep ?? 0);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [profilePicturePreviewUrl, setProfilePicturePreviewUrl] = useState<
     string | null
   >(null);
@@ -251,11 +283,13 @@ export function ProfileWizard({
     const isStepValid = await trigger(fieldsToValidate);
 
     if (isStepValid) {
+      setSubmitError(null);
       setActiveStep((prev) => prev + 1);
     }
   };
 
   const handleBack = () => {
+    setSubmitError(null);
     setActiveStep((prev) => prev - 1);
   };
 
@@ -268,9 +302,13 @@ export function ProfileWizard({
       !data.agreedToAgeRestrictions ||
       !data.agreedToTerms
     ) {
-      // This shouldn't happen due to UI logic, but just in case
+      // The agreements live on Step 1; surface the reason rather than
+      // silently no-op'ing (which reads as a dead "Complete Profile" button).
+      setSubmitError('Please accept the community agreements to continue.');
       return;
     }
+
+    setSubmitError(null);
 
     // Clear user-specific draft
     const draftKey = user?.email
@@ -281,6 +319,12 @@ export function ProfileWizard({
     // Skip interstitial and go directly to onComplete callback
     // which will handle the redirect to lobby
     onComplete(data, 'full');
+  };
+
+  // react-hook-form calls this when zod validation blocks the submit. Without
+  // it the failure is silent and the button appears to do nothing.
+  const handleInvalid = (errors: FieldErrors<ProfileFormData>) => {
+    setSubmitError(profileSubmitBlockMessage(errors));
   };
 
   // Minimal entry: name + agreements only. Bypasses the full zod schema
@@ -434,9 +478,19 @@ export function ProfileWizard({
           <Box
             component="form"
             onSubmit={handleSubmit(
-              handleComplete as (data: ProfileFormData) => void
+              handleComplete as (data: ProfileFormData) => void,
+              handleInvalid
             )}
           >
+            {submitError && (
+              <Alert
+                severity="warning"
+                onClose={() => setSubmitError(null)}
+                sx={{ mb: 3, borderRadius: 2 }}
+              >
+                {submitError}
+              </Alert>
+            )}
             {CurrentStepComponent && (
               <CurrentStepComponent
                 onNext={handleNext}
