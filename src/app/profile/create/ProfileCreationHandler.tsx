@@ -1,5 +1,6 @@
 'use client';
 
+import { Box, CircularProgress, Typography } from '@mui/material';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -203,12 +204,21 @@ export function ProfileCreationHandler({
   return (
     <>
       {loadingUser ? (
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Preparing your profile…</p>
-          </div>
-        </div>
+        <Box
+          sx={{
+            minHeight: '100dvh',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 2,
+          }}
+        >
+          <CircularProgress />
+          <Typography sx={{ color: 'text.secondary' }}>
+            Preparing your profile…
+          </Typography>
+        </Box>
       ) : (
         <ProfileWizard
           onComplete={handleProfileComplete}
