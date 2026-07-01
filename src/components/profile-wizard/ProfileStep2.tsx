@@ -1,6 +1,12 @@
 'use client';
 
-import { CameraAlt, Close, CheckCircle, Warning } from '@mui/icons-material';
+import {
+  ArrowForward,
+  CameraAlt,
+  Close,
+  CheckCircle,
+  Warning,
+} from '@mui/icons-material';
 import {
   Avatar,
   Box,
@@ -13,9 +19,8 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { useState, useRef } from 'react';
-import { useFormContext, Controller } from 'react-hook-form';
+import { useFormContext } from 'react-hook-form';
 
-import { AddressAutocomplete } from '@/components/AddressAutocomplete';
 // import { STUFF_CATEGORIES } from '@/data/stuffCategories';
 import { brandColors } from '@/theme/brandTokens';
 
@@ -39,13 +44,12 @@ interface ImageVerificationResult {
   confidence: 'high' | 'medium' | 'low';
 }
 
-export function ProfileStep2({ onCancel }: ProfileStep2Props) {
+export function ProfileStep2({ onNext, onCancel }: ProfileStep2Props) {
   const {
     register,
     setValue,
     watch,
-    control,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useFormContext<ProfileFormData>();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -59,18 +63,10 @@ export function ProfileStep2({ onCancel }: ProfileStep2Props) {
 
   const profilePicture = watch('profilePicture');
   const profilePictureUrl = watch('profilePictureUrl');
-  const parsedAddress = watch('parsedAddress');
 
   const currentImageUrl = previewUrl || profilePictureUrl;
 
-  // "Done" is enabled once a photo is added and an address is verified.
-  const hasVerifiedAddress = Boolean(
-    parsedAddress?.address1 &&
-      parsedAddress?.city &&
-      parsedAddress?.state &&
-      parsedAddress?.zip
-  );
-  const canFinish = Boolean(profilePicture) && hasVerifiedAddress;
+  const canContinue = Boolean(profilePicture) || Boolean(profilePictureUrl);
 
   const verifyImageWithAI = async (
     file: File
@@ -456,38 +452,10 @@ export function ProfileStep2({ onCancel }: ProfileStep2Props) {
               a pet peeve is leaving tools outside overnight!&quot;
             </Typography>
           </Box>
-
-          {/* Address */}
-          <Box>
-            <Typography
-              variant="subtitle1"
-              sx={{ fontWeight: 600, color: brandColors.charcoal, mb: 1 }}
-            >
-              Your address
-            </Typography>
-            <Controller
-              name="address"
-              control={control}
-              render={({ field }) => (
-                <AddressAutocomplete
-                  value={field.value}
-                  onChange={(value, addr) => {
-                    field.onChange(value);
-                    if (addr) {
-                      setValue('parsedAddress', addr);
-                    }
-                  }}
-                  error={!!errors.address}
-                  helperText={errors.address?.message || undefined}
-                  placeholder="123 Main Street, City, State"
-                />
-              )}
-            />
-          </Box>
         </Stack>
       </Box>
 
-      {/* Navigation — a focused "provide the info and you're done" pair */}
+      {/* Navigation: Cancel / Continue (address comes next) */}
       <Box
         sx={{
           pt: 2,
@@ -513,14 +481,12 @@ export function ProfileStep2({ onCancel }: ProfileStep2Props) {
           Cancel
         </Button>
 
-        {/* Primary: finish + submit the full profile */}
         <Button
-          type="submit"
+          type="button"
           variant="contained"
-          disabled={!canFinish || isSubmitting}
-          endIcon={
-            isSubmitting ? <CircularProgress size={16} /> : <CheckCircle />
-          }
+          onClick={onNext}
+          disabled={!canContinue}
+          endIcon={<ArrowForward />}
           fullWidth
           sx={{
             py: 1.5,
@@ -541,7 +507,7 @@ export function ProfileStep2({ onCancel }: ProfileStep2Props) {
             transition: 'all 0.2s ease',
           }}
         >
-          {isSubmitting ? 'Saving…' : 'Done!'}
+          Continue
         </Button>
       </Box>
     </Box>
