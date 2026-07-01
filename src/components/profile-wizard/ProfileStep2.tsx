@@ -125,9 +125,14 @@ export function ProfileStep2({ onNext, onBack }: ProfileStep2Props) {
         setVerificationStatus('approved');
         setValue('profilePicture', file);
       } else {
+        // Keep the raw model reason for debugging, but show neighbors a warm,
+        // on-brand note instead of a technical rejection string.
+        if (result.reason) {
+          console.warn('Photo verification rejected:', result.reason);
+        }
         setVerificationStatus('rejected');
         setUploadError(
-          result.reason || 'Image does not meet our community guidelines'
+          "Aw, we can't use that one. A clear, well-lit photo of just you (no pets, logos, or group shots) helps keep the community friendly and safe. Mind trying another?"
         );
       }
     } catch (error) {

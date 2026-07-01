@@ -1,7 +1,11 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Check, Logout as LogoutIcon } from '@mui/icons-material';
+import {
+  Check,
+  Close as CloseIcon,
+  Logout as LogoutIcon,
+} from '@mui/icons-material';
 import {
   Alert,
   Box,
@@ -126,6 +130,8 @@ interface ProfileWizardProps {
   initialData?: Partial<ProfileFormData>;
   initialStep?: number;
   isSubmittingMinimal?: boolean;
+  /** When provided, shows a "close" affordance that exits back to the app. */
+  onExit?: () => void;
   user?:
     | {
         id: string;
@@ -172,6 +178,7 @@ export function ProfileWizard({
   initialData,
   initialStep,
   isSubmittingMinimal,
+  onExit,
   user,
 }: ProfileWizardProps) {
   const [activeStep, setActiveStep] = useState(initialStep ?? 0);
@@ -386,8 +393,36 @@ export function ProfileWizard({
       >
         {/* Header */}
         <Box sx={{ mb: 4 }}>
-          {/* Top row with logout button */}
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          {/* Top row: close (exit to app) on the left, sign out on the right */}
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              mb: 2,
+            }}
+          >
+            {onExit ? (
+              <Tooltip title="Close and go back" arrow>
+                <IconButton
+                  onClick={onExit}
+                  size="small"
+                  sx={{
+                    color: brandColors.charcoal,
+                    opacity: 0.7,
+                    '&:hover': {
+                      opacity: 1,
+                      backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                    },
+                  }}
+                  aria-label="Close"
+                >
+                  <CloseIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            ) : (
+              <Box />
+            )}
             <Tooltip title="Sign out" arrow>
               <IconButton
                 onClick={() => signOut({ callbackUrl: '/auth/signin' })}
@@ -431,8 +466,9 @@ export function ProfileWizard({
                 opacity: 0.7,
               }}
             >
-              Let&apos;s set up how you&apos;ll appear to your friends and
-              neighbors
+              {activeStep === 0
+                ? 'Just your name and a few community basics — you can be in in under a minute.'
+                : "Add a photo and your address so neighbors know who they're sharing with."}
             </Typography>
           </Box>
         </Box>

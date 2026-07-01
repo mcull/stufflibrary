@@ -214,7 +214,19 @@ export function ProfileCreationHandler({
           onComplete={handleProfileComplete}
           user={user}
           isSubmittingMinimal={isSubmittingMinimal}
-          {...(searchParams?.get('continue') ? { initialStep: 1 } : {})}
+          {...(searchParams?.get('continue')
+            ? {
+                initialStep: 1,
+                // Reached here from the app (a just-in-time prompt), so offer a
+                // way back instead of trapping the user in the wizard.
+                onExit: () => {
+                  const returnTo = searchParams?.get('returnTo');
+                  router.push(
+                    returnTo ? decodeURIComponent(returnTo) : '/stacks'
+                  );
+                },
+              }
+            : {})}
           {...(initialData ? { initialData } : {})}
         />
       )}
