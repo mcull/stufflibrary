@@ -1,20 +1,15 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Check, Logout as LogoutIcon } from '@mui/icons-material';
+import { Close as CloseIcon, Logout as LogoutIcon } from '@mui/icons-material';
 import {
   Alert,
   Box,
   Container,
   Paper,
-  Step,
-  StepConnector,
-  StepLabel,
-  Stepper,
   Typography,
   IconButton,
   Tooltip,
-  styled,
 } from '@mui/material';
 import { signOut } from 'next-auth/react';
 import { useEffect, useState } from 'react';
@@ -24,6 +19,13 @@ import { z } from 'zod';
 
 import { brandColors } from '@/theme/brandTokens';
 
+import {
+  profileCardStatus,
+  completedCardCount,
+  type CompletenessKey,
+} from './profile-wizard/completeness';
+import { canSubmitMinimal } from './profile-wizard/minimalEntry';
+import { ProfileCompleteness } from './profile-wizard/ProfileCompleteness';
 import { ProfileStep1 } from './profile-wizard/ProfileStep1';
 import { ProfileStep2 } from './profile-wizard/ProfileStep2';
 import { ProfileStep3 } from './profile-wizard/ProfileStep3';
@@ -59,65 +61,15 @@ const profileSchema = z.object({
 
 export type ProfileFormData = z.infer<typeof profileSchema>;
 
-const CustomConnector = styled(StepConnector)(() => ({
-  '& .MuiStepConnector-line': {
-    height: 3,
-    border: 0,
-    backgroundColor: brandColors.softGray,
-    borderRadius: 1,
-  },
-  '&.Mui-active .MuiStepConnector-line': {
-    backgroundImage: `linear-gradient(95deg, ${brandColors.inkBlue} 0%, ${brandColors.inkBlue} 100%)`,
-  },
-  '&.Mui-completed .MuiStepConnector-line': {
-    backgroundImage: `linear-gradient(95deg, ${brandColors.inkBlue} 0%, ${brandColors.inkBlue} 100%)`,
-  },
-}));
-
-const CustomStepIcon = styled('div')<{
-  ownerState: { completed?: boolean; active?: boolean };
-}>(({ ownerState }) => ({
-  backgroundColor:
-    ownerState.completed || ownerState.active
-      ? brandColors.inkBlue
-      : brandColors.softGray,
-  zIndex: 1,
-  color: '#fff',
-  width: 50,
-  height: 50,
-  display: 'flex',
-  borderRadius: '50%',
-  justifyContent: 'center',
-  alignItems: 'center',
-  fontSize: '1.2rem',
-  fontWeight: 600,
-  ...(ownerState.active && {
-    backgroundImage: `linear-gradient(95deg, ${brandColors.inkBlue} 0%, ${brandColors.inkBlue} 100%)`,
-    boxShadow: '0 4px 10px 0 rgba(0,0,0,.25)',
-  }),
-}));
-
-function StepIcon(props: {
-  icon: React.ReactNode;
-  completed?: boolean;
-  active?: boolean;
-}) {
-  const { icon, completed, active } = props;
-
-  return (
-    <CustomStepIcon
-      ownerState={{ completed: completed || false, active: active || false }}
-    >
-      {completed ? <Check /> : icon}
-    </CustomStepIcon>
-  );
-}
-
 const steps = [
   { label: 'Get started', component: ProfileStep1 },
   { label: 'Add a photo', component: ProfileStep2 },
   { label: 'Address & finish', component: ProfileStep3 },
 ];
+
+// Which card part the user is filling in on each step (for the you-are-here
+// highlight on the completeness indicator).
+const CURRENT_KEY_BY_STEP: CompletenessKey[] = ['basics', 'photo', 'address'];
 
 export type ProfileSubmitMode = 'minimal' | 'full';
 
@@ -126,6 +78,8 @@ interface ProfileWizardProps {
   initialData?: Partial<ProfileFormData>;
   initialStep?: number;
   isSubmittingMinimal?: boolean;
+  /** When provided, shows a "close" affordance that exits back to the app. */
+  onExit?: () => void;
   user?:
     | {
         id: string;
@@ -172,6 +126,7 @@ export function ProfileWizard({
   initialData,
   initialStep,
   isSubmittingMinimal,
+  onExit,
   user,
 }: ProfileWizardProps) {
   const [activeStep, setActiveStep] = useState(initialStep ?? 0);
@@ -373,6 +328,23 @@ export function ProfileWizard({
 
   const CurrentStepComponent = steps[activeStep]?.component;
 
+  // Derive card completeness for the indicator that replaced the stepper.
+  const pa = watchedValues.parsedAddress;
+  const cardStatus = profileCardStatus({
+    hasBasics: canSubmitMinimal({
+      name: watchedValues.name ?? '',
+      agreedToHouseholdGoods: !!watchedValues.agreedToHouseholdGoods,
+      agreedToTrustAndCare: !!watchedValues.agreedToTrustAndCare,
+      agreedToCommunityValues: !!watchedValues.agreedToCommunityValues,
+      agreedToAgeRestrictions: !!watchedValues.agreedToAgeRestrictions,
+      agreedToTerms: !!watchedValues.agreedToTerms,
+    }),
+    hasPhoto:
+      watchedValues.profilePicture instanceof File ||
+      Boolean(watchedValues.profilePictureUrl),
+    hasAddress: Boolean(pa?.address1 && pa?.city && pa?.state && pa?.zip),
+  });
+
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
       <Paper
@@ -386,8 +358,36 @@ export function ProfileWizard({
       >
         {/* Header */}
         <Box sx={{ mb: 4 }}>
-          {/* Top row with logout button */}
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          {/* Top row: close (exit to app) on the left, sign out on the right */}
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              mb: 2,
+            }}
+          >
+            {onExit ? (
+              <Tooltip title="Close and go back" arrow>
+                <IconButton
+                  onClick={onExit}
+                  size="small"
+                  sx={{
+                    color: brandColors.charcoal,
+                    opacity: 0.7,
+                    '&:hover': {
+                      opacity: 1,
+                      backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                    },
+                  }}
+                  aria-label="Close"
+                >
+                  <CloseIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            ) : (
+              <Box />
+            )}
             <Tooltip title="Sign out" arrow>
               <IconButton
                 onClick={() => signOut({ callbackUrl: '/auth/signin' })}
@@ -431,47 +431,35 @@ export function ProfileWizard({
                 opacity: 0.7,
               }}
             >
-              Let&apos;s set up how you&apos;ll appear to your friends and
-              neighbors
+              {activeStep === 0
+                ? 'Just your name and a few community basics — you can be in in under a minute.'
+                : "Add a photo and your address so neighbors know who they're sharing with."}
             </Typography>
           </Box>
         </Box>
 
-        {/* Progress Stepper */}
-        <Stepper
-          activeStep={activeStep}
-          connector={<CustomConnector />}
-          sx={{ mb: 4 }}
-        >
-          {steps.map((step, index) => (
-            <Step key={step.label}>
-              <StepLabel
-                StepIconComponent={() => (
-                  <StepIcon
-                    icon={index + 1}
-                    completed={index < activeStep}
-                    active={index === activeStep}
-                  />
-                )}
-                sx={{
-                  '& .MuiStepLabel-label': {
-                    fontSize: '0.875rem',
-                    fontWeight: 500,
-                    color:
-                      index <= activeStep
-                        ? brandColors.charcoal
-                        : brandColors.softGray,
-                    mt: 1,
-                    // Hide labels on mobile for cleaner UI
-                    display: { xs: 'none', sm: 'block' },
-                  },
-                }}
-              >
-                {step.label}
-              </StepLabel>
-            </Step>
-          ))}
-        </Stepper>
+        {/* Card completeness — what the library card holds, filling in as you
+            go (replaces the linear 1-2-3 stepper). */}
+        <Box sx={{ mb: 4 }}>
+          <ProfileCompleteness
+            items={cardStatus}
+            currentKey={CURRENT_KEY_BY_STEP[activeStep] ?? 'basics'}
+          />
+          <Typography
+            variant="caption"
+            sx={{
+              display: 'block',
+              textAlign: 'center',
+              mt: 1.5,
+              color: brandColors.charcoal,
+              opacity: 0.6,
+            }}
+          >
+            {completedCardCount(cardStatus) < cardStatus.length
+              ? 'You can fill in the rest anytime.'
+              : 'Your card is all set!'}
+          </Typography>
+        </Box>
 
         {/* Form Content */}
         <FormProvider {...methods}>
