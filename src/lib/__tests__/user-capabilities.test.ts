@@ -51,24 +51,25 @@ describe('getUserCapabilities', () => {
     });
   });
 
-  it('an unverified address means not full profile', async () => {
+  it('an unverified address means not full profile (blocks borrow)', async () => {
     mockAddressFindUnique.mockResolvedValue({
       isActive: true,
       verificationMethod: null,
     });
     const c = await getUserCapabilities('u1');
-    expect(c.canLend).toBe(false);
-    expect(c.reasons.canLend).toBe('NEEDS_ADDRESS');
+    // Creating/lending is allowed at minimal; borrowing needs the full profile.
+    expect(c.canBorrow).toBe(false);
+    expect(c.reasons.canBorrow).toBe('NEEDS_ADDRESS');
   });
 
-  it('an inactive address means not full profile', async () => {
+  it('an inactive address means not full profile (blocks borrow)', async () => {
     mockAddressFindUnique.mockResolvedValue({
       isActive: false,
       verificationMethod: 'google_places',
     });
     const c = await getUserCapabilities('u1');
-    expect(c.canLend).toBe(false);
-    expect(c.reasons.canLend).toBe('NEEDS_ADDRESS');
+    expect(c.canBorrow).toBe(false);
+    expect(c.reasons.canBorrow).toBe('NEEDS_ADDRESS');
   });
 
   it('missing currentAddressId means not full profile', async () => {
