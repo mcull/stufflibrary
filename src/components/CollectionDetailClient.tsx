@@ -1108,7 +1108,13 @@ export function CollectionDetailClient({
           </Typography>
           <Button
             variant="contained"
-            onClick={() => router.push('/profile/create?continue=1')}
+            onClick={() =>
+              router.push(
+                `/profile/create?continue=1&field=address&returnTo=${encodeURIComponent(
+                  `/collection/${collectionId}`
+                )}`
+              )
+            }
             sx={{
               bgcolor: brandColors.inkBlue,
               color: brandColors.white,
