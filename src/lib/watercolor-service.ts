@@ -297,9 +297,9 @@ Use descriptive, specific labels that would help someone identify the item for b
     ];
 
     try {
-      const response = await withGeminiSpendCap('gemini-2.0-flash-exp', () =>
+      const response = await withGeminiSpendCap('gemini-2.5-flash', () =>
         this.genAI.models.generateContent({
-          model: 'gemini-2.0-flash-exp',
+          model: 'gemini-2.5-flash',
           contents: prompt,
         })
       );
