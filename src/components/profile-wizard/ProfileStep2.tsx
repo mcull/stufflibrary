@@ -1,13 +1,6 @@
 'use client';
 
-import {
-  ArrowBack,
-  ArrowForward,
-  CameraAlt,
-  Close,
-  CheckCircle,
-  Warning,
-} from '@mui/icons-material';
+import { CameraAlt, Close, CheckCircle, Warning } from '@mui/icons-material';
 import {
   Avatar,
   Box,
@@ -20,8 +13,9 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { useState, useRef } from 'react';
-import { useFormContext } from 'react-hook-form';
+import { useFormContext, Controller } from 'react-hook-form';
 
+import { AddressAutocomplete } from '@/components/AddressAutocomplete';
 // import { STUFF_CATEGORIES } from '@/data/stuffCategories';
 import { brandColors } from '@/theme/brandTokens';
 
@@ -35,6 +29,8 @@ interface ProfileStep2Props {
   profilePicturePreviewUrl?: string | null;
   onMinimalSubmit?: () => void;
   isSubmittingMinimal?: boolean;
+  /** Cancel out of the wizard (exits to the app when opened from a prompt). */
+  onCancel?: () => void;
 }
 
 interface ImageVerificationResult {
@@ -43,12 +39,13 @@ interface ImageVerificationResult {
   confidence: 'high' | 'medium' | 'low';
 }
 
-export function ProfileStep2({ onNext, onBack }: ProfileStep2Props) {
+export function ProfileStep2({ onCancel }: ProfileStep2Props) {
   const {
     register,
     setValue,
     watch,
-    formState: { errors },
+    control,
+    formState: { errors, isSubmitting },
   } = useFormContext<ProfileFormData>();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -60,10 +57,20 @@ export function ProfileStep2({ onNext, onBack }: ProfileStep2Props) {
   const [_verificationResult, setVerificationResult] =
     useState<ImageVerificationResult | null>(null);
 
-  const _profilePicture = watch('profilePicture');
+  const profilePicture = watch('profilePicture');
   const profilePictureUrl = watch('profilePictureUrl');
+  const parsedAddress = watch('parsedAddress');
 
   const currentImageUrl = previewUrl || profilePictureUrl;
+
+  // "Done" is enabled once a photo is added and an address is verified.
+  const hasVerifiedAddress = Boolean(
+    parsedAddress?.address1 &&
+      parsedAddress?.city &&
+      parsedAddress?.state &&
+      parsedAddress?.zip
+  );
+  const canFinish = Boolean(profilePicture) && hasVerifiedAddress;
 
   const verifyImageWithAI = async (
     file: File
@@ -449,39 +456,71 @@ export function ProfileStep2({ onNext, onBack }: ProfileStep2Props) {
               a pet peeve is leaving tools outside overnight!&quot;
             </Typography>
           </Box>
+
+          {/* Address */}
+          <Box>
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: 600, color: brandColors.charcoal, mb: 1 }}
+            >
+              Your address
+            </Typography>
+            <Controller
+              name="address"
+              control={control}
+              render={({ field }) => (
+                <AddressAutocomplete
+                  value={field.value}
+                  onChange={(value, addr) => {
+                    field.onChange(value);
+                    if (addr) {
+                      setValue('parsedAddress', addr);
+                    }
+                  }}
+                  error={!!errors.address}
+                  helperText={errors.address?.message || undefined}
+                  placeholder="123 Main Street, City, State"
+                />
+              )}
+            />
+          </Box>
         </Stack>
       </Box>
 
-      {/* Navigation */}
-      <Box sx={{ pt: 2 }}>
-        {/* Back link */}
+      {/* Navigation — a focused "provide the info and you're done" pair */}
+      <Box
+        sx={{
+          pt: 2,
+          display: 'flex',
+          flexDirection: { xs: 'column-reverse', sm: 'row' },
+          gap: 2,
+        }}
+      >
         <Button
           variant="text"
-          onClick={onBack}
-          startIcon={<ArrowBack />}
+          onClick={onCancel}
           sx={{
-            mb: 2,
-            px: 0,
-            py: 1,
-            fontSize: '0.875rem',
+            py: 1.5,
+            px: 3,
+            fontSize: '1rem',
             fontWeight: 500,
             textTransform: 'none',
             color: brandColors.charcoal,
-            opacity: 0.7,
-            '&:hover': {
-              opacity: 1,
-              backgroundColor: 'transparent',
-            },
+            opacity: 0.8,
+            '&:hover': { opacity: 1, backgroundColor: 'rgba(0,0,0,0.04)' },
           }}
         >
-          Back
+          Cancel
         </Button>
 
-        {/* Full-width primary button */}
+        {/* Primary: finish + submit the full profile */}
         <Button
+          type="submit"
           variant="contained"
-          onClick={onNext}
-          endIcon={<ArrowForward />}
+          disabled={!canFinish || isSubmitting}
+          endIcon={
+            isSubmitting ? <CircularProgress size={16} /> : <CheckCircle />
+          }
           fullWidth
           sx={{
             py: 1.5,
@@ -494,10 +533,15 @@ export function ProfileStep2({ onNext, onBack }: ProfileStep2Props) {
               boxShadow: '0 6px 20px 0 rgba(30, 58, 95, 0.3)',
               transform: 'translateY(-1px)',
             },
+            '&:disabled': {
+              backgroundColor: brandColors.softGray,
+              color: brandColors.charcoal,
+              opacity: 0.6,
+            },
             transition: 'all 0.2s ease',
           }}
         >
-          Continue
+          {isSubmitting ? 'Saving…' : 'Done!'}
         </Button>
       </Box>
     </Box>

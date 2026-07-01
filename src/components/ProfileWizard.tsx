@@ -28,7 +28,6 @@ import { canSubmitMinimal } from './profile-wizard/minimalEntry';
 import { ProfileCompleteness } from './profile-wizard/ProfileCompleteness';
 import { ProfileStep1 } from './profile-wizard/ProfileStep1';
 import { ProfileStep2 } from './profile-wizard/ProfileStep2';
-import { ProfileStep3 } from './profile-wizard/ProfileStep3';
 import { Wordmark } from './Wordmark';
 
 const profileSchema = z.object({
@@ -61,15 +60,13 @@ const profileSchema = z.object({
 
 export type ProfileFormData = z.infer<typeof profileSchema>;
 
+// Two steps: minimal entry, then a single "complete your card" screen that
+// collects photo + address together (Cancel / Done), so finishing from a
+// just-in-time prompt feels like one quick task rather than a multi-step wizard.
 const steps = [
   { label: 'Get started', component: ProfileStep1 },
-  { label: 'Add a photo', component: ProfileStep2 },
-  { label: 'Address & finish', component: ProfileStep3 },
+  { label: 'Complete your card', component: ProfileStep2 },
 ];
-
-// Which card part the user is filling in on each step (for the you-are-here
-// highlight on the completeness indicator).
-const CURRENT_KEY_BY_STEP: CompletenessKey[] = ['basics', 'photo', 'address'];
 
 export type ProfileSubmitMode = 'minimal' | 'full';
 
@@ -318,13 +315,23 @@ export function ProfileWizard({
           'agreedToTerms',
         ];
       case 1:
-        return ['profilePicture'];
-      case 2:
-        return ['address'];
+        // Combined completion step: photo + address together.
+        return ['profilePicture', 'address'];
       default:
         return [];
     }
   }
+
+  // Cancel out of the wizard: exit to the app when opened from a prompt
+  // (onExit), otherwise step back to the minimal entry.
+  const handleCancel = () => {
+    setSubmitError(null);
+    if (onExit) {
+      onExit();
+    } else {
+      setActiveStep(0);
+    }
+  };
 
   const CurrentStepComponent = steps[activeStep]?.component;
 
@@ -345,6 +352,15 @@ export function ProfileWizard({
     hasAddress: Boolean(pa?.address1 && pa?.city && pa?.state && pa?.zip),
   });
 
+  // You-are-here highlight: basics on step 0; on the combined completion step,
+  // point at whichever of photo/address is still outstanding.
+  const currentCardKey: CompletenessKey =
+    activeStep === 0
+      ? 'basics'
+      : cardStatus.find((i) => i.key === 'photo')?.done
+        ? 'address'
+        : 'photo';
+
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
       <Paper
@@ -358,19 +374,41 @@ export function ProfileWizard({
       >
         {/* Header */}
         <Box sx={{ mb: 4 }}>
-          {/* Top row: close (exit to app) on the left, sign out on the right */}
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              mb: 2,
-            }}
-          >
-            {onExit ? (
-              <Tooltip title="Close and go back" arrow>
+          {/* Top row (hidden on the completion step, which has Cancel/Done):
+              close on the left, sign out on the right. */}
+          {activeStep < steps.length - 1 && (
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                mb: 2,
+              }}
+            >
+              {onExit ? (
+                <Tooltip title="Close and go back" arrow>
+                  <IconButton
+                    onClick={onExit}
+                    size="small"
+                    sx={{
+                      color: brandColors.charcoal,
+                      opacity: 0.7,
+                      '&:hover': {
+                        opacity: 1,
+                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                      },
+                    }}
+                    aria-label="Close"
+                  >
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              ) : (
+                <Box />
+              )}
+              <Tooltip title="Sign out" arrow>
                 <IconButton
-                  onClick={onExit}
+                  onClick={() => signOut({ callbackUrl: '/auth/signin' })}
                   size="small"
                   sx={{
                     color: brandColors.charcoal,
@@ -380,32 +418,13 @@ export function ProfileWizard({
                       backgroundColor: 'rgba(0, 0, 0, 0.04)',
                     },
                   }}
-                  aria-label="Close"
+                  aria-label="Sign out"
                 >
-                  <CloseIcon fontSize="small" />
+                  <LogoutIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
-            ) : (
-              <Box />
-            )}
-            <Tooltip title="Sign out" arrow>
-              <IconButton
-                onClick={() => signOut({ callbackUrl: '/auth/signin' })}
-                size="small"
-                sx={{
-                  color: brandColors.charcoal,
-                  opacity: 0.7,
-                  '&:hover': {
-                    opacity: 1,
-                    backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                  },
-                }}
-                aria-label="Sign out"
-              >
-                <LogoutIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
+            </Box>
+          )}
 
           {/* Centered header content */}
           <Box sx={{ textAlign: 'center' }}>
@@ -441,10 +460,7 @@ export function ProfileWizard({
         {/* Card completeness — what the library card holds, filling in as you
             go (replaces the linear 1-2-3 stepper). */}
         <Box sx={{ mb: 4 }}>
-          <ProfileCompleteness
-            items={cardStatus}
-            currentKey={CURRENT_KEY_BY_STEP[activeStep] ?? 'basics'}
-          />
+          <ProfileCompleteness items={cardStatus} currentKey={currentCardKey} />
           <Typography
             variant="caption"
             sx={{
@@ -488,6 +504,7 @@ export function ProfileWizard({
                 profilePicturePreviewUrl={profilePicturePreviewUrl}
                 onMinimalSubmit={handleMinimalSubmit}
                 isSubmittingMinimal={Boolean(isSubmittingMinimal)}
+                onCancel={handleCancel}
               />
             )}
           </Box>

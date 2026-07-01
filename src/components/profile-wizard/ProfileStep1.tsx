@@ -26,6 +26,7 @@ interface ProfileStep1Props {
   profilePicturePreviewUrl?: string | null;
   onMinimalSubmit?: () => void;
   isSubmittingMinimal?: boolean;
+  onCancel?: () => void;
 }
 
 export function ProfileStep1({
