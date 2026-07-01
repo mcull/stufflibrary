@@ -18,22 +18,27 @@ const full: CapabilityFacts = {
 };
 
 describe('getCapabilities — completeness axis', () => {
-  it('minimal profile (name + terms) can enter but cannot lend/borrow/create', () => {
+  it('minimal profile (name + terms) can enter, create a library, and add items — but not borrow', () => {
     const c = getCapabilities({
       ...full,
       hasPhoto: false,
       hasVerifiedAddress: false,
     });
     expect(c.canEnter).toBe(true);
-    expect(c.canLend).toBe(false);
+    // Solo setup is allowed with just minimal.
+    expect(c.canCreateLibrary).toBe(true);
+    expect(c.canLend).toBe(true);
+    expect(c.reasons.canCreateLibrary).toBeUndefined();
+    expect(c.reasons.canLend).toBeUndefined();
+    // Transactions still require a full profile.
     expect(c.canBorrow).toBe(false);
-    expect(c.canCreateLibrary).toBe(false);
-    expect(c.reasons.canLend).toBe('NEEDS_PHOTO');
-    expect(c.reasons.canCreateLibrary).toBe('NEEDS_PHOTO');
+    expect(c.reasons.canBorrow).toBe('NEEDS_PHOTO');
   });
 
-  it('missing name (with terms) reports NEEDS_NAME', () => {
+  it('missing name (with terms) blocks create/lend with NEEDS_NAME', () => {
     const c = getCapabilities({ ...full, hasName: false });
+    expect(c.canCreateLibrary).toBe(false);
+    expect(c.canLend).toBe(false);
     expect(c.reasons.canLend).toBe('NEEDS_NAME');
   });
 
@@ -43,18 +48,20 @@ describe('getCapabilities — completeness axis', () => {
     expect(c.reasons.canBorrow).toBe('NEEDS_TERMS');
   });
 
-  it('photo present but address missing reports NEEDS_ADDRESS', () => {
+  it('photo present but address missing: can still create/lend, but borrow needs the address', () => {
     const c = getCapabilities({ ...full, hasVerifiedAddress: false });
-    expect(c.canLend).toBe(false);
-    expect(c.reasons.canLend).toBe('NEEDS_ADDRESS');
+    expect(c.canCreateLibrary).toBe(true);
+    expect(c.canLend).toBe(true);
+    expect(c.canBorrow).toBe(false);
+    expect(c.reasons.canBorrow).toBe('NEEDS_ADDRESS');
   });
 
-  it('full profile unlocks lend, borrow, and create-library', () => {
+  it('full profile unlocks borrow (create/lend already allowed at minimal)', () => {
     const c = getCapabilities(full);
     expect(c.canLend).toBe(true);
     expect(c.canBorrow).toBe(true);
     expect(c.canCreateLibrary).toBe(true);
-    expect(c.reasons.canLend).toBeUndefined();
+    expect(c.reasons.canBorrow).toBeUndefined();
   });
 });
 
@@ -101,7 +108,7 @@ describe('getCapabilities — trust axis', () => {
     expect(c.canBorrow).toBe(true);
   });
 
-  it('non-owner member below TRUSTED cannot invite', () => {
+  it('non-owner member below TRUSTED cannot invite (tier reason)', () => {
     const c = getCapabilities({
       ...full,
       trustTier: 'BUILDING',
@@ -109,6 +116,19 @@ describe('getCapabilities — trust axis', () => {
     });
     expect(c.canInvite).toBe(false);
     expect(c.reasons.canInvite).toBe('NEEDS_TRUST_TIER');
+  });
+
+  it('a minimal-profile owner cannot invite until the profile is full', () => {
+    const c = getCapabilities({
+      ...full,
+      hasPhoto: false,
+      hasVerifiedAddress: false,
+      isLibraryOwnerOrAdmin: true,
+    });
+    expect(c.canInvite).toBe(false);
+    // Completeness reason, not tier — inviting is the moment we ask for the
+    // full profile (photo + address).
+    expect(c.reasons.canInvite).toBe('NEEDS_PHOTO');
   });
 
   it('invite reason reflects missing terms, not tier, when not yet minimal', () => {

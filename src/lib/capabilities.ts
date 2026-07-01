@@ -74,11 +74,15 @@ export function getCapabilities(f: CapabilityFacts): Capabilities {
   const incomplete = completenessReason(f);
   const isFull = incomplete === undefined;
 
-  const canLend = isFull;
-  const canCreateLibrary = isFull;
+  // Solo setup (create a library, add your own items) only needs minimal
+  // entry — you're building your own space. The full profile (photo + verified
+  // address) is required at the social/trust moments: inviting a neighbor and
+  // borrowing/lending in a real transaction.
+  const canLend = canEnter;
+  const canCreateLibrary = canEnter;
   const canBorrow = isFull && !atBorrowLimit;
   const canInvite =
-    canEnter &&
+    isFull &&
     (f.isLibraryOwnerOrAdmin ||
       TIER_RANK[effectiveTier] >= TIER_RANK[MIN_TIER_TO_INVITE]);
 
@@ -87,7 +91,8 @@ export function getCapabilities(f: CapabilityFacts): Capabilities {
   if (!canCreateLibrary && incomplete) reasons.canCreateLibrary = incomplete;
   if (!canBorrow) reasons.canBorrow = incomplete ?? 'AT_BORROW_LIMIT';
   if (!canInvite)
-    reasons.canInvite = canEnter
+    // Not full yet → ask for the profile; full but low tier → tier gate.
+    reasons.canInvite = isFull
       ? 'NEEDS_TRUST_TIER'
       : (incomplete ?? 'NEEDS_TERMS');
 

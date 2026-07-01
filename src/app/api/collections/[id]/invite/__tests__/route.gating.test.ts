@@ -56,6 +56,23 @@ it('rejects a non-owner BUILDING member (403 NEEDS_TRUST_TIER)', async () => {
   expect((await res.json()).reason).toBe('NEEDS_TRUST_TIER');
 });
 
+it('rejects an owner with only a minimal profile (403 NEEDS_PHOTO)', async () => {
+  // Owner/admin lookup succeeds, but inviting now requires a full profile.
+  mockCollectionFindFirst.mockResolvedValue({
+    id: 'lib1',
+    name: 'Lib',
+    owner: { name: 'O', email: 'o@x.z' },
+    _count: {},
+  });
+  mockGetUserCapabilities.mockResolvedValue({
+    canInvite: false,
+    reasons: { canInvite: 'NEEDS_PHOTO' },
+  });
+  const res = await call({ email: 'x@y.z', mode: 'email' });
+  expect(res.status).toBe(403);
+  expect((await res.json()).reason).toBe('NEEDS_PHOTO');
+});
+
 it('rejects a non-member entirely (403)', async () => {
   mockMemberFindFirst.mockResolvedValue(null);
   const res = await call({ email: 'x@y.z', mode: 'email' });

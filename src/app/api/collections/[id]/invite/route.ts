@@ -76,8 +76,7 @@ export async function POST(
     });
 
     if (!library) {
-      // Not an owner/admin — check whether the requester is an active member
-      // who has earned invite rights (trust tier >= TRUSTED).
+      // Not an owner/admin — must at least be an active member to be here.
       const member = await db.collectionMember.findFirst({
         where: { collectionId: libraryId, userId, isActive: true },
         select: { id: true },
@@ -89,26 +88,32 @@ export async function POST(
           { status: 403 }
         );
       }
+    }
 
-      const caps = await getUserCapabilities(userId);
-      if (!caps.canInvite) {
-        return NextResponse.json(
-          {
-            error:
-              'You need to reach the Trusted tier before inviting others to this library.',
-            reason: caps.reasons.canInvite,
-          },
-          { status: 403 }
-        );
-      }
+    // Inviting is a social action: everyone permitted here (owner/admin or a
+    // member) needs a full profile — photo + verified address — before bringing
+    // neighbors in, plus the trust tier if they're not the owner/admin. Pass the
+    // library context so owner/admin status is reflected in canInvite.
+    const caps = await getUserCapabilities(userId, { libraryId });
+    if (!caps.canInvite) {
+      return NextResponse.json(
+        {
+          error:
+            caps.reasons.canInvite === 'NEEDS_TRUST_TIER'
+              ? 'You need to reach the Trusted tier before inviting others to this library.'
+              : 'Add a photo and verify your address before inviting neighbors.',
+          reason: caps.reasons.canInvite,
+        },
+        { status: 403 }
+      );
+    }
 
-      // Permitted member — re-load the collection for the email payload.
+    // Non-owner path: re-load the collection for the email payload.
+    if (!library) {
       library = await db.collection.findFirst({
         where: { id: libraryId },
         include: {
-          owner: {
-            select: { name: true, email: true },
-          },
+          owner: { select: { name: true, email: true } },
           _count: true,
         },
       });
