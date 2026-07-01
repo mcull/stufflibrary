@@ -451,6 +451,21 @@ export function CollectionDetailClient({
     [session?.user, library?.owner.addresses]
   );
 
+  // Does the map have anywhere to anchor? If nobody (owner or members) has a
+  // geocoded address, the map is just a blank blob — better to invite an
+  // address instead.
+  const hasMapAnchor = useMemo(() => {
+    const located = (lat?: number, lng?: number) =>
+      typeof lat === 'number' && typeof lng === 'number';
+    return (
+      located(mapCurrentUser.latitude, mapCurrentUser.longitude) ||
+      mapMembers.some((m) => located(m.latitude, m.longitude))
+    );
+  }, [mapMembers, mapCurrentUser]);
+
+  const isLibraryManager =
+    library?.userRole === 'owner' || library?.userRole === 'admin';
+
   // const handleToggleVisibility = useCallback(
   //   async (isPublic: boolean) => {
   //     if (!library) return;
@@ -1032,37 +1047,83 @@ export function CollectionDetailClient({
         )}
       </Box>
 
-      {/* Collection Map */}
-      <Box sx={{ mb: 4 }}>
-        {false && (
+      {/* Collection Map — or, when there's no address to anchor it, an
+          invitation to add one (managers only). */}
+      {hasMapAnchor ? (
+        <Box sx={{ mb: 4 }}>
+          <Box
+            sx={{
+              height: { xs: '250px', sm: '300px', md: '350px' },
+              overflow: 'hidden',
+              borderRadius: 2,
+              border: '1px solid rgba(0, 0, 0, 0.08)',
+            }}
+          >
+            <LibraryMap
+              libraryName={library?.name}
+              members={mapMembers}
+              currentUser={mapCurrentUser}
+              isGuest={library?.userRole === 'guest'}
+            />
+          </Box>
+        </Box>
+      ) : isLibraryManager ? (
+        <Box
+          sx={{
+            mb: 4,
+            p: { xs: 3, sm: 4 },
+            textAlign: 'center',
+            borderRadius: 2,
+            border: `2px dashed ${brandColors.inkBlue}`,
+            backgroundColor: 'rgba(30, 58, 95, 0.04)',
+          }}
+        >
+          <Typography sx={{ fontSize: '2rem', mb: 1 }}>📍</Typography>
           <Typography
             variant="h5"
             sx={{
-              fontWeight: 600,
+              fontWeight: 700,
               color: brandColors.charcoal,
-              mb: spacing.md / 16,
-              fontSize: '1.25rem',
+              mb: 1,
+              fontSize: { xs: '1.25rem', md: '1.5rem' },
             }}
           >
-            Library Map
+            Put your library on the map
           </Typography>
-        )}
-        <Box
-          sx={{
-            height: { xs: '250px', sm: '300px', md: '350px' },
-            overflow: 'hidden',
-            borderRadius: 2,
-            border: '1px solid rgba(0, 0, 0, 0.08)',
-          }}
-        >
-          <LibraryMap
-            libraryName={library?.name}
-            members={mapMembers}
-            currentUser={mapCurrentUser}
-            isGuest={library?.userRole === 'guest'}
-          />
+          <Typography
+            variant="body1"
+            sx={{
+              color: brandColors.charcoal,
+              opacity: 0.8,
+              maxWidth: 520,
+              mx: 'auto',
+              mb: 3,
+              lineHeight: 1.6,
+            }}
+          >
+            Borrowing works best close to home — a shared ladder should be a
+            quick trip, not a road trip. Add your address so your library shows
+            up on the neighborhood map and members can see how near everything
+            really is. It&rsquo;s only visible to people in this library.
+          </Typography>
+          <Button
+            variant="contained"
+            onClick={() => router.push('/profile/create?continue=1')}
+            sx={{
+              bgcolor: brandColors.inkBlue,
+              color: brandColors.white,
+              fontWeight: 600,
+              px: 4,
+              py: 1.25,
+              borderRadius: 2,
+              textTransform: 'none',
+              '&:hover': { bgcolor: '#1a2f4f' },
+            }}
+          >
+            Add your address
+          </Button>
         </Box>
-      </Box>
+      ) : null}
 
       {/* Privacy explanation for guests - under map */}
       {library?.userRole === 'guest' && (
@@ -1086,65 +1147,70 @@ export function CollectionDetailClient({
         </Box>
       )}
 
-      {/* Filter Chips - moved below map */}
-      <Box sx={{ mb: spacing.lg / 16 }}>
-        <Stack
-          direction="row"
-          spacing={spacing.md / 16}
-          sx={{ flexWrap: 'wrap', gap: 1 }}
-        >
-          <Chip
-            label={`All ${library?.itemCount}`}
-            onClick={() => setActiveFilter('all')}
-            sx={{
-              backgroundColor:
-                activeFilter === 'all' ? brandColors.inkBlue : '#F0F0F0',
-              color:
-                activeFilter === 'all'
-                  ? brandColors.white
-                  : brandColors.charcoal,
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              '&:hover': {
-                backgroundColor: brandColors.inkBlue,
-                color: brandColors.white,
-              },
-            }}
-          />
-          {Object.keys(library?.itemsByCategory)
-            .sort()
-            .map((category) => {
-              const categoryConfig =
-                CATEGORY_CONFIG[category as keyof typeof CATEGORY_CONFIG] ||
-                CATEGORY_CONFIG.other;
-              const itemCount = library?.itemsByCategory[category]?.length || 0;
+      {/* Filter Chips — only when there are items to filter (no "All 0") */}
+      {hasItems && (
+        <Box sx={{ mb: spacing.lg / 16 }}>
+          <Stack
+            direction="row"
+            spacing={spacing.md / 16}
+            sx={{ flexWrap: 'wrap', gap: 1 }}
+          >
+            <Chip
+              label={`All ${library?.itemCount}`}
+              onClick={() => setActiveFilter('all')}
+              sx={{
+                backgroundColor:
+                  activeFilter === 'all' ? brandColors.inkBlue : '#F0F0F0',
+                color:
+                  activeFilter === 'all'
+                    ? brandColors.white
+                    : brandColors.charcoal,
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  backgroundColor: brandColors.inkBlue,
+                  color: brandColors.white,
+                },
+              }}
+            />
+            {Object.keys(library?.itemsByCategory)
+              .sort()
+              .map((category) => {
+                const categoryConfig =
+                  CATEGORY_CONFIG[category as keyof typeof CATEGORY_CONFIG] ||
+                  CATEGORY_CONFIG.other;
+                const itemCount =
+                  library?.itemsByCategory[category]?.length || 0;
 
-              return (
-                <Chip
-                  key={category}
-                  label={`${categoryConfig.name} ${itemCount}`}
-                  onClick={() => setActiveFilter(category)}
-                  sx={{
-                    backgroundColor:
-                      activeFilter === category
-                        ? brandColors.inkBlue
-                        : '#E8F5E8',
-                    color:
-                      activeFilter === category ? brandColors.white : '#2E7D32',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    '&:hover': {
-                      backgroundColor: brandColors.inkBlue,
-                      color: brandColors.white,
-                    },
-                  }}
-                />
-              );
-            })}
-        </Stack>
-      </Box>
+                return (
+                  <Chip
+                    key={category}
+                    label={`${categoryConfig.name} ${itemCount}`}
+                    onClick={() => setActiveFilter(category)}
+                    sx={{
+                      backgroundColor:
+                        activeFilter === category
+                          ? brandColors.inkBlue
+                          : '#E8F5E8',
+                      color:
+                        activeFilter === category
+                          ? brandColors.white
+                          : '#2E7D32',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        backgroundColor: brandColors.inkBlue,
+                        color: brandColors.white,
+                      },
+                    }}
+                  />
+                );
+              })}
+          </Stack>
+        </Box>
+      )}
 
       {/* Items by Category */}
       {hasItems ? (
@@ -1449,8 +1515,9 @@ export function CollectionDetailClient({
         </Box>
       )}
 
-      {/* Add Your Stuff section */}
-      {(library?.userRole === 'owner' || library?.userRole === 'admin') && (
+      {/* Add Your Stuff section — only once there are items; when empty the
+          "waiting to come alive" module is the single add-stuff invitation. */}
+      {hasItems && isLibraryManager && (
         <Box sx={{ mt: spacing.xl / 16, mb: spacing.xl / 16 }}>
           <Typography
             variant="h5"
