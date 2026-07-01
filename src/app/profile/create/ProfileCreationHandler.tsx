@@ -235,9 +235,22 @@ export function ProfileCreationHandler({
                     returnTo ? decodeURIComponent(returnTo) : '/stacks'
                   );
                 },
+                // Prefill what the user already has (name + accepted terms from
+                // minimal signup) so the completion submit doesn't fail on — or
+                // overwrite — their name.
+                initialData: {
+                  ...(initialData ?? {}),
+                  name: user?.name ?? initialData?.name ?? '',
+                  agreedToHouseholdGoods: true,
+                  agreedToTrustAndCare: true,
+                  agreedToCommunityValues: true,
+                  agreedToAgeRestrictions: true,
+                  agreedToTerms: true,
+                },
               }
-            : {})}
-          {...(initialData ? { initialData } : {})}
+            : initialData
+              ? { initialData }
+              : {})}
         />
       )}
     </>
