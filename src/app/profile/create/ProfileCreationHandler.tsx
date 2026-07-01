@@ -201,6 +201,20 @@ export function ProfileCreationHandler({
     }
   };
 
+  // When arriving from a just-in-time prompt, land on the step being asked for:
+  // an explicit ?field=address|photo, otherwise the first thing still missing.
+  const continueMode = Boolean(searchParams?.get('continue'));
+  const requestedField = searchParams?.get('field');
+  const hasPhoto = Boolean(user?.image);
+  const continuationStep =
+    requestedField === 'address'
+      ? 2
+      : requestedField === 'photo'
+        ? 1
+        : hasPhoto
+          ? 2
+          : 1;
+
   return (
     <>
       {loadingUser ? (
@@ -224,9 +238,9 @@ export function ProfileCreationHandler({
           onComplete={handleProfileComplete}
           user={user}
           isSubmittingMinimal={isSubmittingMinimal}
-          {...(searchParams?.get('continue')
+          {...(continueMode
             ? {
-                initialStep: 1,
+                initialStep: continuationStep,
                 // Reached here from the app (a just-in-time prompt), so offer a
                 // way back instead of trapping the user in the wizard.
                 onExit: () => {
@@ -235,12 +249,14 @@ export function ProfileCreationHandler({
                     returnTo ? decodeURIComponent(returnTo) : '/stacks'
                   );
                 },
-                // Prefill what the user already has (name + accepted terms from
-                // minimal signup) so the completion submit doesn't fail on — or
-                // overwrite — their name.
+                // Prefill what the user already has (name, accepted terms, and
+                // any existing photo) so a focused edit (e.g. address only)
+                // doesn't fail on — or overwrite — the rest.
                 initialData: {
                   ...(initialData ?? {}),
                   name: user?.name ?? initialData?.name ?? '',
+                  profilePictureUrl:
+                    user?.image ?? initialData?.profilePictureUrl ?? undefined,
                   agreedToHouseholdGoods: true,
                   agreedToTrustAndCare: true,
                   agreedToCommunityValues: true,

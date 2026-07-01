@@ -21,15 +21,19 @@ import { brandColors } from '@/theme/brandTokens';
 
 import { ProfileStep1 } from './profile-wizard/ProfileStep1';
 import { ProfileStep2 } from './profile-wizard/ProfileStep2';
+import { ProfileStep3 } from './profile-wizard/ProfileStep3';
 import { Wordmark } from './Wordmark';
 
 const profileSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   address: z.string().min(1, 'Address is required to find your neighbors'),
   bio: z.string().optional(),
+  // Optional at the schema level: photo and address are solicited as separate
+  // steps, so a focused "add address only" edit can submit without a File
+  // (the photo step's button gating + capability checks enforce having one for
+  // full-profile actions). When present it must be a valid image.
   profilePicture: z
     .instanceof(File)
-    .refine((file) => file instanceof File, 'Profile picture is required')
     .refine(
       (file) => file.size <= 10 * 1024 * 1024, // 10MB limit
       'Profile picture must be less than 10MB'
@@ -40,7 +44,8 @@ const profileSchema = z.object({
           file.type
         ),
       'Profile picture must be a JPEG, PNG, or WebP image'
-    ),
+    )
+    .optional(),
   profilePictureUrl: z.string().optional(),
   agreedToHouseholdGoods: z.boolean(),
   agreedToTrustAndCare: z.boolean(),
@@ -53,12 +58,12 @@ const profileSchema = z.object({
 
 export type ProfileFormData = z.infer<typeof profileSchema>;
 
-// Two steps: minimal entry, then a single "complete your card" screen that
-// collects photo + address together (Cancel / Done), so finishing from a
-// just-in-time prompt feels like one quick task rather than a multi-step wizard.
+// Name + agreements, then photo, then address — each solicited separately so a
+// just-in-time prompt can drop the user straight into the one they need.
 const steps = [
   { label: 'Get started', component: ProfileStep1 },
-  { label: 'Complete your card', component: ProfileStep2 },
+  { label: 'Add a photo', component: ProfileStep2 },
+  { label: 'Add your address', component: ProfileStep3 },
 ];
 
 export type ProfileSubmitMode = 'minimal' | 'full';
@@ -308,8 +313,11 @@ export function ProfileWizard({
           'agreedToTerms',
         ];
       case 1:
-        // Combined completion step: photo + address together.
-        return ['profilePicture', 'address'];
+        // Photo step advances via its own button gating (which also accepts an
+        // already-saved photo URL, not just a freshly-uploaded File).
+        return [];
+      case 2:
+        return ['address'];
       default:
         return [];
     }
@@ -341,9 +349,9 @@ export function ProfileWizard({
       >
         {/* Header */}
         <Box sx={{ mb: 4 }}>
-          {/* Top row (hidden on the completion step, which has Cancel/Done):
-              close on the left, sign out on the right. */}
-          {activeStep < steps.length - 1 && (
+          {/* Top row only on the entry step; photo/address steps have their own
+              Cancel. Close on the left, sign out on the right. */}
+          {activeStep === 0 && (
             <Box
               sx={{
                 display: 'flex',
