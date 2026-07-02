@@ -98,7 +98,7 @@ describe('WatercolorService', () => {
         watercolorUrl: expect.stringContaining('https://'),
         watercolorThumbUrl: expect.stringContaining('https://'),
         styleVersion: 'wc_v1',
-        aiModel: 'gemini-2.5-flash-image-preview',
+        aiModel: 'gemini-2.5-flash-image',
         synthIdWatermark: false,
         flags: [],
         idempotencyKey: expect.stringMatching(/^[a-f0-9]{64}$/),

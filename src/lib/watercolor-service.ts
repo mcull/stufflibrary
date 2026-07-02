@@ -367,13 +367,11 @@ Use descriptive, specific labels that would help someone identify the item for b
       const apiStart = Date.now();
       console.log('🌐 Sending watercolor request to Gemini API...');
 
-      const response = await withGeminiSpendCap(
-        'gemini-2.5-flash-image-preview',
-        () =>
-          this.genAI.models.generateContent({
-            model: 'gemini-2.5-flash-image-preview',
-            contents: prompt,
-          })
+      const response = await withGeminiSpendCap('gemini-2.5-flash-image', () =>
+        this.genAI.models.generateContent({
+          model: 'gemini-2.5-flash-image',
+          contents: prompt,
+        })
       );
 
       const apiTime = Date.now() - apiStart;
@@ -397,14 +395,14 @@ Use descriptive, specific labels that would help someone identify the item for b
             const { estimateCostCents } = await import('./ai-pricing');
             const costCents = estimateCostCents({
               provider: 'gemini',
-              model: 'gemini-2.5-flash-image-preview',
+              model: 'gemini-2.5-flash-image',
               inputBytes: resizedImageBuffer.length,
               outputBytes: buffer.length,
             });
             await recordAiUsage({
               action: 'AI_RENDER',
               provider: 'gemini',
-              model: 'gemini-2.5-flash-image-preview',
+              model: 'gemini-2.5-flash-image',
               status: 'ok',
               ...(context?.itemId ? { itemId: context.itemId } : {}),
               ...(context?.userId ? { userId: context.userId } : {}),
@@ -432,7 +430,7 @@ Use descriptive, specific labels that would help someone identify the item for b
         await recordAiUsage({
           action: 'AI_RENDER',
           provider: 'gemini',
-          model: 'gemini-2.5-flash-image-preview',
+          model: 'gemini-2.5-flash-image',
           status: 'error',
           ...(context?.itemId ? { itemId: context.itemId } : {}),
           ...(context?.userId ? { userId: context.userId } : {}),
@@ -475,13 +473,11 @@ Use descriptive, specific labels that would help someone identify the item for b
     ];
 
     try {
-      const response = await withGeminiSpendCap(
-        'gemini-2.5-flash-image-preview',
-        () =>
-          this.genAI.models.generateContent({
-            model: 'gemini-2.5-flash-image-preview',
-            contents: prompt,
-          })
+      const response = await withGeminiSpendCap('gemini-2.5-flash-image', () =>
+        this.genAI.models.generateContent({
+          model: 'gemini-2.5-flash-image',
+          contents: prompt,
+        })
       );
 
       // Extract image data from response
@@ -565,7 +561,7 @@ Use descriptive, specific labels that would help someone identify the item for b
     const { itemId, originalImageBuffer, originalImageName, mimeType } =
       options;
     const styleVersion = 'wc_v1';
-    const aiModel = 'gemini-2.5-flash-image-preview';
+    const aiModel = 'gemini-2.5-flash-image';
 
     // Generate idempotency key
     const idempotencyKey = this.generateIdempotencyKey(

@@ -11,6 +11,11 @@ const PRICING_CENTS_PER_UNIT: Record<
 > = {
   'openai:gpt-4o-mini': { perTokenIn: 0.00015, perTokenOut: 0.0006 },
   'openai:gpt-4o': { perTokenIn: 0.005, perTokenOut: 0.015 },
+  // GA name (Google dropped the "-preview" suffix). Old key kept as a fallback.
+  'gemini:gemini-2.5-flash-image': {
+    perImageInKB: 0.00002,
+    perImageOutKB: 0.00002,
+  },
   'gemini:gemini-2.5-flash-image-preview': {
     perImageInKB: 0.00002,
     perImageOutKB: 0.00002,
