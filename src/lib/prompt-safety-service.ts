@@ -1,5 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 
+import { generateContentWithFailover } from './gemini-model';
+
 const DISALLOWED_KEYWORDS = [
   /bomb/i,
   /weapon/i,
@@ -62,8 +64,7 @@ export class PromptSafetyService {
 
     try {
       const client = new GoogleGenAI({ apiKey });
-      const response = await client.models.generateContent({
-        model: 'gemini-2.5-flash',
+      const response = await generateContentWithFailover(client, 'text', {
         contents: [
           {
             role: 'user',

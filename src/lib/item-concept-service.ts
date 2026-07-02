@@ -9,6 +9,10 @@ import {
 } from '@prisma/client';
 
 import { db } from './db';
+import {
+  resolveGeminiModel,
+  generateContentWithFailover,
+} from './gemini-model';
 import { PromptSafetyService } from './prompt-safety-service';
 import { withGeminiSpendCap } from './spend-cap';
 import { WatercolorService } from './watercolor-service';
@@ -312,9 +316,9 @@ export class ItemConceptService {
         },
       });
 
-      const response = await withGeminiSpendCap('gemini-2.5-flash-image', () =>
-        genAI.models.generateContent({
-          model: 'gemini-2.5-flash-image',
+      const imageModel = await resolveGeminiModel('image');
+      const response = await withGeminiSpendCap(imageModel, () =>
+        generateContentWithFailover(genAI, 'image', {
           contents: [
             {
               role: 'user',
