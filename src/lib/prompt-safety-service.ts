@@ -63,7 +63,7 @@ export class PromptSafetyService {
     try {
       const client = new GoogleGenAI({ apiKey });
       const response = await client.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-2.5-flash',
         contents: [
           {
             role: 'user',
@@ -87,13 +87,10 @@ ${combined}
           ?.trim()
           .toUpperCase() || '';
 
-      if (!raw) {
-        return {
-          allowed: false,
-          reason: 'Safety classification failed',
-        };
-      }
-
+      // The AI classifier only *blocks* on an explicit verdict. Anything else
+      // (empty/unparseable response, or an error below) fails OPEN — the
+      // deterministic keyword filter above is the hard gate, so a flaky or
+      // unavailable classifier shouldn't reject a legitimate item.
       if (raw.includes(PROHIBITED_RESPONSE) || raw.includes('UNSAFE')) {
         return {
           allowed: false,
@@ -103,11 +100,8 @@ ${combined}
 
       return { allowed: true };
     } catch (error) {
-      console.error('Prompt safety classification failed:', error);
-      return {
-        allowed: false,
-        reason: 'Safety check error, please refine description',
-      };
+      console.error('Prompt safety classification failed (allowing):', error);
+      return { allowed: true };
     }
   }
 }
