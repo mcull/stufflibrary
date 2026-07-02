@@ -747,28 +747,30 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
     }
   }, [selectedConceptId, describeName, describeDescription, libraryId]);
 
+  // Navigate to the new item page, preserving the originating library so the
+  // item page's "return" lands back in that library (not the stacks list).
+  const goToNewItem = useCallback(() => {
+    if (!uploadedItem) return;
+    const dest = libraryId
+      ? `/stuff/${uploadedItem.id}?new=true&src=library&lib=${libraryId}`
+      : `/stuff/${uploadedItem.id}?new=true`;
+    router.push(dest);
+  }, [uploadedItem, libraryId, router]);
+
   // Handle library selection completion
   const handleLibrarySelectionComplete = useCallback(
     (_selectedLibraryIds: string[]) => {
       setShowLibraryModal(false);
-
-      if (uploadedItem) {
-        // Navigate to the item page
-        router.push(`/stuff/${uploadedItem.id}?new=true`);
-      }
+      goToNewItem();
     },
-    [uploadedItem, router]
+    [goToNewItem]
   );
 
   // Handle library modal close
   const handleLibraryModalClose = useCallback(() => {
     setShowLibraryModal(false);
-
-    if (uploadedItem) {
-      // Navigate to the item page even if user closed modal
-      router.push(`/stuff/${uploadedItem.id}?new=true`);
-    }
-  }, [uploadedItem, router]);
+    goToNewItem();
+  }, [goToNewItem]);
 
   // Check for auto-start on mount and clean up on unmount
   useEffect(() => {
