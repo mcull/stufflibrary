@@ -312,22 +312,20 @@ export class ItemConceptService {
         },
       });
 
-      const response = await withGeminiSpendCap(
-        'gemini-2.5-flash-image-preview',
-        () =>
-          genAI.models.generateContent({
-            model: 'gemini-2.5-flash-image-preview',
-            contents: [
-              {
-                role: 'user',
-                parts: [
-                  {
-                    text: prompt,
-                  },
-                ],
-              },
-            ],
-          })
+      const response = await withGeminiSpendCap('gemini-2.5-flash-image', () =>
+        genAI.models.generateContent({
+          model: 'gemini-2.5-flash-image',
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                {
+                  text: prompt,
+                },
+              ],
+            },
+          ],
+        })
       );
 
       const imagePart = response.candidates?.[0]?.content?.parts?.find(
