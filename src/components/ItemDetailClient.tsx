@@ -1053,7 +1053,9 @@ export function ItemDetailClient({
                               fontWeight: 600,
                             }}
                           >
-                            Add Item & Go to Inventory
+                            {refSource === 'library' && refLibraryId
+                              ? 'Add Item & Go to Library'
+                              : 'Add Item & Go to Inventory'}
                           </Button>
                         </Box>
                       )}

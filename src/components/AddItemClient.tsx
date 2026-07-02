@@ -749,19 +749,26 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
 
   // Navigate to the new item page, preserving the originating library so the
   // item page's "return" lands back in that library (not the stacks list).
-  const goToNewItem = useCallback(() => {
-    if (!uploadedItem) return;
-    const dest = libraryId
-      ? `/stuff/${uploadedItem.id}?new=true&src=library&lib=${libraryId}`
-      : `/stuff/${uploadedItem.id}?new=true`;
-    router.push(dest);
-  }, [uploadedItem, libraryId, router]);
+  const goToNewItem = useCallback(
+    (returnToLibraryId?: string) => {
+      if (!uploadedItem) return;
+      // Return to the library the item actually lives in: the one it was
+      // launched from, or — when launched globally — the one just chosen in
+      // the modal. Only fall back to the stacks list if neither exists.
+      const lib = libraryId ?? returnToLibraryId;
+      const dest = lib
+        ? `/stuff/${uploadedItem.id}?new=true&src=library&lib=${lib}`
+        : `/stuff/${uploadedItem.id}?new=true`;
+      router.push(dest);
+    },
+    [uploadedItem, libraryId, router]
+  );
 
   // Handle library selection completion
   const handleLibrarySelectionComplete = useCallback(
-    (_selectedLibraryIds: string[]) => {
+    (selectedLibraryIds: string[]) => {
       setShowLibraryModal(false);
-      goToNewItem();
+      goToNewItem(selectedLibraryIds[0]);
     },
     [goToNewItem]
   );
