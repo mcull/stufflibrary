@@ -4,6 +4,10 @@ import { GoogleGenAI } from '@google/genai';
 import sharp from 'sharp';
 
 // no direct blob import; use StorageService
+import {
+  resolveGeminiModel,
+  generateContentWithFailover,
+} from './gemini-model';
 import { withGeminiSpendCap } from './spend-cap';
 import { StorageService } from './storage';
 
@@ -108,9 +112,9 @@ Use descriptive, specific labels that would help someone identify the item for b
     ];
 
     try {
-      const response = await withGeminiSpendCap('gemini-2.5-flash', () =>
-        this.genAI.models.generateContent({
-          model: 'gemini-2.5-flash',
+      const textModel = await resolveGeminiModel('text');
+      const response = await withGeminiSpendCap(textModel, () =>
+        generateContentWithFailover(this.genAI, 'text', {
           contents: prompt,
           config: {
             responseMimeType: 'application/json',
@@ -297,9 +301,9 @@ Use descriptive, specific labels that would help someone identify the item for b
     ];
 
     try {
-      const response = await withGeminiSpendCap('gemini-2.5-flash', () =>
-        this.genAI.models.generateContent({
-          model: 'gemini-2.5-flash',
+      const textModel = await resolveGeminiModel('text');
+      const response = await withGeminiSpendCap(textModel, () =>
+        generateContentWithFailover(this.genAI, 'text', {
           contents: prompt,
         })
       );
@@ -367,9 +371,9 @@ Use descriptive, specific labels that would help someone identify the item for b
       const apiStart = Date.now();
       console.log('🌐 Sending watercolor request to Gemini API...');
 
-      const response = await withGeminiSpendCap('gemini-2.5-flash-image', () =>
-        this.genAI.models.generateContent({
-          model: 'gemini-2.5-flash-image',
+      const imageModel = await resolveGeminiModel('image');
+      const response = await withGeminiSpendCap(imageModel, () =>
+        generateContentWithFailover(this.genAI, 'image', {
           contents: prompt,
         })
       );
@@ -473,9 +477,9 @@ Use descriptive, specific labels that would help someone identify the item for b
     ];
 
     try {
-      const response = await withGeminiSpendCap('gemini-2.5-flash-image', () =>
-        this.genAI.models.generateContent({
-          model: 'gemini-2.5-flash-image',
+      const imageModel = await resolveGeminiModel('image');
+      const response = await withGeminiSpendCap(imageModel, () =>
+        generateContentWithFailover(this.genAI, 'image', {
           contents: prompt,
         })
       );
