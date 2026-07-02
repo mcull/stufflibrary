@@ -3,7 +3,7 @@ import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GitHubProvider from 'next-auth/providers/github';
 
-import { verifyAuthCode } from './auth-codes';
+import { verifyAuthCode, normalizeAuthEmail } from './auth-codes';
 import { db } from './db';
 import { env } from './env';
 import { trackFailedLogin, trackSuccessfulLogin } from './security-logger';
@@ -42,15 +42,17 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
+        // Key everything off the normalized email so a differently-cased login
+        // of the same address (e.g. Marc+T630c vs marc+t630c) is the SAME user,
+        // not a fresh one. Matches how the code is stored/verified.
+        const email = normalizeAuthEmail(credentials.email);
+
         const ipAddress = clientIpFromHeaders(req?.headers);
         const userAgent = req?.headers?.['user-agent'];
 
         try {
           // Verify the auth code
-          const isValidCode = await verifyAuthCode(
-            credentials.email,
-            credentials.code
-          );
+          const isValidCode = await verifyAuthCode(email, credentials.code);
 
           if (!isValidCode) {
             await trackFailedLogin(ipAddress, userAgent);
@@ -60,20 +62,20 @@ export const authOptions: NextAuthOptions = {
           // Clear rate limit on successful verification
           try {
             const { sendCodeLimiter } = await import('./auth-rate-limit');
-            await sendCodeLimiter.reset(credentials.email);
+            await sendCodeLimiter.reset(email);
           } catch {
             // ignore rate limit reset errors
           }
 
           // Find or create user
           const user = await db.user.upsert({
-            where: { email: credentials.email },
+            where: { email },
             update: {
               emailVerified: new Date(),
               updatedAt: new Date(),
             },
             create: {
-              email: credentials.email,
+              email,
               emailVerified: new Date(),
               profileCompleted: false,
             },
