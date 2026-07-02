@@ -20,7 +20,6 @@ import {
   Chip,
   Stack,
   IconButton,
-  CircularProgress,
   Alert,
   Menu,
   MenuItem,
@@ -28,6 +27,7 @@ import {
   ListItemText,
   Card,
   CardContent,
+  Skeleton,
 } from '@mui/material';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -156,6 +156,76 @@ const CATEGORY_CONFIG = {
   automotive: { name: 'Automotive', icon: '🚗' },
   other: { name: 'Other', icon: '📦' },
 };
+
+// Holds the collection page's shape while data loads so nothing jumps when it
+// fills in: same Container, same map height, same item grid.
+const ITEM_GRID_COLS = {
+  xs: 'repeat(2, 1fr)',
+  sm: 'repeat(3, 1fr)',
+  md: 'repeat(4, 1fr)',
+  lg: 'repeat(5, 1fr)',
+  xl: 'repeat(6, 1fr)',
+} as const;
+
+function CollectionDetailSkeleton() {
+  return (
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      {/* breadcrumb */}
+      <Skeleton variant="text" width={220} sx={{ mb: 2 }} />
+      {/* title */}
+      <Skeleton variant="text" width="55%" height={48} sx={{ mb: 1 }} />
+      {/* role + status chips + since */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+        <Skeleton variant="rounded" width={80} height={28} />
+        <Skeleton variant="rounded" width={72} height={28} />
+        <Skeleton variant="text" width={120} />
+      </Box>
+      {/* description */}
+      <Skeleton variant="text" width="92%" />
+      <Skeleton variant="text" width="78%" sx={{ mb: 3 }} />
+      {/* stats strip */}
+      <Box sx={{ display: 'flex', gap: 5, mb: 4 }}>
+        {[0, 1, 2].map((i) => (
+          <Box key={i}>
+            <Skeleton variant="text" width={40} height={40} />
+            <Skeleton variant="text" width={68} />
+          </Box>
+        ))}
+      </Box>
+      {/* map */}
+      <Skeleton
+        variant="rounded"
+        sx={{ height: { xs: 250, sm: 300, md: 350 }, mb: 4, borderRadius: 2 }}
+      />
+      {/* filter chips */}
+      <Box sx={{ display: 'flex', gap: 1, mb: 3, flexWrap: 'wrap' }}>
+        {[64, 96, 80, 88].map((w, i) => (
+          <Skeleton key={i} variant="rounded" width={w} height={32} />
+        ))}
+      </Box>
+      {/* item grid */}
+      <Box
+        sx={{ display: 'grid', gridTemplateColumns: ITEM_GRID_COLS, gap: 2 }}
+      >
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Box key={i}>
+            <Skeleton
+              variant="rounded"
+              sx={{
+                width: '100%',
+                aspectRatio: '1 / 1',
+                borderRadius: 2,
+                mb: 1,
+              }}
+            />
+            <Skeleton variant="text" width="80%" />
+            <Skeleton variant="text" width="50%" />
+          </Box>
+        ))}
+      </Box>
+    </Container>
+  );
+}
 
 export function CollectionDetailClient({
   collectionId,
@@ -551,13 +621,7 @@ export function CollectionDetailClient({
   }, [library, router]);
 
   if (isLoading) {
-    return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-          <CircularProgress size={48} />
-        </Box>
-      </Container>
-    );
+    return <CollectionDetailSkeleton />;
   }
 
   if (error) {
