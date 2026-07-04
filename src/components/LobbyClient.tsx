@@ -9,7 +9,6 @@ import {
   CardContent,
   Button,
   Stack,
-  CircularProgress,
   Chip,
   FormControl,
   Select,
@@ -18,6 +17,7 @@ import {
   useMediaQuery,
   useTheme,
   Alert,
+  Skeleton,
   Snackbar,
 } from '@mui/material';
 import Link from 'next/link';
@@ -56,6 +56,36 @@ interface LobbyClientProps {
 
 type FilterType = 'all' | 'ready-to-lend' | 'on-loan' | 'offline' | 'borrowed';
 type CollectionFilterType = 'all' | 'started' | 'joined';
+
+// Holds the card grid's shape while data loads so the tab doesn't
+// spinner-pop: same columns as the real grids, square cards + two text lines.
+function CardGridSkeleton({ count = 4 }: { count?: number }) {
+  return (
+    <Box
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: {
+          xs: 'repeat(2, 1fr)',
+          md: 'repeat(4, 1fr)',
+          lg: 'repeat(5, 1fr)',
+          xl: 'repeat(6, 1fr)',
+        },
+        gap: 1,
+      }}
+    >
+      {Array.from({ length: count }).map((_, i) => (
+        <Box key={i}>
+          <Skeleton
+            variant="rounded"
+            sx={{ width: '100%', aspectRatio: '1 / 1', borderRadius: 2, mb: 1 }}
+          />
+          <Skeleton variant="text" width="75%" />
+          <Skeleton variant="text" width="45%" />
+        </Box>
+      ))}
+    </Box>
+  );
+}
 
 export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
   const router = useRouter();
@@ -295,9 +325,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
     >
       <CardContent sx={{ p: { xs: 3, md: 4 } }}>
         {itemsLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <CircularProgress size={40} />
-          </Box>
+          <CardGridSkeleton />
         ) : (
           <>
             {/* Filter Control */}
@@ -624,9 +652,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
     >
       <CardContent sx={{ p: { xs: 3, md: 4 } }}>
         {isLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <CircularProgress size={40} />
-          </Box>
+          <CardGridSkeleton />
         ) : collections.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 2 }}>
             <Typography

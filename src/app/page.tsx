@@ -1,34 +1,21 @@
-'use client';
-
-import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import { useEffect } from 'react';
+import { redirect } from 'next/navigation';
+import { getServerSession } from 'next-auth';
 
 import { Hero } from '@/components/Hero';
 import { HowItWorks } from '@/components/HowItWorks';
 import { InBeta } from '@/components/InBeta';
+import { authOptions } from '@/lib/auth';
 
-export default function Home() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+// Server component: signed-in visitors are redirected before anything paints,
+// instead of the old client-side check that flashed an empty page (header +
+// footer around nothing) for a beat or two on every visit to /.
+export default async function Home() {
+  const session = await getServerSession(authOptions);
 
-  useEffect(() => {
-    if (status === 'authenticated' && session?.user) {
-      router.replace('/stacks');
-    }
-  }, [session, status, router]);
-
-  // Show loading or nothing while checking authentication
-  if (status === 'loading') {
-    return null;
+  if (session?.user) {
+    redirect('/stacks');
   }
 
-  // If user is authenticated, they'll be redirected, so don't show content
-  if (status === 'authenticated') {
-    return null;
-  }
-
-  // Only show homepage content for unauthenticated users
   return (
     <>
       <Hero />
