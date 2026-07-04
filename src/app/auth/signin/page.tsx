@@ -437,7 +437,7 @@ function SignInForm() {
                     },
                   }}
                 >
-                  {isLoading ? 'Verifying...' : 'Sign in'}
+                  {isLoading ? 'Verifying...' : 'Continue'}
                 </Button>
 
                 <Button
@@ -557,8 +557,24 @@ function SignInForm() {
             >
               {invitationContext
                 ? 'Enter your email to join'
-                : 'Enter your email to sign in'}
+                : 'Enter your email to get started'}
             </Typography>
+
+            {!invitationContext && (
+              <Typography
+                variant="body2"
+                sx={{
+                  textAlign: 'center',
+                  mt: -3,
+                  mb: 4,
+                  color: brandColors.charcoal,
+                  opacity: 0.7,
+                }}
+              >
+                New here or coming back — same door. We&rsquo;ll email you a
+                code.
+              </Typography>
+            )}
 
             {error && (
               <Alert

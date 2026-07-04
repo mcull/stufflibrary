@@ -252,7 +252,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
             fontSize: { xs: '1.1rem', md: '1.25rem' },
           }}
         >
-          {title} ({sectionCollections.length})
+          {title}
         </Typography>
         <Box
           sx={{
@@ -735,125 +735,128 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
           </Box>
         ) : (
           <Box>
-            {/* Filter Control - matches My Shelf tab */}
-            <Box sx={{ mb: 3 }}>
-              {isMobile ? (
-                <FormControl size="small" sx={{ minWidth: 200 }}>
-                  <Select
-                    value={collectionFilter}
-                    onChange={handleCollectionFilterChange}
-                    displayEmpty
-                    sx={{
-                      backgroundColor: brandColors.white,
-                      borderRadius: 2,
-                      '& .MuiOutlinedInput-notchedOutline': {
-                        borderColor: brandColors.softGray,
-                      },
-                      '&:hover .MuiOutlinedInput-notchedOutline': {
-                        borderColor: brandColors.inkBlue,
-                      },
-                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                        borderColor: brandColors.inkBlue,
-                      },
-                    }}
+            {/* Filter Control — only once there's enough to filter; a couple
+                of libraries don't need management chrome. */}
+            {collections.length >= 4 && (
+              <Box sx={{ mb: 3 }}>
+                {isMobile ? (
+                  <FormControl size="small" sx={{ minWidth: 200 }}>
+                    <Select
+                      value={collectionFilter}
+                      onChange={handleCollectionFilterChange}
+                      displayEmpty
+                      sx={{
+                        backgroundColor: brandColors.white,
+                        borderRadius: 2,
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          borderColor: brandColors.softGray,
+                        },
+                        '&:hover .MuiOutlinedInput-notchedOutline': {
+                          borderColor: brandColors.inkBlue,
+                        },
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                          borderColor: brandColors.inkBlue,
+                        },
+                      }}
+                    >
+                      <MenuItem value="all">
+                        All Libraries ({collections.length})
+                      </MenuItem>
+                      {startedCollections.length > 0 && (
+                        <MenuItem value="started">
+                          Libraries I Started ({startedCollections.length})
+                        </MenuItem>
+                      )}
+                      {joinedCollections.length > 0 && (
+                        <MenuItem value="joined">
+                          Libraries I Joined ({joinedCollections.length})
+                        </MenuItem>
+                      )}
+                    </Select>
+                  </FormControl>
+                ) : (
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    sx={{ flexWrap: 'wrap', gap: 1 }}
                   >
-                    <MenuItem value="all">
-                      All Libraries ({collections.length})
-                    </MenuItem>
-                    {startedCollections.length > 0 && (
-                      <MenuItem value="started">
-                        Libraries I Started ({startedCollections.length})
-                      </MenuItem>
-                    )}
-                    {joinedCollections.length > 0 && (
-                      <MenuItem value="joined">
-                        Libraries I Joined ({joinedCollections.length})
-                      </MenuItem>
-                    )}
-                  </Select>
-                </FormControl>
-              ) : (
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  sx={{ flexWrap: 'wrap', gap: 1 }}
-                >
-                  <Chip
-                    label={`All (${collections.length})`}
-                    onClick={() => setCollectionFilter('all')}
-                    sx={{
-                      backgroundColor:
-                        collectionFilter === 'all'
-                          ? brandColors.inkBlue
-                          : '#E8F5E8',
-                      color:
-                        collectionFilter === 'all'
-                          ? brandColors.white
-                          : '#2E7D32',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      '&:hover': {
+                    <Chip
+                      label={`All (${collections.length})`}
+                      onClick={() => setCollectionFilter('all')}
+                      sx={{
                         backgroundColor:
                           collectionFilter === 'all'
-                            ? '#1a2f4f'
-                            : brandColors.inkBlue,
-                        color: brandColors.white,
-                      },
-                    }}
-                  />
-                  {startedCollections.length > 0 && (
-                    <Chip
-                      label={`Started (${startedCollections.length})`}
-                      onClick={() => setCollectionFilter('started')}
-                      sx={{
-                        backgroundColor:
-                          collectionFilter === 'started'
                             ? brandColors.inkBlue
                             : '#E8F5E8',
                         color:
-                          collectionFilter === 'started'
+                          collectionFilter === 'all'
                             ? brandColors.white
                             : '#2E7D32',
                         fontWeight: 600,
                         cursor: 'pointer',
                         '&:hover': {
+                          backgroundColor:
+                            collectionFilter === 'all'
+                              ? '#1a2f4f'
+                              : brandColors.inkBlue,
+                          color: brandColors.white,
+                        },
+                      }}
+                    />
+                    {startedCollections.length > 0 && (
+                      <Chip
+                        label={`Started (${startedCollections.length})`}
+                        onClick={() => setCollectionFilter('started')}
+                        sx={{
                           backgroundColor:
                             collectionFilter === 'started'
-                              ? '#1a2f4f'
-                              : brandColors.inkBlue,
-                          color: brandColors.white,
-                        },
-                      }}
-                    />
-                  )}
-                  {joinedCollections.length > 0 && (
-                    <Chip
-                      label={`Joined (${joinedCollections.length})`}
-                      onClick={() => setCollectionFilter('joined')}
-                      sx={{
-                        backgroundColor:
-                          collectionFilter === 'joined'
-                            ? brandColors.inkBlue
-                            : '#E8F5E8',
-                        color:
-                          collectionFilter === 'joined'
-                            ? brandColors.white
-                            : '#2E7D32',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        '&:hover': {
+                              ? brandColors.inkBlue
+                              : '#E8F5E8',
+                          color:
+                            collectionFilter === 'started'
+                              ? brandColors.white
+                              : '#2E7D32',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          '&:hover': {
+                            backgroundColor:
+                              collectionFilter === 'started'
+                                ? '#1a2f4f'
+                                : brandColors.inkBlue,
+                            color: brandColors.white,
+                          },
+                        }}
+                      />
+                    )}
+                    {joinedCollections.length > 0 && (
+                      <Chip
+                        label={`Joined (${joinedCollections.length})`}
+                        onClick={() => setCollectionFilter('joined')}
+                        sx={{
                           backgroundColor:
                             collectionFilter === 'joined'
-                              ? '#1a2f4f'
-                              : brandColors.inkBlue,
-                          color: brandColors.white,
-                        },
-                      }}
-                    />
-                  )}
-                </Stack>
-              )}
-            </Box>
+                              ? brandColors.inkBlue
+                              : '#E8F5E8',
+                          color:
+                            collectionFilter === 'joined'
+                              ? brandColors.white
+                              : '#2E7D32',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          '&:hover': {
+                            backgroundColor:
+                              collectionFilter === 'joined'
+                                ? '#1a2f4f'
+                                : brandColors.inkBlue,
+                            color: brandColors.white,
+                          },
+                        }}
+                      />
+                    )}
+                  </Stack>
+                )}
+              </Box>
+            )}
 
             {/* Libraries Sections */}
             {collectionFilter === 'all' ? (
@@ -907,10 +910,11 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
       {showWelcome && (
         <Box sx={{ mb: 4, textAlign: 'center' }}>
           <Typography variant="h3" component="h1" gutterBottom>
-            Welcome to Stuff Central, {user.name}!
+            Welcome, {user.name}!
           </Typography>
           <Typography variant="h6" color="text.secondary" sx={{ mb: 3 }}>
-            This is your lending/borrowing hub.
+            This is home base: start a library with people you trust, or join
+            one you&rsquo;re invited to.
           </Typography>
         </Box>
       )}

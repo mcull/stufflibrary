@@ -426,7 +426,7 @@ export function ProfileWizard({
               }}
             >
               {activeStep === 0
-                ? 'Just your name and a few community basics — you can be in in under a minute.'
+                ? 'Just your name and a few community basics — it takes less than a minute.'
                 : "Add a photo and your address so neighbors know who they're sharing with."}
             </Typography>
           </Box>

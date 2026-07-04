@@ -54,4 +54,34 @@ describe('ProfileView trust section', () => {
       screen.queryByText(/return items on time to raise your score/i)
     ).not.toBeInTheDocument();
   });
+
+  it('does not tell a completed profile to complete their profile', () => {
+    render(
+      <ProfileView
+        user={{
+          ...baseUser,
+          image: 'https://example.com/photo.jpg',
+          trustScore: 51,
+          trustTier: 'NEW',
+        }}
+        currentAddress={{
+          address1: '1 Hill Rd',
+          address2: null,
+          city: 'Kensington',
+          state: 'CA',
+          zip: '94707',
+          formattedAddress: '1 Hill Rd, Kensington, CA 94707',
+        }}
+      />
+    );
+
+    // Still coaches on behavior…
+    expect(
+      screen.getByText(/return items on time to raise your score/i)
+    ).toBeInTheDocument();
+    // …but no longer asks them to complete an already-complete profile.
+    expect(
+      screen.queryByText(/complete your profile/i)
+    ).not.toBeInTheDocument();
+  });
 });
