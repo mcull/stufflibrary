@@ -561,7 +561,7 @@ export function CollectionDetailClient({
     const confirmed = window.confirm(
       `Are you sure you want to archive "${library?.name}"?\n\n` +
         'This will:\n' +
-        '• Hide the collection from your active collections\n' +
+        '• Hide the library from your active libraries\n' +
         '• Preserve all items and member data\n' +
         '• Allow you to unarchive it later\n\n' +
         'This action can be undone.'
@@ -630,7 +630,7 @@ export function CollectionDetailClient({
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
         </Alert>
-        <Button onClick={() => router.push('/stacks')}>Return to Lobby</Button>
+        <Button onClick={() => router.push('/stacks')}>Back to Home</Button>
       </Container>
     );
   }
@@ -1497,7 +1497,7 @@ export function CollectionDetailClient({
               fontSize: { xs: '1.5rem', md: '2rem' },
             }}
           >
-            Your collection is waiting to come alive! 🌱
+            Your library is waiting to come alive! 🌱
           </Typography>
 
           <Typography

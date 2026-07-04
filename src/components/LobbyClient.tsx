@@ -142,7 +142,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
       router.push(`/collection/${collection.id}`);
       return;
     }
-    setCreatedCollectionName(collection.name || 'Your collection');
+    setCreatedCollectionName(collection.name || 'Your library');
     setShowSuccessMessage(true);
     setTimeout(() => {
       setShowSuccessMessage(false);
@@ -984,8 +984,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
             color: brandColors.white,
           }}
         >
-          🎉 <strong>&ldquo;{createdCollectionName}&rdquo;</strong> collection
-          created successfully!
+          🎉 <strong>&ldquo;{createdCollectionName}&rdquo;</strong> is ready!
         </Alert>
       </Snackbar>
     </Container>

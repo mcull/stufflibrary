@@ -168,7 +168,7 @@ export function CollectionSelectionModal({
             </Typography>
             <Alert severity="info" sx={{ textAlign: 'left' }}>
               Your item was uploaded successfully, but it won&apos;t be visible
-              to friends and neighbors until you join or create a collection and
+              to friends and neighbors until you join or create a library and
               add it to the shelves.
             </Alert>
           </Box>

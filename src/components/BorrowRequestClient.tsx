@@ -1041,7 +1041,7 @@ export function BorrowRequestClient({
               }
               sx={{ borderRadius: 2 }}
             >
-              {refSource === 'library' ? 'Back to Library' : 'Back to Lobby'}
+              {refSource === 'library' ? 'Back to Library' : 'Back to Home'}
             </Button>
           </Box>
         );

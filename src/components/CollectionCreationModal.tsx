@@ -172,7 +172,7 @@ export function CollectionCreationModal({
             multiline
             rows={3}
             label="Description"
-            placeholder="Tell people what your collection is about, what kinds of items you share, or any special focus..."
+            placeholder="Tell people what your library is about, what kinds of items you share, or any special focus..."
             value={formData.description}
             onChange={(e) => handleInputChange('description', e.target.value)}
             disabled={isSubmitting}
