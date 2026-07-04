@@ -237,7 +237,7 @@ export function EditCollectionModal({
               mt: 0.5,
             }}
           >
-            Update your collection details
+            Update your library details
           </Box>
         </Box>
         <IconButton
@@ -312,7 +312,7 @@ export function EditCollectionModal({
             multiline
             rows={3}
             fullWidth
-            placeholder="Describe your collection..."
+            placeholder="Describe your library..."
           />
 
           {/* Location */}

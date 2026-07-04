@@ -206,7 +206,7 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
             startIcon={<ArrowBack />}
             sx={{ mb: 2 }}
           >
-            Back to Lobby
+            Back to Home
           </Button>
           <Alert severity="error">{error}</Alert>
         </Container>
@@ -243,7 +243,7 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
           startIcon={<ArrowBack />}
           sx={{ mb: 3 }}
         >
-          Back to Lobby
+          Back to Home
         </Button>
 
         {/* Header */}

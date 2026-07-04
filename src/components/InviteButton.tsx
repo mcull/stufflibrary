@@ -19,7 +19,7 @@ export function InviteButton({
   disabled = false,
 }: InviteButtonProps) {
   return (
-    <Tooltip title="Invite friends to join this branch">
+    <Tooltip title="Invite friends to join this library">
       <Button
         variant={variant}
         size={size}
