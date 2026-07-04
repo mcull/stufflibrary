@@ -2,6 +2,7 @@ import { Resend } from 'resend';
 
 import { db } from './db';
 import { env } from './env';
+import { buildMagicSignInLink } from './magic-link';
 
 // Generate a 6-digit numeric code
 export function generateAuthCode(): string {
@@ -64,24 +65,6 @@ export async function verifyAuthCode(
   });
 
   return true;
-}
-
-// One-tap sign-in link: lands on the signin page's existing auto-complete
-// path, which submits the same single-use, 10-minute code. Returns null when
-// no base url is configured (the email then falls back to code-only).
-export function buildMagicSignInLink(
-  email: string,
-  code: string,
-  baseUrl: string | undefined
-): string | null {
-  if (!baseUrl) return null;
-  const params = new URLSearchParams({
-    magic: 'true',
-    auto: 'true',
-    email,
-    code,
-  });
-  return `${baseUrl.replace(/\/$/, '')}/auth/signin?${params.toString()}`;
 }
 
 // Send auth code via email

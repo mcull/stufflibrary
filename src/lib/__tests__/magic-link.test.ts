@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { buildMagicSignInLink } from '../auth-codes';
+import { buildMagicSignInLink } from '../magic-link';
 
 describe('buildMagicSignInLink', () => {
   it('builds a one-tap sign-in link carrying the email and code', () => {
