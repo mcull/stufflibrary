@@ -153,7 +153,7 @@ describe('lender BorrowRequestDetail', () => {
 
     await waitFor(
       () => {
-        expect(screen.getByText('Trusted')).toBeInTheDocument();
+        expect(screen.getByText('Trusted neighbor')).toBeInTheDocument();
       },
       { timeout: 10000 }
     );

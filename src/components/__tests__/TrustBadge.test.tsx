@@ -6,9 +6,9 @@ import { TrustBadge } from '../TrustBadge';
 describe('TrustBadge', () => {
   it('renders a label for each tier', () => {
     const { rerender } = render(<TrustBadge tier="NEW" />);
-    expect(screen.getByText('New')).toBeInTheDocument();
+    expect(screen.getByText('New neighbor')).toBeInTheDocument();
     rerender(<TrustBadge tier="HIGHLY_TRUSTED" />);
-    expect(screen.getByText('Highly Trusted')).toBeInTheDocument();
+    expect(screen.getByText('Community pillar')).toBeInTheDocument();
   });
   it('renders nothing for a null tier', () => {
     const { container } = render(<TrustBadge tier={null} />);

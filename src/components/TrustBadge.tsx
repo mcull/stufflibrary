@@ -2,14 +2,16 @@ import { Chip } from '@mui/material';
 
 import type { TrustTier } from '@/lib/trust-score';
 
+// Warm, neighborly tier names — a person's standing reads as a relationship,
+// not a grade. (Numeric scores stay private to self/admin; see ProfileView.)
 const TIER_META: Record<
   TrustTier,
   { label: string; color: 'default' | 'info' | 'success' }
 > = {
-  NEW: { label: 'New', color: 'default' },
-  BUILDING: { label: 'Building', color: 'info' },
-  TRUSTED: { label: 'Trusted', color: 'success' },
-  HIGHLY_TRUSTED: { label: 'Highly Trusted', color: 'success' },
+  NEW: { label: 'New neighbor', color: 'default' },
+  BUILDING: { label: 'Getting known', color: 'info' },
+  TRUSTED: { label: 'Trusted neighbor', color: 'success' },
+  HIGHLY_TRUSTED: { label: 'Community pillar', color: 'success' },
 };
 
 export function TrustBadge({
