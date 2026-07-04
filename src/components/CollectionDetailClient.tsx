@@ -521,20 +521,43 @@ export function CollectionDetailClient({
     [session?.user, library?.owner.addresses]
   );
 
-  // Does the map have anywhere to anchor? If nobody (owner or members) has a
-  // geocoded address, the map is just a blank blob — better to invite an
-  // address instead.
-  const hasMapAnchor = useMemo(() => {
+  // How many people are actually on the map? Zero -> show the address CTA
+  // instead. One -> compact map (it hasn't earned the full-height hero yet).
+  // Two+ -> the map is telling a real neighborhood story; give it room.
+  const locatedCount = useMemo(() => {
     const located = (lat?: number, lng?: number) =>
       typeof lat === 'number' && typeof lng === 'number';
-    return (
-      located(mapCurrentUser.latitude, mapCurrentUser.longitude) ||
-      mapMembers.some((m) => located(m.latitude, m.longitude))
-    );
+    const memberIds = new Set<string>();
+    for (const m of mapMembers) {
+      if (located(m.latitude, m.longitude)) memberIds.add(m.id);
+    }
+    if (
+      located(mapCurrentUser.latitude, mapCurrentUser.longitude) &&
+      mapCurrentUser.id
+    ) {
+      memberIds.add(mapCurrentUser.id);
+    }
+    return memberIds.size;
   }, [mapMembers, mapCurrentUser]);
+
+  const hasMapAnchor = locatedCount > 0;
+  const mapEarnsFullSize = locatedCount >= 2;
 
   const isLibraryManager =
     library?.userRole === 'owner' || library?.userRole === 'admin';
+
+  // Shared by the header icon and the map caption: trusted members may
+  // invite; others get the just-in-time prompt.
+  const handleInviteClick = useCallback(() => {
+    if (libCapabilities && !libCapabilities.canInvite) {
+      setInvitePromptReason(
+        libCapabilities.reasons.canInvite ?? 'NEEDS_TRUST_TIER'
+      );
+      return;
+    }
+    setManageInitialTab(1);
+    setManageMembersModalOpen(true);
+  }, [libCapabilities]);
 
   // const handleToggleVisibility = useCallback(
   //   async (isPublic: boolean) => {
@@ -966,18 +989,7 @@ export function CollectionDetailClient({
               library?.userRole === 'admin' ||
               library?.userRole === 'member') && (
               <IconButton
-                onClick={() => {
-                  // Trusted members may invite; sub-tier members get the
-                  // locked prompt. Server enforcement remains the authority.
-                  if (libCapabilities && !libCapabilities.canInvite) {
-                    setInvitePromptReason(
-                      libCapabilities.reasons.canInvite ?? 'NEEDS_TRUST_TIER'
-                    );
-                    return;
-                  }
-                  setManageInitialTab(1);
-                  setManageMembersModalOpen(true);
-                }}
+                onClick={handleInviteClick}
                 size="small"
                 sx={{
                   bgcolor: 'white',
@@ -1119,16 +1131,20 @@ export function CollectionDetailClient({
         )}
       </Box>
 
-      {/* Collection Map — or, when there's no address to anchor it, an
-          invitation to add one (managers only). */}
+      {/* Library map — or, when there's no address to anchor it, an
+          invitation to add one (managers only). With just one person located
+          the map stays compact and its caption pitches the next social step. */}
       {hasMapAnchor ? (
         <Box sx={{ mb: 4 }}>
           <Box
             sx={{
-              height: { xs: '250px', sm: '300px', md: '350px' },
+              height: mapEarnsFullSize
+                ? { xs: '250px', sm: '300px', md: '350px' }
+                : { xs: '140px', sm: '160px', md: '180px' },
               overflow: 'hidden',
               borderRadius: 2,
               border: '1px solid rgba(0, 0, 0, 0.08)',
+              transition: 'height 0.3s ease',
             }}
           >
             <LibraryMap
@@ -1138,6 +1154,38 @@ export function CollectionDetailClient({
               isGuest={library?.userRole === 'guest'}
             />
           </Box>
+          {!mapEarnsFullSize &&
+            library?.userRole &&
+            library.userRole !== 'guest' && (
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 1,
+                  mt: 1,
+                }}
+              >
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  Just you on the map so far —
+                </Typography>
+                <Button
+                  variant="text"
+                  size="small"
+                  onClick={handleInviteClick}
+                  sx={{
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    color: brandColors.inkBlue,
+                    p: 0,
+                    minWidth: 0,
+                    '&:hover': { backgroundColor: 'transparent' },
+                  }}
+                >
+                  invite a neighbor to fill it in
+                </Button>
+              </Box>
+            )}
         </Box>
       ) : isLibraryManager ? (
         <Box
