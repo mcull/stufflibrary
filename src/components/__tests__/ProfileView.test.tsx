@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { useRouter } from 'next/navigation';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
@@ -32,7 +32,7 @@ describe('ProfileView trust section', () => {
     (useRouter as any).mockReturnValue({ push: vi.fn() });
   });
 
-  it('renders the numeric trust score, tier badge, and hint', () => {
+  it('leads with the warm tier name; the number stays tucked away', () => {
     render(
       <ProfileView
         user={{ ...baseUser, trustScore: 72, trustTier: 'TRUSTED' }}
@@ -40,11 +40,26 @@ describe('ProfileView trust section', () => {
       />
     );
 
-    expect(screen.getByText('72')).toBeInTheDocument();
-    expect(screen.getByText('Trusted')).toBeInTheDocument();
+    expect(screen.getByText('Trusted neighbor')).toBeInTheDocument();
+    // The naked score is not shown until the user asks how it works.
+    expect(screen.queryByText(/72/)).not.toBeInTheDocument();
     expect(
       screen.getByText(/return items on time to raise your score/i)
     ).toBeInTheDocument();
+  });
+
+  it('reveals the score and mechanics behind "See how this works"', () => {
+    render(
+      <ProfileView
+        user={{ ...baseUser, trustScore: 72, trustTier: 'TRUSTED' }}
+        currentAddress={null}
+      />
+    );
+
+    fireEvent.click(screen.getByText(/see how this works/i));
+
+    expect(screen.getByText(/72/)).toBeInTheDocument();
+    expect(screen.getByText(/on-time returns/i)).toBeInTheDocument();
   });
 
   it('omits the trust section when no score or tier is present', () => {

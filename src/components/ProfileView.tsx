@@ -81,6 +81,7 @@ export function ProfileView({
     string | null
   >(null);
   const [isValidatingImage, setIsValidatingImage] = useState(false);
+  const [showTrustDetails, setShowTrustDetails] = useState(false);
   const [parsedAddress, setParsedAddress] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -298,21 +299,46 @@ export function ProfileView({
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 Trust
               </Typography>
-              {user.trustScore != null && (
-                <Typography
-                  variant="h6"
-                  sx={{ fontWeight: 700, color: brandColors.inkBlue }}
-                >
-                  {Math.round(user.trustScore)}
-                </Typography>
-              )}
-              <TrustBadge tier={user.trustTier} />
+              <TrustBadge tier={user.trustTier} size="medium" />
             </Box>
             <Typography variant="body2" color="text.secondary">
               {user.image && currentAddress
                 ? 'Return items on time to raise your score.'
                 : 'Complete your profile and return items on time to raise your score.'}
             </Typography>
+            {user.trustScore != null && (
+              <>
+                <Button
+                  variant="text"
+                  size="small"
+                  onClick={() => setShowTrustDetails((v) => !v)}
+                  sx={{
+                    textTransform: 'none',
+                    p: 0,
+                    mt: 1,
+                    minWidth: 0,
+                    fontWeight: 500,
+                    color: brandColors.inkBlue,
+                    '&:hover': { backgroundColor: 'transparent' },
+                  }}
+                >
+                  {showTrustDetails ? 'Hide the details' : 'See how this works'}
+                </Button>
+                {showTrustDetails && (
+                  <Box sx={{ mt: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Your standing is {Math.round(user.trustScore)} out of 100.
+                      It grows with on-time returns and completed borrows, and
+                      dips with late returns, damage reports, or disputes. New
+                      accounts start from the basics — a complete profile, a
+                      verified address, and time in the community — and after a
+                      handful of borrows, what you actually do matters more than
+                      how you started.
+                    </Typography>
+                  </Box>
+                )}
+              </>
+            )}
           </Box>
         )}
 
