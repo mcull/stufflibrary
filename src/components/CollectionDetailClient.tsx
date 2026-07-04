@@ -775,7 +775,7 @@ export function CollectionDetailClient({
                 maxWidth: { xs: '120px', sm: '200px', md: 'none' },
               }}
             >
-              Current Library
+              {library?.name || 'Current Library'}
             </Typography>
           </Typography>
         </Box>
@@ -901,7 +901,15 @@ export function CollectionDetailClient({
         <ExpandableText
           text={
             library?.description ||
-            `A community library with ${library?.memberCount} members sharing ${library?.itemCount} items.`
+            // Fallback when the owner hasn't written one: warm for a fresh
+            // library, properly pluralized once there's something to count.
+            (!library?.itemCount
+              ? 'Just getting started — the shelves are warming up.'
+              : `A community library with ${library?.memberCount} ${
+                  library?.memberCount === 1 ? 'member' : 'members'
+                } sharing ${library?.itemCount} ${
+                  library?.itemCount === 1 ? 'item' : 'items'
+                }.`)
           }
           maxLength={180}
           variant="body1"

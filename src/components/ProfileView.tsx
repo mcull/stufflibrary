@@ -309,8 +309,9 @@ export function ProfileView({
               <TrustBadge tier={user.trustTier} />
             </Box>
             <Typography variant="body2" color="text.secondary">
-              Complete your profile and return items on time to raise your
-              score.
+              {user.image && currentAddress
+                ? 'Return items on time to raise your score.'
+                : 'Complete your profile and return items on time to raise your score.'}
             </Typography>
           </Box>
         )}

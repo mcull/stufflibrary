@@ -72,8 +72,7 @@ export function ProfileStep1({
             mb: 4,
           }}
         >
-          Tell us your name and agree to a few community basics. You can add a
-          photo and your address in a minute.
+          A photo and your address can come later.
         </Typography>
 
         <Stack spacing={4}>
