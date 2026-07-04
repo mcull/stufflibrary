@@ -1,5 +1,4 @@
 import { Analytics } from '@vercel/analytics/next';
-import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata } from 'next';
 import { Roboto_Mono, Merriweather, Inter } from 'next/font/google';
 import localFont from 'next/font/local';
@@ -9,6 +8,7 @@ import { ConditionalFooter } from '@/components/ConditionalFooter';
 import { ConditionalHeader } from '@/components/ConditionalHeader';
 import { FloatingFeedbackFab } from '@/components/FloatingFeedbackFab';
 import { MainContentArea } from '@/components/MainContentArea';
+import { PostHogAnalytics } from '@/components/PostHogAnalytics';
 import { ProfileDraftCleanup } from '@/components/ProfileDraftCleanup';
 import NextAuthSessionProvider from '@/components/providers/session-provider';
 
@@ -102,7 +102,7 @@ export default function RootLayout({
           </ClientThemeProvider>
         </NextAuthSessionProvider>
         <Analytics />
-        <SpeedInsights />
+        <PostHogAnalytics />
       </body>
     </html>
   );
