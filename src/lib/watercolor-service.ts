@@ -351,7 +351,7 @@ Use descriptive, specific labels that would help someone identify the item for b
     Convert this item photo into a consistent watercolor illustration with an "analog librarian" feel.${deIdentificationText}
 
     Task: Transform the attached photo into a uniform watercolor illustration of the foreground item only.
-    Style: subtle ink linework and soft watercolor washes; paper color #F9F5EB (warm cream); slightly desaturated palette; no drop shadows; no background clutter; no visible people.
+    Style: subtle ink linework and soft watercolor washes; paper color warm cream (soft off-white); slightly desaturated palette; no drop shadows; no background clutter; no visible people.
     Composition: center the object on canvas with ~10% margin; maintain real-world orientation and proportions.
     Constraints: remove any text labels, faces, reflections of people, or household backgrounds. Keep proportions faithful, no cartoonification.
     
@@ -464,7 +464,7 @@ Use descriptive, specific labels that would help someone identify the item for b
       {
         text: `Create a 2-color, flat icon representing the item's category (${category}) based on this image.
     
-    Style: simplified silhouette/line in Ink Blue #1E3A5F on transparent background; no gradients; no text; no drop shadow.
+    Style: simplified silhouette/line in a deep navy ink blue on transparent background; no gradients; no text; no drop shadow.
     Canvas: 256×256 with 12–16% padding; keep the silhouette legible at 24×24.
     Output: PNG with transparency; clean vector-like appearance.`,
       },

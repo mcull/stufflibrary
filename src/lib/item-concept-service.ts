@@ -395,7 +395,8 @@ export class ItemConceptService {
   private buildGenerativePrompt(input: ConceptInput): string {
     const parts = [
       'Create a single product watercolor illustration with the signature StuffLibrary style.',
-      'Style: warm cream background (#F9F5EB), subtle ink outlines, soft watercolor washes, no text anywhere.',
+      'Style: warm cream background (soft off-white paper tone), subtle ink outlines, soft watercolor washes.',
+      'CRITICAL: no text, numbers, codes, labels, watermarks, or written characters anywhere in the image.',
       'Composition: center the item with generous margin, no shadows on the ground, no background clutter.',
     ];
 
