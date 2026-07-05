@@ -2,6 +2,7 @@ import { Resend } from 'resend';
 
 import { db } from './db';
 import { env } from './env';
+import { buildMagicSignInLink } from './magic-link';
 
 // Generate a 6-digit numeric code
 export function generateAuthCode(): string {
@@ -76,6 +77,29 @@ export async function sendAuthCode(email: string): Promise<void> {
   await storeAuthCode(email, code);
 
   const resend = new Resend(env.RESEND_API_KEY);
+  const magicLink = buildMagicSignInLink(
+    normalizeAuthEmail(email),
+    code,
+    process.env.NEXTAUTH_URL
+  );
+
+  // Magic-link-first: the button is the primary action; the code stays as the
+  // fallback for the cross-device case (requested on one device, email read
+  // on another — the code works anywhere, the button signs in this device).
+  const buttonBlock = magicLink
+    ? `
+        <div style="text-align: center; margin: 28px 0 8px;">
+          <a href="${magicLink}" style="display: inline-block; background-color: #1E3A5F; color: #ffffff; padding: 14px 36px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">
+            Tap to sign in
+          </a>
+        </div>
+        <p style="color: #6b7280; font-size: 14px; line-height: 1.5; text-align: center; margin-bottom: 24px;">
+          Signing in on a different device? Enter this code instead:
+        </p>`
+    : `
+        <p style="color: #333333; font-size: 16px; line-height: 1.5; margin-bottom: 24px;">
+          Enter this code to sign in to your StuffLibrary account:
+        </p>`;
 
   await resend.emails.send({
     from: 'StuffLibrary <noreply@stufflibrary.org>',
@@ -86,28 +110,26 @@ export async function sendAuthCode(email: string): Promise<void> {
         <div style="text-align: center; margin-bottom: 32px;">
           <h1 style="color: #1E3A5F; font-size: 24px; margin: 0;">StuffLibrary</h1>
         </div>
-        
-        <h2 style="color: #333333; font-size: 20px; margin-bottom: 16px;">Your sign-in code</h2>
-        
-        <p style="color: #333333; font-size: 16px; line-height: 1.5; margin-bottom: 24px;">
-          Enter this code to sign in to your StuffLibrary account:
-        </p>
-        
-        <div style="text-align: center; margin: 32px 0;">
+
+        <h2 style="color: #333333; font-size: 20px; margin-bottom: 16px;">Sign in to StuffLibrary</h2>
+        ${buttonBlock}
+        <div style="text-align: center; margin: 8px 0 32px;">
           <div style="display: inline-block; background-color: #f8f9fa; border: 2px solid #e9ecef; border-radius: 8px; padding: 16px 24px; font-family: 'Courier New', monospace; font-size: 32px; font-weight: bold; letter-spacing: 4px; color: #1E3A5F;">
             ${code}
           </div>
         </div>
-        
+
         <p style="color: #6b7280; font-size: 14px; line-height: 1.5;">
-          This code will expire in 10 minutes. If you didn't request this code, you can safely ignore this email.
+          The button and code expire in 10 minutes and work once. If you didn't request this, you can safely ignore this email.
         </p>
-        
+
         <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e9ecef; color: #6b7280; font-size: 12px;">
           Sent by StuffLibrary • Building stronger communities through sharing
         </div>
       </div>
     `,
-    text: `Your StuffLibrary sign-in code: ${code}\n\nEnter this code to sign in to your account. This code will expire in 10 minutes.`,
+    text: magicLink
+      ? `Sign in to StuffLibrary: ${magicLink}\n\nSigning in on a different device? Enter this code instead: ${code}\n\nThe link and code expire in 10 minutes and work once.`
+      : `Your StuffLibrary sign-in code: ${code}\n\nEnter this code to sign in to your account. This code will expire in 10 minutes.`,
   });
 }

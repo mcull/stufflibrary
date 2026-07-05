@@ -339,13 +339,14 @@ function SignInForm() {
                   lineHeight: 1.6,
                 }}
               >
-                We&apos;ve sent a 6-digit code to{' '}
+                We emailed a sign-in button and a 6-digit code to{' '}
                 <Box
                   component="span"
                   sx={{ fontWeight: 500, color: brandColors.inkBlue }}
                 >
                   {email}
                 </Box>
+                . Tap the button there, or enter the code here.
               </Typography>
 
               {error && (
