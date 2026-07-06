@@ -54,15 +54,21 @@ export interface Capabilities {
   concurrentBorrowLimit: number;
   atBorrowLimit: boolean;
   reasons: Partial<Record<GatedCapability, CapabilityReason>>;
+  /**
+   * Every completeness gap, in fill-in order — `reasons` names only the first
+   * one, so prompts use this to describe the whole (remaining) ask.
+   */
+  missingProfileFacts: CapabilityReason[];
 }
 
-/** First missing completeness signal, or undefined if the profile is full. */
-function completenessReason(f: CapabilityFacts): CapabilityReason | undefined {
-  if (!f.hasAcceptedTerms) return 'NEEDS_TERMS';
-  if (!f.hasName) return 'NEEDS_NAME';
-  if (!f.hasPhoto) return 'NEEDS_PHOTO';
-  if (!f.hasVerifiedAddress) return 'NEEDS_ADDRESS';
-  return undefined;
+/** All missing completeness signals, in fill-in order. */
+function completenessGaps(f: CapabilityFacts): CapabilityReason[] {
+  const gaps: CapabilityReason[] = [];
+  if (!f.hasAcceptedTerms) gaps.push('NEEDS_TERMS');
+  if (!f.hasName) gaps.push('NEEDS_NAME');
+  if (!f.hasPhoto) gaps.push('NEEDS_PHOTO');
+  if (!f.hasVerifiedAddress) gaps.push('NEEDS_ADDRESS');
+  return gaps;
 }
 
 export function getCapabilities(f: CapabilityFacts): Capabilities {
@@ -71,7 +77,8 @@ export function getCapabilities(f: CapabilityFacts): Capabilities {
   const atBorrowLimit = f.openBorrowCount >= concurrentBorrowLimit;
 
   const canEnter = f.hasName && f.hasAcceptedTerms;
-  const incomplete = completenessReason(f);
+  const missingProfileFacts = completenessGaps(f);
+  const incomplete = missingProfileFacts[0];
   const isFull = incomplete === undefined;
 
   // Solo setup (create a library, add your own items) only needs minimal
@@ -105,6 +112,7 @@ export function getCapabilities(f: CapabilityFacts): Capabilities {
     concurrentBorrowLimit,
     atBorrowLimit,
     reasons,
+    missingProfileFacts,
   };
 }
 

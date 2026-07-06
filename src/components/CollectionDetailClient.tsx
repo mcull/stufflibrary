@@ -1885,6 +1885,7 @@ export function CollectionDetailClient({
       {/* Just-in-time prompt when a member can't yet invite */}
       <CompleteProfilePrompt
         reason={invitePromptReason}
+        missing={libCapabilities?.missingProfileFacts}
         open={invitePromptReason !== null}
         onClose={() => setInvitePromptReason(null)}
       />

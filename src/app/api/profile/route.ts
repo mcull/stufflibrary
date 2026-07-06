@@ -58,12 +58,12 @@ export async function POST(request: NextRequest) {
     if (userId) {
       user = await db.user.findUnique({
         where: { id: userId },
-        select: { id: true },
+        select: { id: true, currentAddressId: true },
       });
     } else if (session.user?.email) {
       user = await db.user.findUnique({
         where: { email: session.user.email },
-        select: { id: true },
+        select: { id: true, currentAddressId: true },
       });
     }
 
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
           name: session.user.name || null,
           image: session.user.image || null,
         },
-        select: { id: true },
+        select: { id: true, currentAddressId: true },
       });
     }
 
@@ -109,16 +109,32 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    if (
-      !validatedData.parsedAddress?.address1 ||
-      !validatedData.parsedAddress?.city ||
-      !validatedData.parsedAddress?.state ||
-      !validatedData.parsedAddress?.zip
-    ) {
-      return NextResponse.json(
-        { error: 'A verified address is required to complete your profile' },
-        { status: 400 }
+    const hasNewParsedAddress = Boolean(
+      validatedData.parsedAddress?.address1 &&
+        validatedData.parsedAddress?.city &&
+        validatedData.parsedAddress?.state &&
+        validatedData.parsedAddress?.zip
+    );
+
+    // No new address in the submit is fine when a verified one is already on
+    // file (e.g. a "just add the photo" continuation) — keep it. Otherwise a
+    // full profile still requires a verified address.
+    if (!hasNewParsedAddress) {
+      const existingAddress = user.currentAddressId
+        ? await db.address.findUnique({
+            where: { id: user.currentAddressId },
+            select: { isActive: true, verificationMethod: true },
+          })
+        : null;
+      const hasVerifiedAddress = Boolean(
+        existingAddress?.isActive && existingAddress.verificationMethod
       );
+      if (!hasVerifiedAddress) {
+        return NextResponse.json(
+          { error: 'A verified address is required to complete your profile' },
+          { status: 400 }
+        );
+      }
     }
 
     // Use a transaction to create address and update user
@@ -126,13 +142,8 @@ export async function POST(request: NextRequest) {
       let addressId = null;
 
       // Create address record if we have parsed address data
-      if (
-        validatedData.parsedAddress &&
-        validatedData.parsedAddress.address1 &&
-        validatedData.parsedAddress.city &&
-        validatedData.parsedAddress.state &&
-        validatedData.parsedAddress.zip
-      ) {
+      const parsed = validatedData.parsedAddress;
+      if (hasNewParsedAddress && parsed) {
         // Deactivate any existing active addresses for this user
         await tx.address.updateMany({
           where: { userId: user.id, isActive: true },
@@ -143,17 +154,16 @@ export async function POST(request: NextRequest) {
         const newAddress = await tx.address.create({
           data: {
             userId: user.id,
-            address1: validatedData.parsedAddress.address1!,
-            address2: validatedData.parsedAddress.address2 || '',
-            city: validatedData.parsedAddress.city!,
-            state: validatedData.parsedAddress.state!,
-            zip: validatedData.parsedAddress.zip!,
-            country: validatedData.parsedAddress.country || 'US',
-            latitude: validatedData.parsedAddress.latitude ?? null,
-            longitude: validatedData.parsedAddress.longitude ?? null,
-            formattedAddress:
-              validatedData.parsedAddress.formatted_address ?? null,
-            placeId: validatedData.parsedAddress.place_id ?? null,
+            address1: parsed.address1!,
+            address2: parsed.address2 || '',
+            city: parsed.city!,
+            state: parsed.state!,
+            zip: parsed.zip!,
+            country: parsed.country || 'US',
+            latitude: parsed.latitude ?? null,
+            longitude: parsed.longitude ?? null,
+            formattedAddress: parsed.formatted_address ?? null,
+            placeId: parsed.place_id ?? null,
             verificationMethod: 'google_places',
             isActive: true,
           },
@@ -171,7 +181,9 @@ export async function POST(request: NextRequest) {
           shareInterests: validatedData.shareInterests,
           borrowInterests: validatedData.borrowInterests,
           image: validatedData.image ?? null,
-          currentAddressId: addressId,
+          // Only repoint when this submit created a new address; otherwise the
+          // existing verified address stays current.
+          ...(addressId ? { currentAddressId: addressId } : {}),
           profileCompleted: true,
           onboardingStep: 'complete',
           agreedToTermsAt: new Date(),

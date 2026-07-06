@@ -12,59 +12,34 @@ import {
   Tooltip,
 } from '@mui/material';
 import { signOut } from 'next-auth/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { FieldErrors } from 'react-hook-form';
 import { useForm, FormProvider } from 'react-hook-form';
-import { z } from 'zod';
 
 import { brandColors } from '@/theme/brandTokens';
 
 import { ProfileStep1 } from './profile-wizard/ProfileStep1';
 import { ProfileStep2 } from './profile-wizard/ProfileStep2';
 import { ProfileStep3 } from './profile-wizard/ProfileStep3';
+import {
+  profileFormSchema,
+  profileSchemaFor,
+  wizardStepPlan,
+  type ProfileFormData,
+} from './profile-wizard/wizardPlan';
 import { Wordmark } from './Wordmark';
 
-const profileSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  address: z.string().min(1, 'Address is required to find your neighbors'),
-  bio: z.string().optional(),
-  // Optional at the schema level: photo and address are solicited as separate
-  // steps, so a focused "add address only" edit can submit without a File
-  // (the photo step's button gating + capability checks enforce having one for
-  // full-profile actions). When present it must be a valid image.
-  profilePicture: z
-    .instanceof(File)
-    .refine(
-      (file) => file.size <= 10 * 1024 * 1024, // 10MB limit
-      'Profile picture must be less than 10MB'
-    )
-    .refine(
-      (file) =>
-        ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(
-          file.type
-        ),
-      'Profile picture must be a JPEG, PNG, or WebP image'
-    )
-    .optional(),
-  profilePictureUrl: z.string().optional(),
-  agreedToHouseholdGoods: z.boolean(),
-  agreedToTrustAndCare: z.boolean(),
-  agreedToCommunityValues: z.boolean(),
-  agreedToAgeRestrictions: z.boolean(),
-  agreedToTerms: z.boolean(),
-  // Store parsed address data from Google Places
-  parsedAddress: z.any().optional(),
-});
-
-export type ProfileFormData = z.infer<typeof profileSchema>;
+export type { ProfileFormData } from './profile-wizard/wizardPlan';
 
 // Name + agreements, then photo, then address — each solicited separately so a
 // just-in-time prompt can drop the user straight into the one they need.
-const steps = [
-  { label: 'Get started', component: ProfileStep1 },
-  { label: 'Add a photo', component: ProfileStep2 },
-  { label: 'Add your address', component: ProfileStep3 },
-];
+// Which of these actually run comes from wizardStepPlan (a user with a
+// verified address on file never sees the address step again).
+const STEP_DEFS = {
+  entry: { label: 'Get started', component: ProfileStep1 },
+  photo: { label: 'Add a photo', component: ProfileStep2 },
+  address: { label: 'Add your address', component: ProfileStep3 },
+} as const;
 
 export type ProfileSubmitMode = 'minimal' | 'full';
 
@@ -73,6 +48,12 @@ interface ProfileWizardProps {
   initialData?: Partial<ProfileFormData>;
   initialStep?: number;
   isSubmittingMinimal?: boolean;
+  /**
+   * The user already has a verified address on file: skip the address step
+   * and let the full submit go out without one (the API keeps the current
+   * address in that case).
+   */
+  hasVerifiedAddress?: boolean;
   /** When provided, shows a "close" affordance that exits back to the app. */
   onExit?: () => void;
   user?:
@@ -121,6 +102,7 @@ export function ProfileWizard({
   initialData,
   initialStep,
   isSubmittingMinimal,
+  hasVerifiedAddress = false,
   onExit,
   user,
 }: ProfileWizardProps) {
@@ -130,8 +112,20 @@ export function ProfileWizard({
     string | null
   >(null);
 
+  const plan = useMemo(
+    () => wizardStepPlan({ hasVerifiedAddress }),
+    [hasVerifiedAddress]
+  );
+  const steps = useMemo(() => plan.map((key) => STEP_DEFS[key]), [plan]);
+  const schema = useMemo(
+    () => profileSchemaFor({ hasVerifiedAddress }),
+    [hasVerifiedAddress]
+  );
+
   const methods = useForm<ProfileFormData>({
-    resolver: zodResolver(profileSchema),
+    // The relaxed variant (address optional when one is on file) parses a
+    // subset of the strict shape, so the resolver typing stays the strict one.
+    resolver: zodResolver(schema as typeof profileFormSchema),
     defaultValues: {
       name: '',
       address: '',
@@ -229,6 +223,15 @@ export function ProfileWizard({
   }, [methods, initialData, user?.email]);
 
   const handleNext = async () => {
+    // When the plan ends here (address step skipped), "next" is the submit.
+    if (activeStep === steps.length - 1) {
+      await handleSubmit(
+        handleComplete as (data: ProfileFormData) => void,
+        handleInvalid
+      )();
+      return;
+    }
+
     const fieldsToValidate = getFieldsForStep(activeStep);
     const isStepValid = await trigger(fieldsToValidate);
 
@@ -302,8 +305,8 @@ export function ProfileWizard({
   };
 
   function getFieldsForStep(step: number): (keyof ProfileFormData)[] {
-    switch (step) {
-      case 0:
+    switch (plan[step]) {
+      case 'entry':
         return [
           'name',
           'agreedToHouseholdGoods',
@@ -312,11 +315,11 @@ export function ProfileWizard({
           'agreedToAgeRestrictions',
           'agreedToTerms',
         ];
-      case 1:
+      case 'photo':
         // Photo step advances via its own button gating (which also accepts an
         // already-saved photo URL, not just a freshly-uploaded File).
         return [];
-      case 2:
+      case 'address':
         return ['address'];
       default:
         return [];
@@ -427,7 +430,9 @@ export function ProfileWizard({
             >
               {activeStep === 0
                 ? 'Just your name and a few community basics — it takes less than a minute.'
-                : "Add a photo and your address so neighbors know who they're sharing with."}
+                : hasVerifiedAddress
+                  ? "Add a photo so neighbors know who they're sharing with."
+                  : "Add a photo and your address so neighbors know who they're sharing with."}
             </Typography>
           </Box>
         </Box>

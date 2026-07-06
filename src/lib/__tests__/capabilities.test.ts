@@ -17,6 +17,39 @@ const full: CapabilityFacts = {
   isLibraryOwnerOrAdmin: false,
 };
 
+describe('getCapabilities — missingProfileFacts', () => {
+  it('empty for a full profile', () => {
+    expect(getCapabilities(full).missingProfileFacts).toEqual([]);
+  });
+  it('lists photo and address when both are missing, in fill-in order', () => {
+    const c = getCapabilities({
+      ...full,
+      hasPhoto: false,
+      hasVerifiedAddress: false,
+    });
+    expect(c.missingProfileFacts).toEqual(['NEEDS_PHOTO', 'NEEDS_ADDRESS']);
+  });
+  it('lists only the address when the photo is already set', () => {
+    const c = getCapabilities({ ...full, hasVerifiedAddress: false });
+    expect(c.missingProfileFacts).toEqual(['NEEDS_ADDRESS']);
+  });
+  it('includes terms and name gaps first', () => {
+    const c = getCapabilities({
+      ...full,
+      hasName: false,
+      hasAcceptedTerms: false,
+      hasPhoto: false,
+      hasVerifiedAddress: false,
+    });
+    expect(c.missingProfileFacts).toEqual([
+      'NEEDS_TERMS',
+      'NEEDS_NAME',
+      'NEEDS_PHOTO',
+      'NEEDS_ADDRESS',
+    ]);
+  });
+});
+
 describe('getCapabilities — completeness axis', () => {
   it('minimal profile (name + terms) can enter, create a library, and add items — but not borrow', () => {
     const c = getCapabilities({

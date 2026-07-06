@@ -1631,6 +1631,7 @@ export function ItemDetailClient({
       {/* Just-in-time complete-profile prompt for a locked borrow */}
       <CompleteProfilePrompt
         reason={borrowPromptReason}
+        missing={capabilities?.missingProfileFacts}
         open={borrowPromptReason !== null}
         onClose={() => setBorrowPromptReason(null)}
       />

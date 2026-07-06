@@ -44,7 +44,11 @@ interface ImageVerificationResult {
   confidence: 'high' | 'medium' | 'low';
 }
 
-export function ProfileStep2({ onNext, onCancel }: ProfileStep2Props) {
+export function ProfileStep2({
+  onNext,
+  onCancel,
+  isLastStep,
+}: ProfileStep2Props) {
   const {
     register,
     setValue,
@@ -455,7 +459,8 @@ export function ProfileStep2({ onNext, onCancel }: ProfileStep2Props) {
         </Stack>
       </Box>
 
-      {/* Navigation: Cancel / Continue (address comes next) */}
+      {/* Navigation: Cancel / Continue (address next) — or Done when the
+          address step is skipped and the photo finishes the card. */}
       <Box
         sx={{
           pt: 2,
@@ -486,7 +491,7 @@ export function ProfileStep2({ onNext, onCancel }: ProfileStep2Props) {
           variant="contained"
           onClick={onNext}
           disabled={!canContinue}
-          endIcon={<ArrowForward />}
+          endIcon={isLastStep ? undefined : <ArrowForward />}
           fullWidth
           sx={{
             py: 1.5,
@@ -507,7 +512,7 @@ export function ProfileStep2({ onNext, onCancel }: ProfileStep2Props) {
             transition: 'all 0.2s ease',
           }}
         >
-          Continue
+          {isLastStep ? 'Done' : 'Continue'}
         </Button>
       </Box>
     </Box>
