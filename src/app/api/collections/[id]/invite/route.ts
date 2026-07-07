@@ -6,6 +6,7 @@ import { Resend } from 'resend';
 
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { buildLibraryInviteEmail } from '@/lib/invite-email';
 import { getUserCapabilities } from '@/lib/user-capabilities';
 
 export async function POST(
@@ -258,50 +259,41 @@ export async function POST(
     // Send invitation email (email mode only, or if explicitly requested)
     if (mode === 'email' && sendEmail) {
       try {
+        // The email leads with the library's own item watercolors when it has
+        // any (#412); stock art covers empty shelves.
+        const artItems = await db.item.findMany({
+          where: {
+            collections: { some: { collectionId: libraryId } },
+            active: true,
+            OR: [
+              { watercolorThumbUrl: { not: null } },
+              { watercolorUrl: { not: null } },
+            ],
+          },
+          select: { name: true, watercolorThumbUrl: true, watercolorUrl: true },
+          orderBy: { createdAt: 'desc' },
+          take: 3,
+        });
+        const itemWatercolors = artItems.map((i) => ({
+          url: (i.watercolorThumbUrl || i.watercolorUrl)!,
+          name: i.name,
+        }));
+
+        const { subject, html } = buildLibraryInviteEmail({
+          libraryName: invitation.collection?.name || 'a library',
+          senderName: invitation.sender?.name,
+          shareLink,
+          description:
+            (library as { description?: string | null }).description ?? null,
+          itemWatercolors,
+        });
+
         const resend = new Resend(process.env.RESEND_API_KEY);
         await resend.emails.send({
           from: 'StuffLibrary <invites@stufflibrary.org>',
           to: [email!],
-          subject: `You're invited to join ${invitation.collection?.name} on StuffLibrary!`,
-          html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #2563eb; font-size: 28px; margin: 0;">StuffLibrary</h1>
-              <p style="color: #6b7280; font-size: 16px; margin: 5px 0 0 0;">Share more, buy less</p>
-            </div>
-            
-            <h2 style="color: #1f2937; font-size: 24px; margin-bottom: 20px;">
-              You're invited to join ${invitation.collection?.name}!
-            </h2>
-            
-            <p style="font-size: 16px; line-height: 1.5; color: #374151; margin-bottom: 20px;">
-              ${invitation.sender?.name || 'Someone'} has invited you to join their library on StuffLibrary.
-            </p>
-            
-            <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
-              <h3 style="margin: 0 0 10px 0; color: #1f2937; font-size: 18px;">${invitation.collection?.name}</h3>
-              ${invitation.collection?.location ? `<p style="margin: 0; color: #6b7280;">📍 ${invitation.collection.location}</p>` : ''}
-            </div>
-            
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${shareLink}" 
-                 style="background-color: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; display: inline-block;">
-                Join ${invitation.collection?.name}
-              </a>
-            </div>
-            
-            <p style="font-size: 14px; color: #6b7280; margin-bottom: 10px;">
-              This invitation will expire in 7 days. If you don't have a StuffLibrary account, one will be created for you automatically.
-            </p>
-            
-            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 25px 0;">
-            
-            <p style="font-size: 12px; color: #9ca3af; text-align: center;">
-              StuffLibrary - Building sharing communities, one neighborhood at a time.<br>
-              If you didn't expect this invitation, you can safely ignore this email.
-            </p>
-          </div>
-        `,
+          subject,
+          html,
         });
 
         // Update invitation status to SENT
