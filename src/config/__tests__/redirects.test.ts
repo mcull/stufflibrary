@@ -21,6 +21,13 @@ describe('legacyRedirects (#399 URL consolidation)', () => {
     });
   });
 
+  it('sends the dead add-to-collection picker alias to add-to-library (#411)', () => {
+    expect(bySource['/stuff/m/add-to-collection/:path*']).toMatchObject({
+      destination: '/stuff/m/add-to-library/:path*',
+      permanent: true,
+    });
+  });
+
   it('sends the even-older /branch alias to /library too', () => {
     expect(bySource['/branch/:path*']).toMatchObject({
       destination: '/library/:path*',
