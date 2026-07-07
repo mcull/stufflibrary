@@ -238,6 +238,7 @@ export class ItemConceptService {
         originalImageBuffer: imageBuffer,
         originalImageName: `concept-${conceptRecord.id}.jpg`,
         mimeType: contentType,
+        storeOriginal: true,
       });
 
       const updated = await this.prisma.itemConcept.update({
@@ -245,7 +246,7 @@ export class ItemConceptService {
         data: {
           watercolorUrl: watercolor.watercolorUrl,
           watercolorThumbUrl: watercolor.watercolorThumbUrl,
-          originalImageUrl: watercolor.originalUrl,
+          originalImageUrl: watercolor.originalUrl ?? null,
           generatedDetails: image.title
             ? ({ title: image.title } as Prisma.InputJsonValue)
             : Prisma.JsonNull,
@@ -347,6 +348,7 @@ export class ItemConceptService {
         originalImageBuffer: buffer,
         originalImageName: `concept-${conceptRecord.id}.webp`,
         mimeType: imagePart.inlineData.mimeType || 'image/webp',
+        storeOriginal: true,
       });
 
       const updated = await this.prisma.itemConcept.update({
@@ -354,7 +356,7 @@ export class ItemConceptService {
         data: {
           watercolorUrl: watercolor.watercolorUrl,
           watercolorThumbUrl: watercolor.watercolorThumbUrl,
-          originalImageUrl: watercolor.originalUrl,
+          originalImageUrl: watercolor.originalUrl ?? null,
           generatedDetails: {
             prompt,
             flags: watercolor.flags,
