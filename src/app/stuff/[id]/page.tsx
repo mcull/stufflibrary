@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 
 import { ItemDetailClient } from '@/components/ItemDetailClient';
 import { authOptions } from '@/lib/auth';
+import { db } from '@/lib/db';
 
 interface ItemPageProps {
   params: Promise<{ id: string }>;
@@ -27,12 +28,22 @@ export default async function ItemPage({
   const refLibraryId =
     (resolvedSearchParams?.lib as string | undefined) ?? null;
 
+  // Resolve the referring library's name so the breadcrumb reads
+  // "Home / Libraries / Audit Test Shelf / …" instead of "Current Library".
+  const refLibrary = refLibraryId
+    ? await db.collection.findUnique({
+        where: { id: refLibraryId },
+        select: { name: true },
+      })
+    : null;
+
   return (
     <ItemDetailClient
       itemId={itemId}
       isNewItem={isNewItem}
       refSource={refSource}
       refLibraryId={refLibraryId}
+      refLibraryName={refLibrary?.name ?? null}
     />
   );
 }

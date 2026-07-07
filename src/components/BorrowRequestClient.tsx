@@ -51,6 +51,7 @@ interface BorrowRequestClientProps {
   item: Item;
   refSource?: 'library' | 'mystuff' | null;
   refLibraryId?: string | null;
+  refLibraryName?: string | null;
 }
 
 type RequestState =
@@ -67,6 +68,7 @@ export function BorrowRequestClient({
   item,
   refSource = null,
   refLibraryId = null,
+  refLibraryName = null,
 }: BorrowRequestClientProps) {
   const router = useRouter();
 
@@ -1207,7 +1209,7 @@ export function BorrowRequestClient({
                 '&:hover': { textDecoration: 'underline' },
               }}
             >
-              Current Library
+              {refLibraryName || 'Library'}
             </Typography>
             <Typography component="span" sx={{ opacity: 0.4, mx: 1 }}>
               /

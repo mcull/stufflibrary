@@ -72,11 +72,20 @@ export default async function BorrowRequestPage({
     redirect(`/stuff/${itemId}`);
   }
 
+  // Resolve the referring library's name for the breadcrumb.
+  const refLibrary = refLibraryId
+    ? await db.collection.findUnique({
+        where: { id: refLibraryId },
+        select: { name: true },
+      })
+    : null;
+
   return (
     <BorrowRequestClient
       item={item}
       refSource={refSource}
       refLibraryId={refLibraryId}
+      refLibraryName={refLibrary?.name ?? null}
     />
   );
 }

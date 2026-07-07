@@ -150,6 +150,7 @@ export function CollectionCreationModal({
           {/* Library Name */}
           <TextField
             fullWidth
+            autoFocus
             label="Library Name"
             placeholder="e.g., Family Sharing Circle, Neighbors Tool Library"
             value={formData.name}

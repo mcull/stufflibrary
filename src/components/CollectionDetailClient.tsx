@@ -1862,7 +1862,7 @@ export function CollectionDetailClient({
               <ArchiveIcon fontSize="small" sx={{ color: 'error.main' }} />
             </ListItemIcon>
             <ListItemText
-              primary="Archive Collection"
+              primary="Archive Library"
               secondary="Hide from public view"
             />
           </MenuItem>

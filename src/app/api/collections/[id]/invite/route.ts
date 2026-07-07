@@ -275,7 +275,7 @@ export async function POST(
             </h2>
             
             <p style="font-size: 16px; line-height: 1.5; color: #374151; margin-bottom: 20px;">
-              ${invitation.sender?.name || 'Someone'} has invited you to join their sharing community on StuffLibrary.
+              ${invitation.sender?.name || 'Someone'} has invited you to join their library on StuffLibrary.
             </p>
             
             <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
