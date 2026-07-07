@@ -18,4 +18,10 @@ export const legacyRedirects = [
     destination: '/library/:path*',
     permanent: true,
   },
+  // #411: the pre-naming-ladder picker route was a full duplicate page.
+  {
+    source: '/stuff/m/add-to-collection/:path*',
+    destination: '/stuff/m/add-to-library/:path*',
+    permanent: true,
+  },
 ];

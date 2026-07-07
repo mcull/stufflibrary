@@ -24,6 +24,7 @@ import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
 import { useUserItems } from '@/hooks/useUserItems';
+import { pickerView } from '@/lib/add-item-flow';
 import { brandColors } from '@/theme/brandTokens';
 
 interface LibraryInfo {
@@ -45,6 +46,8 @@ export default function AddToLibraryPage() {
 
   const {
     readyToLendItems,
+    onLoanItems,
+    offlineItems,
     isLoading: itemsLoading,
     error: itemsError,
   } = useUserItems();
@@ -74,6 +77,20 @@ export default function AddToLibraryPage() {
   const availableItems = [...readyToLendItems].filter(
     (item) => !(item as any).currentBorrowRequestId
   );
+  const ownedCount =
+    readyToLendItems.length + onLoanItems.length + offlineItems.length;
+  const view = pickerView({
+    ownedCount,
+    availableCount: availableItems.length,
+  });
+
+  // A first-item user has nothing to pick — skip the picker entirely and
+  // open the camera with this library as the destination (#411).
+  useEffect(() => {
+    if (!itemsLoading && view === 'camera') {
+      router.replace(`/add-item?library=${libraryId}`);
+    }
+  }, [itemsLoading, view, router, libraryId]);
 
   const isInThisLibrary = (item: any) => {
     const libs: Array<{ id: string }> = (item as any).libraries || [];
@@ -118,7 +135,8 @@ export default function AddToLibraryPage() {
     return null;
   }
 
-  if (itemsLoading || !library) {
+  if (itemsLoading || !library || view === 'camera') {
+    // (view === 'camera' keeps the spinner up while the redirect effect runs.)
     return (
       <Container maxWidth="lg" sx={{ py: 4, textAlign: 'center' }}>
         <CircularProgress size={48} />
@@ -164,21 +182,22 @@ export default function AddToLibraryPage() {
       {availableItems.length === 0 ? (
         <Box sx={{ textAlign: 'center', py: 6 }}>
           <Typography variant="h6" gutterBottom>
-            No available items to share
+            Nothing free to add right now
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            All your items are either already shared or currently unavailable.
+            Everything in My Stuff is checked out or offline at the moment — but
+            you can always add something new.
           </Typography>
           <Stack direction="row" spacing={2} justifyContent="center">
             <Button
               variant="contained"
-              onClick={() => router.push('/add-item')}
+              onClick={() => router.push(`/add-item?library=${libraryId}`)}
               sx={{
                 bgcolor: brandColors.inkBlue,
                 '&:hover': { bgcolor: '#1a2f4f' },
               }}
             >
-              Create New Item
+              Add Something New
             </Button>
             <Button
               variant="outlined"
