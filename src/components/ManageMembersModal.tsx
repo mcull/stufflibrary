@@ -34,8 +34,12 @@ import {
   Select,
   MenuItem,
 } from '@mui/material';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
 
+import { useCapabilities } from '@/hooks/useCapabilities';
+import { inviteGateCopy } from '@/lib/capability-copy';
 import { brandColors } from '@/theme/brandTokens';
 
 interface ManageMembersModalProps {
@@ -98,6 +102,15 @@ export function ManageMembersModal({
   });
   const [activeTab, setActiveTab] = useState(initialTab);
   const [email, setEmail] = useState('');
+  const pathname = usePathname();
+  // Know the invite gate BEFORE the user hits a dead button (#410). The
+  // server 403 remains the authority; this is the up-front explanation.
+  const { capabilities } = useCapabilities(collectionId);
+  const inviteGate = inviteGateCopy(capabilities);
+  const inviteGateHref =
+    inviteGate?.href && pathname
+      ? `${inviteGate.href}&returnTo=${encodeURIComponent(pathname)}`
+      : inviteGate?.href;
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -684,6 +697,32 @@ export function ManageMembersModal({
         {/* +Add Tab (combined invite form + pending list) */}
         {activeTab === 1 && (userRole === 'owner' || userRole === 'admin') && (
           <Box component="section">
+            {/* Invite gate (#410): explain what's blocking — with the fix one
+                tap away — instead of a dead button and a distant error. */}
+            {inviteGate && (
+              <Alert
+                severity="info"
+                sx={{ mb: 3, borderRadius: 1, alignItems: 'center' }}
+                action={
+                  inviteGateHref ? (
+                    <Button
+                      component={Link}
+                      href={inviteGateHref}
+                      variant="contained"
+                      size="small"
+                      onClick={onClose}
+                    >
+                      {inviteGate.cta}
+                    </Button>
+                  ) : undefined
+                }
+              >
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {inviteGate.title}
+                </Typography>
+                <Typography variant="body2">{inviteGate.body}</Typography>
+              </Alert>
+            )}
             <Box
               sx={{
                 p: 2,
@@ -704,7 +743,7 @@ export function ManageMembersModal({
                 <Button
                   variant="contained"
                   size="small"
-                  disabled={shareLoading}
+                  disabled={shareLoading || Boolean(inviteGate)}
                   onClick={async () => {
                     try {
                       setShareLoading(true);
@@ -818,7 +857,7 @@ export function ManageMembersModal({
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="friend@example.com"
                   required
-                  disabled={isLoading}
+                  disabled={isLoading || Boolean(inviteGate)}
                   InputProps={{
                     startAdornment: (
                       <EmailIcon sx={{ mr: 1, color: 'text.secondary' }} />
@@ -850,7 +889,7 @@ export function ManageMembersModal({
               <Button
                 type="submit"
                 variant="contained"
-                disabled={isLoading || !email.trim()}
+                disabled={isLoading || !email.trim() || Boolean(inviteGate)}
                 startIcon={
                   isLoading ? <CircularProgress size={16} /> : <SendIcon />
                 }

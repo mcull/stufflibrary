@@ -1,4 +1,4 @@
-import type { CapabilityReason } from './capabilities';
+import type { Capabilities, CapabilityReason } from './capabilities';
 
 export interface CapabilityCopy {
   title: string;
@@ -74,4 +74,20 @@ export function capabilityCopy(
         cta: 'Got it',
       };
   }
+}
+
+/**
+ * Copy for the invite surface when inviting is gated (#410): tells the user
+ * up front — with a way to fix it — instead of letting them hit a dead
+ * button and a distant error banner. Null while capabilities are loading
+ * (server enforcement remains the authority) and when inviting is allowed.
+ */
+export function inviteGateCopy(
+  caps: Capabilities | null
+): CapabilityCopy | null {
+  if (!caps || caps.canInvite) return null;
+  return capabilityCopy(
+    caps.reasons.canInvite ?? 'NEEDS_PHOTO',
+    caps.missingProfileFacts
+  );
 }
