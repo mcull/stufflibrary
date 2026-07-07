@@ -199,8 +199,9 @@ export async function POST(request: NextRequest) {
     if (!caps.canCreateLibrary) {
       return NextResponse.json(
         {
+          // canCreateLibrary only needs minimal entry (name + terms) — #380.
           error:
-            'Complete your profile (photo + verified address) to create a library.',
+            'Add your name and accept the community terms to create a library.',
           reason: caps.reasons.canCreateLibrary,
         },
         { status: 403 }

@@ -7,6 +7,7 @@ const mockUserUpdate = vi.hoisted(() => vi.fn());
 const mockUserCreate = vi.hoisted(() => vi.fn());
 const mockGetServerSession = vi.hoisted(() => vi.fn());
 const mockGetUserCapabilities = vi.hoisted(() => vi.fn());
+const mockAddressFindUnique = vi.hoisted(() => vi.fn());
 
 vi.mock('@/lib/db', () => ({
   db: {
@@ -15,7 +16,11 @@ vi.mock('@/lib/db', () => ({
       update: mockUserUpdate,
       create: mockUserCreate,
     },
-    address: { updateMany: vi.fn(), create: vi.fn() },
+    address: {
+      updateMany: vi.fn(),
+      create: vi.fn(),
+      findUnique: mockAddressFindUnique,
+    },
     $transaction: async (fn: any) =>
       fn({
         address: {
@@ -98,6 +103,50 @@ describe('POST /api/profile full mode persists terms', () => {
     expect(data.profileCompleted).toBe(true);
     expect(data.agreedToTermsAt).toBeInstanceOf(Date);
     expect(data.agreedTermsVersion).toBe(TERMS_VERSION);
+  });
+});
+
+describe('POST /api/profile full mode with an existing verified address', () => {
+  it('accepts a submit without parsedAddress and keeps the current address', async () => {
+    mockUserFindUnique.mockResolvedValue({
+      id: 'u1',
+      currentAddressId: 'addr1',
+      addresses: [],
+    });
+    mockAddressFindUnique.mockResolvedValue({
+      isActive: true,
+      verificationMethod: 'google_places',
+    });
+    const res = await POST(req({ name: 'Jo', agreedToTerms: true }));
+    expect(res.status).toBe(200);
+    const data = mockUserUpdate.mock.calls[0]![0].data;
+    expect(data.profileCompleted).toBe(true);
+    // Must NOT overwrite the existing address pointer.
+    expect('currentAddressId' in data).toBe(false);
+  });
+
+  it('still rejects (400) when there is no verified address to fall back on', async () => {
+    mockUserFindUnique.mockResolvedValue({
+      id: 'u1',
+      currentAddressId: null,
+      addresses: [],
+    });
+    const res = await POST(req({ name: 'Jo', agreedToTerms: true }));
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects (400) when the current address exists but is inactive', async () => {
+    mockUserFindUnique.mockResolvedValue({
+      id: 'u1',
+      currentAddressId: 'addr1',
+      addresses: [],
+    });
+    mockAddressFindUnique.mockResolvedValue({
+      isActive: false,
+      verificationMethod: 'google_places',
+    });
+    const res = await POST(req({ name: 'Jo', agreedToTerms: true }));
+    expect(res.status).toBe(400);
   });
 });
 

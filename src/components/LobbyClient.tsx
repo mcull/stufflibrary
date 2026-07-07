@@ -964,6 +964,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
       {/* Just-in-time complete-profile prompt for locked actions */}
       <CompleteProfilePrompt
         reason={promptReason}
+        missing={capabilities?.missingProfileFacts}
         open={promptReason !== null}
         onClose={() => setPromptReason(null)}
       />

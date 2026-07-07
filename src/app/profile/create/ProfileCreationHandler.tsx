@@ -5,6 +5,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import {
+  continuationStepIndex,
+  wizardStepPlan,
+} from '@/components/profile-wizard/wizardPlan';
+import {
   ProfileWizard,
   type ProfileFormData,
   type ProfileSubmitMode,
@@ -36,6 +40,9 @@ export function ProfileCreationHandler({
   const [loadingUser, setLoadingUser] = useState(false);
   const [userId, setUserId] = useState<string | undefined>(userIdProp);
   const [user, setUser] = useState<typeof userProp>(userProp);
+  // Conservative default: until capabilities load, assume the address is
+  // still needed (worst case the user sees a step they could have skipped).
+  const [hasVerifiedAddress, setHasVerifiedAddress] = useState(false);
   const searchParams = useSearchParams();
 
   // Ensure we have the current user and id; redirect if unauthorized
@@ -63,6 +70,12 @@ export function ProfileCreationHandler({
           createdAt: data.user?.createdAt,
           profileCompleted: !!data.user?.profileCompleted,
         });
+        // Skip the address step for users whose verified address is already
+        // on file — the wizard shouldn't re-ask for what it already has.
+        const missing: unknown = data.capabilities?.missingProfileFacts;
+        if (Array.isArray(missing)) {
+          setHasVerifiedAddress(!missing.includes('NEEDS_ADDRESS'));
+        }
       } catch {
         // ignore
       } finally {
@@ -206,14 +219,10 @@ export function ProfileCreationHandler({
   const continueMode = Boolean(searchParams?.get('continue'));
   const requestedField = searchParams?.get('field');
   const hasPhoto = Boolean(user?.image);
-  const continuationStep =
-    requestedField === 'address'
-      ? 2
-      : requestedField === 'photo'
-        ? 1
-        : hasPhoto
-          ? 2
-          : 1;
+  const continuationStep = continuationStepIndex(
+    wizardStepPlan({ hasVerifiedAddress }),
+    { requestedField: requestedField ?? null, hasPhoto }
+  );
 
   return (
     <>
@@ -238,6 +247,7 @@ export function ProfileCreationHandler({
           onComplete={handleProfileComplete}
           user={user}
           isSubmittingMinimal={isSubmittingMinimal}
+          hasVerifiedAddress={hasVerifiedAddress}
           {...(continueMode
             ? {
                 initialStep: continuationStep,

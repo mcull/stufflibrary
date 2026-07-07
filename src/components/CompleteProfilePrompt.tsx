@@ -16,6 +16,11 @@ import { capabilityCopy } from '@/lib/capability-copy';
 
 interface CompleteProfilePromptProps {
   reason: CapabilityReason | null | undefined;
+  /**
+   * Full gap set (`Capabilities.missingProfileFacts`) so the copy asks only
+   * for what's actually missing; omit to fall back to the whole-ask wording.
+   */
+  missing?: CapabilityReason[] | undefined;
   open: boolean;
   onClose: () => void;
 }
@@ -26,13 +31,14 @@ interface CompleteProfilePromptProps {
  */
 export function CompleteProfilePrompt({
   reason,
+  missing,
   open,
   onClose,
 }: CompleteProfilePromptProps) {
   const pathname = usePathname();
   if (!reason) return null;
 
-  const copy = capabilityCopy(reason);
+  const copy = capabilityCopy(reason, missing);
   // Return the user to wherever they launched the wizard from.
   const href =
     copy.href && pathname
