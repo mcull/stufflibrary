@@ -94,6 +94,7 @@ interface ItemDetailClientProps {
   isNewItem?: boolean;
   refSource?: 'library' | 'mystuff' | null;
   refLibraryId?: string | null;
+  refLibraryName?: string | null;
 }
 
 export function ItemDetailClient({
@@ -101,6 +102,7 @@ export function ItemDetailClient({
   isNewItem = false,
   refSource,
   refLibraryId,
+  refLibraryName,
 }: ItemDetailClientProps) {
   const router = useRouter();
   const { data: session } = useSession();
@@ -665,7 +667,7 @@ export function ItemDetailClient({
                   '&:hover': { textDecoration: 'underline' },
                 }}
               >
-                Current Library
+                {refLibraryName || 'Library'}
               </Typography>
               <Typography component="span" sx={{ opacity: 0.4, mx: 1 }}>
                 /
@@ -757,7 +759,7 @@ export function ItemDetailClient({
                 '&:hover': { textDecoration: 'underline' },
               }}
             >
-              Current Library
+              {refLibraryName || 'Library'}
             </Typography>
             <Typography component="span" sx={{ opacity: 0.4, mx: 1 }}>
               /

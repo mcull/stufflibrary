@@ -178,8 +178,8 @@ export function CollectionSelectionModal({
               variant="body1"
               sx={{ mb: 3, color: brandColors.charcoal }}
             >
-              Great! Your item was uploaded successfully. Choose which
-              collections to add it to (you can select multiple):
+              Great! Your item was uploaded successfully. Choose which libraries
+              to add it to (you can select multiple):
             </Typography>
 
             <Box sx={{ maxHeight: 300, overflowY: 'auto' }}>
