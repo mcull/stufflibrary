@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 const mockGetServerSession = vi.hoisted(() => vi.fn());
 const mockInvitationFindFirst = vi.hoisted(() => vi.fn());
+const mockCollectionFindUnique = vi.hoisted(() => vi.fn());
 const mockInvitationUpdate = vi.hoisted(() => vi.fn());
 const mockInvitationUpdateMany = vi.hoisted(() => vi.fn());
 const mockUserFindUnique = vi.hoisted(() => vi.fn());
@@ -19,6 +20,7 @@ vi.mock('@/lib/db', () => ({
       update: mockInvitationUpdate,
       updateMany: mockInvitationUpdateMany,
     },
+    collection: { findUnique: mockCollectionFindUnique },
     user: { findUnique: mockUserFindUnique },
     collectionMember: {
       findUnique: mockMemberFindUnique,
@@ -58,6 +60,8 @@ const validInvitation = {
 describe('POST /api/invitations/[token]/accept', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // ensureActiveMembership's owner-guard lookup (#409): not the owner.
+    mockCollectionFindUnique.mockResolvedValue({ ownerId: 'someone-else' });
     mockGetServerSession.mockResolvedValue({ user: { id: USER_ID } });
     mockInvitationFindFirst.mockResolvedValue(validInvitation);
     // user email matches invitation email

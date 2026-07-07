@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { libraryMemberCount, nonOwnerMemberRows } from '@/lib/library-members';
 
 export async function GET(
   request: NextRequest,
@@ -216,8 +217,13 @@ export async function GET(
       updatedAt: library.updatedAt,
       owner: library.owner,
       userRole: effectiveRole,
-      memberCount:
-        library.members.length + (library.owner.status === 'active' ? 1 : 0),
+      // Owner counts once; a stray owner self-member row (#409 dirty data)
+      // must not inflate the count or list the owner twice.
+      memberCount: libraryMemberCount({
+        ownerId: library.ownerId,
+        ownerActive: library.owner.status === 'active',
+        rows: library.members,
+      }),
       itemCount: items.length,
       inviteRateLimitPerHour: (library as any).inviteRateLimitPerHour ?? 0,
       members: [
@@ -229,12 +235,14 @@ export async function GET(
           user: library.owner,
         },
         // Then include other members
-        ...library.members.map((member) => ({
-          id: member.id,
-          role: member.role,
-          joinedAt: member.joinedAt,
-          user: member.user,
-        })),
+        ...nonOwnerMemberRows(library.ownerId, library.members).map(
+          (member) => ({
+            id: member.id,
+            role: member.role,
+            joinedAt: member.joinedAt,
+            user: member.user,
+          })
+        ),
       ],
       items: items.map((item) => {
         const activeBorrow = item.borrowRequests.find(

@@ -86,10 +86,16 @@ export async function POST(
     const libId = invitation.libraryId!;
 
     // Ensure membership (create new or reactivate inactive)
-    const { created } = await ensureActiveMembership(userId, libId);
+    const { created, reactivated } = await ensureActiveMembership(
+      userId,
+      libId
+    );
 
-    // Mark invitation accepted
-    await acceptInvitation(token, libId, userId);
+    // Only a real join consumes the invitation (#409): an owner or an
+    // already-active member accepting leaves it live for the addressee.
+    if (created || reactivated) {
+      await acceptInvitation(token, libId, userId);
+    }
 
     if (!created) {
       // User already had a membership (active or just reactivated)

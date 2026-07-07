@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 const mockInvitationFindFirst = vi.hoisted(() => vi.fn());
+const mockCollectionFindUnique = vi.hoisted(() => vi.fn());
 const mockInvitationUpdate = vi.hoisted(() => vi.fn());
 const mockInvitationUpdateMany = vi.hoisted(() => vi.fn());
 const mockUserUpsert = vi.hoisted(() => vi.fn());
@@ -17,6 +18,7 @@ vi.mock('@/lib/db', () => ({
       update: mockInvitationUpdate,
       updateMany: mockInvitationUpdateMany,
     },
+    collection: { findUnique: mockCollectionFindUnique },
     user: { upsert: mockUserUpsert },
     collectionMember: {
       findUnique: mockMemberFindUnique,
@@ -44,6 +46,8 @@ function makeRequest(token?: string) {
 describe('GET /api/auth/magic-link', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // ensureActiveMembership's owner-guard lookup (#409): not the owner.
+    mockCollectionFindUnique.mockResolvedValue({ ownerId: 'someone-else' });
     mockInvitationFindFirst.mockResolvedValue({
       id: 'inv_1',
       token: TOKEN,

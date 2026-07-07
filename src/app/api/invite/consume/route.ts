@@ -52,12 +52,17 @@ export async function POST(request: NextRequest) {
       return res;
     }
 
-    // Ensure membership
-    await ensureActiveMembership(userId, inviteLibrary);
+    // Ensure membership; only consume the invitation when this actually
+    // added someone — an owner or existing member re-consuming must not
+    // burn the invite for its real addressee (#409).
+    const membership = await ensureActiveMembership(userId, inviteLibrary);
 
-    // Mark invite accepted
-    console.log('[invite/consume] marking invite accepted');
-    await acceptInvitation(inviteToken, inviteLibrary, userId);
+    if (membership.created || membership.reactivated) {
+      console.log('[invite/consume] marking invite accepted');
+      await acceptInvitation(inviteToken, inviteLibrary, userId);
+    } else {
+      console.log('[invite/consume] owner/existing member; invite left live');
+    }
 
     console.log('[invite/consume] returning redirect', {
       to: `/library/${inviteLibrary}`,
