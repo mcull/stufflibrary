@@ -149,6 +149,45 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
     null
   );
   const [isCreatingFromConcept, setIsCreatingFromConcept] = useState(false);
+  // Item ids whose watercolor render has already been kicked off, so a
+  // hint-retry on the same draft doesn't double-spend a generation.
+  const watercolorStartedRef = useRef<Set<string>>(new Set());
+
+  // Fire the watercolor render as soon as the draft exists — it doesn't use
+  // the analysis output, so running it in parallel with analyze-item takes
+  // the whole analysis phase off the perceived illustration wait (#408).
+  const startWatercolorRender = useCallback((itemId: string) => {
+    if (watercolorStartedRef.current.has(itemId)) return;
+    watercolorStartedRef.current.add(itemId);
+    setIsGeneratingWatercolor(true);
+
+    fetch('/api/items/render-watercolor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ itemId }),
+    })
+      .then(async (watercolorResponse) => {
+        if (watercolorResponse.ok) {
+          const watercolorResult = await watercolorResponse.json();
+          console.log(
+            '🎨 Watercolor generated:',
+            watercolorResult.watercolorUrl
+          );
+          setWatercolorUrl(watercolorResult.watercolorUrl);
+          setTimeout(() => {
+            setShowWatercolor(true);
+            setIsGeneratingWatercolor(false);
+          }, 100);
+        } else {
+          console.error('❌ Watercolor generation failed');
+          setIsGeneratingWatercolor(false);
+        }
+      })
+      .catch((error) => {
+        console.error('❌ Watercolor generation failed:', error);
+        setIsGeneratingWatercolor(false);
+      });
+  }, []);
 
   // Request camera permission and start stream
   const startCamera = useCallback(async () => {
@@ -331,7 +370,8 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
           setDraftItemId(itemId);
           console.log('✅ Draft item created:', itemId);
 
-          // Step 2: Get AI analysis
+          // Step 2: Watercolor render + AI analysis run in parallel (#408)
+          startWatercolorRender(itemId);
           const analysisFormData = new FormData();
           analysisFormData.append('image', blob, 'capture.jpg');
           // Include hint if available (empty string means no hint)
@@ -387,38 +427,7 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
 
             setIsAnalyzing(false);
             setState('recognized');
-
-            // Step 4: Start watercolor generation with UI updates
-            setIsGeneratingWatercolor(true);
-
-            fetch('/api/items/render-watercolor', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ itemId: itemId }),
-            })
-              .then(async (watercolorResponse) => {
-                if (watercolorResponse.ok) {
-                  const watercolorResult = await watercolorResponse.json();
-                  console.log(
-                    '🎨 Watercolor generated:',
-                    watercolorResult.watercolorUrl
-                  );
-
-                  // Update the watercolor URL in state and show it
-                  setWatercolorUrl(watercolorResult.watercolorUrl);
-                  setTimeout(() => {
-                    setShowWatercolor(true);
-                    setIsGeneratingWatercolor(false);
-                  }, 100);
-                } else {
-                  console.error('❌ Watercolor generation failed');
-                  setIsGeneratingWatercolor(false);
-                }
-              })
-              .catch((error) => {
-                console.error('❌ Watercolor generation failed:', error);
-                setIsGeneratingWatercolor(false);
-              });
+            // (Watercolor render already started right after draft creation.)
           } else {
             setError('Could not identify the item. Please try again.');
             setState('error');
@@ -433,7 +442,7 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
       'image/jpeg',
       0.8
     );
-  }, [shouldMirrorCamera, nameHint]);
+  }, [shouldMirrorCamera, nameHint, startWatercolorRender]);
 
   // Add item and navigate to metadata page
   const addItem = useCallback(async () => {
@@ -535,6 +544,10 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
         console.log('✅ Draft item created:', itemId);
       }
 
+      // Watercolor render + hinted analysis in parallel (#408). The ref guard
+      // makes this a no-op when the first attempt already started the render.
+      startWatercolorRender(itemId);
+
       // Analyze with hint
       const analysisFormData = new FormData();
       analysisFormData.append('image', blob, 'capture.jpg');
@@ -588,36 +601,7 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
         setIsAnalyzing(false);
         setState('recognized');
         setShowHintInput(false);
-
-        // Start watercolor generation
-        setIsGeneratingWatercolor(true);
-
-        fetch('/api/items/render-watercolor', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ itemId: itemId }),
-        })
-          .then(async (watercolorResponse) => {
-            if (watercolorResponse.ok) {
-              const watercolorResult = await watercolorResponse.json();
-              console.log(
-                '🎨 Watercolor generated:',
-                watercolorResult.watercolorUrl
-              );
-              setWatercolorUrl(watercolorResult.watercolorUrl);
-              setTimeout(() => {
-                setShowWatercolor(true);
-                setIsGeneratingWatercolor(false);
-              }, 100);
-            } else {
-              console.error('❌ Watercolor generation failed');
-              setIsGeneratingWatercolor(false);
-            }
-          })
-          .catch((error) => {
-            console.error('❌ Watercolor generation failed:', error);
-            setIsGeneratingWatercolor(false);
-          });
+        // (Watercolor render already started right after draft creation.)
       } else {
         setError(
           'Still could not identify the item with that hint. Please try a new photo or different hint.'
@@ -631,7 +615,7 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
       setState('error');
       setIsAnalyzing(false);
     }
-  }, [capturedImageUrl, nameHint, draftItemId]);
+  }, [capturedImageUrl, nameHint, draftItemId, startWatercolorRender]);
 
   const handleModeChange = useCallback(
     (_event: SyntheticEvent, newMode: AddMode) => {

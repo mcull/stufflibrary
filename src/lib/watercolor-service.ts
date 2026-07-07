@@ -16,6 +16,13 @@ interface WatercolorRenderOptions {
   originalImageBuffer: Buffer;
   originalImageName: string;
   mimeType: string;
+  /**
+   * Also upload the original to blob storage (runs in parallel with
+   * generation). The add-item flow skips this — create-draft already stored
+   * the original (#408) — but the concept flow's source images (Openverse /
+   * generated) have no prior upload.
+   */
+  storeOriginal?: boolean;
 }
 
 interface SegmentationMask {
@@ -26,7 +33,8 @@ interface SegmentationMask {
 }
 
 interface WatercolorResult {
-  originalUrl: string;
+  /** Only set when `storeOriginal` was requested. */
+  originalUrl?: string | undefined;
   watercolorUrl: string;
   watercolorThumbUrl: string;
   maskUrl?: string | undefined; // New: URL to the segmentation mask overlay
@@ -281,21 +289,26 @@ Use descriptive, specific labels that would help someone identify the item for b
     return overlay.png().toBuffer();
   }
 
-  private async detectPersonsInImage(
-    imageBuffer: Buffer,
-    mimeType: string
-  ): Promise<boolean> {
+  private async detectPersonsInImage(imageBuffer: Buffer): Promise<boolean> {
+    // Flag-only signal (the watercolor prompt always de-identifies) — a small
+    // input is plenty and keeps this off the critical path (#408). The
+    // original went up full-size before, dominating the pre-render wait.
+    const resizedImageBuffer = await sharp(imageBuffer)
+      .resize(512, 512, { fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: 80 })
+      .toBuffer();
+
     const prompt = [
       {
         text: `Analyze this image and determine if it contains any people, faces, or human figures.
-    
+
     Return only "true" if people/faces are detected, "false" if not.
     This is for content safety - we need to flag images that contain people.`,
       },
       {
         inlineData: {
-          data: imageBuffer.toString('base64'),
-          mimeType: mimeType,
+          data: resizedImageBuffer.toString('base64'),
+          mimeType: 'image/jpeg',
         },
       },
     ];
@@ -323,7 +336,6 @@ Use descriptive, specific labels that would help someone identify the item for b
   private async generateWatercolor(
     imageBuffer: Buffer,
     _mimeType: string,
-    hasPersons: boolean = false,
     context?: { itemId?: string; userId?: string }
   ): Promise<Buffer> {
     const startTime = Date.now();
@@ -341,9 +353,10 @@ Use descriptive, specific labels that would help someone identify the item for b
     const resizeTime = Date.now() - resizeStart;
     console.log(`📐 Image resize completed in ${resizeTime}ms`);
 
-    const deIdentificationText = hasPersons
-      ? '\n    CRITICAL: People are present in this image. You MUST completely remove all people, faces, hands, body parts, and any reflections or silhouettes of people. Focus solely on the shareable item and render it as if no people were ever in the photo.'
-      : '';
+    // Always instruct full de-identification — unconditional, so generation
+    // never has to wait for a person-detection round trip first (#408).
+    const deIdentificationText =
+      '\n    CRITICAL: If any people appear in this image, you MUST completely remove all people, faces, hands, body parts, and any reflections or silhouettes of people. Focus solely on the shareable item and render it as if no people were ever in the photo.';
 
     const prompt = [
       {
@@ -393,31 +406,33 @@ Use descriptive, specific labels that would help someone identify the item for b
           console.log(
             `🎨 Total watercolor generation: ${totalTime}ms (resize: ${resizeTime}ms, API: ${apiTime}ms, extract: ${extractTime}ms)`
           );
-          // Log AI usage for Gemini image generation
-          try {
-            const { recordAiUsage } = await import('./ai-usage');
-            const { estimateCostCents } = await import('./ai-pricing');
-            const costCents = estimateCostCents({
-              provider: 'gemini',
-              model: 'gemini-2.5-flash-image',
-              inputBytes: resizedImageBuffer.length,
-              outputBytes: buffer.length,
-            });
-            await recordAiUsage({
-              action: 'AI_RENDER',
-              provider: 'gemini',
-              model: 'gemini-2.5-flash-image',
-              status: 'ok',
-              ...(context?.itemId ? { itemId: context.itemId } : {}),
-              ...(context?.userId ? { userId: context.userId } : {}),
-              latencyMs: apiTime,
-              inputBytes: resizedImageBuffer.length,
-              outputBytes: buffer.length,
-              costCents,
-            });
-          } catch (e) {
-            console.error('Failed to record AI usage (Gemini):', e);
-          }
+          // Log AI usage without blocking the response (#408).
+          void (async () => {
+            try {
+              const { recordAiUsage } = await import('./ai-usage');
+              const { estimateCostCents } = await import('./ai-pricing');
+              const costCents = estimateCostCents({
+                provider: 'gemini',
+                model: 'gemini-2.5-flash-image',
+                inputBytes: resizedImageBuffer.length,
+                outputBytes: buffer.length,
+              });
+              await recordAiUsage({
+                action: 'AI_RENDER',
+                provider: 'gemini',
+                model: 'gemini-2.5-flash-image',
+                status: 'ok',
+                ...(context?.itemId ? { itemId: context.itemId } : {}),
+                ...(context?.userId ? { userId: context.userId } : {}),
+                latencyMs: apiTime,
+                inputBytes: resizedImageBuffer.length,
+                outputBytes: buffer.length,
+                costCents,
+              });
+            } catch (e) {
+              console.error('Failed to record AI usage (Gemini):', e);
+            }
+          })();
           return buffer;
         }
       }
@@ -577,63 +592,47 @@ Use descriptive, specific labels that would help someone identify the item for b
     const flags: string[] = [];
 
     try {
-      // Step 1: Skip object detection for now (too slow for 5s target)
-      console.log('⏩ Skipping object detection for fast processing...');
+      // Skip object detection / mask overlay (too slow; kept as dead code
+      // below for a future animation pass).
       const segmentationMasks: SegmentationMask[] = [];
+      const maskUrl: string | undefined = undefined;
 
-      // Step 2: Generate mask overlay
-      let maskUrl: string | undefined;
-      if (segmentationMasks.length > 0) {
-        console.log('🎨 Generating mask overlay...');
-        const maskOverlayBuffer = await this.generateMaskOverlay(
-          originalImageBuffer,
-          segmentationMasks
-        );
-
-        const maskPath = `items/${itemId}/masks/${styleVersion}/detection_overlay.png`;
-        maskUrl = await this.uploadToStorage(
-          maskOverlayBuffer,
-          maskPath,
-          'image/png'
-        );
-        console.log('✅ Mask overlay saved:', maskUrl);
-      }
-
-      // Step 3: Safety check - detect people in image
-      const hasPersons = await this.detectPersonsInImage(
-        originalImageBuffer,
-        mimeType
-      );
-      if (hasPersons) {
-        flags.push('person_detected');
-        console.log(
-          'Person detected in image, will be de-identified in watercolor processing'
-        );
-      }
-
-      // Step 4: Upload original image
-      const originalPath = `items/${itemId}/original/${crypto.randomUUID()}.${originalImageName.split('.').pop()}`;
-      const originalUrl = await this.uploadToStorage(
-        originalImageBuffer,
-        originalPath,
-        mimeType
-      );
+      // By default the original is NOT uploaded here — create-draft already
+      // stored it (item.imageUrl); a second copy was pure added latency
+      // (#408). The concept flow opts in via storeOriginal.
 
       let watercolorUrl: string;
       let watercolorThumbUrl: string;
+      let originalUrl: string | undefined;
       let iconUrl: string | undefined;
 
-      // Always generate watercolor, with enhanced de-identification if people detected
       {
-        // Step 3: Generate watercolor illustration
+        // Generation, the person-detection safety flag, and (when requested)
+        // the original upload all run in PARALLEL: the watercolor prompt
+        // de-identifies unconditionally, so detection is flag-only metadata
+        // and must not gate the render (#408). A detection failure stays
+        // non-fatal (conservative: assume people).
         const watercolorStart = Date.now();
         console.log('🎨 Starting watercolor illustration generation...');
-        const watercolorBuffer = await this.generateWatercolor(
-          originalImageBuffer,
-          mimeType,
-          hasPersons,
-          { itemId }
-        );
+        const [hasPersons, watercolorBuffer, storedOriginalUrl] =
+          await Promise.all([
+            this.detectPersonsInImage(originalImageBuffer).catch((error) => {
+              console.error('Error detecting persons:', error);
+              return true;
+            }),
+            this.generateWatercolor(originalImageBuffer, mimeType, { itemId }),
+            options.storeOriginal
+              ? this.uploadToStorage(
+                  originalImageBuffer,
+                  `items/${itemId}/original/${crypto.randomUUID()}.${originalImageName.split('.').pop()}`,
+                  mimeType
+                )
+              : Promise.resolve(undefined),
+          ]);
+        originalUrl = storedOriginalUrl;
+        if (hasPersons) {
+          flags.push('person_detected');
+        }
         const watercolorTime = Date.now() - watercolorStart;
         console.log(
           `✅ Watercolor generation completed in ${watercolorTime}ms`
