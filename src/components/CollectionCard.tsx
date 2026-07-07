@@ -31,7 +31,7 @@ export function CollectionCard({ collection }: CollectionCardProps) {
   const router = useRouter();
 
   const handleClick = () => {
-    router.push(`/collection/${collection.id}`);
+    router.push(`/library/${collection.id}`);
   };
 
   // Keep cards a uniform width; long words will wrap/ellipsize

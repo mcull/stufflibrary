@@ -77,7 +77,7 @@ export async function GET(
     ) {
       return NextResponse.redirect(
         new URL(
-          `/collection/${invitation.libraryId}?message=already_member`,
+          `/library/${invitation.libraryId}?message=already_member`,
           request.url
         )
       );

@@ -317,7 +317,7 @@ export default function AddToCollectionPage() {
           >
             <Button
               variant="outlined"
-              onClick={() => router.push(`/collection/${collectionId}`)}
+              onClick={() => router.push(`/library/${collectionId}`)}
             >
               Cancel
             </Button>

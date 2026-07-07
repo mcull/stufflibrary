@@ -748,13 +748,13 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
   }, [selectedConceptId, describeName, describeDescription, libraryId]);
 
   // Navigate to the new item page, preserving the originating library so the
-  // item page's "return" lands back in that library (not the stacks list).
+  // item page's "return" lands back in that library (not the home list).
   const goToNewItem = useCallback(
     (returnToLibraryId?: string) => {
       if (!uploadedItem) return;
       // Return to the library the item actually lives in: the one it was
       // launched from, or — when launched globally — the one just chosen in
-      // the modal. Only fall back to the stacks list if neither exists.
+      // the modal. Only fall back to the home list if neither exists.
       const lib = libraryId ?? returnToLibraryId;
       const dest = lib
         ? `/stuff/${uploadedItem.id}?new=true&src=library&lib=${lib}`

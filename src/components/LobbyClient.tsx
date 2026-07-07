@@ -137,9 +137,9 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
     name?: string;
   }) => {
     // Drop the user straight into their new library so it's obvious how to
-    // start adding stuff, rather than back on the stacks list.
+    // start adding stuff, rather than back on the home list.
     if (collection.id) {
-      router.push(`/collection/${collection.id}`);
+      router.push(`/library/${collection.id}`);
       return;
     }
     setCreatedCollectionName(collection.name || 'Your library');

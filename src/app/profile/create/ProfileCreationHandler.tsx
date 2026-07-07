@@ -112,7 +112,7 @@ export function ProfileCreationHandler({
         : 'profile-wizard-draft-temp';
       localStorage.removeItem(draftKey);
 
-      router.replace('/stacks?welcome=true');
+      router.replace('/home?welcome=true');
       router.refresh();
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Failed to get started');
@@ -199,10 +199,10 @@ export function ProfileCreationHandler({
           const decoded = decodeURIComponent(returnTo);
           router.push(decoded);
         } catch {
-          router.push('/stacks?welcome=true');
+          router.push('/home?welcome=true');
         }
       } else {
-        router.push('/stacks?welcome=true');
+        router.push('/home?welcome=true');
       }
       router.refresh(); // Refresh to update session data
     } catch (error) {
@@ -256,7 +256,7 @@ export function ProfileCreationHandler({
                 onExit: () => {
                   const returnTo = searchParams?.get('returnTo');
                   router.push(
-                    returnTo ? decodeURIComponent(returnTo) : '/stacks'
+                    returnTo ? decodeURIComponent(returnTo) : '/home'
                   );
                 },
                 // Prefill what the user already has (name, accepted terms, and

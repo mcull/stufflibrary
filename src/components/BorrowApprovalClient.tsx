@@ -186,7 +186,7 @@ export function BorrowApprovalClient({
           <Button
             variant="contained"
             component={Link}
-            href="/stacks"
+            href="/home"
             sx={{ mt: 3, borderRadius: 2 }}
           >
             Home

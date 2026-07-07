@@ -96,7 +96,7 @@ function AuthCallbackContent() {
 
         // Normal flow based on minimal onboarding completion
         if (minimalDone) {
-          router.replace('/stacks');
+          router.replace('/home');
         } else {
           router.replace('/profile/create');
         }

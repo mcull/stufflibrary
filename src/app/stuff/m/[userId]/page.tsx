@@ -531,7 +531,7 @@ export default function UserInventoryPage() {
 
               <Button
                 component={Link}
-                href="/stacks"
+                href="/home"
                 variant="text"
                 sx={{
                   color: brandColors.inkBlue,

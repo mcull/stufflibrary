@@ -2,8 +2,15 @@ import path from 'path';
 
 import { withSentryConfig } from '@sentry/nextjs';
 
+import { legacyRedirects } from './src/config/redirects.mjs';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // #399: old URL vocabulary (/stacks, /collection, /branch) 301s to the
+  // library-native paths. Mapping lives (and is tested) in src/config.
+  async redirects() {
+    return legacyRedirects;
+  },
   eslint: {
     // P0-12: surface lint errors at build time. `next build` fails on ESLint
     // *errors* (not warnings), so type/lint regressions can't silently ship.

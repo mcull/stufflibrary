@@ -234,7 +234,7 @@ export function ProfileView({
       }
 
       // Redirect to Stuff Central (lobby) after successful save
-      router.push('/stacks');
+      router.push('/home');
     } catch (error) {
       console.error('Error updating profile:', error);
       // TODO: Add proper error handling/toast notification

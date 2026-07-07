@@ -26,7 +26,7 @@ export default async function BorrowRequestPage({
     (resolvedSearchParams?.lib as string | undefined) ?? null;
 
   if (!itemId) {
-    redirect('/stacks');
+    redirect('/home');
   }
 
   // Get the item details
@@ -58,7 +58,7 @@ export default async function BorrowRequestPage({
   });
 
   if (!item) {
-    redirect('/stacks');
+    redirect('/home');
   }
 
   // Get current user ID

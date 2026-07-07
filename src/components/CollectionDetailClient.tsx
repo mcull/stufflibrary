@@ -606,7 +606,7 @@ export function CollectionDetailClient({
 
       // Show success message and redirect
       alert(`Collection "${library?.name}" has been archived successfully.`);
-      router.push('/stacks');
+      router.push('/home');
     } catch (error) {
       console.error('Error archiving collection:', error);
       alert(
@@ -634,7 +634,7 @@ export function CollectionDetailClient({
         throw new Error(data.error || 'Failed to delete library');
       }
       alert('Library deleted successfully');
-      router.push('/stacks');
+      router.push('/home');
     } catch (error) {
       console.error('Error deleting library:', error);
       alert(
@@ -653,7 +653,7 @@ export function CollectionDetailClient({
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
         </Alert>
-        <Button onClick={() => router.push('/stacks')}>Back to Home</Button>
+        <Button onClick={() => router.push('/home')}>Back to Home</Button>
       </Container>
     );
   }
@@ -755,7 +755,7 @@ export function CollectionDetailClient({
           >
             <Typography
               component="span"
-              onClick={() => router.push('/stacks')}
+              onClick={() => router.push('/home')}
               sx={{
                 cursor: 'pointer',
                 '&:hover': {
@@ -772,7 +772,7 @@ export function CollectionDetailClient({
             </Typography>
             <Typography
               component="span"
-              onClick={() => router.push('/stacks')}
+              onClick={() => router.push('/home')}
               sx={{
                 cursor: 'pointer',
                 '&:hover': {
@@ -1231,7 +1231,7 @@ export function CollectionDetailClient({
             onClick={() =>
               router.push(
                 `/profile/create?continue=1&field=address&returnTo=${encodeURIComponent(
-                  `/collection/${collectionId}`
+                  `/library/${collectionId}`
                 )}`
               )
             }
