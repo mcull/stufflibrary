@@ -156,25 +156,16 @@ export async function POST(
       );
     }
 
-    // Check for existing pending invitation
+    // Any prior invitation for this (email, sender, library) — the schema has
+    // a unique constraint on that triple, so a second create would 500 (#409).
+    // A live one gets re-sent as-is; a consumed/expired/declined one gets
+    // re-issued with a fresh token so a wrongly-burned invite heals itself.
     const existingInvitation =
       mode === 'link'
         ? null
         : await db.invitation.findFirst({
-            where: {
-              email: email!,
-              libraryId,
-              senderId: userId,
-              status: 'PENDING',
-            },
+            where: { email: email!, libraryId, senderId: userId },
           });
-
-    if (existingInvitation) {
-      return NextResponse.json(
-        { error: 'Invitation already sent to this email for this library' },
-        { status: 400 }
-      );
-    }
 
     // Rate limiting per library (0 = unlimited)
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
@@ -200,33 +191,62 @@ export async function POST(
       );
     }
 
-    // Generate secure token for magic link
-    const token = crypto.randomBytes(32).toString('hex');
-
     // Set expiration to 7 days from now
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-    // Create invitation record
-    const invitation = await db.invitation.create({
-      data: {
-        email:
-          mode === 'link' ? `link-${token}@share.stufflibrary.local` : email!,
-        type: 'library',
-        status: 'PENDING',
-        token,
-        libraryId,
-        senderId: userId,
-        expiresAt,
+    const invitationInclude = {
+      collection: {
+        select: { name: true, location: true },
       },
-      include: {
-        collection: {
-          select: { name: true, location: true },
-        },
-        sender: {
-          select: { name: true },
-        },
+      sender: {
+        select: { name: true },
       },
-    });
+    };
+
+    const liveToken =
+      existingInvitation &&
+      existingInvitation.token &&
+      ['PENDING', 'SENT'].includes(existingInvitation.status) &&
+      existingInvitation.expiresAt > new Date()
+        ? existingInvitation.token
+        : null;
+
+    // Still-live invite keeps its token (the already-emailed link stays
+    // valid); anything else gets a fresh one.
+    const isLiveInvitation = liveToken !== null;
+    const token = liveToken ?? crypto.randomBytes(32).toString('hex');
+
+    let invitation;
+    if (existingInvitation) {
+      invitation = await db.invitation.update({
+        where: { id: existingInvitation.id },
+        data: isLiveInvitation
+          ? {}
+          : {
+              token,
+              status: 'PENDING',
+              expiresAt,
+              acceptedAt: null,
+              receiverId: null,
+              sentAt: null,
+            },
+        include: invitationInclude,
+      });
+    } else {
+      invitation = await db.invitation.create({
+        data: {
+          email:
+            mode === 'link' ? `link-${token}@share.stufflibrary.local` : email!,
+          type: 'library',
+          status: 'PENDING',
+          token,
+          libraryId,
+          senderId: userId,
+          expiresAt,
+        },
+        include: invitationInclude,
+      });
+    }
 
     const baseUrl = process.env.NEXTAUTH_URL || '';
     const shareLink = `${baseUrl}/j/${token}`;

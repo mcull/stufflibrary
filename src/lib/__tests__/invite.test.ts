@@ -5,10 +5,12 @@ const mockMemberCreate = vi.hoisted(() => vi.fn());
 const mockMemberUpdate = vi.hoisted(() => vi.fn());
 const mockInvitationUpdateMany = vi.hoisted(() => vi.fn());
 const mockInvitationFindFirst = vi.hoisted(() => vi.fn());
+const mockCollectionFindUnique = vi.hoisted(() => vi.fn());
 const mockGetServerSession = vi.hoisted(() => vi.fn());
 
 vi.mock('@/lib/db', () => ({
   db: {
+    collection: { findUnique: mockCollectionFindUnique },
     collectionMember: {
       findUnique: mockMemberFindUnique,
       create: mockMemberCreate,
@@ -36,6 +38,8 @@ beforeEach(() => {
   mockMemberCreate.mockResolvedValue({});
   mockMemberUpdate.mockResolvedValue({});
   mockInvitationUpdateMany.mockResolvedValue({ count: 1 });
+  // Default: the acting user is NOT the library owner.
+  mockCollectionFindUnique.mockResolvedValue({ ownerId: 'owner-1' });
 });
 
 describe('ensureActiveMembership', () => {
@@ -50,7 +54,7 @@ describe('ensureActiveMembership', () => {
         isActive: true,
       },
     });
-    expect(r).toEqual({ created: true, reactivated: false });
+    expect(r).toEqual({ created: true, reactivated: false, owner: false });
   });
   it('reactivates an inactive membership', async () => {
     mockMemberFindUnique.mockResolvedValueOnce({ id: 'm1', isActive: false });
@@ -59,14 +63,21 @@ describe('ensureActiveMembership', () => {
       where: { id: 'm1' },
       data: { isActive: true },
     });
-    expect(r).toEqual({ created: false, reactivated: true });
+    expect(r).toEqual({ created: false, reactivated: true, owner: false });
   });
   it('is a no-op when already active', async () => {
     mockMemberFindUnique.mockResolvedValueOnce({ id: 'm1', isActive: true });
     const r = await ensureActiveMembership('u1', 'c1');
     expect(mockMemberCreate).not.toHaveBeenCalled();
     expect(mockMemberUpdate).not.toHaveBeenCalled();
-    expect(r).toEqual({ created: false, reactivated: false });
+    expect(r).toEqual({ created: false, reactivated: false, owner: false });
+  });
+  it('never creates a member row for the library owner (#409)', async () => {
+    mockCollectionFindUnique.mockResolvedValue({ ownerId: 'u1' });
+    const r = await ensureActiveMembership('u1', 'c1');
+    expect(mockMemberCreate).not.toHaveBeenCalled();
+    expect(mockMemberUpdate).not.toHaveBeenCalled();
+    expect(r).toEqual({ created: false, reactivated: false, owner: true });
   });
 });
 
@@ -118,7 +129,7 @@ describe('validateLibraryInvite', () => {
 });
 
 describe('handleInviteLanding', () => {
-  it('authenticated user joins and is redirected to the collection', async () => {
+  it('authenticated user joins, invitation is consumed, redirected to the library', async () => {
     mockInvitationFindFirst.mockResolvedValue({
       libraryId: 'c1',
       expiresAt: new Date(Date.now() + 86400000),
@@ -134,6 +145,45 @@ describe('handleInviteLanding', () => {
       '/library/c1?message=joined_successfully'
     );
     expect(mockMemberCreate).toHaveBeenCalled();
+    expect(mockInvitationUpdateMany).toHaveBeenCalled();
+  });
+
+  it('owner clicking their own invite link neither joins nor consumes it (#409)', async () => {
+    mockInvitationFindFirst.mockResolvedValue({
+      libraryId: 'c1',
+      expiresAt: new Date(Date.now() + 86400000),
+    });
+    mockGetServerSession.mockResolvedValue({ user: { id: 'owner-1' } });
+    mockCollectionFindUnique.mockResolvedValue({ ownerId: 'owner-1' });
+    const res = await handleInviteLanding(
+      { url: 'https://x/j/tok' } as any,
+      'tok'
+    );
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toContain(
+      '/library/c1?message=own_library'
+    );
+    expect(mockMemberCreate).not.toHaveBeenCalled();
+    // The invitation stays live for its actual addressee.
+    expect(mockInvitationUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it('an existing active member does not consume the invitation (#409)', async () => {
+    mockInvitationFindFirst.mockResolvedValue({
+      libraryId: 'c1',
+      expiresAt: new Date(Date.now() + 86400000),
+    });
+    mockGetServerSession.mockResolvedValue({ user: { id: 'u1' } });
+    mockMemberFindUnique.mockResolvedValue({ id: 'm1', isActive: true });
+    const res = await handleInviteLanding(
+      { url: 'https://x/j/tok' } as any,
+      'tok'
+    );
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toContain(
+      '/library/c1?message=already_member'
+    );
+    expect(mockInvitationUpdateMany).not.toHaveBeenCalled();
   });
   it('invalid token redirects home with invite=invalid', async () => {
     mockInvitationFindFirst.mockResolvedValue(null);

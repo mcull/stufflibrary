@@ -58,9 +58,16 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Ensure library membership and mark invitation accepted
-    await ensureActiveMembership(user.id, invitation.libraryId!);
-    await acceptInvitation(invitationToken, invitation.libraryId!, user.id);
+    // Ensure library membership and mark invitation accepted. Identity here
+    // comes from the invitation's own email, so this is always the addressee —
+    // consume unless they turn out to own the library (#409 edge).
+    const membership = await ensureActiveMembership(
+      user.id,
+      invitation.libraryId!
+    );
+    if (!membership.owner) {
+      await acceptInvitation(invitationToken, invitation.libraryId!, user.id);
+    }
 
     // Generate a temporary auth code and redirect to sign-in with auto-fill
     const tempCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit code

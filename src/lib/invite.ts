@@ -9,7 +9,18 @@ const INVITE_COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 export async function ensureActiveMembership(
   userId: string,
   collectionId: string
-): Promise<{ created: boolean; reactivated: boolean }> {
+): Promise<{ created: boolean; reactivated: boolean; owner: boolean }> {
+  // The owner never gets a member row — ownership already anchors them to the
+  // library, and a self-row corrupts member counts (#409; the cleanup P0-13
+  // deferred). This guards every join path at once.
+  const collection = await db.collection.findUnique({
+    where: { id: collectionId },
+    select: { ownerId: true },
+  });
+  if (collection?.ownerId === userId) {
+    return { created: false, reactivated: false, owner: true };
+  }
+
   const existing = await db.collectionMember.findUnique({
     where: { userId_collectionId: { userId, collectionId } },
     select: { id: true, isActive: true },
@@ -18,16 +29,16 @@ export async function ensureActiveMembership(
     await db.collectionMember.create({
       data: { userId, collectionId, role: 'member', isActive: true },
     });
-    return { created: true, reactivated: false };
+    return { created: true, reactivated: false, owner: false };
   }
   if (!existing.isActive) {
     await db.collectionMember.update({
       where: { id: existing.id },
       data: { isActive: true },
     });
-    return { created: false, reactivated: true };
+    return { created: false, reactivated: true, owner: false };
   }
-  return { created: false, reactivated: false };
+  return { created: false, reactivated: false, owner: false };
 }
 
 export async function acceptInvitation(
@@ -106,10 +117,28 @@ export async function handleInviteLanding(
     const userId = (session?.user as { id?: string } | undefined)?.id;
 
     if (userId) {
-      await ensureActiveMembership(userId, libId);
-      await acceptInvitation(token, libId, userId);
+      const membership = await ensureActiveMembership(userId, libId);
+
+      // Consume the invitation ONLY when this click actually added someone.
+      // The owner previewing their own sent link, or an existing member
+      // re-clicking, must not burn the invite for its real addressee (#409).
+      if (membership.owner) {
+        const res = NextResponse.redirect(
+          new URL(`/library/${libId}?message=own_library`, request.url)
+        );
+        clearInviteCookies(res);
+        return res;
+      }
+      if (membership.created || membership.reactivated) {
+        await acceptInvitation(token, libId, userId);
+        const res = NextResponse.redirect(
+          new URL(`/library/${libId}?message=joined_successfully`, request.url)
+        );
+        clearInviteCookies(res);
+        return res;
+      }
       const res = NextResponse.redirect(
-        new URL(`/library/${libId}?message=joined_successfully`, request.url)
+        new URL(`/library/${libId}?message=already_member`, request.url)
       );
       clearInviteCookies(res);
       return res;

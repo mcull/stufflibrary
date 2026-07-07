@@ -71,6 +71,8 @@ describe('POST /api/collections/[id]/join', () => {
     mockGetServerSession.mockResolvedValue({ user: { id: USER_ID } });
     mockCollectionFindUnique
       .mockResolvedValueOnce(publicCollectionReturn())
+      // ensureActiveMembership's owner-guard lookup (#409)
+      .mockResolvedValueOnce({ ownerId: OWNER_ID })
       .mockResolvedValueOnce(updatedCollectionReturn());
     mockMemberFindUnique.mockResolvedValue(null);
     mockMemberCreate.mockResolvedValue({ id: 'mem_1', role: 'member' });

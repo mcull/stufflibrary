@@ -241,6 +241,7 @@ export function CollectionDetailClient({
   const [selectedItemName, setSelectedItemName] = useState<string | null>(null);
   const [manageInitialTab, setManageInitialTab] = useState<0 | 1>(0);
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
+  const [inviteInfoBanner, setInviteInfoBanner] = useState<string | null>(null);
   const [currentUserName, setCurrentUserName] = useState<string | null>(null);
   const [settingsMenuAnchor, setSettingsMenuAnchor] =
     useState<HTMLElement | null>(null);
@@ -315,7 +316,18 @@ export function CollectionDetailClient({
         setCurrentUserName(welcomeName);
       }
       setShowWelcomeBanner(true);
+    } else if (message === 'own_library') {
+      // Owner previewed their own invite link (#409): nothing was joined or
+      // consumed — say so instead of celebrating a phantom join.
+      setInviteInfoBanner(
+        "That invite link is for your neighbors — you're the owner here. " +
+          'The invitation is still waiting for them.'
+      );
+    } else if (message === 'already_member') {
+      setInviteInfoBanner("You're already a member of this library.");
+    }
 
+    if (message) {
       // Clear the message parameters from URL without page reload
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.delete('message');
@@ -733,8 +745,19 @@ export function CollectionDetailClient({
             },
           }}
         >
-          Welcome{currentUserName ? `, ${currentUserName}` : ''}, to{' '}
-          {library?.name}! 🎉
+          Welcome to {library?.name}
+          {currentUserName ? `, ${currentUserName}` : ''}! 🎉
+        </Alert>
+      )}
+
+      {/* Info banner: invite-link edge cases (owner preview / already member) */}
+      {inviteInfoBanner && (
+        <Alert
+          severity="info"
+          onClose={() => setInviteInfoBanner(null)}
+          sx={{ mb: 4, borderRadius: 2 }}
+        >
+          {inviteInfoBanner}
         </Alert>
       )}
 
