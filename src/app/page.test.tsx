@@ -37,7 +37,7 @@ describe('Home Page', () => {
     ).toBeInTheDocument();
   });
 
-  it('redirects signed-in visitors to /stacks before anything renders', async () => {
+  it('redirects signed-in visitors to /home before anything renders', async () => {
     mockGetServerSession.mockResolvedValue({ user: { id: 'u1' } });
     // In production next's redirect() throws to abort rendering; emulate that.
     mockRedirect.mockImplementation(() => {
@@ -45,6 +45,6 @@ describe('Home Page', () => {
     });
 
     await expect(Home()).rejects.toThrow('NEXT_REDIRECT');
-    expect(mockRedirect).toHaveBeenCalledWith('/stacks');
+    expect(mockRedirect).toHaveBeenCalledWith('/home');
   });
 });

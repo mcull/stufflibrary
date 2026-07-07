@@ -131,7 +131,7 @@ describe('handleInviteLanding', () => {
     );
     expect(res.status).toBe(307);
     expect(res.headers.get('location')).toContain(
-      '/collection/c1?message=joined_successfully'
+      '/library/c1?message=joined_successfully'
     );
     expect(mockMemberCreate).toHaveBeenCalled();
   });
@@ -165,6 +165,6 @@ describe('handleInviteLanding', () => {
       'tok'
     );
     expect(res.status).toBe(307);
-    expect(res.headers.get('location')).toContain('/collection/c1?guest=1');
+    expect(res.headers.get('location')).toContain('/library/c1?guest=1');
   });
 });

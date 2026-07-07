@@ -202,7 +202,7 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
         <Container maxWidth="lg" sx={{ py: spacing.lg / 16 }}>
           <Button
             component={Link}
-            href="/stacks"
+            href="/home"
             startIcon={<ArrowBack />}
             sx={{ mb: 2 }}
           >

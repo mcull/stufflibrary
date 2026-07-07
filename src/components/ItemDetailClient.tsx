@@ -140,7 +140,7 @@ export function ItemDetailClient({
     if (refSource === 'library' && refLibraryId) {
       router.push(`/library/${refLibraryId}`);
     } else {
-      router.push('/stacks');
+      router.push('/home');
     }
   };
 
@@ -287,7 +287,7 @@ export function ItemDetailClient({
         if (refSource === 'library' && refLibraryId) {
           router.push(`/library/${refLibraryId}`);
         } else {
-          router.push('/stacks');
+          router.push('/home');
         }
       }, 1200);
     } catch (err) {
@@ -646,7 +646,7 @@ export function ItemDetailClient({
             <>
               <Typography
                 component="span"
-                onClick={() => router.push('/stacks')}
+                onClick={() => router.push('/home')}
                 sx={{
                   cursor: 'pointer',
                   '&:hover': { textDecoration: 'underline' },
@@ -678,7 +678,7 @@ export function ItemDetailClient({
             <>
               <Typography
                 component="span"
-                onClick={() => router.push('/stacks')}
+                onClick={() => router.push('/home')}
                 sx={{
                   cursor: 'pointer',
                   '&:hover': { textDecoration: 'underline' },
@@ -722,7 +722,7 @@ export function ItemDetailClient({
       >
         <Typography
           component="span"
-          onClick={() => router.push('/stacks')}
+          onClick={() => router.push('/home')}
           sx={{
             opacity: 0.6,
             cursor: 'pointer',
@@ -738,7 +738,7 @@ export function ItemDetailClient({
           <>
             <Typography
               component="span"
-              onClick={() => router.push('/stacks')}
+              onClick={() => router.push('/home')}
               sx={{
                 cursor: 'pointer',
                 '&:hover': { textDecoration: 'underline' },
@@ -770,7 +770,7 @@ export function ItemDetailClient({
           <>
             <Typography
               component="span"
-              onClick={() => router.push('/stacks')}
+              onClick={() => router.push('/home')}
               sx={{
                 cursor: 'pointer',
                 '&:hover': { textDecoration: 'underline' },

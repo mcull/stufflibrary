@@ -295,7 +295,7 @@ if (skipTests) {
         expect(response.status).toBe(302);
         const location = response.headers.get('location');
         expect(location).toContain(
-          `/branch/${testBranchId}?message=already_member`
+          `/library/${testBranchId}?message=already_member`
         );
       });
     });

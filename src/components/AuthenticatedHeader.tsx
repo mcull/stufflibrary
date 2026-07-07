@@ -60,7 +60,7 @@ export function AuthenticatedHeader() {
         >
           {/* Wordmark */}
           <Box sx={{ flexGrow: 0, transform: 'rotate(-1.2deg)' }}>
-            <Link href="/stacks" style={{ textDecoration: 'none' }}>
+            <Link href="/home" style={{ textDecoration: 'none' }}>
               <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
                 <Wordmark size="small" color="primary" />
               </Box>

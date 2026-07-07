@@ -76,7 +76,7 @@ export function BottomNav() {
           />
         </Box>
       ),
-      href: '/stacks',
+      href: '/home',
     },
     {
       label: '', // No label
@@ -157,7 +157,7 @@ export function BottomNav() {
 
   // Determine current value based on pathname
   const getCurrentValue = () => {
-    if (pathname.startsWith('/stacks')) return 'lobby';
+    if (pathname.startsWith('/home')) return 'lobby';
     if (pathname.startsWith('/add-item')) return 'add-stuff';
     if (pathname.startsWith('/notifications')) return 'notifications';
     return 'lobby'; // Default fallback

@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Build base response now so we can always clear cookies
-    const res = NextResponse.json({ redirect: `/collection/${inviteLibrary}` });
+    const res = NextResponse.json({ redirect: `/library/${inviteLibrary}` });
     clearInviteCookies(res);
 
     // Validate invite
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     await acceptInvitation(inviteToken, inviteLibrary, userId);
 
     console.log('[invite/consume] returning redirect', {
-      to: `/collection/${inviteLibrary}`,
+      to: `/library/${inviteLibrary}`,
     });
     return res;
   } catch (e) {

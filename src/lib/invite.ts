@@ -109,14 +109,14 @@ export async function handleInviteLanding(
       await ensureActiveMembership(userId, libId);
       await acceptInvitation(token, libId, userId);
       const res = NextResponse.redirect(
-        new URL(`/collection/${libId}?message=joined_successfully`, request.url)
+        new URL(`/library/${libId}?message=joined_successfully`, request.url)
       );
       clearInviteCookies(res);
       return res;
     }
 
     const res = NextResponse.redirect(
-      new URL(`/collection/${libId}?guest=1`, request.url)
+      new URL(`/library/${libId}?guest=1`, request.url)
     );
     setInviteCookies(res, token, libId);
     return res;

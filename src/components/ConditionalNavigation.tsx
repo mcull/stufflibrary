@@ -28,7 +28,7 @@ function NavigationContent({
   const isProfileCreation = pathname.startsWith('/profile/create');
 
   // Don't show navigation for guest users on collection pages
-  const isCollectionPage = pathname.startsWith('/collection/');
+  const isCollectionPage = pathname.startsWith('/library/');
   const isGuest = searchParams.get('guest') === '1';
 
   if (isAuthPage || isProfileCreation || (isCollectionPage && isGuest)) {

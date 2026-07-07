@@ -1037,7 +1037,7 @@ export function BorrowRequestClient({
               onClick={() =>
                 refSource === 'library' && refLibraryId
                   ? router.push(`/library/${refLibraryId}`)
-                  : router.push('/stacks')
+                  : router.push('/home')
               }
               sx={{ borderRadius: 2 }}
             >
@@ -1172,7 +1172,7 @@ export function BorrowRequestClient({
       >
         <Typography
           component="span"
-          onClick={() => router.push('/stacks')}
+          onClick={() => router.push('/home')}
           sx={{
             opacity: 0.6,
             cursor: 'pointer',
@@ -1188,7 +1188,7 @@ export function BorrowRequestClient({
           <>
             <Typography
               component="span"
-              onClick={() => router.push('/stacks')}
+              onClick={() => router.push('/home')}
               sx={{
                 cursor: 'pointer',
                 '&:hover': { textDecoration: 'underline' },
