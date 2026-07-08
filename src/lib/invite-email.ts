@@ -8,7 +8,7 @@
 const INK_BLUE = '#1E3A5F';
 const WARM_CREAM = '#F9F5EB';
 const CHARCOAL = '#333333';
-const TOMATO_RED = '#D1495B';
+const WORDMARK_TOMATO = '#FF6347'; // matches the site wordmark (CSS `tomato`)
 
 export interface InviteEmailArt {
   url: string;
@@ -78,7 +78,7 @@ export function buildLibraryInviteEmail(input: LibraryInviteEmailInput): {
     <div style="max-width: 560px; margin: 0 auto; background-color: #FFFFFF; border: 1px solid #eee4d0; border-radius: 16px; padding: 32px; box-sizing: border-box;">
 
       <div style="text-align: center; margin-bottom: 28px;">
-        <span style="display: inline-block; background-color: ${TOMATO_RED}; color: #FFFFFF; font-family: 'Courier New', Courier, monospace; font-weight: bold; letter-spacing: 3px; padding: 6px 12px; font-size: 14px;">STUFFLIBRARY</span>
+        <span style="display: inline-block; background-color: ${WORDMARK_TOMATO}; color: #FFFFFF; font-family: 'Courier New', Courier, monospace; font-weight: bold; letter-spacing: 3px; padding: 6px 12px; font-size: 14px;">STUFFLIBRARY</span>
         <p style="color: ${CHARCOAL}; opacity: 0.7; font-size: 14px; margin: 10px 0 0 0; font-family: Arial, Helvetica, sans-serif;">Share more, buy less</p>
       </div>
 
