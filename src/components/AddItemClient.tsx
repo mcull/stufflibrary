@@ -25,25 +25,24 @@ import { useRouter } from 'next/navigation';
 import { useRef, useState, useCallback, useEffect } from 'react';
 import type { SyntheticEvent } from 'react';
 
+import { theaterLine } from '@/lib/watercolor-theater';
 import { brandColors } from '@/theme/brandTokens';
 
 import { CollectionSelectionModal } from './CollectionSelectionModal';
 
-// Animated "Illustrating item..." overlay component
+// Overlay narrating the illustration wait in brand voice (#423): one
+// watercolor-process line per beat, driven by the pure theaterLine helper.
 function IllustratingOverlay() {
-  const [dotCount, setDotCount] = useState(0);
+  const [line, setLine] = useState(() => theaterLine(0));
 
   useEffect(() => {
+    const startedAt = Date.now();
     const interval = setInterval(() => {
-      setDotCount((prev) => (prev + 1) % 4); // Cycles through 0, 1, 2, 3
-    }, 600); // Change every 600ms for smooth animation
+      setLine(theaterLine(Date.now() - startedAt));
+    }, 400);
 
     return () => clearInterval(interval);
   }, []);
-
-  const getDots = (count: number) => {
-    return '.'.repeat(count);
-  };
 
   return (
     <Box
@@ -74,7 +73,7 @@ function IllustratingOverlay() {
           fontSize: '0.875rem',
         }}
       >
-        Illustrating item{getDots(dotCount)}
+        {line}
       </Typography>
     </Box>
   );
