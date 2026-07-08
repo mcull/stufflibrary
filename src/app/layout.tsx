@@ -100,9 +100,10 @@ export default function RootLayout({
             </MainContentArea>
             <ConditionalFooter />
           </ClientThemeProvider>
+          {/* Inside the session provider so identify() can see the user. */}
+          <PostHogAnalytics />
         </NextAuthSessionProvider>
         <Analytics />
-        <PostHogAnalytics />
       </body>
     </html>
   );
