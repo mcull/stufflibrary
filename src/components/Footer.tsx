@@ -24,6 +24,18 @@ const footerSections = [
       { label: 'Contact Us', href: 'mailto:hello@stufflibrary.org' },
     ],
   },
+  {
+    // Quiet civic pages (docs/content/BUILD_SPEC.md) — a librarian's
+    // handout rack, not a marketing hub.
+    title: 'The Commons',
+    links: [
+      { label: 'Lending Libraries Near You', href: '/lending-libraries' },
+      { label: 'Further Reading', href: '/further-reading' },
+      { label: 'The Sharing World', href: '/sharing-world' },
+      { label: 'Why This Works', href: '/why-this-works' },
+      { label: 'FAQ', href: '/faq' },
+    ],
+  },
 ];
 
 interface FooterProps {
