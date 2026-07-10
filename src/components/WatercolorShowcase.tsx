@@ -27,30 +27,46 @@ function ShowcasePrint({ slot }: { slot: number }) {
   // This print cycles through its own third of the cast (slot, slot+3, …),
   // so no item ever appears in two prints at once.
   const stride = SLOTS.length;
-  const [step, setStep] = useState(0);
+  const [phase, setPhase] = useState({ step: 0, settled: true });
 
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     // Stagger: print 0 swaps at 4s, print 1 at 8s, print 2 at 12s, repeat.
     const offset = ((slot + 1) * CYCLE_SECONDS * 1000) / SLOTS.length;
     let interval: ReturnType<typeof setInterval> | undefined;
+    let settle: ReturnType<typeof setTimeout> | undefined;
+    const advance = () => {
+      setPhase((p) => ({ step: p.step + 1, settled: false }));
+      // The outgoing layer keeps its image until the fade is fully done;
+      // only then is it recycled to preload the next item.
+      settle = setTimeout(
+        () => setPhase((p) => ({ ...p, settled: true })),
+        (FADE_SECONDS + 0.2) * 1000
+      );
+    };
     const kickoff = setTimeout(() => {
-      setStep((s) => s + 1);
-      interval = setInterval(() => setStep((s) => s + 1), CYCLE_SECONDS * 1000);
+      advance();
+      interval = setInterval(advance, CYCLE_SECONDS * 1000);
     }, offset);
     return () => {
       clearTimeout(kickoff);
+      clearTimeout(settle);
       if (interval) clearInterval(interval);
     };
   }, [slot]);
 
   const itemAt = (s: number) =>
     SHOWCASE_ITEMS[(slot + s * stride) % SHOWCASE_ITEMS.length]!;
-  // Layer A shows even steps, layer B odd steps; the off layer preloads next.
-  const layers = [
-    { item: itemAt(step % 2 === 0 ? step : step + 1), visible: step % 2 === 0 },
-    { item: itemAt(step % 2 === 1 ? step : step + 1), visible: step % 2 === 1 },
-  ];
+  const { step, settled } = phase;
+  // Layer A shows even steps, layer B odd steps. Mid-fade the off layer
+  // still holds the outgoing item; once settled it preloads the next one.
+  const layers = [0, 1].map((parity) => {
+    const showing = step % 2 === parity;
+    return {
+      item: itemAt(showing ? step : settled ? step + 1 : step - 1),
+      visible: showing,
+    };
+  });
 
   const { width, top, left, rotate, drift } = SLOTS[slot]!;
 
