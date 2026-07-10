@@ -28,9 +28,54 @@ const footerSections = [
 
 interface FooterProps {
   isLoggedIn?: boolean;
+  /** One-line variant for the member home (#429). */
+  slim?: boolean;
 }
 
-export function Footer({ isLoggedIn = false }: FooterProps) {
+export function Footer({ isLoggedIn = false, slim = false }: FooterProps) {
+  if (slim) {
+    return (
+      <Box
+        component="footer"
+        sx={{
+          backgroundColor: brandColors.charcoal,
+          color: brandColors.white,
+          px: { xs: 2, sm: '48px' },
+          py: '18px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
+        <Typography sx={{ opacity: 0.7, fontSize: '13px', m: 0 }}>
+          © {new Date().getFullYear()} StuffLibrary
+        </Typography>
+        <Box sx={{ display: 'flex', gap: '24px' }}>
+          {[
+            { label: 'Feedback', href: '/feedback' },
+            { label: 'Privacy', href: '/privacy' },
+            { label: 'Terms', href: '/terms' },
+          ].map((link) => (
+            <Typography
+              key={link.href}
+              component="a"
+              href={link.href}
+              sx={{
+                color: brandColors.white,
+                opacity: 0.7,
+                fontSize: '13px',
+                textDecoration: 'none',
+                '&:hover': { opacity: 1 },
+              }}
+            >
+              {link.label}
+            </Typography>
+          ))}
+        </Box>
+      </Box>
+    );
+  }
+
   return (
     <Box
       component="footer"
