@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 
 import { SHOWCASE_ITEMS } from '@/lib/homepage-watercolors';
 
-import { WatercolorShowcase } from '../WatercolorShowcase';
+import { WatercolorShowcase, cardPose } from '../WatercolorShowcase';
 
 describe('WatercolorShowcase', () => {
   it('renders big watercolor images and nothing else — no captions, no owners', () => {
@@ -40,8 +40,9 @@ describe('WatercolorShowcase', () => {
 
     // The bug Marc saw live: on fade-out the outgoing print flashed to its
     // NEXT preload item (ladder → ice cream maker) before the incoming one
-    // (bundt pan) faded in. Mid-fade, a print's two layers must hold only
-    // the outgoing and incoming items — the preload swap waits for the fade.
+    // (bundt pan) faded in. Mid-transition, a print's two layers must hold
+    // only the outgoing and incoming items — the preload swap waits for the
+    // full vanish-then-appear to settle.
     it('never changes the outgoing image mid-fade', () => {
       const { container } = render(<WatercolorShowcase />);
       const printImgs = () =>
@@ -64,6 +65,34 @@ describe('WatercolorShowcase', () => {
       expect(printImgs()).toEqual(
         [SHOWCASE_ITEMS[3]!.url, SHOWCASE_ITEMS[6]!.url].sort()
       );
+    });
+  });
+
+  describe('card poses', () => {
+    it('is deterministic (SSR-safe) and fresh on every appearance', () => {
+      for (let slot = 0; slot < 3; slot++) {
+        for (let step = 0; step < 12; step++) {
+          const pose = cardPose(slot, step);
+          // Same inputs, same pose — no randomness that could break hydration.
+          expect(cardPose(slot, step)).toEqual(pose);
+          // Consecutive appearances at one midpoint look different.
+          const next = cardPose(slot, step + 1);
+          expect(pose.rotate !== next.rotate || pose.scale !== next.scale).toBe(
+            true
+          );
+        }
+      }
+    });
+
+    it('keeps tilt and size within polite bounds', () => {
+      for (let slot = 0; slot < 3; slot++) {
+        for (let step = 0; step < 12; step++) {
+          const { rotate, scale } = cardPose(slot, step);
+          expect(Math.abs(rotate)).toBeLessThanOrEqual(7);
+          expect(scale).toBeGreaterThanOrEqual(0.8);
+          expect(scale).toBeLessThanOrEqual(1.15);
+        }
+      }
     });
   });
 
