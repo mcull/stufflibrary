@@ -3,6 +3,7 @@ import path from 'path';
 import { withSentryConfig } from '@sentry/nextjs';
 
 import { legacyRedirects } from './src/config/redirects.mjs';
+import { ingestRewrites } from './src/config/rewrites.mjs';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -11,6 +12,13 @@ const nextConfig = {
   async redirects() {
     return legacyRedirects;
   },
+  // #422: first-party PostHog proxy (mapping tested in src/config).
+  async rewrites() {
+    return ingestRewrites;
+  },
+  // PostHog's proxy setup needs /ingest/* passed through verbatim — Next's
+  // automatic trailing-slash redirect would break some ingest paths.
+  skipTrailingSlashRedirect: true,
   eslint: {
     // P0-12: surface lint errors at build time. `next build` fails on ESLint
     // *errors* (not warnings), so type/lint regressions can't silently ship.
