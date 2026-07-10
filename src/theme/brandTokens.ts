@@ -13,7 +13,7 @@ export const brandColors = {
 
   // Accents - for CTAs and playful emphasis
   mustardYellow: '#E3B505',
-  tomatoRed: '#D1495B',
+  tomatoRed: '#FF6347', // CSS `tomato` — the bright one the wordmark always wore
 
   // Neutrals - structure and legibility
   softGray: '#E0E0E0',

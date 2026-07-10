@@ -32,8 +32,8 @@ export const theme = createTheme({
     // Error - Tomato Red
     error: {
       main: brandColors.tomatoRed,
-      light: '#E06B7A', // Lighter tomato
-      dark: '#B33A4A', // Darker tomato
+      light: '#FF8A73', // Lighter tomato
+      dark: '#E04E2E', // Darker tomato
       contrastText: brandColors.white,
     },
 

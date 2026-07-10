@@ -8,7 +8,7 @@
 const INK_BLUE = '#1E3A5F';
 const WARM_CREAM = '#F9F5EB';
 const CHARCOAL = '#333333';
-const WORDMARK_TOMATO = '#FF6347'; // matches the site wordmark (CSS `tomato`)
+const WORDMARK_TOMATO = '#FF6347'; // = brandTokens.tomatoRed (pure module, no import)
 
 export interface InviteEmailArt {
   url: string;

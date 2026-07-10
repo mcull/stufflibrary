@@ -120,7 +120,7 @@ export default function ThemeDemoPage() {
               }}
             >
               <Typography variant="h6">Tomato Red</Typography>
-              <Typography variant="body2">#D1495B</Typography>
+              <Typography variant="body2">#FF6347</Typography>
               <Typography variant="caption">Accent 2</Typography>
             </Box>
 
