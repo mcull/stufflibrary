@@ -149,8 +149,11 @@ export function BorrowApprovalClient({
       );
 
       if (!responseData.ok) {
-        const error = await responseData.json();
-        throw new Error(error.message || 'Failed to send response');
+        const error = await responseData.json().catch(() => ({}));
+        // The API reports failures as { error } (#441 sweep).
+        throw new Error(
+          error.error || error.message || 'Failed to send response'
+        );
       }
 
       setSubmitted(true);
