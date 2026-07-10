@@ -64,6 +64,8 @@ interface BorrowRequest {
   approvedAt?: string;
   returnedAt?: string;
   borrowerReturnNote?: string;
+  returnInitiatedBy?: string;
+  returnMessage?: string;
   borrower: {
     id: string;
     name: string;
@@ -405,6 +407,12 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
   const isPending = request.status === 'PENDING';
   const isReturned = request.status === 'RETURNED';
   const isReturnPending = request.status === 'RETURN_PENDING';
+  // A direct owner Check In (escape hatch) closed the loan — attribute it
+  // honestly instead of claiming the borrower marked the return (#440).
+  const wasLenderCheckIn =
+    isReturned &&
+    !!request.returnInitiatedBy &&
+    request.returnInitiatedBy !== request.borrower.id;
   const isActive = request.status === 'ACTIVE' || request.status === 'APPROVED';
   const canRespond = isPending;
   const canConfirmReturn = isReturnPending;
@@ -560,18 +568,53 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
                   }}
                 >
                   <CheckCircle sx={{ mr: 1 }} />
-                  Item Returned by Borrower
+                  {wasLenderCheckIn
+                    ? 'Item Checked In'
+                    : 'Item Returned by Borrower'}
                 </Typography>
                 <Typography
                   variant="body2"
                   sx={{ color: 'success.contrastText', mb: 2 }}
                 >
-                  {request.borrower.name} marked this item as returned on{' '}
-                  {new Date(
-                    request.returnedAt || request.updatedAt
-                  ).toLocaleDateString()}
-                  .
+                  {/* Honest attribution (#440): say which path closed the loan. */}
+                  {wasLenderCheckIn ? (
+                    <>
+                      You checked this item in on{' '}
+                      {new Date(
+                        request.returnedAt || request.updatedAt
+                      ).toLocaleDateString()}
+                      .
+                    </>
+                  ) : (
+                    <>
+                      {request.borrower.name} marked this item as returned on{' '}
+                      {new Date(
+                        request.returnedAt || request.updatedAt
+                      ).toLocaleDateString()}
+                      {isReturned ? ' — confirmed by you' : ''}.
+                    </>
+                  )}
                 </Typography>
+                {request.returnMessage && (
+                  <Box
+                    sx={{
+                      mt: 2,
+                      p: 2,
+                      bgcolor: 'rgba(255,255,255,0.2)',
+                      borderRadius: 1,
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: 'success.contrastText',
+                        fontStyle: 'italic',
+                      }}
+                    >
+                      &ldquo;{request.returnMessage}&rdquo;
+                    </Typography>
+                  </Box>
+                )}
                 {request.borrowerReturnNote && (
                   <Box
                     sx={{

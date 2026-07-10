@@ -53,6 +53,8 @@ interface BorrowRequest {
   createdAt: string;
   approvedAt?: string;
   returnedAt?: string;
+  returnInitiatedBy?: string;
+  returnMessage?: string;
   borrower: {
     id: string;
     name: string;
@@ -225,13 +227,20 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
   }
 
   const isActive = request.status === 'ACTIVE';
+  const isApproved = request.status === 'APPROVED';
   const isReturnPending = request.status === 'RETURN_PENDING';
   const isReturned = request.status === 'RETURNED';
-  const canReturn = isActive;
+  // APPROVED is the on-loan state (#440) — there is no separate pickup step,
+  // so an approved borrow is returnable.
+  const isOnLoan = isActive || isApproved;
+  const canReturn = isOnLoan;
+  // A lender check-in closed the loan without the borrower's handshake.
+  const wasLenderCheckIn =
+    isReturned && request.returnInitiatedBy === request.lender.id;
 
   // Check if return date has passed
   const returnDate = new Date(request.requestedReturnDate);
-  const isOverdue = returnDate < new Date() && isActive;
+  const isOverdue = returnDate < new Date() && isOnLoan;
 
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: brandColors.warmCream }}>
@@ -365,7 +374,7 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
             )}
 
             {/* Return Instructions */}
-            {isActive && (
+            {isOnLoan && (
               <Card
                 sx={{
                   mb: 3,
@@ -441,11 +450,23 @@ export function BorrowRequestDetail({ requestId }: BorrowRequestDetailProps) {
                     Item Returned
                   </Typography>
                   <Typography variant="body2">
-                    You marked this item as returned on{' '}
-                    {formatDistanceToNow(new Date(request.returnedAt!), {
-                      addSuffix: true,
-                    })}
-                    .{request.lender.name} has been notified.
+                    {wasLenderCheckIn ? (
+                      <>
+                        {request.lender.name} checked this item in{' '}
+                        {formatDistanceToNow(new Date(request.returnedAt!), {
+                          addSuffix: true,
+                        })}
+                        .
+                      </>
+                    ) : (
+                      <>
+                        You marked this item as returned on{' '}
+                        {formatDistanceToNow(new Date(request.returnedAt!), {
+                          addSuffix: true,
+                        })}
+                        .{request.lender.name} has been notified.
+                      </>
+                    )}
                   </Typography>
                 </CardContent>
               </Card>
