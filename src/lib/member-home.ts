@@ -99,8 +99,19 @@ export function itemStamp(item: {
       }
       return { label: 'ON LOAN', ink: STAMP_INKS.red };
     }
-    case 'borrowed':
+    case 'borrowed': {
+      // #442: the borrower deserves the same due-date stamp the owner gets.
+      const due = item.borrowRequest?.requestedReturnDate;
+      if (due) {
+        const d = new Date(due);
+        const dd = String(d.getUTCDate()).padStart(2, '0');
+        return {
+          label: `DUE ${MONTHS[d.getUTCMonth()]} ${dd}`,
+          ink: STAMP_INKS.brown,
+        };
+      }
       return { label: 'BORROWED', ink: STAMP_INKS.brown };
+    }
     case 'offline':
       return { label: 'OFF SHELF', ink: STAMP_INKS.gray };
     default:
