@@ -87,19 +87,6 @@ export function HowItWorks() {
           overflow: 'hidden',
         }}
       >
-        <Box
-          component="img"
-          src="/coffee_stains/noun-coffee-ring-1071952.svg"
-          alt=""
-          sx={{
-            position: 'absolute',
-            width: 190,
-            right: 24,
-            bottom: 12,
-            opacity: 0.08,
-            pointerEvents: 'none',
-          }}
-        />
         <Typography
           sx={{
             textAlign: 'center',

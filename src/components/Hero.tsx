@@ -246,20 +246,6 @@ export function Hero() {
           boxSizing: 'border-box',
         }}
       >
-        {/* Coffee ring — someone planned this neighborhood over breakfast. */}
-        <Box
-          component="img"
-          src="/coffee_stains/noun-coffee-ring-1071950.svg"
-          alt=""
-          sx={{
-            position: 'absolute',
-            width: 340,
-            right: -60,
-            top: -70,
-            opacity: 0.07,
-            pointerEvents: 'none',
-          }}
-        />
         <Box>
           <Typography
             sx={{
