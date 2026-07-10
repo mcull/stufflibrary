@@ -33,7 +33,7 @@ describe('Home Page', () => {
     render(await Home());
 
     expect(
-      screen.getByText(/A neighborly way to share what you have/)
+      screen.getByText(/Your street already owns everything you need/)
     ).toBeInTheDocument();
   });
 
