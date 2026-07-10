@@ -32,6 +32,7 @@ import {
   Snackbar,
   IconButton,
   Avatar,
+  Skeleton,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -626,9 +627,39 @@ export function ItemDetailClient({
   };
 
   if (loading) {
+    // Skeleton holds the page's real shape (breadcrumb, 300px square art,
+    // title + fields) so nothing jumps when data lands (#421; same treatment
+    // as the library and home pages).
     return (
-      <Container maxWidth="lg" sx={{ py: 4, textAlign: 'center' }}>
-        <CircularProgress />
+      <Container maxWidth="md" sx={{ py: 4 }}>
+        <Skeleton variant="text" width={260} sx={{ mb: 2 }} />
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', md: 'row' },
+            gap: 4,
+          }}
+        >
+          <Box sx={{ flex: '0 0 300px' }}>
+            <Skeleton
+              variant="rounded"
+              sx={{ width: '100%', aspectRatio: '1', borderRadius: 2 }}
+            />
+          </Box>
+          <Box sx={{ flex: 1 }}>
+            <Skeleton variant="text" width="65%" height={44} sx={{ mb: 1 }} />
+            <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+              <Skeleton variant="rounded" width={88} height={28} />
+              <Skeleton variant="rounded" width={72} height={28} />
+            </Box>
+            <Skeleton variant="text" width="95%" />
+            <Skeleton variant="text" width="88%" />
+            <Skeleton variant="text" width="60%" sx={{ mb: 3 }} />
+            <Skeleton variant="text" width={140} sx={{ mb: 1 }} />
+            <Skeleton variant="text" width={180} sx={{ mb: 3 }} />
+            <Skeleton variant="rounded" width={200} height={44} />
+          </Box>
+        </Box>
       </Container>
     );
   }
