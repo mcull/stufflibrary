@@ -9,9 +9,9 @@ import { useCollections } from '@/hooks/useCollections';
 import { useUserItems } from '@/hooks/useUserItems';
 import type { CapabilityReason } from '@/lib/capabilities';
 import {
-  branchEyebrow,
   cardNumber,
   firstNameOf,
+  memberSinceLabel,
   splitLibraries,
 } from '@/lib/member-home';
 import { brandColors } from '@/theme/brandTokens';
@@ -186,7 +186,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
       )}
 
       <GreetingDesk
-        eyebrow={branchEyebrow(started)}
+        eyebrow={memberSinceLabel(user.createdAt)}
         cardNumber={cardNumber(user.id)}
         firstName={firstNameOf(user.name)}
       />
@@ -232,6 +232,7 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
               <JoinedEmptyState
                 onInvite={inviteFromEmptyJoined}
                 previewUrl={started[0]?.itemPreviews?.[0]}
+                ownedLibraryName={started[0]?.name}
               />
             )}
           </Box>

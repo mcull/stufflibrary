@@ -42,12 +42,14 @@ export function LibraryDrawer({
                 fontWeight: 700,
                 letterSpacing: '0.06em',
                 padding: { xs: '12px 18px 10px', sm: '14px 28px 12px' },
+                // Digital tab semantics (#435): the FILLED tab is selected.
                 border: `2px solid ${brandColors.inkBlue}`,
                 borderBottom: 'none',
-                borderRadius: '10px 10px 0 0',
+                borderRadius: '4px 4px 0 0',
                 cursor: 'pointer',
-                background: active ? vintage.drawerPaper : brandColors.inkBlue,
-                color: active ? brandColors.inkBlue : brandColors.warmCream,
+                background: active ? brandColors.inkBlue : vintage.drawerPaper,
+                color: active ? brandColors.warmCream : brandColors.inkBlue,
+                transition: 'background 0.15s ease, color 0.15s ease',
               }}
             >
               {tab.label}
@@ -58,27 +60,13 @@ export function LibraryDrawer({
       <Box
         sx={{
           border: `2px solid ${brandColors.inkBlue}`,
-          borderRadius: '0 10px 10px 10px',
+          borderRadius: '0 4px 4px 4px',
           background: vintage.drawerPaper,
           padding: { xs: '24px 16px 32px', md: '40px 40px 48px' },
           position: 'relative',
           overflow: 'hidden',
         }}
       >
-        {/* Coffee ring: someone read here with a mug. */}
-        <Box
-          component="img"
-          src="/coffee_stains/noun-coffee-ring-1071952.svg"
-          alt=""
-          sx={{
-            position: 'absolute',
-            width: 260,
-            right: -40,
-            bottom: -50,
-            opacity: 0.05,
-            pointerEvents: 'none',
-          }}
-        />
         <Box sx={{ position: 'relative' }}>{children}</Box>
       </Box>
     </Box>

@@ -57,12 +57,6 @@ export function cardNumber(userId: string): string {
   return `${six.slice(0, 3)}-${six.slice(3)}`;
 }
 
-/** Eyebrow line: first started library's first word + BRANCH. */
-export function branchEyebrow(started: Array<{ name: string }>): string {
-  const first = started[0]?.name.trim().split(/\s+/)[0];
-  return first ? `${first.toUpperCase()} BRANCH` : 'STUFFLIBRARY';
-}
-
 /** Folder tab: first word of the library name, uppercased, clamped. */
 export function folderTabLabel(name: string): string {
   return (name.trim().split(/\s+/)[0] || 'LIBRARY').toUpperCase().slice(0, 12);
@@ -124,15 +118,27 @@ export function shelfSummary(
     watercolorUrl?: string | null;
     currentBorrowRequestId?: string | null;
     active?: boolean;
+    /** Lifetime borrows of this item (#435 vitality stat). */
+    borrowCount?: number;
   }>
-): { itemPreviews: string[]; loansOut: number } {
+): { itemPreviews: string[]; loansOut: number; totalBorrows: number } {
   const live = rows.filter((r) => r.active !== false);
   const itemPreviews = live
     .map((r) => r.watercolorThumbUrl || r.watercolorUrl)
     .filter((u): u is string => Boolean(u))
     .slice(0, 3);
   const loansOut = live.filter((r) => r.currentBorrowRequestId).length;
-  return { itemPreviews, loansOut };
+  const totalBorrows = live.reduce((sum, r) => sum + (r.borrowCount ?? 0), 0);
+  return { itemPreviews, loansOut, totalBorrows };
+}
+
+/** Greeting eyebrow: the member-card fiction, unambiguous (#435). */
+export function memberSinceLabel(
+  createdAt: string | Date | null | undefined
+): string {
+  if (!createdAt) return 'STUFFLIBRARY MEMBER';
+  const d = new Date(createdAt);
+  return `MEMBER SINCE ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
 /** Subtle alternating resting tilt (±0.6–1deg) for shelf cards. */
