@@ -276,6 +276,8 @@ model BorrowRequest {
   returnConfirmedBy     String?
   returnedLate          Boolean?
   borrowerReturnNote    String?
+  returnInitiatedBy     String?
+  returnMessage         String?
   lastOverdueReminderAt DateTime?
   cancelledAt           DateTime?
   cancellationReason    String?

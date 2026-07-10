@@ -590,6 +590,109 @@ describe('Phase 1A — PATCH route state machine', () => {
     expect(data.returnedLate).toBe(false);
   });
 
+  // ── #440: borrower return works from APPROVED + honest attribution ───────
+
+  it("borrower 'return' works from APPROVED (the on-loan state) and records the initiator", async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: 'borrower_1' } });
+    mockBorrowRequestFindUnique.mockResolvedValue({
+      ...baseBorrowRequestStub,
+      id: 'br_1',
+      status: 'APPROVED',
+      borrowerId: 'borrower_1',
+      lenderId: 'lender_1',
+      itemId: 'item_1',
+    });
+    mockBorrowRequestUpdate.mockResolvedValue({
+      id: 'br_1',
+      status: 'RETURN_PENDING',
+    });
+
+    const res = await PATCH(makeReq({ action: 'return' }), {
+      params: Promise.resolve({ id: 'br_1' }),
+    });
+
+    expect(res.status).toBe(200);
+    const data = mockBorrowRequestUpdate.mock.calls[0]![0].data;
+    expect(data.status).toBe('RETURN_PENDING');
+    expect(data.returnInitiatedBy).toBe('borrower_1');
+  });
+
+  it("borrower 'return' still rejects a PENDING request", async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: 'borrower_1' } });
+    mockBorrowRequestFindUnique.mockResolvedValue({
+      ...baseBorrowRequestStub,
+      id: 'br_1',
+      status: 'PENDING',
+      borrowerId: 'borrower_1',
+      lenderId: 'lender_1',
+      itemId: 'item_1',
+    });
+    const res = await PATCH(makeReq({ action: 'return' }), {
+      params: Promise.resolve({ id: 'br_1' }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("'confirm-return' preserves the approval message and stores its own as returnMessage", async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: 'lender_1' } });
+    mockBorrowRequestFindUnique.mockResolvedValue({
+      ...baseBorrowRequestStub,
+      id: 'br_1',
+      status: 'RETURN_PENDING',
+      borrowerId: 'borrower_1',
+      lenderId: 'lender_1',
+      itemId: 'item_1',
+      lenderMessage: 'Sure, pick it up Tuesday!',
+      requestedReturnDate: new Date('2026-06-01'),
+      returnedAt: new Date('2026-05-30'),
+    });
+    mockBorrowRequestUpdate.mockResolvedValue({
+      id: 'br_1',
+      status: 'RETURNED',
+    });
+
+    const res = await PATCH(
+      makeReq({
+        action: 'confirm-return',
+        condition: 'OK',
+        message: 'Thanks, all good!',
+      }),
+      { params: Promise.resolve({ id: 'br_1' }) }
+    );
+    expect(res.status).toBe(200);
+    const data = mockBorrowRequestUpdate.mock.calls[0]![0].data;
+    // The approval message ("Your Response") must survive the return.
+    expect(data.lenderMessage).toBeUndefined();
+    expect(data.returnMessage).toBe('Thanks, all good!');
+  });
+
+  it("'lender-return' records the lender as initiator and preserves the approval message", async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: 'lender_1' } });
+    mockBorrowRequestFindUnique.mockResolvedValue({
+      ...baseBorrowRequestStub,
+      id: 'br_1',
+      status: 'APPROVED',
+      borrowerId: 'borrower_1',
+      lenderId: 'lender_1',
+      itemId: 'item_1',
+      lenderMessage: 'Sure, pick it up Tuesday!',
+      requestedReturnDate: new Date('2026-06-01'),
+      returnedAt: null,
+    });
+    mockBorrowRequestUpdate.mockResolvedValue({
+      id: 'br_1',
+      status: 'RETURNED',
+    });
+    const res = await PATCH(
+      makeReq({ action: 'lender-return', condition: 'OK' }),
+      { params: Promise.resolve({ id: 'br_1' }) }
+    );
+    expect(res.status).toBe(200);
+    const data = mockBorrowRequestUpdate.mock.calls[0]![0].data;
+    expect(data.returnInitiatedBy).toBe('lender_1');
+    expect(data.lenderMessage).toBeUndefined();
+  });
+
   // ── Task 5: report-problem creates a Dispute ──────────────────────────────
 
   it("'report-problem' creates an OPEN Dispute and notifies (within window)", async () => {

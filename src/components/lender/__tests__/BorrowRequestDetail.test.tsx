@@ -64,6 +64,61 @@ describe('lender BorrowRequestDetail', () => {
     );
   });
 
+  // #440: honest attribution — after a direct lender check-in, the page must
+  // not claim the borrower marked the return, and the approval message must
+  // still be shown as "Your Response".
+  it('attributes a lender check-in honestly and keeps the approval message', async () => {
+    (fetch as any).mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            borrowRequest: {
+              ...mockReturnPendingRequest,
+              status: 'RETURNED',
+              returnInitiatedBy: 'user-2',
+              returnMessage: 'Found it on the porch, all good.',
+            },
+          }),
+      })
+    );
+    render(<BorrowRequestDetail requestId="request-1" />);
+    await waitFor(() => {
+      expect(screen.getByText(/You checked this item in/)).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByText(/Test Borrower marked this item as returned/)
+    ).not.toBeInTheDocument();
+    // Approval-time response still intact, return message shown separately.
+    expect(screen.getByText(/Sure, take good care of it/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Found it on the porch, all good./)
+    ).toBeInTheDocument();
+  });
+
+  it('shows the handshake attribution when the borrower initiated the return', async () => {
+    (fetch as any).mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            borrowRequest: {
+              ...mockReturnPendingRequest,
+              status: 'RETURNED',
+              returnInitiatedBy: 'user-1',
+            },
+          }),
+      })
+    );
+    render(<BorrowRequestDetail requestId="request-1" />);
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Test Borrower marked this item as returned/)
+      ).toBeInTheDocument();
+    });
+    expect(screen.getByText(/confirmed by you/)).toBeInTheDocument();
+  });
+
   it('shows awaiting confirmation label for RETURN_PENDING', async () => {
     render(<BorrowRequestDetail requestId="request-1" />);
 

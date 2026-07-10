@@ -71,6 +71,56 @@ describe('BorrowRequestDetail', () => {
     );
   });
 
+  // #440: APPROVED is the on-loan state — the borrower must be able to
+  // start the return handshake from it.
+  it('renders APPROVED request with mark returned button', async () => {
+    (fetch as any).mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            borrowRequest: { ...mockActiveRequest, status: 'APPROVED' },
+          }),
+      })
+    );
+    render(<BorrowRequestDetail requestId="request-1" />);
+    await waitFor(
+      () => {
+        expect(screen.getByText('Mark as Returned')).toBeInTheDocument();
+      },
+      { timeout: 10000 }
+    );
+  });
+
+  // #440: honest attribution — a lender check-in must not read as if the
+  // borrower marked the return.
+  it('attributes a lender check-in to the lender, not the borrower', async () => {
+    (fetch as any).mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            borrowRequest: {
+              ...mockReturnedRequest,
+              returnInitiatedBy: 'user-2',
+            },
+          }),
+      })
+    );
+    render(<BorrowRequestDetail requestId="request-1" />);
+    await waitFor(
+      () => {
+        expect(
+          screen.getByText(/Item Owner checked this item in/)
+        ).toBeInTheDocument();
+      },
+      { timeout: 10000 }
+    );
+    expect(
+      screen.queryByText(/You marked this item as returned/)
+    ).not.toBeInTheDocument();
+  });
+
   it('renders active request with mark returned button', async () => {
     render(<BorrowRequestDetail requestId="request-1" />);
 

@@ -272,9 +272,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
             { status: 403 }
           );
         }
-        if (borrowRequest.status !== 'ACTIVE') {
+        // APPROVED is the on-loan state (#440): there is no pickup/activation
+        // step, so an approved borrow must be returnable.
+        if (!['ACTIVE', 'APPROVED'].includes(borrowRequest.status)) {
           return NextResponse.json(
-            { error: 'Can only return items that are currently active' },
+            { error: 'Can only return items that are currently on loan' },
             { status: 400 }
           );
         }
@@ -286,6 +288,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
             ? new Date(actualReturnDate)
             : new Date(),
           borrowerReturnNote: message || null,
+          returnInitiatedBy: userId,
         };
         break;
 
@@ -361,7 +364,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
             borrowRequest.requestedReturnDate,
             borrowRequest.returnedAt
           ),
-          lenderMessage: message || 'Return confirmed by lender',
+          // lenderMessage stays untouched — it holds the approval-time
+          // response; the return-time message has its own field (#440).
+          returnMessage: message || null,
         };
         break;
 
@@ -372,6 +377,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
             { status: 403 }
           );
         }
+        // Deliberate (#440): the owner's direct Check In is the escape hatch
+        // when the borrower forgot or is unreachable, so it accepts APPROVED
+        // (the on-loan state) as well as ACTIVE. The borrower handshake
+        // (return → confirm-return) is the primary path.
         if (!['ACTIVE', 'APPROVED'].includes(borrowRequest.status)) {
           return NextResponse.json(
             {
@@ -410,7 +419,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
               borrowRequest.requestedReturnDate,
               back
             ),
-            lenderMessage: message || 'Item checked in by owner',
+            returnInitiatedBy: userId,
+            // lenderMessage stays untouched (see confirm-return).
+            returnMessage: message || null,
           };
         }
         break;
