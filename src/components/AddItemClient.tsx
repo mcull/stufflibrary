@@ -25,21 +25,22 @@ import { useRouter } from 'next/navigation';
 import { useRef, useState, useCallback, useEffect } from 'react';
 import type { SyntheticEvent } from 'react';
 
-import { theaterLine } from '@/lib/watercolor-theater';
+import { simulatedProgress } from '@/lib/watercolor-progress';
 import { brandColors } from '@/theme/brandTokens';
 
 import { CollectionSelectionModal } from './CollectionSelectionModal';
 
-// Overlay narrating the illustration wait in brand voice (#423): one
-// watercolor-process line per beat, driven by the pure theaterLine helper.
+// Quiet simulated progress bar for the illustration wait (#433): linear-ish
+// to ~90% over the typical render, creeping after — never a fake 100%. The
+// overlay unmounts when the real render resolves.
 function IllustratingOverlay() {
-  const [line, setLine] = useState(() => theaterLine(0));
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     const startedAt = Date.now();
     const interval = setInterval(() => {
-      setLine(theaterLine(Date.now() - startedAt));
-    }, 400);
+      setProgress(simulatedProgress(Date.now() - startedAt));
+    }, 200);
 
     return () => clearInterval(interval);
   }, []);
@@ -55,26 +56,29 @@ function IllustratingOverlay() {
         backgroundColor: 'rgba(255, 255, 255, 0.95)',
         backdropFilter: 'blur(4px)',
         borderRadius: 1,
-        py: 1.5,
-        px: 2,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 1,
+        py: 2,
+        px: 2.5,
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
       }}
     >
-      <CircularProgress size={16} sx={{ color: brandColors.inkBlue }} />
-      <Typography
-        variant="body2"
+      <Box
         sx={{
-          color: brandColors.inkBlue,
-          fontWeight: 500,
-          fontSize: '0.875rem',
+          height: 6,
+          borderRadius: 3,
+          backgroundColor: brandColors.warmCream,
+          overflow: 'hidden',
         }}
       >
-        {line}
-      </Typography>
+        <Box
+          sx={{
+            height: '100%',
+            width: `${progress}%`,
+            borderRadius: 3,
+            backgroundColor: brandColors.inkBlue,
+            transition: 'width 0.2s linear',
+          }}
+        />
+      </Box>
     </Box>
   );
 }
