@@ -32,12 +32,12 @@ test.describe('Basic Homepage Tests', () => {
   test('hero section renders', async ({ page }) => {
     await page.goto('/');
 
-    // Test hero content - updated for new Figma mockup design
+    // Hero content — the vintage library-card redesign (#430)
     await expect(
-      page.getByText(/neighborly way to share what you have/i)
+      page.getByRole('heading', { name: /Borrow, Lend, Belong\./i })
     ).toBeVisible();
     await expect(
-      page.getByText(/find what you need.*rediscover community/i)
+      page.getByText(/Your street already owns everything you need/i)
     ).toBeVisible();
   });
 });
