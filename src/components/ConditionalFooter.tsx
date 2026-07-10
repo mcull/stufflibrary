@@ -17,6 +17,7 @@ export function ConditionalFooter() {
     return null;
   }
 
-  // Pass the logged-in state to Footer
-  return <Footer isLoggedIn={!!session?.user} />;
+  // Member home gets the slim one-liner (#429); everywhere else keeps the
+  // full marketing footer.
+  return <Footer isLoggedIn={!!session?.user} slim={pathname === '/home'} />;
 }

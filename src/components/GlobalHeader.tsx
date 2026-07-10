@@ -1,9 +1,6 @@
 'use client';
 
-import {
-  ArrowBack as ArrowBackIcon,
-  AddAPhotoTwoTone as AddIcon,
-} from '@mui/icons-material';
+import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import {
   AppBar,
   Toolbar,
@@ -22,7 +19,6 @@ import { useProfileDraftCleanup } from '@/hooks/useProfileDraftCleanup';
 import { brandColors } from '@/theme/brandTokens';
 
 import { NotificationBell } from './notifications/NotificationBell';
-import { Wordmark } from './Wordmark';
 
 interface GlobalHeaderProps {
   title?: string | undefined;
@@ -70,7 +66,8 @@ export function GlobalHeader({
       elevation={0}
       sx={{
         backgroundColor: brandColors.warmCream,
-        borderBottom: `1px solid ${brandColors.softGray}`,
+        // Vintage treatment (#429): a firm ink rule under the masthead.
+        borderBottom: `2px solid ${brandColors.inkBlue}`,
       }}
     >
       <Container maxWidth="lg">
@@ -107,16 +104,24 @@ export function GlobalHeader({
               </IconButton>
             )}
 
-            <Box sx={{ transform: 'rotate(-1.2deg)' }}>
-              <Link href="/home" style={{ textDecoration: 'none' }}>
-                <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
-                  <Wordmark size="small" color="primary" />
-                </Box>
-                <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
-                  <Wordmark size="medium" color="primary" />
-                </Box>
-              </Link>
-            </Box>
+            <Link href="/home" style={{ textDecoration: 'none' }}>
+              {/* Label-maker chip wordmark (#429). */}
+              <Box
+                component="span"
+                className="vintage-impact-label"
+                sx={{
+                  fontSize: { xs: '18px', sm: '24px' },
+                  color: brandColors.warmCream,
+                  background: brandColors.tomatoRed,
+                  padding: '3px 8px',
+                  transform: 'rotate(-1.2deg)',
+                  display: 'inline-block',
+                  lineHeight: 1.2,
+                }}
+              >
+                STUFFLIBRARY
+              </Box>
+            </Link>
           </Box>
 
           {/* Center Section - Page Title */}
@@ -156,23 +161,31 @@ export function GlobalHeader({
               flex: '0 0 auto',
             }}
           >
-            {/* Add Stuff Button - Desktop Only */}
-            <IconButton
+            {/* Add Stuff - Desktop Only (mobile adds via BottomNav) */}
+            <Box
               component={Link}
               href="/add-item"
               sx={{
-                backgroundColor: brandColors.mustardYellow,
-                color: brandColors.charcoal,
-                width: 36,
-                height: 36,
-                display: { xs: 'none', md: 'flex' }, // Hide on mobile
+                display: { xs: 'none', md: 'inline-flex' },
+                alignItems: 'center',
+                gap: '8px',
+                background: brandColors.mustardYellow,
+                color: brandColors.inkBlue,
+                fontFamily: '"Roboto Mono", monospace',
+                fontSize: '14px',
+                fontWeight: 700,
+                padding: '9px 18px',
+                borderRadius: '3px',
+                textDecoration: 'none',
+                transition: 'background 0.2s ease, color 0.2s ease',
                 '&:hover': {
-                  backgroundColor: '#C19E04',
+                  background: brandColors.inkBlue,
+                  color: brandColors.warmCream,
                 },
               }}
             >
-              <AddIcon fontSize="small" />
-            </IconButton>
+              ＋ Add stuff
+            </Box>
 
             {/* Notification Bell */}
             <NotificationBell />

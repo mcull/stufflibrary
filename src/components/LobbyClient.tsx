@@ -1,52 +1,39 @@
 'use client';
 
-import { Add as AddIcon } from '@mui/icons-material';
-import {
-  Box,
-  Container,
-  Typography,
-  Card,
-  CardContent,
-  Button,
-  Stack,
-  Chip,
-  FormControl,
-  Select,
-  MenuItem,
-  SelectChangeEvent,
-  useMediaQuery,
-  useTheme,
-  Alert,
-  Skeleton,
-  Snackbar,
-} from '@mui/material';
-import Link from 'next/link';
+import { Alert, Box, Skeleton, Snackbar } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-import { useBorrowRequests } from '@/hooks/useBorrowRequests';
 import { useCapabilities } from '@/hooks/useCapabilities';
 import { useCollections } from '@/hooks/useCollections';
 import { useUserItems } from '@/hooks/useUserItems';
 import type { CapabilityReason } from '@/lib/capabilities';
+import {
+  branchEyebrow,
+  cardNumber,
+  firstNameOf,
+  splitLibraries,
+} from '@/lib/member-home';
 import { brandColors } from '@/theme/brandTokens';
 
-import { CollectionCard, CreateCollectionCard } from './CollectionCard';
 import { CollectionCreationModal } from './CollectionCreationModal';
 import { CompleteProfilePrompt } from './CompleteProfilePrompt';
-import { TabbedFolderPane, type TabItem } from './TabbedFolderPane';
-import { UserItemCard, AddItemCard } from './UserItemCard';
+import { GreetingDesk } from './member-home/GreetingDesk';
+import { DrawerSectionLabel, LibraryDrawer } from './member-home/LibraryDrawer';
+import {
+  JoinedEmptyState,
+  LibraryFolderCard,
+  NewLibraryFolderCard,
+} from './member-home/LibraryFolderCard';
+import { AddShelfCard, ShelfItemCard } from './member-home/ShelfItemCard';
 
 interface User {
   id: string;
   name: string | null;
   email: string | null;
   image?: string | null;
-  bio: string | null;
-  shareInterests: string[];
-  borrowInterests: string[];
-  profileCompleted: boolean;
-  createdAt: Date;
+  bio?: string | null;
+  createdAt?: Date | string;
 }
 
 interface LobbyClientProps {
@@ -54,32 +41,37 @@ interface LobbyClientProps {
   showWelcome: boolean;
 }
 
-type FilterType = 'all' | 'ready-to-lend' | 'on-loan' | 'offline' | 'borrowed';
-type CollectionFilterType = 'all' | 'started' | 'joined';
+const LIBRARY_GRID = {
+  display: 'grid',
+  gridTemplateColumns: {
+    xs: '1fr',
+    sm: 'repeat(2, 1fr)',
+    md: 'repeat(3, 1fr)',
+  },
+  gap: '28px',
+} as const;
 
-// Holds the card grid's shape while data loads so the tab doesn't
-// spinner-pop: same columns as the real grids, square cards + two text lines.
-function CardGridSkeleton({ count = 4 }: { count?: number }) {
+const SHELF_GRID = {
+  display: 'grid',
+  gridTemplateColumns: {
+    xs: 'repeat(2, 1fr)',
+    sm: 'repeat(3, 1fr)',
+    md: 'repeat(4, 1fr)',
+  },
+  gap: '22px',
+} as const;
+
+/** Skeleton matching the drawer's card grids so nothing jumps on load. */
+function DrawerGridSkeleton({ columnsSx }: { columnsSx: object }) {
   return (
-    <Box
-      sx={{
-        display: 'grid',
-        gridTemplateColumns: {
-          xs: 'repeat(2, 1fr)',
-          md: 'repeat(4, 1fr)',
-          lg: 'repeat(5, 1fr)',
-          xl: 'repeat(6, 1fr)',
-        },
-        gap: 1,
-      }}
-    >
-      {Array.from({ length: count }).map((_, i) => (
+    <Box sx={columnsSx}>
+      {Array.from({ length: 3 }).map((_, i) => (
         <Box key={i}>
           <Skeleton
             variant="rounded"
-            sx={{ width: '100%', aspectRatio: '1 / 1', borderRadius: 2, mb: 1 }}
+            sx={{ width: '100%', height: 180, borderRadius: 2, mb: 1 }}
           />
-          <Skeleton variant="text" width="75%" />
+          <Skeleton variant="text" width="70%" />
           <Skeleton variant="text" width="45%" />
         </Box>
       ))}
@@ -89,30 +81,23 @@ function CardGridSkeleton({ count = 4 }: { count?: number }) {
 
 export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
   const router = useRouter();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { collections, isLoading, createCollection } = useCollections();
-  const {
-    activeBorrows: _activeBorrows,
-    sentRequests: _sentRequests,
-    isLoading: _borrowsLoading,
-  } = useBorrowRequests();
   const {
     readyToLendItems,
     onLoanItems,
     offlineItems,
     borrowedItems,
-    readyToLendCount,
-    onLoanCount,
-    offlineCount,
-    borrowedCount,
     isLoading: itemsLoading,
   } = useUserItems();
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const { capabilities } = useCapabilities();
+
+  const [activeTab, setActiveTab] = useState('libraries');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [promptReason, setPromptReason] = useState<CapabilityReason | null>(
     null
   );
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [createdCollectionName, setCreatedCollectionName] = useState('');
 
   const handleCreateLibraryClick = () => {
     if (capabilities && !capabilities.canCreateLibrary) {
@@ -122,15 +107,13 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
     setIsCreateModalOpen(true);
   };
 
-  const handleLendBlocked = () => {
-    setPromptReason(capabilities?.reasons.canLend ?? 'NEEDS_PHOTO');
+  const handleAddStuffClick = () => {
+    if (capabilities && !capabilities.canLend) {
+      setPromptReason(capabilities.reasons.canLend ?? 'NEEDS_PHOTO');
+      return;
+    }
+    router.push('/add-item');
   };
-  const [activeTab, setActiveTab] = useState('others-stuff');
-  const [itemFilter, setItemFilter] = useState<FilterType>('all');
-  const [collectionFilter, setCollectionFilter] =
-    useState<CollectionFilterType>('all');
-  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
-  const [createdCollectionName, setCreatedCollectionName] = useState('');
 
   const handleCreateCollection = (collection: {
     id?: string;
@@ -149,809 +132,129 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
     }, 4000);
   };
 
-  const handleFilterChange = (event: SelectChangeEvent) => {
-    setItemFilter(event.target.value as FilterType);
-  };
+  const { started, joined } = splitLibraries(collections);
 
-  const handleCollectionFilterChange = (event: SelectChangeEvent) => {
-    setCollectionFilter(event.target.value as CollectionFilterType);
-  };
-
-  // Combine all items with their status
-  const allItems = [
+  // Every shelf card renders from one shape: the item + a stamp status.
+  const shelfItems = [
     ...readyToLendItems.map((item) => ({
       ...item,
       status: 'ready-to-lend' as const,
     })),
     ...onLoanItems.map((item) => ({ ...item, status: 'on-loan' as const })),
     ...offlineItems.map((item) => ({ ...item, status: 'offline' as const })),
-    ...borrowedItems.map((item) => ({ ...item, status: 'borrowed' as const })),
+    ...borrowedItems.map((request) => ({
+      // Borrowed entries are borrow-requests wrapping someone else's item.
+      id: request.item.id,
+      name: request.item.name,
+      imageUrl: request.item.imageUrl,
+      watercolorUrl: request.item.watercolorUrl,
+      watercolorThumbUrl: request.item.watercolorThumbUrl,
+      condition: 'good',
+      createdAt: request.createdAt,
+      status: 'borrowed' as const,
+      borrowRequest: null,
+    })),
   ];
 
-  // Section component for grouped display
-  const ItemSection = ({
-    title,
-    items,
-    statusType,
-    showAddItem = false,
-  }: {
-    title: string;
-    items: Array<{ id: string; status: string }>;
-    statusType: string;
-    showAddItem?: boolean;
-  }) => {
-    if (items.length === 0 && !showAddItem) return null;
-
-    return (
-      <Box sx={{ mb: 4 }}>
-        <Typography
-          variant="h6"
-          sx={{
-            fontWeight: 600,
-            color: brandColors.charcoal,
-            mb: 2,
-            fontSize: { xs: '1.1rem', md: '1.25rem' },
-          }}
-        >
-          {title} ({items.length})
-        </Typography>
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: {
-              xs: 'repeat(2, 1fr)', // Always 2 columns on mobile
-              md: 'repeat(4, 1fr)', // 4 columns on medium screens
-              lg: 'repeat(5, 1fr)', // 5 columns on large screens
-              xl: 'repeat(6, 1fr)', // 6 columns on extra large screens
-            },
-            gap: 1,
-          }}
-        >
-          {showAddItem && (
-            <AddItemCard
-              canLend={capabilities?.canLend ?? true}
-              onBlocked={handleLendBlocked}
-            />
-          )}
-          {items.map((item) => (
-            <UserItemCard
-              key={`${statusType}-${item.id}`}
-              item={item}
-              status={
-                item.status as
-                  | 'ready-to-lend'
-                  | 'on-loan'
-                  | 'offline'
-                  | 'borrowed'
-              }
-            />
-          ))}
-        </Box>
-      </Box>
-    );
+  const inviteFromEmptyJoined = () => {
+    // The nearest place an invite can actually happen: the first library the
+    // user runs; with none, starting one IS the next step.
+    if (started[0]) {
+      router.push(`/library/${started[0].id}`);
+    } else {
+      handleCreateLibraryClick();
+    }
   };
 
-  const filteredItems =
-    itemFilter === 'all'
-      ? allItems
-      : allItems.filter((item) => item.status === itemFilter);
-
-  // Collection filtering and counts
-  const startedCollections = collections.filter(
-    (collection) => collection.role === 'owner'
-  );
-  const joinedCollections = collections.filter(
-    (collection) => collection.role !== 'owner'
-  );
-
-  const filteredCollections =
-    collectionFilter === 'all'
-      ? collections
-      : collectionFilter === 'started'
-        ? startedCollections
-        : joinedCollections;
-
-  // Collection section component
-  const CollectionSection = ({
-    title,
-    collections: sectionCollections,
-    showCreateCard = false,
-  }: {
-    title: string;
-    collections: Array<{
-      id: string;
-      name: string;
-      description?: string | null;
-      location?: string | null;
-      memberCount: number;
-      itemCount: number;
-      role: string;
-    }>;
-    showCreateCard?: boolean;
-  }) => {
-    if (sectionCollections.length === 0 && !showCreateCard) return null;
-
-    return (
-      <Box sx={{ mb: 4 }}>
-        <Typography
-          variant="h6"
-          sx={{
-            fontWeight: 600,
-            color: brandColors.charcoal,
-            mb: 2,
-            fontSize: { xs: '1.1rem', md: '1.25rem' },
-          }}
-        >
-          {title}
-        </Typography>
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: {
-              xs: 'repeat(2, 1fr)', // Always 2 columns on mobile - matches My Shelf
-              md: 'repeat(4, 1fr)', // 4 columns on medium screens - matches My Shelf
-              lg: 'repeat(5, 1fr)', // 5 columns on large screens - matches My Shelf
-              xl: 'repeat(6, 1fr)', // 6 columns on extra large screens - matches My Shelf
-            },
-            gap: 1,
-            // Allow tighter packing when some cards span two columns
-            gridAutoFlow: 'dense',
-          }}
-        >
-          {showCreateCard && (
-            <CreateCollectionCard onClick={handleCreateLibraryClick} />
-          )}
-          {sectionCollections.map((collection) => (
-            <CollectionCard key={collection.id} collection={collection} />
-          ))}
-        </Box>
-      </Box>
-    );
-  };
-
-  // Your Shelf Tab Content
-  const yourStuffContent = (
-    <Card
+  return (
+    <Box
       sx={{
-        borderRadius: '24px',
-        border: `1px solid ${brandColors.softGray}`,
-        backgroundColor: brandColors.white,
-        transition: 'all 0.2s ease',
-        '&:hover': {
-          boxShadow: '0 8px 25px -5px rgba(0, 0, 0, 0.1)',
-          transform: 'translateY(-2px)',
-        },
+        maxWidth: 1180,
+        width: '100%',
+        mx: 'auto',
+        px: { xs: 2, sm: '48px' },
+        pt: { xs: 4, md: '56px' },
+        pb: { xs: 6, md: '90px' },
+        boxSizing: 'border-box',
       }}
     >
-      <CardContent sx={{ p: { xs: 3, md: 4 } }}>
-        {itemsLoading ? (
-          <CardGridSkeleton />
-        ) : (
-          <>
-            {/* Filter Control */}
-            <Box sx={{ mb: 3 }}>
-              {isMobile ? (
-                <FormControl size="small" sx={{ minWidth: 200 }}>
-                  <Select
-                    value={itemFilter}
-                    onChange={handleFilterChange}
-                    displayEmpty
-                    sx={{
-                      backgroundColor: brandColors.white,
-                      borderRadius: 2,
-                      '& .MuiOutlinedInput-notchedOutline': {
-                        borderColor: brandColors.softGray,
-                      },
-                      '&:hover .MuiOutlinedInput-notchedOutline': {
-                        borderColor: brandColors.inkBlue,
-                      },
-                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                        borderColor: brandColors.inkBlue,
-                      },
-                    }}
-                  >
-                    <MenuItem value="all">
-                      All Items ({allItems.length})
-                    </MenuItem>
-                    <MenuItem value="ready-to-lend">
-                      Ready to Lend ({readyToLendCount})
-                    </MenuItem>
-                    <MenuItem value="on-loan">On Loan ({onLoanCount})</MenuItem>
-                    {offlineCount > 0 && (
-                      <MenuItem value="offline">
-                        Offline ({offlineCount})
-                      </MenuItem>
-                    )}
-                    <MenuItem value="borrowed">
-                      Borrowed ({borrowedCount})
-                    </MenuItem>
-                  </Select>
-                </FormControl>
-              ) : (
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  sx={{ flexWrap: 'wrap', gap: 1 }}
-                >
-                  <Chip
-                    label={`All (${allItems.length})`}
-                    onClick={() => setItemFilter('all')}
-                    sx={{
-                      backgroundColor:
-                        itemFilter === 'all' ? brandColors.inkBlue : '#E8F5E8',
-                      color:
-                        itemFilter === 'all' ? brandColors.white : '#2E7D32',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      '&:hover': {
-                        backgroundColor:
-                          itemFilter === 'all'
-                            ? '#1a2f4f'
-                            : brandColors.inkBlue,
-                        color: brandColors.white,
-                      },
-                    }}
-                  />
-                  <Chip
-                    label={`Ready to Lend (${readyToLendCount})`}
-                    onClick={() => setItemFilter('ready-to-lend')}
-                    sx={{
-                      backgroundColor:
-                        itemFilter === 'ready-to-lend'
-                          ? brandColors.inkBlue
-                          : '#E8F5E8',
-                      color:
-                        itemFilter === 'ready-to-lend'
-                          ? brandColors.white
-                          : '#2E7D32',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      '&:hover': {
-                        backgroundColor:
-                          itemFilter === 'ready-to-lend'
-                            ? '#1a2f4f'
-                            : brandColors.inkBlue,
-                        color: brandColors.white,
-                      },
-                    }}
-                  />
-                  <Chip
-                    label={`On Loan (${onLoanCount})`}
-                    onClick={() => setItemFilter('on-loan')}
-                    sx={{
-                      backgroundColor:
-                        itemFilter === 'on-loan'
-                          ? brandColors.inkBlue
-                          : '#E8F5E8',
-                      color:
-                        itemFilter === 'on-loan'
-                          ? brandColors.white
-                          : '#2E7D32',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      '&:hover': {
-                        backgroundColor:
-                          itemFilter === 'on-loan'
-                            ? '#1a2f4f'
-                            : brandColors.inkBlue,
-                        color: brandColors.white,
-                      },
-                    }}
-                  />
-                  {offlineCount > 0 && (
-                    <Chip
-                      label={`Offline (${offlineCount})`}
-                      onClick={() => setItemFilter('offline')}
-                      sx={{
-                        backgroundColor:
-                          itemFilter === 'offline'
-                            ? brandColors.inkBlue
-                            : '#E8F5E8',
-                        color:
-                          itemFilter === 'offline'
-                            ? brandColors.white
-                            : '#2E7D32',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        '&:hover': {
-                          backgroundColor:
-                            itemFilter === 'offline'
-                              ? '#1a2f4f'
-                              : brandColors.inkBlue,
-                          color: brandColors.white,
-                        },
-                      }}
-                    />
-                  )}
-                  <Chip
-                    label={`Borrowed (${borrowedCount})`}
-                    onClick={() => setItemFilter('borrowed')}
-                    sx={{
-                      backgroundColor:
-                        itemFilter === 'borrowed'
-                          ? brandColors.inkBlue
-                          : '#E8F5E8',
-                      color:
-                        itemFilter === 'borrowed'
-                          ? brandColors.white
-                          : '#2E7D32',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      '&:hover': {
-                        backgroundColor:
-                          itemFilter === 'borrowed'
-                            ? '#1a2f4f'
-                            : brandColors.inkBlue,
-                        color: brandColors.white,
-                      },
-                    }}
-                  />
-                </Stack>
-              )}
-            </Box>
+      {showWelcome && (
+        <Alert severity="success" sx={{ mb: 3, borderRadius: 2 }}>
+          Welcome, {user.name}! This is home base: start a library with people
+          you trust, or join one you&rsquo;re invited to.
+        </Alert>
+      )}
 
-            {/* Items Display */}
-            {allItems.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 6 }}>
-                <Link
-                  href="/add-item"
-                  aria-label="Add your first item"
-                  style={{ textDecoration: 'none' }}
-                >
-                  <Box
-                    sx={{
-                      width: 80,
-                      height: 80,
-                      borderRadius: '50%',
-                      backgroundColor: brandColors.warmCream,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      mx: 'auto',
-                      mb: 3,
-                      cursor: 'pointer',
-                      transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-                      '&:hover': {
-                        transform: 'translateY(-1px)',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                      },
-                    }}
-                  >
-                    <Typography
-                      variant="h4"
-                      sx={{ color: brandColors.charcoal }}
-                    >
-                      📷
-                    </Typography>
-                  </Box>
-                </Link>
+      <GreetingDesk
+        eyebrow={branchEyebrow(started)}
+        cardNumber={cardNumber(user.id)}
+        firstName={firstNameOf(user.name)}
+      />
 
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                  Add your first item
-                </Typography>
-
-                <Typography
-                  variant="body1"
-                  color="text.secondary"
-                  sx={{ mb: 2, maxWidth: 400, mx: 'auto' }}
-                >
-                  Take a quick photo of something you’re comfortable sharing.
-                  We’ll auto-classify it and create a clean illustration, then
-                  you can add it to any of your libraries.
-                </Typography>
-
-                {/* Replace storyboard with single how-to image */}
-                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
-                  <img
-                    src="/how-to-add-stuff.png"
-                    alt="How to add your first item"
-                    style={{
-                      maxWidth: '100%',
-                      width: isMobile ? '100%' : 520,
-                      height: 'auto',
-                    }}
-                    onError={(e) => (e.currentTarget.style.display = 'none')}
-                  />
-                </Box>
-
-                <Button
-                  component={Link}
-                  href="/add-item"
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  sx={{
-                    borderRadius: 3,
-                    px: 3,
-                    py: 1.5,
-                    textTransform: 'none',
-                    fontWeight: 600,
-                    backgroundColor: brandColors.inkBlue,
-                    '&:hover': {
-                      backgroundColor: '#1a2f4f',
-                    },
-                  }}
-                >
-                  Add Your First Item
-                </Button>
-              </Box>
-            ) : itemFilter === 'all' ? (
-              // Show all sections with headers when "All" is selected
-              <>
-                <ItemSection
-                  title="Ready to Lend"
-                  items={readyToLendItems}
-                  statusType="ready-to-lend"
-                  showAddItem={true}
-                />
-                <ItemSection
-                  title="On Loan"
-                  items={onLoanItems}
-                  statusType="on-loan"
-                />
-                <ItemSection
-                  title="Borrowed"
-                  items={borrowedItems}
-                  statusType="borrowed"
-                />
-                {offlineCount > 0 && (
-                  <ItemSection
-                    title="Offline"
-                    items={offlineItems}
-                    statusType="offline"
-                  />
-                )}
-              </>
+      <LibraryDrawer
+        tabs={[
+          { id: 'libraries', label: 'LIBRARIES' },
+          { id: 'stuff', label: 'MY STUFF' },
+        ]}
+        activeTab={activeTab}
+        onChange={setActiveTab}
+      >
+        {activeTab === 'libraries' ? (
+          <Box>
+            <DrawerSectionLabel>LIBRARIES I STARTED</DrawerSectionLabel>
+            {isLoading ? (
+              <DrawerGridSkeleton columnsSx={LIBRARY_GRID} />
             ) : (
-              // Show filtered items in a single grid when specific filter is selected
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: {
-                    xs: 'repeat(2, 1fr)', // Always 2 columns on mobile
-                    md: 'repeat(4, 1fr)', // 4 columns on medium screens
-                    lg: 'repeat(5, 1fr)', // 5 columns on large screens
-                    xl: 'repeat(6, 1fr)', // 6 columns on extra large screens
-                  },
-                  gap: 1,
-                }}
-              >
-                {filteredItems.map((item) => (
-                  <UserItemCard
-                    key={`${item.status}-${item.id}`}
-                    item={item}
-                    status={
-                      item.status as
-                        | 'ready-to-lend'
-                        | 'on-loan'
-                        | 'offline'
-                        | 'borrowed'
-                    }
+              <Box sx={{ ...LIBRARY_GRID, mb: '48px' }}>
+                {started.map((collection) => (
+                  <LibraryFolderCard
+                    key={collection.id}
+                    collection={collection}
+                  />
+                ))}
+                <NewLibraryFolderCard onClick={handleCreateLibraryClick} />
+              </Box>
+            )}
+
+            <DrawerSectionLabel>LIBRARIES I&rsquo;VE JOINED</DrawerSectionLabel>
+            {isLoading ? (
+              <DrawerGridSkeleton columnsSx={LIBRARY_GRID} />
+            ) : joined.length > 0 ? (
+              <Box sx={LIBRARY_GRID}>
+                {joined.map((collection) => (
+                  <LibraryFolderCard
+                    key={collection.id}
+                    collection={collection}
                   />
                 ))}
               </Box>
-            )}
-          </>
-        )}
-      </CardContent>
-    </Card>
-  );
-
-  // Your Libraries Tab Content
-  const yourCollectionsContent = (
-    <Card
-      sx={{
-        borderRadius: '24px',
-        border: `1px solid ${brandColors.softGray}`,
-        backgroundColor: brandColors.white,
-        transition: 'all 0.2s ease',
-        '&:hover': {
-          boxShadow: '0 8px 25px -5px rgba(0, 0, 0, 0.1)',
-          transform: 'translateY(-2px)',
-        },
-      }}
-    >
-      <CardContent sx={{ p: { xs: 3, md: 4 } }}>
-        {isLoading ? (
-          <CardGridSkeleton />
-        ) : collections.length === 0 ? (
-          <Box sx={{ textAlign: 'center', py: 2 }}>
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: 600,
-                color: brandColors.charcoal,
-                mb: 1.5,
-              }}
-            >
-              Start Your First Library
-            </Typography>
-
-            <Typography
-              variant="body1"
-              color="text.secondary"
-              sx={{ mb: 3, maxWidth: 500, mx: 'auto', lineHeight: 1.6 }}
-            >
-              Libraries are private sharing circles where you and people you
-              trust can lend and borrow items. Create one for your family,
-              friend group, or neighbors.
-            </Typography>
-
-            <Box sx={{ mb: 3, maxWidth: 600, mx: 'auto' }}>
-              <Typography
-                variant="subtitle2"
-                sx={{
-                  fontWeight: 600,
-                  color: brandColors.inkBlue,
-                  mb: 2,
-                }}
-              >
-                Examples:
-              </Typography>
-              <Stack spacing={1.5} sx={{ textAlign: 'left' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Box
-                    sx={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: '50%',
-                      backgroundColor: brandColors.mustardYellow,
-                    }}
-                  />
-                  <Typography variant="body2" color="text.secondary">
-                    <strong>&ldquo;Smith Family&rdquo;</strong> - Share tools,
-                    books, and games between relatives
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Box
-                    sx={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: '50%',
-                      backgroundColor: brandColors.mustardYellow,
-                    }}
-                  />
-                  <Typography variant="body2" color="text.secondary">
-                    <strong>&ldquo;Oak Street Neighbors&rdquo;</strong> - Lend
-                    lawn equipment and household items
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Box
-                    sx={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: '50%',
-                      backgroundColor: brandColors.mustardYellow,
-                    }}
-                  />
-                  <Typography variant="body2" color="text.secondary">
-                    <strong>&ldquo;College Friends&rdquo;</strong> - Share
-                    textbooks, electronics, and camping gear
-                  </Typography>
-                </Box>
-              </Stack>
-            </Box>
-
-            <Button
-              variant="contained"
-              size="large"
-              startIcon={<AddIcon />}
-              onClick={handleCreateLibraryClick}
-              sx={{
-                borderRadius: 3,
-                px: 4,
-                py: 2,
-                textTransform: 'none',
-                fontWeight: 600,
-                fontSize: '1.1rem',
-                backgroundColor: brandColors.mustardYellow,
-                color: brandColors.charcoal,
-                boxShadow: '0 4px 12px rgba(244, 187, 68, 0.3)',
-                '&:hover': {
-                  backgroundColor: '#C19E04',
-                  boxShadow: '0 6px 16px rgba(244, 187, 68, 0.4)',
-                  transform: 'translateY(-1px)',
-                },
-                transition: 'all 0.2s ease',
-              }}
-            >
-              Create Your First Library
-            </Button>
-          </Box>
-        ) : (
-          <Box>
-            {/* Filter Control — only once there's enough to filter; a couple
-                of libraries don't need management chrome. */}
-            {collections.length >= 4 && (
-              <Box sx={{ mb: 3 }}>
-                {isMobile ? (
-                  <FormControl size="small" sx={{ minWidth: 200 }}>
-                    <Select
-                      value={collectionFilter}
-                      onChange={handleCollectionFilterChange}
-                      displayEmpty
-                      sx={{
-                        backgroundColor: brandColors.white,
-                        borderRadius: 2,
-                        '& .MuiOutlinedInput-notchedOutline': {
-                          borderColor: brandColors.softGray,
-                        },
-                        '&:hover .MuiOutlinedInput-notchedOutline': {
-                          borderColor: brandColors.inkBlue,
-                        },
-                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                          borderColor: brandColors.inkBlue,
-                        },
-                      }}
-                    >
-                      <MenuItem value="all">
-                        All Libraries ({collections.length})
-                      </MenuItem>
-                      {startedCollections.length > 0 && (
-                        <MenuItem value="started">
-                          Libraries I Started ({startedCollections.length})
-                        </MenuItem>
-                      )}
-                      {joinedCollections.length > 0 && (
-                        <MenuItem value="joined">
-                          Libraries I Joined ({joinedCollections.length})
-                        </MenuItem>
-                      )}
-                    </Select>
-                  </FormControl>
-                ) : (
-                  <Stack
-                    direction="row"
-                    spacing={1}
-                    sx={{ flexWrap: 'wrap', gap: 1 }}
-                  >
-                    <Chip
-                      label={`All (${collections.length})`}
-                      onClick={() => setCollectionFilter('all')}
-                      sx={{
-                        backgroundColor:
-                          collectionFilter === 'all'
-                            ? brandColors.inkBlue
-                            : '#E8F5E8',
-                        color:
-                          collectionFilter === 'all'
-                            ? brandColors.white
-                            : '#2E7D32',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        '&:hover': {
-                          backgroundColor:
-                            collectionFilter === 'all'
-                              ? '#1a2f4f'
-                              : brandColors.inkBlue,
-                          color: brandColors.white,
-                        },
-                      }}
-                    />
-                    {startedCollections.length > 0 && (
-                      <Chip
-                        label={`Started (${startedCollections.length})`}
-                        onClick={() => setCollectionFilter('started')}
-                        sx={{
-                          backgroundColor:
-                            collectionFilter === 'started'
-                              ? brandColors.inkBlue
-                              : '#E8F5E8',
-                          color:
-                            collectionFilter === 'started'
-                              ? brandColors.white
-                              : '#2E7D32',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          '&:hover': {
-                            backgroundColor:
-                              collectionFilter === 'started'
-                                ? '#1a2f4f'
-                                : brandColors.inkBlue,
-                            color: brandColors.white,
-                          },
-                        }}
-                      />
-                    )}
-                    {joinedCollections.length > 0 && (
-                      <Chip
-                        label={`Joined (${joinedCollections.length})`}
-                        onClick={() => setCollectionFilter('joined')}
-                        sx={{
-                          backgroundColor:
-                            collectionFilter === 'joined'
-                              ? brandColors.inkBlue
-                              : '#E8F5E8',
-                          color:
-                            collectionFilter === 'joined'
-                              ? brandColors.white
-                              : '#2E7D32',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          '&:hover': {
-                            backgroundColor:
-                              collectionFilter === 'joined'
-                                ? '#1a2f4f'
-                                : brandColors.inkBlue,
-                            color: brandColors.white,
-                          },
-                        }}
-                      />
-                    )}
-                  </Stack>
-                )}
-              </Box>
-            )}
-
-            {/* Libraries Sections */}
-            {collectionFilter === 'all' ? (
-              <>
-                {/* Show sections when viewing all */}
-                <CollectionSection
-                  title="Libraries I Started"
-                  collections={startedCollections}
-                  showCreateCard={true}
-                />
-                <CollectionSection
-                  title="Libraries I Joined"
-                  collections={joinedCollections}
-                />
-              </>
             ) : (
-              /* Show single filtered section */
-              <CollectionSection
-                title={
-                  collectionFilter === 'started'
-                    ? 'Libraries I Started'
-                    : 'Libraries I Joined'
-                }
-                collections={filteredCollections}
-                showCreateCard={collectionFilter === 'started'}
+              <JoinedEmptyState
+                onInvite={inviteFromEmptyJoined}
+                previewUrl={started[0]?.itemPreviews?.[0]}
               />
             )}
           </Box>
+        ) : (
+          <Box>
+            <DrawerSectionLabel>MY SHELF</DrawerSectionLabel>
+            {itemsLoading ? (
+              <DrawerGridSkeleton columnsSx={SHELF_GRID} />
+            ) : (
+              <Box sx={SHELF_GRID}>
+                {shelfItems.map((item, index) => (
+                  <ShelfItemCard
+                    key={`${item.status}-${item.id}`}
+                    item={item}
+                    index={index}
+                  />
+                ))}
+                <AddShelfCard onClick={handleAddStuffClick} />
+              </Box>
+            )}
+          </Box>
         )}
-      </CardContent>
-    </Card>
-  );
-
-  // Define tabs
-  const tabs: TabItem[] = [
-    {
-      id: 'others-stuff',
-      label: 'Libraries',
-      content: yourCollectionsContent,
-    },
-    {
-      id: 'your-stuff',
-      label: 'My Stuff',
-      content: yourStuffContent,
-    },
-  ];
-
-  return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      {/* Welcome Message - only after profile creation */}
-      {showWelcome && (
-        <Box sx={{ mb: 4, textAlign: 'center' }}>
-          <Typography variant="h3" component="h1" gutterBottom>
-            Welcome, {user.name}!
-          </Typography>
-          <Typography variant="h6" color="text.secondary" sx={{ mb: 3 }}>
-            This is home base: start a library with people you trust, or join
-            one you&rsquo;re invited to.
-          </Typography>
-        </Box>
-      )}
-
-      {/* Tabbed Folder Content */}
-      <TabbedFolderPane
-        tabs={tabs}
-        activeTab={activeTab}
-        onChange={setActiveTab}
-        showAddButton={false}
-      />
+      </LibraryDrawer>
 
       {/* Library Creation Modal */}
       <CollectionCreationModal
@@ -988,6 +291,6 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
           🎉 <strong>&ldquo;{createdCollectionName}&rdquo;</strong> is ready!
         </Alert>
       </Snackbar>
-    </Container>
+    </Box>
   );
 }

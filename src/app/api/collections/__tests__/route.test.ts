@@ -39,6 +39,7 @@ describe('GET /api/collections (my libraries)', () => {
         isPublic: false,
         createdAt: new Date('2026-01-01'),
         members: [],
+        items: [],
         _count: { members: 0, items: 0 },
       },
     ]);
@@ -54,6 +55,7 @@ describe('GET /api/collections (my libraries)', () => {
           location: null,
           isPublic: false,
           owner: { id: OWNER_ID, name: 'Owner', image: null, status: 'active' },
+          items: [],
           _count: { members: 0, items: 0 },
         },
       },
@@ -67,6 +69,7 @@ describe('GET /api/collections (my libraries)', () => {
           location: null,
           isPublic: true,
           owner: { id: 'other', name: 'Other', image: null, status: 'active' },
+          items: [],
           _count: { members: 1, items: 0 },
         },
       },

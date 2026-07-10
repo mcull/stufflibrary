@@ -11,6 +11,10 @@ export interface Collection {
   role: 'owner' | 'admin' | 'member';
   memberCount: number;
   itemCount: number;
+  /** Up to 3 item watercolor URLs for the folder-card peek (#429). */
+  itemPreviews?: string[];
+  /** Items currently out on loan (#429). */
+  loansOut?: number;
   joinedAt: string;
   owner: {
     id: string;

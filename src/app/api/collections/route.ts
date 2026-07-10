@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { shelfSummary } from '@/lib/member-home';
 import { getUserCapabilities } from '@/lib/user-capabilities';
 
 export async function GET() {
@@ -81,6 +82,18 @@ export async function GET() {
             user: { select: { id: true, name: true, image: true } },
           },
         },
+        items: {
+          select: {
+            item: {
+              select: {
+                watercolorThumbUrl: true,
+                watercolorUrl: true,
+                currentBorrowRequestId: true,
+                active: true,
+              },
+            },
+          },
+        },
         _count: {
           select: {
             members: { where: { isActive: true, user: { status: 'active' } } },
@@ -113,6 +126,18 @@ export async function GET() {
             createdAt: true,
             owner: {
               select: { id: true, name: true, image: true, status: true },
+            },
+            items: {
+              select: {
+                item: {
+                  select: {
+                    watercolorThumbUrl: true,
+                    watercolorUrl: true,
+                    currentBorrowRequestId: true,
+                    active: true,
+                  },
+                },
+              },
             },
             _count: {
               select: {
@@ -150,6 +175,8 @@ export async function GET() {
           image: session.user?.image || null,
         },
         members: library.members,
+        // Vintage folder card (#429): watercolor peek + loans-out counter.
+        ...shelfSummary(library.items.map((i) => i.item)),
       })),
       ...memberships
         .filter((m) => !ownedIds.has(m.collection.id))
@@ -164,6 +191,7 @@ export async function GET() {
           itemCount: m.collection._count.items,
           joinedAt: m.joinedAt,
           owner: m.collection.owner,
+          ...shelfSummary(m.collection.items.map((i) => i.item)),
         })),
     ];
 
