@@ -1,146 +1,198 @@
-import { Box, Container, Typography, Card, CardContent } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 
 import { brandColors } from '@/theme/brandTokens';
 
-const steps = [
-  {
-    number: '1',
-    title: 'Buy Less Borrow More',
-    description:
-      "When you need an infrequently used item, browse what's available nearby. Avoid buying something you'll rarely use and feel resourceful without imposing on anyone.",
-    color: '#4CA1AA',
-    bgColor: 'rgba(76, 161, 170, 0.1)',
-  },
-  {
-    number: '2',
-    title: 'Lend Without Stress',
-    description:
-      'Make your unused items visible and lendable in a controlled way. Reduce waste, justify keeping things, and feel generous without feeling exposed.',
-    color: '#DE703A',
-    bgColor: 'rgba(222, 112, 58, 0.1)',
-  },
-  {
-    number: '3',
-    title: 'Belong to Your Community',
-    description:
-      'Join neighbors and friends in a defined group with shared norms. Build trust, know expectations, and rediscover the joy of neighborliness.',
-    color: '#4CA1AA',
-    bgColor: 'rgba(76, 161, 170, 0.1)',
-  },
-];
+const TYPEWRITER = '"Special Elite", "Courier New", monospace';
+const MONO = '"Roboto Mono", monospace';
+const STAMP = 'Stampette, monospace';
+const CARD_INK = '#2c1810';
+const RULE = '#c9a97e';
 
+const STEPS = [
+  {
+    number: '01',
+    numberTilt: -1.5,
+    ink: '#1e40af',
+    title: 'Borrow what you need',
+    body: "Browse your neighborhood's shelf and check items out — no awkward asking, no buying things you'll use twice.",
+    stamp: 'DUE: 2 WKS',
+    stampTilt: -8,
+  },
+  {
+    number: '02',
+    numberTilt: 1,
+    ink: '#dc2626',
+    title: 'Lend without stress',
+    body: "Your idle stuff gets a catalog entry and a checkout card. You see who has what, and when it's coming back.",
+    stamp: 'RETURNED',
+    stampTilt: 6,
+  },
+  {
+    number: '03',
+    numberTilt: -0.5,
+    ink: '#7c2d12',
+    title: 'Belong to your branch',
+    body: 'Every library is a real group of neighbors with shared norms. Borrowing is how you end up knowing the people next door.',
+    stamp: 'WELL KEPT',
+    stampTilt: -5,
+  },
+] as const;
+
+/** How it works, told as a library checkout card on an ink-blue band. */
 export function HowItWorks() {
   return (
     <Box
+      id="how"
       component="section"
       sx={{
-        py: { xs: 12, md: 24 },
-        backgroundColor: brandColors.white,
+        background: brandColors.inkBlue,
+        padding: { xs: '60px 20px', md: '90px 72px' },
       }}
     >
-      <Container maxWidth="lg">
-        {/* Section Header */}
-        <Box sx={{ textAlign: 'center', mb: { xs: 8, md: 16 } }}>
-          <Typography
-            variant="h2"
-            component="h2"
-            sx={{
-              fontFamily:
-                'var(--font-primary, "Special Elite"), "Courier New", Monaco, Consolas, "Liberation Mono", monospace',
-              fontSize: { xs: '2rem', md: '4rem' },
-              fontWeight: 400,
-              color: '#3F342B',
-            }}
-          >
-            How It Works
-          </Typography>
-        </Box>
+      <Typography
+        component="h2"
+        sx={{
+          fontFamily: TYPEWRITER,
+          fontWeight: 400,
+          fontSize: { xs: '34px', md: '44px' },
+          color: brandColors.warmCream,
+          m: '0 0 12px 0',
+          textAlign: 'center',
+        }}
+      >
+        How it works
+      </Typography>
+      <Typography
+        sx={{
+          fontFamily: MONO,
+          fontSize: '14px',
+          color: 'rgba(249,245,235,0.65)',
+          textAlign: 'center',
+          m: '0 0 56px 0',
+          letterSpacing: '0.1em',
+        }}
+      >
+        SAME AS THE LIBRARY, BUT FOR STUFF
+      </Typography>
 
-        {/* Steps */}
+      <Box
+        sx={{
+          maxWidth: 880,
+          mx: 'auto',
+          background: '#F6EFDC',
+          borderRadius: '4px',
+          boxShadow: '0 16px 36px rgba(0,0,0,0.3)',
+          padding: { xs: '28px 20px', md: '44px 52px' },
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        <Typography
+          sx={{
+            textAlign: 'center',
+            fontFamily: STAMP,
+            fontSize: '17px',
+            letterSpacing: '0.25em',
+            color: CARD_INK,
+            mb: '26px',
+          }}
+        >
+          ★ LIBRARY CHECKOUT CARD ★
+        </Typography>
+
+        {/* Column headers */}
         <Box
           sx={{
             display: 'grid',
-            gridTemplateColumns: {
-              xs: '1fr',
-              md: 'repeat(3, 1fr)',
-            },
-            gap: { xs: 4, md: 8 },
+            gridTemplateColumns: { xs: '48px 1fr', md: '90px 1fr 190px' },
+            gap: '16px',
+            borderBottom: '2px solid #8b4513',
+            pb: '8px',
+            fontFamily: STAMP,
+            fontSize: '13px',
+            letterSpacing: '0.12em',
+            color: CARD_INK,
           }}
         >
-          {steps.map((step, index) => (
-            <Card
-              key={index}
-              elevation={8}
+          <Box>STEP</Box>
+          <Box>WHAT HAPPENS</Box>
+          <Box sx={{ display: { xs: 'none', md: 'block' } }}>STAMPED</Box>
+        </Box>
+
+        {STEPS.map((step, i) => (
+          <Box
+            key={step.number}
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '48px 1fr', md: '90px 1fr 190px' },
+              gap: '16px',
+              alignItems: 'center',
+              padding: '22px 0',
+              borderBottom: i < STEPS.length - 1 ? `1px solid ${RULE}` : 'none',
+            }}
+          >
+            <Typography
               sx={{
-                backgroundColor: step.bgColor,
-                border: 'none',
-                borderRadius: 2,
+                fontFamily: TYPEWRITER,
+                fontSize: '30px',
+                color: step.ink,
+                transform: `rotate(${step.numberTilt}deg)`,
               }}
             >
-              <CardContent
+              {step.number}
+            </Typography>
+            <Box>
+              <Typography
                 sx={{
-                  p: { xs: 4, md: 8 },
-                  textAlign: 'center',
+                  fontFamily: TYPEWRITER,
+                  fontSize: '20px',
+                  color: step.ink,
+                  mb: '4px',
                 }}
               >
-                {/* Step Number Circle */}
-                <Box
-                  sx={{
-                    width: 64,
-                    height: 64,
-                    backgroundColor: step.color,
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    mx: 'auto',
-                    mb: 6,
-                  }}
-                >
-                  <Typography
-                    sx={{
-                      color: 'white',
-                      fontSize: '2rem',
-                      fontWeight: 500,
-                    }}
-                  >
-                    {step.number}
-                  </Typography>
-                </Box>
-
-                {/* Title */}
-                <Typography
-                  variant="h5"
-                  component="h3"
-                  sx={{
-                    fontFamily:
-                      'system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
-                    fontSize: { xs: '1.25rem', md: '1.25rem' },
-                    fontWeight: 500,
-                    color: '#3F342B',
-                    mb: 4,
-                  }}
-                >
-                  {step.title}
-                </Typography>
-
-                {/* Description */}
-                <Typography
-                  variant="body1"
-                  sx={{
-                    fontFamily:
-                      'system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
-                    color: 'rgba(63, 52, 43, 0.8)',
-                    lineHeight: 1.6,
-                  }}
-                >
-                  {step.description}
-                </Typography>
-              </CardContent>
-            </Card>
-          ))}
-        </Box>
-      </Container>
+                {step.title}
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: '15px',
+                  color: 'rgba(44,24,16,0.75)',
+                  lineHeight: 1.5,
+                }}
+              >
+                {step.body}
+              </Typography>
+            </Box>
+            <Box
+              sx={{
+                display: { xs: 'none', md: 'block' },
+                transform: `rotate(${step.stampTilt}deg)`,
+                transition: 'transform 0.25s ease',
+                '&:hover': {
+                  transform: `rotate(${step.stampTilt / 2}deg) scale(1.06)`,
+                },
+              }}
+            >
+              <Box
+                component="span"
+                sx={{
+                  border: `2.5px solid ${step.ink}`,
+                  color: step.ink,
+                  fontFamily: STAMP,
+                  fontSize: '15px',
+                  letterSpacing: '0.15em',
+                  padding: '4px 12px',
+                  borderRadius: '4px',
+                  display: 'inline-block',
+                  opacity: 0.85,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {step.stamp}
+              </Box>
+            </Box>
+          </Box>
+        ))}
+      </Box>
     </Box>
   );
 }
