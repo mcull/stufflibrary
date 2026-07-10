@@ -4,7 +4,6 @@ import { getServerSession } from 'next-auth';
 import { Hero } from '@/components/Hero';
 import { HowItWorks } from '@/components/HowItWorks';
 import { InBeta } from '@/components/InBeta';
-import { WatercolorParade } from '@/components/WatercolorParade';
 import { authOptions } from '@/lib/auth';
 
 // Server component: signed-in visitors are redirected before anything paints,
@@ -20,7 +19,6 @@ export default async function Home() {
   return (
     <>
       <Hero />
-      <WatercolorParade />
       <HowItWorks />
       <InBeta />
     </>

@@ -1,17 +1,27 @@
-// Pure module (#438): the homepage parade's cast — real-photo-derived
+// Pure module (#438): the homepage showcase's cast — real-photo-derived
 // watercolors (Marc's curated shots through the app's own transform), pinned
 // at stable blob URLs by scripts/watercolor-homepage-items.ts.
 //
-// labyrinth + qwirkle sit out pending replacement photos (box-art shots
-// can't be transformed into the game itself). Add slugs to BLOCKLIST to pull
-// anything else from the parade without touching blob.
+// BLOCKLIST holds slugs whose renders never came out right (box-art shots,
+// muddy transforms). Add a slug here to pull it from the homepage without
+// touching blob.
 
 const BLOB_BASE =
   'https://znr9cqeimzcbaqpo.public.blob.vercel-storage.com/homepage/watercolors';
 
-const BLOCKLIST: string[] = ['labyrinth', 'qwirkle'];
+const BLOCKLIST: string[] = [
+  'labyrinth',
+  'qwirkle',
+  'loppers',
+  'extension-ladder',
+  'heat-gun',
+  'pressure-washer',
+  'shop-vacuum',
+  'tile-cutter',
+  'obd-reader',
+];
 
-export interface ParadeItem {
+export interface ShowcaseItem {
   slug: string;
   name: string;
   url: string;
@@ -82,7 +92,7 @@ const RAW: Array<[string, string]> = [
   ['wheelbarrow', 'Wheelbarrow'],
 ];
 
-export function paradeItems(blocklist: string[] = BLOCKLIST): ParadeItem[] {
+export function showcaseItems(blocklist: string[] = BLOCKLIST): ShowcaseItem[] {
   const blocked = new Set(blocklist);
   return RAW.filter(([slug]) => !blocked.has(slug)).map(([slug, name]) => ({
     slug,
@@ -91,4 +101,4 @@ export function paradeItems(blocklist: string[] = BLOCKLIST): ParadeItem[] {
   }));
 }
 
-export const PARADE_ITEMS = paradeItems();
+export const SHOWCASE_ITEMS = showcaseItems();
