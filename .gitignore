@@ -43,3 +43,7 @@ next-env.d.ts
 
 # temporary files
 /temp
+
+# Raw homepage item photos (local inputs; only the watercolors ship, via blob)
+docs/homepage-item-photos/*
+!docs/homepage-item-photos/NAMING.md
