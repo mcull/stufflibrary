@@ -22,6 +22,7 @@ export function LibraryFolderCard({ collection }: { collection: Collection }) {
   const previews = collection.itemPreviews ?? [];
   const role = ROLE_STAMP[collection.role] ?? ROLE_STAMP.member!;
   const loansOut = collection.loansOut ?? 0;
+  const totalBorrows = collection.totalBorrows ?? 0;
 
   return (
     <Box
@@ -40,7 +41,7 @@ export function LibraryFolderCard({ collection }: { collection: Collection }) {
           fontWeight: 700,
           letterSpacing: '0.1em',
           padding: '4px 14px',
-          borderRadius: '6px 6px 0 0',
+          borderRadius: '4px 4px 0 0',
         }}
       >
         {folderTabLabel(collection.name)}
@@ -49,7 +50,7 @@ export function LibraryFolderCard({ collection }: { collection: Collection }) {
         sx={{
           background: vintage.manila,
           border: `2px solid ${brandColors.inkBlue}`,
-          borderRadius: '0 8px 8px 8px',
+          borderRadius: '0 4px 4px 4px',
           padding: '24px 24px 20px',
           transition: 'transform 0.25s ease, box-shadow 0.25s ease',
           '&:hover': {
@@ -158,19 +159,18 @@ export function LibraryFolderCard({ collection }: { collection: Collection }) {
               whiteSpace: 'nowrap',
             }}
           >
-            {loansOut} loan{loansOut === 1 ? '' : 's'} out
+            {loansOut} item{loansOut === 1 ? '' : 's'} out
           </Typography>
           <Typography
             component="span"
             sx={{
               fontFamily: vintageFonts.mono,
-              fontSize: '13px',
-              fontWeight: 700,
-              color: brandColors.tomatoRed,
+              fontSize: '12px',
+              color: 'rgba(63,52,43,0.65)',
               whiteSpace: 'nowrap',
             }}
           >
-            Open drawer →
+            {totalBorrows} total borrow{totalBorrows === 1 ? '' : 's'}
           </Typography>
         </Box>
       </Box>
@@ -183,7 +183,13 @@ export function NewLibraryFolderCard({ onClick }: { onClick: () => void }) {
   return (
     <Box
       onClick={onClick}
-      sx={{ position: 'relative', mt: '14px', cursor: 'pointer' }}
+      sx={{
+        position: 'relative',
+        mt: '14px',
+        cursor: 'pointer',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
     >
       <Box
         sx={{
@@ -197,7 +203,7 @@ export function NewLibraryFolderCard({ onClick }: { onClick: () => void }) {
           fontWeight: 700,
           letterSpacing: '0.1em',
           padding: '4px 14px',
-          borderRadius: '6px 6px 0 0',
+          borderRadius: '4px 4px 0 0',
         }}
       >
         NEW
@@ -205,8 +211,9 @@ export function NewLibraryFolderCard({ onClick }: { onClick: () => void }) {
       <Box
         sx={{
           border: `2px dashed ${vintage.darkMustard}`,
-          borderRadius: '0 8px 8px 8px',
+          borderRadius: '0 4px 4px 4px',
           padding: '24px',
+          flex: 1,
           minHeight: 208,
           boxSizing: 'border-box',
           display: 'flex',
@@ -266,9 +273,12 @@ export function NewLibraryFolderCard({ onClick }: { onClick: () => void }) {
 export function JoinedEmptyState({
   onInvite,
   previewUrl,
+  ownedLibraryName,
 }: {
   onInvite: () => void;
   previewUrl?: string | undefined;
+  /** When the user runs a library, the CTA points at a real action (#435). */
+  ownedLibraryName?: string | undefined;
 }) {
   return (
     <Box
@@ -319,26 +329,29 @@ export function JoinedEmptyState({
           </Typography>
         </Box>
       </Box>
-      <Typography
-        component="button"
-        onClick={onInvite}
-        sx={{
-          fontFamily: vintageFonts.mono,
-          fontSize: '13px',
-          fontWeight: 700,
-          color: brandColors.inkBlue,
-          background: 'none',
-          border: 'none',
-          borderBottom: `2px solid ${brandColors.mustardYellow}`,
-          paddingBottom: '2px',
-          whiteSpace: 'nowrap',
-          borderRadius: 0,
-          cursor: 'pointer',
-          '&:hover': { color: brandColors.tomatoRed },
-        }}
-      >
-        Invite a neighbor instead →
-      </Typography>
+      {ownedLibraryName && (
+        <Typography
+          component="button"
+          onClick={onInvite}
+          sx={{
+            fontFamily: vintageFonts.mono,
+            fontSize: '13px',
+            fontWeight: 700,
+            color: brandColors.inkBlue,
+            background: 'none',
+            border: 'none',
+            borderBottom: `2px solid ${brandColors.mustardYellow}`,
+            paddingBottom: '2px',
+            whiteSpace: 'nowrap',
+            borderRadius: 0,
+            cursor: 'pointer',
+            textAlign: 'left',
+            '&:hover': { color: brandColors.tomatoRed },
+          }}
+        >
+          Meanwhile, invite neighbors to {ownedLibraryName} →
+        </Typography>
+      )}
     </Box>
   );
 }

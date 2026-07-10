@@ -90,6 +90,22 @@ export async function GET() {
                 watercolorUrl: true,
                 currentBorrowRequestId: true,
                 active: true,
+                _count: {
+                  select: {
+                    borrowRequests: {
+                      where: {
+                        status: {
+                          in: [
+                            'APPROVED',
+                            'ACTIVE',
+                            'RETURN_PENDING',
+                            'RETURNED',
+                          ],
+                        },
+                      },
+                    },
+                  },
+                },
               },
             },
           },
@@ -135,6 +151,22 @@ export async function GET() {
                     watercolorUrl: true,
                     currentBorrowRequestId: true,
                     active: true,
+                    _count: {
+                      select: {
+                        borrowRequests: {
+                          where: {
+                            status: {
+                              in: [
+                                'APPROVED',
+                                'ACTIVE',
+                                'RETURN_PENDING',
+                                'RETURNED',
+                              ],
+                            },
+                          },
+                        },
+                      },
+                    },
                   },
                 },
               },
@@ -176,7 +208,12 @@ export async function GET() {
         },
         members: library.members,
         // Vintage folder card (#429): watercolor peek + loans-out counter.
-        ...shelfSummary(library.items.map((i) => i.item)),
+        ...shelfSummary(
+          library.items.map((i) => ({
+            ...i.item,
+            borrowCount: i.item._count.borrowRequests,
+          }))
+        ),
       })),
       ...memberships
         .filter((m) => !ownedIds.has(m.collection.id))
@@ -191,7 +228,12 @@ export async function GET() {
           itemCount: m.collection._count.items,
           joinedAt: m.joinedAt,
           owner: m.collection.owner,
-          ...shelfSummary(m.collection.items.map((i) => i.item)),
+          ...shelfSummary(
+            m.collection.items.map((i) => ({
+              ...i.item,
+              borrowCount: i.item._count.borrowRequests,
+            }))
+          ),
         })),
     ];
 

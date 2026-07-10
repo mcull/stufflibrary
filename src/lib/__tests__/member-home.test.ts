@@ -5,10 +5,10 @@ import {
   initialsOf,
   dateStamp,
   cardNumber,
-  branchEyebrow,
   folderTabLabel,
   splitLibraries,
   itemStamp,
+  memberSinceLabel,
   restingRotation,
   shelfSummary,
   STAMP_INKS,
@@ -32,13 +32,6 @@ describe('member-home helpers (#429 — vintage member home)', () => {
     expect(a).toMatch(/^\d{3}-\d{3}$/);
     expect(cardNumber('cmra9uiwn0001jq04hr4jb5rr')).toBe(a); // deterministic
     expect(cardNumber('someone-else')).not.toBe(a);
-  });
-
-  it('builds the branch eyebrow from the first started library', () => {
-    expect(branchEyebrow([{ name: 'Elmwood Neighbors' }])).toBe(
-      'ELMWOOD BRANCH'
-    );
-    expect(branchEyebrow([])).toBe('STUFFLIBRARY');
   });
 
   it('folder tab shows the first word, clamped and uppercased', () => {
@@ -94,6 +87,23 @@ describe('member-home helpers (#429 — vintage member home)', () => {
     const s = shelfSummary(rows);
     expect(s.itemPreviews).toEqual(['a.webp', 'b.webp', 'c.webp']); // max 3
     expect(s.loansOut).toBe(2);
+  });
+
+  it('sums lifetime borrows across the shelf (#435 vitality stat)', () => {
+    const s = shelfSummary([
+      { watercolorThumbUrl: 'a.webp', borrowCount: 12 },
+      { watercolorThumbUrl: 'b.webp', borrowCount: 0 },
+      { watercolorThumbUrl: 'c.webp' }, // count missing → 0
+      { watercolorThumbUrl: 'd.webp', borrowCount: 3, active: false }, // draft ignored
+    ]);
+    expect(s.totalBorrows).toBe(12);
+  });
+
+  it('formats the member-since eyebrow', () => {
+    expect(memberSinceLabel(new Date(2026, 6, 9))).toBe(
+      'MEMBER SINCE JUL 2026'
+    );
+    expect(memberSinceLabel(undefined)).toBe('STUFFLIBRARY MEMBER');
   });
 
   it('gives cards a small alternating resting rotation', () => {

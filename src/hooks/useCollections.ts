@@ -15,6 +15,8 @@ export interface Collection {
   itemPreviews?: string[];
   /** Items currently out on loan (#429). */
   loansOut?: number;
+  /** Lifetime borrows across the shelf (#435). */
+  totalBorrows?: number;
   joinedAt: string;
   owner: {
     id: string;
