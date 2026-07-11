@@ -369,7 +369,8 @@ describe('Notification Service', () => {
           userId: 'lender-123',
           type: 'BORROW_REQUEST_RECEIVED',
           title: 'New Borrow Request',
-          message: 'John Borrower wants to borrow your "Test Item"',
+          // #451: templates drop the quotes and any leading article.
+          message: 'John Borrower wants to borrow your Test Item',
           actionUrl: '/borrow-approval/request-123',
           relatedItemId: 'item-123',
           relatedRequestId: 'request-123',
