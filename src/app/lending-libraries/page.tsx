@@ -9,7 +9,7 @@ export const dynamic = 'force-static';
 
 export const metadata: Metadata = {
   title:
-    'Tool Libraries and Libraries of Things, State by State — a July 2026 Directory — StuffLibrary',
+    'Tool Libraries and Libraries of Things, State by State — a July 2026 Directory',
   description:
     'A verified July 2026 directory of tool libraries, Libraries of Things, toy libraries, and gear libraries across all 50 states and DC — real places where you can borrow instead of buy.',
 };

@@ -7,7 +7,7 @@ import { FaqContent } from './FaqContent';
 export const dynamic = 'force-static';
 
 export const metadata: Metadata = {
-  title: 'FAQ — StuffLibrary',
+  title: 'FAQ',
   description:
     'What StuffLibrary is, how borrowing and lending work, what happens when things break, and why a neighborhood lending library works at all. Plain answers, no fine print.',
 };

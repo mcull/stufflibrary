@@ -4,8 +4,8 @@ test.describe('Basic Homepage Tests', () => {
   test('homepage loads successfully', async ({ page }) => {
     await page.goto('/');
 
-    // Test page title
-    await expect(page).toHaveTitle(/StuffLibrary\.org/);
+    // Test page title (#457 SEO pass: value-prop title, not the bare domain)
+    await expect(page).toHaveTitle(/StuffLibrary/);
   });
 
   test('main heading is visible', async ({ page }) => {

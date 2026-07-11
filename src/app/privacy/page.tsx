@@ -7,8 +7,15 @@ import {
   Divider,
   Alert,
 } from '@mui/material';
+import type { Metadata } from 'next';
 
 import { brandColors } from '@/theme/brandTokens';
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy',
+  description:
+    'How StuffLibrary handles your data: no ads, no data brokerage, nothing public or indexed — identity, photos, and videos stay within the library you share them with.',
+};
 
 export default function PrivacyPolicyPage() {
   return (

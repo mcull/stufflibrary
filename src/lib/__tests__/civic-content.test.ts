@@ -66,6 +66,14 @@ describe('civic page markdown', () => {
       '](/lending-libraries)'
     );
   });
+
+  it('gives every further-reading work a find-it-at-a-library link', () => {
+    const fr = readCivicContent('further-reading');
+    // 35 works across six threads; WorldCat is the spec-sanctioned target
+    // (the reader's public library, never a bookstore).
+    expect(fr.match(/search\.worldcat\.org/g) ?? []).toHaveLength(35);
+    expect(fr).not.toMatch(/amazon\.|bookshop\.org/i);
+  });
 });
 
 describe('faq data', () => {

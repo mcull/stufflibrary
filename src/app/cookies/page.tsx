@@ -6,8 +6,15 @@ import {
   Stack,
   Divider,
 } from '@mui/material';
+import type { Metadata } from 'next';
 
 import { brandColors } from '@/theme/brandTokens';
+
+export const metadata: Metadata = {
+  title: 'Cookie Policy',
+  description:
+    'How StuffLibrary uses cookies: session sign-in and basic product analytics — no advertising trackers.',
+};
 
 export default function CookiePolicyPage() {
   return (
