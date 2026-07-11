@@ -13,6 +13,7 @@ import {
 import {
   List,
   ListItem,
+  ListItemButton,
   ListItemText,
   ListItemAvatar,
   Avatar,
@@ -46,6 +47,11 @@ interface NotificationListProps {
   setIsLoading?: (loading: boolean) => void;
   showHeader?: boolean;
   limit?: number;
+  /**
+   * Called when a notification navigates somewhere — the hosting popover
+   * closes itself instead of lingering over the new page (#449).
+   */
+  onNavigate?: () => void;
 }
 
 const notificationIcons: Record<string, React.ReactNode> = {
@@ -80,6 +86,7 @@ export function NotificationList({
   setIsLoading,
   showHeader = false,
   limit = 20,
+  onNavigate,
 }: NotificationListProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -161,6 +168,8 @@ export function NotificationList({
 
     if (notification.actionUrl) {
       router.push(notification.actionUrl);
+      // Let the hosting popover close rather than cover the new page (#449).
+      onNavigate?.();
     }
   };
 
@@ -250,22 +259,16 @@ export function NotificationList({
         </Box>
       ) : (
         <List sx={{ pt: 0 }}>
-          {notifications.map((notification, index) => (
-            <Box key={notification.id}>
-              <ListItem
-                sx={{
-                  cursor: notification.actionUrl ? 'pointer' : 'default',
-                  backgroundColor: notification.isRead
-                    ? 'transparent'
-                    : notificationColors[notification.type] || '#f5f5f5',
-                  '&:hover': {
-                    backgroundColor: notification.actionUrl
-                      ? 'rgba(0, 0, 0, 0.04)'
-                      : 'transparent',
-                  },
-                }}
-                onClick={() => handleNotificationClick(notification)}
-              >
+          {notifications.map((notification, index) => {
+            // Actionable rows are real buttons — keyboard and screen-reader
+            // users can activate them, not just mouse users (#449).
+            const rowSx = {
+              backgroundColor: notification.isRead
+                ? 'transparent'
+                : notificationColors[notification.type] || '#f5f5f5',
+            };
+            const rowContent = (
+              <>
                 <ListItemAvatar>
                   <Avatar sx={{ bgcolor: 'transparent' }}>
                     {notificationIcons[notification.type] || (
@@ -322,10 +325,29 @@ export function NotificationList({
                   primaryTypographyProps={{ component: 'div' }}
                   secondaryTypographyProps={{ component: 'div' }}
                 />
-              </ListItem>
-              {index < notifications.length - 1 && <Divider />}
-            </Box>
-          ))}
+              </>
+            );
+            return (
+              <Box key={notification.id}>
+                {notification.actionUrl ? (
+                  <ListItemButton
+                    sx={rowSx}
+                    onClick={() => handleNotificationClick(notification)}
+                  >
+                    {rowContent}
+                  </ListItemButton>
+                ) : (
+                  <ListItem
+                    sx={rowSx}
+                    onClick={() => handleNotificationClick(notification)}
+                  >
+                    {rowContent}
+                  </ListItem>
+                )}
+                {index < notifications.length - 1 && <Divider />}
+              </Box>
+            );
+          })}
         </List>
       )}
 
