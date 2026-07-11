@@ -13,7 +13,8 @@ const footerSections = [
   {
     title: 'Product',
     links: [
-      { label: 'Features & FAQ', href: '/features' },
+      // /features retired — its FAQ merged into /faq (The Commons, below).
+      { label: 'How It Works', href: '/#how' },
       { label: 'About Us', href: '/about' },
     ],
   },

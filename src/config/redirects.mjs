@@ -24,4 +24,8 @@ export const legacyRedirects = [
     destination: '/stuff/m/add-to-library/:path*',
     permanent: true,
   },
+  // The old Features & FAQ page retired when /faq (The Commons) became the
+  // one FAQ: its questions merged into the keeper, its four marketing cards
+  // said nothing the homepage doesn't say better.
+  { source: '/features', destination: '/faq', permanent: true },
 ];
