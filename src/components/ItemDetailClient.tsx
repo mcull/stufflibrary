@@ -1233,6 +1233,64 @@ export function ItemDetailClient({
                         </Box>
                       )}
 
+                      {/* The owner's loan context (#450): who has it, when
+                          it's due, and the door to the request page. */}
+                      {!isNewItem &&
+                        item?.owner.id === currentUserId &&
+                        currentActiveBorrow &&
+                        !isOffline && (
+                          <Alert
+                            severity="info"
+                            icon={false}
+                            sx={{ mt: 2 }}
+                            action={
+                              <Button
+                                color="inherit"
+                                size="small"
+                                onClick={() =>
+                                  router.push(
+                                    `/lender/requests/${currentActiveBorrow.id}`
+                                  )
+                                }
+                              >
+                                View loan
+                              </Button>
+                            }
+                          >
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1,
+                              }}
+                            >
+                              <Avatar
+                                {...(currentActiveBorrow.borrower?.image && {
+                                  src: currentActiveBorrow.borrower.image,
+                                })}
+                                sx={{ width: 28, height: 28 }}
+                              >
+                                {currentActiveBorrow.borrower?.name?.[0] || '?'}
+                              </Avatar>
+                              <Typography variant="body2">
+                                Checked out to{' '}
+                                <strong>
+                                  {currentActiveBorrow.borrower?.name ||
+                                    'a neighbor'}
+                                </strong>
+                                {currentActiveBorrow.requestedReturnDate
+                                  ? ` — due ${new Date(
+                                      currentActiveBorrow.requestedReturnDate
+                                    ).toLocaleDateString(undefined, {
+                                      month: 'short',
+                                      day: 'numeric',
+                                    })}`
+                                  : ''}
+                              </Typography>
+                            </Box>
+                          </Alert>
+                        )}
+
                       {/* Action Buttons Grid - only for owners */}
                       {!isNewItem && item?.owner.id === currentUserId && (
                         <Box
