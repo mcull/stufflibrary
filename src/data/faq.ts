@@ -67,6 +67,39 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
           'Yes. You decide what to share, and you set the bar per item — a one-tap request might be fine for a $15 hand tool, while your $400 camera can require a video handshake and established trust. You can always decline a request. Lending should never feel like exposure.',
         published: true,
       },
+      // Merged from the retired Features & FAQ page, rewritten and
+      // fact-checked July 2026 (the old page's other twelve questions were
+      // already covered — usually better — by the answers above and below).
+      {
+        question: 'What kinds of things can I share?',
+        answer:
+          "Almost anything with a handle, a plug, or a box: tools, ladders, kitchen gear, camping equipment, board games, puzzles, garden stuff. The platform automatically screens out what doesn't belong on a neighborhood shelf — weapons, alcohol, tobacco, and anything unsafe or age-restricted — so you don't have to memorize a rulebook.",
+        published: true,
+      },
+      {
+        question: 'Can I charge for lending my stuff?',
+        answer:
+          "No — and that's on purpose. StuffLibrary is a library, not a rental marketplace; no money changes hands here, in either direction. If you want to rent things out commercially, other platforms do that. Here, the return on lending is a neighborhood where you can borrow too.",
+        published: true,
+      },
+      {
+        question: 'How do pickup and return actually happen?',
+        answer:
+          "You two work it out directly, like neighbors do. When an owner approves a request, their reply includes pickup details — most handoffs are a porch pickup or a doorstep exchange. Returns work the same way, with the app keeping the record (who has what, when it's due) while you keep it human.",
+        published: true,
+      },
+      {
+        question: 'How long can I borrow something?',
+        answer:
+          'You propose a return date with your request, and the owner can adjust it when they approve — a ladder might be a weekend, a jigsaw puzzle might be a month. The due date goes on the checkout card for both of you, and if you need longer, ask; owners are neighbors, not late-fee machines.',
+        published: true,
+      },
+      {
+        question: "What if nobody's shared the thing I need?",
+        answer:
+          'Say so! Use the feedback button (bottom-right corner, on every page) and tell us what you were hoping to find — it helps your library learn what\'s worth putting on the shelves. And mention it to your neighbors: "does anyone have a tile cutter?" is exactly the conversation this whole thing exists to start.',
+        published: true,
+      },
       {
         question:
           "What happens if something comes back broken — or doesn't come back?",

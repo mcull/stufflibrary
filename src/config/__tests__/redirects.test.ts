@@ -35,6 +35,13 @@ describe('legacyRedirects (#399 URL consolidation)', () => {
     });
   });
 
+  it('sends the retired Features & FAQ page to the one true FAQ', () => {
+    expect(bySource['/features']).toMatchObject({
+      destination: '/faq',
+      permanent: true,
+    });
+  });
+
   it('every redirect is permanent — these URLs are gone for good', () => {
     for (const r of legacyRedirects) {
       expect(r.permanent, `${r.source} must be permanent`).toBe(true);

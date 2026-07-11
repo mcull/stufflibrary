@@ -79,7 +79,22 @@ describe('faq data', () => {
 
     const shipped = publishedFaq().flatMap((c) => c.entries);
     expect(shipped.some((e) => /gets hurt/.test(e.question))).toBe(false);
-    expect(shipped.length).toBeGreaterThanOrEqual(18);
+    expect(shipped.length).toBeGreaterThanOrEqual(23);
+  });
+
+  it('carries the questions merged from the retired Features & FAQ page', () => {
+    const questions = publishedFaq().flatMap((c) =>
+      c.entries.map((e) => e.question)
+    );
+    for (const q of [
+      'What kinds of things can I share?',
+      'Can I charge for lending my stuff?',
+      'How do pickup and return actually happen?',
+      'How long can I borrow something?',
+      "What if nobody's shared the thing I need?",
+    ]) {
+      expect(questions).toContain(q);
+    }
   });
 
   it('turns markdown answers into clean JSON-LD text', () => {
