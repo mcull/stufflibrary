@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { authOptions } from '@/lib/auth';
 import { TERMS_VERSION } from '@/lib/capabilities';
 import { db } from '@/lib/db';
+import { StorageService } from '@/lib/storage';
 import { getUserCapabilities } from '@/lib/user-capabilities';
 
 const createProfileSchema = z.object({
@@ -312,17 +313,36 @@ export async function PUT(request: NextRequest) {
         data.parsedAddress = JSON.parse(parsedAddressData);
       }
 
-      // Handle profile image upload
+      // Handle profile image upload (#458 — this was a TODO that silently
+      // discarded the file, so photo updates never saved). Same size/type
+      // rules as /api/upload.
       const profileImage = formData.get('profileImage') as File;
       if (profileImage && profileImage.size > 0) {
-        // TODO: Upload to storage service (Vercel Blob, S3, etc.)
-        // For now, we'll skip the actual file upload and just note that we would handle it here
-        console.log(
-          'Profile image received:',
-          profileImage.name,
-          profileImage.size
+        if (!StorageService.validateFileSize(profileImage, 10 * 1024 * 1024)) {
+          return NextResponse.json(
+            { error: 'Photo too large. Maximum size is 10MB.' },
+            { status: 400 }
+          );
+        }
+        if (
+          !StorageService.validateFileType(profileImage, [
+            'image/jpeg',
+            'image/png',
+            'image/gif',
+            'image/webp',
+          ])
+        ) {
+          return NextResponse.json(
+            { error: 'Invalid photo type. Only images are allowed.' },
+            { status: 400 }
+          );
+        }
+        const uploaded = await StorageService.uploadFile(
+          StorageService.generateUniqueFilename(profileImage.name),
+          profileImage,
+          { contentType: profileImage.type, addRandomSuffix: false }
         );
-        // data.image = uploadedImageUrl;
+        data.image = uploaded.url;
       }
     } else {
       data = await request.json();

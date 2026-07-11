@@ -37,7 +37,22 @@ vi.mock('@/lib/user-capabilities', () => ({
   getUserCapabilities: mockGetUserCapabilities,
 }));
 
-import { POST, GET } from '../route';
+const mockUploadFile = vi.hoisted(() =>
+  vi.fn().mockResolvedValue({
+    url: 'https://blob.example/profiles/pic.jpg',
+    pathname: 'profiles/pic.jpg',
+  })
+);
+vi.mock('@/lib/storage', () => ({
+  StorageService: {
+    uploadFile: mockUploadFile,
+    validateFileSize: vi.fn().mockReturnValue(true),
+    validateFileType: vi.fn().mockReturnValue(true),
+    generateUniqueFilename: vi.fn().mockReturnValue('profiles/pic.jpg'),
+  },
+}));
+
+import { POST, GET, PUT } from '../route';
 
 function req(body: unknown) {
   return new Request('http://t/api/profile', {
@@ -204,5 +219,55 @@ describe('GET /api/profile', () => {
     expect(mockGetUserCapabilities).toHaveBeenCalledWith('u1', {
       libraryId: 'lib1',
     });
+  });
+});
+
+describe('PUT /api/profile with a new photo (#458)', () => {
+  function formReq(withImage: boolean) {
+    const fd = new FormData();
+    fd.append('name', 'Marc');
+    fd.append('bio', 'neighbor');
+    fd.append('address', '1 Elm St');
+    if (withImage) {
+      fd.append(
+        'profileImage',
+        new File([new Uint8Array(64)], 'me.jpg', { type: 'image/jpeg' })
+      );
+    }
+    return new Request('http://t/api/profile', {
+      method: 'PUT',
+      body: fd,
+    }) as any;
+  }
+
+  it('uploads the photo to storage and saves its URL on the user', async () => {
+    mockUserUpdate.mockResolvedValue({
+      id: 'u1',
+      name: 'Marc',
+      email: 'a@b.c',
+      addresses: [],
+    });
+
+    const res = await PUT(formReq(true));
+    expect(res.status).toBe(200);
+
+    expect(mockUploadFile).toHaveBeenCalledTimes(1);
+    const updateArg = mockUserUpdate.mock.calls.at(-1)![0];
+    expect(updateArg.data.image).toBe('https://blob.example/profiles/pic.jpg');
+  });
+
+  it('leaves the existing photo alone when no file is sent', async () => {
+    mockUserUpdate.mockResolvedValue({
+      id: 'u1',
+      name: 'Marc',
+      email: 'a@b.c',
+      addresses: [],
+    });
+
+    const res = await PUT(formReq(false));
+    expect(res.status).toBe(200);
+    expect(mockUploadFile).not.toHaveBeenCalled();
+    const updateArg = mockUserUpdate.mock.calls.at(-1)![0];
+    expect(updateArg.data.image).toBeUndefined();
   });
 });
