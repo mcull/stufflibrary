@@ -1,0 +1,122 @@
+<!doctype html>
+<!-- The social share card (1200x630). Rendered to public/og-image.jpg by
+     scripts/render-og-image.mjs — edit here, then re-run that script. -->
+<html>
+<head>
+<meta charset="utf-8" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1200px; height: 630px; overflow: hidden; }
+  .card {
+    position: relative;
+    width: 1200px;
+    height: 630px;
+    background: #F9F5EB; /* warmCream */
+    overflow: hidden;
+  }
+  /* Checkout-card frame: a double ink rule, like the real cards */
+  .frame {
+    position: absolute;
+    inset: 22px;
+    border: 3px solid #1E3A5F;
+    border-radius: 10px;
+  }
+  .frame::after {
+    content: '';
+    position: absolute;
+    inset: 5px;
+    border: 1.5px solid rgba(30, 58, 95, 0.35);
+    border-radius: 6px;
+  }
+  .left {
+    position: absolute;
+    left: 78px;
+    top: 108px;
+    width: 620px;
+  }
+  .kicker {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 19px;
+    letter-spacing: 0.16em;
+    color: #FF6347; /* tomatoRed */
+    margin-bottom: 30px;
+  }
+  h1 {
+    font-family: 'Special Elite', monospace;
+    font-weight: 400;
+    font-size: 84px;
+    line-height: 1.04;
+    color: #1E3A5F; /* inkBlue */
+    margin-bottom: 38px;
+  }
+  /* The wordmark sticker, same as the site header */
+  .sticker {
+    display: inline-block;
+    background: #FF6347;
+    color: #FFFFFF;
+    font-family: 'Roboto Mono', monospace;
+    font-weight: 500;
+    font-size: 30px;
+    letter-spacing: 0.14em;
+    padding: 12px 26px;
+    border-radius: 4px;
+    transform: rotate(-1.5deg);
+    box-shadow: 0 6px 14px rgba(30, 58, 95, 0.18);
+  }
+  .cardno {
+    position: absolute;
+    left: 84px;
+    bottom: 44px;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 17px;
+    letter-spacing: 0.14em;
+    color: rgba(30, 58, 95, 0.55);
+  }
+  /* Watercolor prints, scattered like the hero showcase */
+  .print {
+    position: absolute;
+    border-radius: 12px;
+    object-fit: cover;
+    box-shadow: 0 20px 38px rgba(30, 58, 95, 0.22);
+    background: #fff;
+  }
+  .print.big   { width: 315px; height: 315px; right: 82px;  top: 74px;  transform: rotate(3deg); }
+  .print.mid   { width: 220px; height: 220px; right: 320px; top: 300px; transform: rotate(-4deg); }
+  .print.small { width: 175px; height: 175px; right: 108px; top: 386px; transform: rotate(2deg); }
+  /* DUE stamp for charm, angled over the corner of the big print */
+  .stamp {
+    position: absolute;
+    right: 74px;
+    top: 330px;
+    font-family: 'Special Elite', monospace;
+    font-size: 26px;
+    letter-spacing: 0.16em;
+    color: #7c2d12;
+    border: 3px solid #7c2d12;
+    border-radius: 6px;
+    padding: 6px 16px;
+    transform: rotate(-8deg);
+    opacity: 0.85;
+    background: rgba(249, 245, 235, 0.85);
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <img class="print big" src="https://znr9cqeimzcbaqpo.public.blob.vercel-storage.com/homepage/watercolors/wheelbarrow_600.webp" />
+    <img class="print mid" src="https://znr9cqeimzcbaqpo.public.blob.vercel-storage.com/homepage/watercolors/stand-mixer_600.webp" />
+    <img class="print small" src="https://znr9cqeimzcbaqpo.public.blob.vercel-storage.com/homepage/watercolors/ticket-to-ride_600.webp" />
+    <div class="frame"></div>
+    <div class="left">
+      <div class="kicker">A LENDING LIBRARY FOR EVERYTHING ELSE</div>
+      <h1>Borrow, Lend, Belong.</h1>
+      <div class="sticker">STUFFLIBRARY.ORG</div>
+    </div>
+    <div class="stamp">DUE NEVER</div>
+    <div class="cardno">№ 000-001 · YOUR NEIGHBORHOOD, PROBABLY</div>
+  </div>
+</body>
+</html>
