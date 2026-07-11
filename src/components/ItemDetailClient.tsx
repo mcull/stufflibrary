@@ -46,6 +46,7 @@ import { useCollections } from '@/hooks/useCollections';
 import type { CapabilityReason } from '@/lib/capabilities';
 
 import { CompleteProfilePrompt } from './CompleteProfilePrompt';
+import { CheckInDialog, type CheckInCondition } from './lender/CheckInDialog';
 import { VintageCheckoutCard } from './VintageCheckoutCard';
 
 interface ItemData {
@@ -131,6 +132,7 @@ export function ItemDetailClient({
     message: '',
   });
   const [checkingIn, setCheckingIn] = useState(false);
+  const [checkInDialogOpen, setCheckInDialogOpen] = useState(false);
   const [markingLost, setMarkingLost] = useState(false);
   // Optional: track kickoff errors for future UI surfacing
   const [_renderKickoffError, setRenderKickoffError] = useState<string | null>(
@@ -528,8 +530,9 @@ export function ItemDetailClient({
     }
   };
 
-  // Handle checking in a borrowed item
-  const handleCheckIn = async () => {
+  // Handle checking in a borrowed item. The API requires a return condition
+  // (#441), so the button opens CheckInDialog and this runs on its confirm.
+  const handleCheckIn = async (condition: CheckInCondition, note: string) => {
     if (!item || !currentActiveBorrow) return;
 
     try {
@@ -544,7 +547,8 @@ export function ItemDetailClient({
           },
           body: JSON.stringify({
             action: 'lender-return',
-            message: 'Item checked in by owner',
+            condition,
+            conditionNote: note || undefined,
             actualReturnDate: new Date().toISOString(),
           }),
         }
@@ -567,10 +571,15 @@ export function ItemDetailClient({
       window.location.reload();
     } catch (error) {
       console.error('Error checking in item:', error);
+      // Show the API's actual reason, not a generic shrug (#441).
       setToast({
         open: true,
-        message: 'Failed to check in item. Please try again.',
+        message:
+          error instanceof Error && error.message
+            ? `Check in failed: ${error.message}`
+            : 'Failed to check in item. Please try again.',
       });
+      setCheckInDialogOpen(false);
     } finally {
       setCheckingIn(false);
     }
@@ -1292,7 +1301,7 @@ export function ItemDetailClient({
                                     <CheckInIcon />
                                   )
                                 }
-                                onClick={handleCheckIn}
+                                onClick={() => setCheckInDialogOpen(true)}
                                 disabled={checkingIn || markingLost}
                                 sx={{
                                   borderRadius: 2,
@@ -1643,6 +1652,15 @@ export function ItemDetailClient({
           </Box>
         </Box>
       )}
+
+      {/* Owner Check In — condition capture required by the API (#441) */}
+      <CheckInDialog
+        open={checkInDialogOpen}
+        busy={checkingIn}
+        itemName={item?.name ?? 'item'}
+        onClose={() => setCheckInDialogOpen(false)}
+        onConfirm={(condition, note) => void handleCheckIn(condition, note)}
+      />
 
       {/* Toast Notification */}
       <Snackbar
