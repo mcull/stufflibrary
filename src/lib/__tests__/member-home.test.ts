@@ -69,6 +69,13 @@ describe('member-home helpers (#429 — vintage member home)', () => {
       label: 'BORROWED',
       ink: STAMP_INKS.brown,
     });
+    // #442: a borrowed card carries its due date, same as the owner's view.
+    expect(
+      itemStamp({
+        status: 'borrowed',
+        borrowRequest: { requestedReturnDate: '2026-07-15T00:00:00.000Z' },
+      })
+    ).toEqual({ label: 'DUE JUL 15', ink: STAMP_INKS.brown });
     expect(itemStamp({ status: 'offline' })).toEqual({
       label: 'OFF SHELF',
       ink: STAMP_INKS.gray,

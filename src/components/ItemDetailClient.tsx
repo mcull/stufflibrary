@@ -78,6 +78,7 @@ interface ItemData {
   currentActiveBorrow?: {
     id: string;
     status: string;
+    requestedReturnDate?: string;
     borrower: {
       id: string;
       name?: string;
@@ -185,6 +186,13 @@ export function ItemDetailClient({
     currentActiveBorrow &&
     currentActiveBorrow.borrower?.id === currentUserId &&
     currentActiveBorrow.lender?.id === currentUserId;
+
+  // The viewer is the neighbor currently holding this item (#442): show
+  // them their loan, not the "not available" shrug meant for third parties.
+  const isActiveBorrower =
+    !isOffline &&
+    currentActiveBorrow &&
+    currentActiveBorrow.borrower?.id === currentUserId;
 
   // Handle borrow request
   const handleBorrowRequest = () => {
@@ -1414,9 +1422,44 @@ export function ItemDetailClient({
                         </Box>
                       )}
 
+                      {/* The active borrower's way back to their loan (#442) */}
+                      {!isNewItem &&
+                        isActiveBorrower &&
+                        currentActiveBorrow && (
+                          <Alert
+                            severity="info"
+                            sx={{ mt: 2 }}
+                            action={
+                              <Button
+                                color="inherit"
+                                size="small"
+                                onClick={() =>
+                                  router.push(
+                                    `/borrow-requests/${currentActiveBorrow.id}`
+                                  )
+                                }
+                              >
+                                View loan
+                              </Button>
+                            }
+                          >
+                            You have this
+                            {currentActiveBorrow.requestedReturnDate
+                              ? ` — due ${new Date(
+                                  currentActiveBorrow.requestedReturnDate
+                                ).toLocaleDateString(undefined, {
+                                  month: 'short',
+                                  day: 'numeric',
+                                })}`
+                              : ''}
+                            . Return it from your loan page.
+                          </Alert>
+                        )}
+
                       {/* Availability warning for non-owners */}
                       {!isNewItem &&
                         !canBorrow &&
+                        !isActiveBorrower &&
                         item?.owner.id !== currentUserId &&
                         !item?.isAvailable && (
                           <Alert severity="warning" sx={{ mt: 2 }}>

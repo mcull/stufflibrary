@@ -23,6 +23,11 @@ export interface ShelfItem {
     | { requestedReturnDate?: string | Date | null | undefined }
     | null
     | undefined;
+  /**
+   * Where the card leads. Owned items default to their item page; borrowed
+   * cards point at the borrow request, where Mark as Returned lives (#442).
+   */
+  href?: string;
 }
 
 /** One item on the shelf: watercolor, typed name, status stamp. */
@@ -39,7 +44,7 @@ export function ShelfItemCard({
 
   return (
     <Box
-      onClick={() => router.push(`/stuff/${item.id}?src=mystuff`)}
+      onClick={() => router.push(item.href ?? `/stuff/${item.id}?src=mystuff`)}
       sx={{
         background: brandColors.white,
         border: `1.5px solid ${vintage.cardBorder}`,

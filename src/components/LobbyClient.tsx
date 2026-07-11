@@ -142,19 +142,23 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
     })),
     ...onLoanItems.map((item) => ({ ...item, status: 'on-loan' as const })),
     ...offlineItems.map((item) => ({ ...item, status: 'offline' as const })),
-    ...borrowedItems.map((request) => ({
-      // Borrowed entries are borrow-requests wrapping someone else's item.
-      id: request.item.id,
-      name: request.item.name,
-      imageUrl: request.item.imageUrl,
-      watercolorUrl: request.item.watercolorUrl,
-      watercolorThumbUrl: request.item.watercolorThumbUrl,
-      condition: 'good',
-      createdAt: request.createdAt,
-      status: 'borrowed' as const,
-      borrowRequest: null,
-    })),
   ];
+
+  // Borrowed entries are borrow-requests wrapping someone else's item. They
+  // carry the due date and lead to the request page — where Mark as
+  // Returned lives — not the item page, which is the owner's surface (#442).
+  const borrowedShelfItems = borrowedItems.map((request) => ({
+    id: request.item.id,
+    name: request.item.name,
+    imageUrl: request.item.imageUrl,
+    watercolorUrl: request.item.watercolorUrl,
+    watercolorThumbUrl: request.item.watercolorThumbUrl,
+    condition: 'good',
+    createdAt: request.createdAt,
+    status: 'borrowed' as const,
+    borrowRequest: { requestedReturnDate: request.requestedReturnDate },
+    href: `/borrow-requests/${request.id}`,
+  }));
 
   const inviteFromEmptyJoined = () => {
     // The nearest place an invite can actually happen: the first library the
@@ -252,6 +256,26 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                 ))}
                 <AddShelfCard onClick={handleAddStuffClick} />
               </Box>
+            )}
+
+            {/* Stuff I'm holding right now — the borrower's way back to the
+                loan (and Mark as Returned) without digging up a notification
+                (#442). */}
+            {!itemsLoading && borrowedShelfItems.length > 0 && (
+              <>
+                <Box sx={{ mt: '48px' }}>
+                  <DrawerSectionLabel>BORROWED</DrawerSectionLabel>
+                </Box>
+                <Box sx={SHELF_GRID}>
+                  {borrowedShelfItems.map((item, index) => (
+                    <ShelfItemCard
+                      key={`borrowed-${item.id}`}
+                      item={item}
+                      index={index}
+                    />
+                  ))}
+                </Box>
+              </>
             )}
           </Box>
         )}
