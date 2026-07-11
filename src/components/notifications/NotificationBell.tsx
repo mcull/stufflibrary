@@ -116,6 +116,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
           onUpdate={handleNotificationUpdate}
           isLoading={isLoading}
           setIsLoading={setIsLoading}
+          onNavigate={handleClose}
         />
       </Popover>
     </>
