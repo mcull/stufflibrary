@@ -6,8 +6,15 @@ import {
   Stack,
   Divider,
 } from '@mui/material';
+import type { Metadata } from 'next';
 
 import { brandColors } from '@/theme/brandTokens';
+
+export const metadata: Metadata = {
+  title: 'Terms of Service',
+  description:
+    'The terms for using StuffLibrary, a free neighborhood lending platform.',
+};
 
 export default function TermsOfServicePage() {
   return (

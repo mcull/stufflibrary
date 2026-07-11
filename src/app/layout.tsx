@@ -54,9 +54,24 @@ const impactLabel = localFont({
 });
 
 export const metadata: Metadata = {
-  title: 'StuffLibrary.org',
+  metadataBase: new URL('https://www.stufflibrary.org'),
+  title: {
+    default: 'StuffLibrary — a lending library for everything else',
+    template: '%s — StuffLibrary',
+  },
   description:
-    'Share more, buy less. A platform for neighbors to safely share under-used items.',
+    'Borrow, lend, belong. Your street already owns everything you need — StuffLibrary gives your neighborhood a card catalog, checkout cards, and one library card per neighbor.',
+  openGraph: {
+    type: 'website',
+    siteName: 'StuffLibrary',
+    title: 'StuffLibrary — a lending library for everything else',
+    description:
+      'Borrow, lend, belong. A neighborhood lending library for ladders, stand mixers, board games — the things we all own and rarely use.',
+    images: [{ url: '/og-image.jpg', width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+  },
   icons: {
     icon: [
       { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },

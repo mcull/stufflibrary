@@ -7,7 +7,7 @@ import { readCivicContent } from '@/lib/civic-content';
 export const dynamic = 'force-static';
 
 export const metadata: Metadata = {
-  title: 'A Field Guide to the Sharing World — StuffLibrary',
+  title: 'A Field Guide to the Sharing World',
   description:
     'Buy Nothing, Freecycle, repair cafés, timebanks, toy libraries — a July 2026 field guide to the neighborhood-sharing ecosystem, with how to find your local branch of each.',
 };
