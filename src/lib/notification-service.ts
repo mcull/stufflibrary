@@ -1,5 +1,6 @@
 import { NotificationType } from '@prisma/client';
 
+import { withoutLeadingArticle } from './copy';
 import { db } from './db';
 import { sendEmail } from './twilio';
 
@@ -266,7 +267,7 @@ export const NotificationHelpers = {
       userId: lenderId,
       type: 'BORROW_REQUEST_RECEIVED',
       title: 'New Borrow Request',
-      message: `${borrowRequest.borrower.name} wants to borrow your "${borrowRequest.item.name}"`,
+      message: `${borrowRequest.borrower.name} wants to borrow your ${withoutLeadingArticle(borrowRequest.item.name)}`,
       actionUrl: `/borrow-approval/${borrowRequest.id}`,
       relatedItemId: borrowRequest.itemId,
       relatedRequestId: borrowRequest.id,

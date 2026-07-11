@@ -1,5 +1,7 @@
 import { Resend } from 'resend';
 
+import { withoutLeadingArticle } from './copy';
+
 export interface SMSMessage {
   to: string;
   body: string;
@@ -78,7 +80,7 @@ export async function sendBorrowRequestNotification({
 
   // Try SMS first if phone number is provided
   if (ownerPhone) {
-    const smsMessage = `📱 Stuff Library: ${borrowerName} wants to borrow your "${itemName}". View their video request and respond here: ${approvalUrl}`;
+    const smsMessage = `📱 Stuff Library: ${borrowerName} wants to borrow your ${withoutLeadingArticle(itemName)}. View their video request and respond here: ${approvalUrl}`;
 
     const smsResult = await sendSMS({
       to: ownerPhone,
@@ -99,7 +101,7 @@ export async function sendBorrowRequestNotification({
 
   // Send email as primary or backup notification
   if (ownerEmail) {
-    const emailSubject = `${borrowerName} wants to borrow your "${itemName}"`;
+    const emailSubject = `${borrowerName} wants to borrow your ${withoutLeadingArticle(itemName)}`;
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="text-align: center; margin-bottom: 30px;">

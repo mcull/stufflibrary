@@ -5,6 +5,7 @@
 
 import { NotificationType } from '@prisma/client';
 
+import { withoutLeadingArticle } from './copy';
 import { EmailTemplates } from './email-templates';
 import { createNotification } from './notification-service';
 import {
@@ -97,7 +98,7 @@ export async function sendBorrowRequestReceivedNotification(
       userId: borrowRequest.lenderId,
       type: 'BORROW_REQUEST_RECEIVED' as NotificationType,
       title: 'New Borrow Request',
-      message: `${borrowRequest.borrower.name} wants to borrow your "${borrowRequest.item.name}"`,
+      message: `${borrowRequest.borrower.name} wants to borrow your ${withoutLeadingArticle(borrowRequest.item.name)}`,
       actionUrl: `/borrow-approval/${borrowRequest.id}`,
       relatedItemId: borrowRequest.itemId,
       relatedRequestId: borrowRequest.id,
