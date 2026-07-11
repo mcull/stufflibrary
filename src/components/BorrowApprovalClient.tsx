@@ -113,13 +113,14 @@ export function BorrowApprovalClient({
     };
   }, [borrowRequest.id, videoUrl]);
 
-  // Pre-populate response based on decision
+  // Approvals need real pickup details, so the field starts empty with the
+  // example as an unsendable placeholder — no more literal "[weekdays]
+  // around [5:30p]" landing in a neighbor's inbox (#447). The decline
+  // prefill is complete as written, so it stays.
   const handleDecisionChange = (newDecision: 'approve' | 'decline') => {
     setDecision(newDecision);
     if (newDecision === 'approve') {
-      setResponse(
-        `No problem! When would work for pickup? I'm usually available [weekdays] around [5:30p]`
-      );
+      setResponse('');
     } else {
       setResponse(
         `I'm sorry, I can't lend this right now. Thanks for asking though!`
@@ -403,10 +404,16 @@ export function BorrowApprovalClient({
             fullWidth
             value={response}
             onChange={(e) => setResponse(e.target.value)}
+            {...(decision === 'approve' && {
+              placeholder:
+                "No problem! When would work for pickup? I'm usually available weekdays around 5:30.",
+            })}
             helperText={
               decision === 'approve'
                 ? 'Let them know when and where they can pick it up'
-                : 'A polite decline message'
+                : decision === 'decline'
+                  ? 'A polite decline message'
+                  : 'Pick a response above, then add a note for your neighbor'
             }
             sx={{
               mb: 3,
