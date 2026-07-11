@@ -26,6 +26,7 @@ import MuxPlayer from '@mux/mux-player-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
+import { withoutLeadingArticle } from '@/lib/copy';
 import { brandColors } from '@/theme/brandTokens';
 
 interface BorrowRequest {
@@ -183,14 +184,33 @@ export function BorrowApprovalClient({
             {borrowRequest.borrower.name} has been notified of your response via
             email and in-app notification.
           </Typography>
-          <Button
-            variant="contained"
-            component={Link}
-            href="/home"
-            sx={{ mt: 3, borderRadius: 2 }}
+          {/* Not a dead end (#451): the loan you just created is one tap away. */}
+          <Box
+            sx={{
+              mt: 3,
+              display: 'flex',
+              gap: 2,
+              justifyContent: 'center',
+              flexWrap: 'wrap',
+            }}
           >
-            Home
-          </Button>
+            <Button
+              variant="contained"
+              component={Link}
+              href={`/lender/requests/${borrowRequest.id}`}
+              sx={{ borderRadius: 2 }}
+            >
+              View this loan
+            </Button>
+            <Button
+              variant="outlined"
+              component={Link}
+              href="/home"
+              sx={{ borderRadius: 2 }}
+            >
+              Home
+            </Button>
+          </Box>
         </Box>
       </Container>
     );
@@ -240,7 +260,10 @@ export function BorrowApprovalClient({
                 {borrowRequest.borrower.name || 'Anonymous User'}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                wants to borrow your <strong>{borrowRequest.item.name}</strong>
+                wants to borrow your{' '}
+                <strong>
+                  {withoutLeadingArticle(borrowRequest.item.name)}
+                </strong>
               </Typography>
             </Box>
           </Box>

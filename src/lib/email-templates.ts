@@ -2,6 +2,7 @@
  * Email template system for StuffLibrary notifications
  * Professional, responsive HTML emails with consistent branding
  */
+import { withoutLeadingArticle } from './copy';
 
 interface BaseTemplateProps {
   recipientName: string;
@@ -247,7 +248,7 @@ export const EmailTemplates = {
     `;
 
     return {
-      subject: `${borrowerName} wants to borrow your "${itemName}"`,
+      subject: `${borrowerName} wants to borrow your ${withoutLeadingArticle(itemName)}`,
       html: baseTemplate(content, 'New Borrow Request'),
     };
   },

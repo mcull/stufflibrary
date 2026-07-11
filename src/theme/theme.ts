@@ -263,6 +263,25 @@ export const theme = createTheme({
       },
     },
 
+    // Toggle buttons (condition pickers etc.): the default selected state is
+    // a pale grey wash that's nearly invisible on white (#451) — make the
+    // chosen segment unmistakably inked.
+    MuiToggleButton: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          fontFamily: typography.fontFamily.ui,
+          '&.Mui-selected': {
+            backgroundColor: brandColors.inkBlue,
+            color: brandColors.white,
+            '&:hover': {
+              backgroundColor: '#152B47', // Darker ink blue
+            },
+          },
+        },
+      },
+    },
+
     // Card styling
     MuiCard: {
       styleOverrides: {
