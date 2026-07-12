@@ -375,6 +375,56 @@ export default function TermsOfServicePage() {
             </Typography>
           </Box>
 
+          {/* SMS Communications */}
+          <Box>
+            <Typography
+              variant="h5"
+              gutterBottom
+              sx={{ color: brandColors.charcoal, fontWeight: 600 }}
+            >
+              10. TEXT MESSAGE (SMS) COMMUNICATIONS
+            </Typography>
+            <Typography
+              variant="body1"
+              paragraph
+              sx={{ color: brandColors.charcoal }}
+            >
+              If you provide a mobile number and opt in, StuffLibrary will send
+              you text messages about your account and lending activity: new
+              borrow requests, request approvals and declines, due-date
+              reminders, return confirmations, and sign-in verification codes.
+              We do not send marketing or promotional text messages.
+            </Typography>
+            <Box component="ul" sx={{ pl: 3, color: brandColors.charcoal }}>
+              <li>
+                <strong>Consent is optional.</strong> Consent to receive text
+                messages is not a condition of using the Service. You can use
+                StuffLibrary fully with email notifications alone.
+              </li>
+              <li>
+                <strong>Message frequency varies</strong> based on your lending
+                and borrowing activity.
+              </li>
+              <li>
+                <strong>Message and data rates may apply</strong>, depending on
+                your mobile carrier and plan.
+              </li>
+              <li>
+                <strong>Opting out:</strong> Reply STOP to any message to stop
+                receiving texts. You can also turn off text notifications in
+                your profile settings at any time.
+              </li>
+              <li>
+                <strong>Help:</strong> Reply HELP to any message, or contact
+                support@stufflibrary.org.
+              </li>
+              <li>
+                <strong>Carrier disclaimer:</strong> Carriers are not liable for
+                delayed or undelivered messages.
+              </li>
+            </Box>
+          </Box>
+
           {/* Account Termination */}
           <Box>
             <Typography
@@ -382,7 +432,7 @@ export default function TermsOfServicePage() {
               gutterBottom
               sx={{ color: brandColors.charcoal, fontWeight: 600 }}
             >
-              10. ACCOUNT TERMINATION
+              11. ACCOUNT TERMINATION
             </Typography>
             <Typography
               variant="body1"
@@ -405,7 +455,7 @@ export default function TermsOfServicePage() {
               gutterBottom
               sx={{ color: brandColors.charcoal, fontWeight: 600 }}
             >
-              11. GOVERNING LAW AND DISPUTE RESOLUTION
+              12. GOVERNING LAW AND DISPUTE RESOLUTION
             </Typography>
             <Typography
               variant="body1"
@@ -430,7 +480,7 @@ export default function TermsOfServicePage() {
               gutterBottom
               sx={{ color: brandColors.charcoal, fontWeight: 600 }}
             >
-              12. SEVERABILITY AND MODIFICATIONS
+              13. SEVERABILITY AND MODIFICATIONS
             </Typography>
             <Typography
               variant="body1"

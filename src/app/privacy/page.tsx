@@ -350,6 +350,25 @@ export default function PrivacyPolicyPage() {
                 acquisition, or sale of assets
               </li>
             </Box>
+
+            <Typography
+              variant="h6"
+              gutterBottom
+              sx={{ color: brandColors.charcoal, fontWeight: 600, mt: 2 }}
+            >
+              Mobile Numbers and Text Messaging
+            </Typography>
+            <Typography
+              variant="body1"
+              paragraph
+              sx={{ color: brandColors.charcoal }}
+            >
+              No mobile information will be shared with third parties or
+              affiliates for marketing or promotional purposes. All the
+              categories above exclude text messaging originator opt-in data and
+              consent; this information will not be shared with any third
+              parties.
+            </Typography>
           </Box>
 
           {/* User Control */}
