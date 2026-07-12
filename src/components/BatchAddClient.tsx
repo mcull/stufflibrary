@@ -22,7 +22,12 @@ import {
   stillProcessing,
   type IntakeEntry,
 } from '@/lib/batch-intake';
-import { prepareImage } from '@/lib/image-prep';
+import {
+  centerSquare,
+  imageDimensions,
+  prepareImage,
+  squareAroundBox,
+} from '@/lib/image-prep';
 import { brandColors } from '@/theme/brandTokens';
 
 const TYPEWRITER = '"Special Elite", "Courier New", monospace';
@@ -69,14 +74,42 @@ export function BatchAddClient({ libraryId }: BatchAddClientProps) {
   const patch = (key: string, p: Partial<IntakeEntry>) =>
     setEntries((prev) => patchEntry(prev, key, p));
 
-  /** The single-photo pipeline, same endpoints as the live-capture flow. */
+  /**
+   * The single-photo pipeline, same endpoints as the live-capture flow —
+   * but subject-aware (#468): recognition sees the full frame and reports
+   * where the object is, then the square crop is taken around the object
+   * (roll photos fill the frame; a center crop would behead them). The
+   * draft and watercolor get the crop.
+   */
   const processEntry = async (key: string, file: File) => {
     patch(key, { status: 'processing' });
     try {
-      // Canvas re-encode: square-crops to the live-capture contract,
-      // strips EXIF/GPS, downsizes phone originals.
-      const blob = await prepareImage(file);
-      // Preview the crop, not the original — you review what the model saw.
+      // Full frame, downsized + EXIF/GPS stripped, for recognition.
+      const fullFrame = await prepareImage(file);
+
+      const analysisForm = new FormData();
+      analysisForm.append('image', fullFrame, 'photo.jpg');
+      const analysisRes = await fetch('/api/analyze-item', {
+        method: 'POST',
+        body: analysisForm,
+      });
+      if (!analysisRes.ok) throw new Error('Recognition failed');
+      const analysis = await analysisRes.json();
+      if (!analysis.recognized || !analysis.name) {
+        throw new Error(
+          analysis.prohibitionReason || 'Could not make out what this is'
+        );
+      }
+
+      // Crop the square around the subject; center square as fallback.
+      const dims = await imageDimensions(fullFrame);
+      const box = analysis.subjectBox;
+      const region =
+        (Array.isArray(box) && box.length === 4
+          ? squareAroundBox({ x: box[0], y: box[1], w: box[2], h: box[3] })
+          : null) ?? centerSquare(dims.width, dims.height);
+      const blob = await prepareImage(fullFrame, { region });
+      // Preview the crop — you review what the watercolor will be painted from.
       patch(key, { previewUrl: URL.createObjectURL(blob) });
 
       const draftForm = new FormData();
@@ -89,7 +122,7 @@ export function BatchAddClient({ libraryId }: BatchAddClientProps) {
       const { itemId } = await draftRes.json();
       patch(key, { itemId });
 
-      // Watercolor paints in the background while recognition runs.
+      // Watercolor paints in the background from the subject crop.
       fetch('/api/items/render-watercolor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -104,20 +137,6 @@ export function BatchAddClient({ libraryId }: BatchAddClientProps) {
         .catch(() => {
           /* the photo preview stands in fine */
         });
-
-      const analysisForm = new FormData();
-      analysisForm.append('image', blob, 'photo.jpg');
-      const analysisRes = await fetch('/api/analyze-item', {
-        method: 'POST',
-        body: analysisForm,
-      });
-      if (!analysisRes.ok) throw new Error('Recognition failed');
-      const analysis = await analysisRes.json();
-      if (!analysis.recognized || !analysis.name) {
-        throw new Error(
-          analysis.prohibitionReason || 'Could not make out what this is'
-        );
-      }
 
       await fetch('/api/items/update-analysis', {
         method: 'POST',
