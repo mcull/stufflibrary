@@ -23,7 +23,7 @@ describe('Home Page', () => {
     render(await Home());
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      /borrow.*lend.*belong/i
+      /share more, buy less/i
     );
   });
 
@@ -33,7 +33,9 @@ describe('Home Page', () => {
     render(await Home());
 
     expect(
-      screen.getByText(/Your street already owns everything you need/)
+      screen.getByText(
+        /free platform that helps neighbors and friend groups share more/
+      )
     ).toBeInTheDocument();
   });
 

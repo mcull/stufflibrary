@@ -12,7 +12,9 @@ test.describe('Basic Homepage Tests', () => {
     await page.goto('/');
 
     // Test main headline exists
-    const heading = page.locator('h1', { hasText: /borrow.*lend.*belong/i });
+    const heading = page.locator('h1', {
+      hasText: /share more, buy less/i,
+    });
     await expect(heading).toBeVisible();
   });
 
@@ -32,12 +34,12 @@ test.describe('Basic Homepage Tests', () => {
   test('hero section renders', async ({ page }) => {
     await page.goto('/');
 
-    // Hero content — the vintage library-card redesign (#430)
+    // Hero content — plain-answer copy (#479)
     await expect(
-      page.getByRole('heading', { name: /Borrow, Lend, Belong\./i })
+      page.getByRole('heading', { name: /Share more, buy less\./i })
     ).toBeVisible();
     await expect(
-      page.getByText(/Your street already owns everything you need/i)
+      page.getByText(/free platform that helps neighbors and friend groups/i)
     ).toBeVisible();
   });
 });

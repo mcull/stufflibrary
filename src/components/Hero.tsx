@@ -44,7 +44,7 @@ export function Hero() {
               mb: '24px',
             }}
           >
-            A LENDING LIBRARY FOR EVERYTHING ELSE
+            A LENDING LIBRARY FOR YOUR STUFF
           </Typography>
           <Typography
             component="h1"
@@ -57,7 +57,7 @@ export function Hero() {
               color: INK,
             }}
           >
-            Borrow, Lend, Belong.
+            Share more, buy less.
           </Typography>
           <Typography
             sx={{
@@ -68,9 +68,8 @@ export function Hero() {
               color: 'rgba(63,52,43,0.85)',
             }}
           >
-            Your street already owns everything you need — the drill, the tent,
-            the pasta maker. StuffLibrary gives your neighborhood a card
-            catalog, checkout cards, and one library card per neighbor.
+            StuffLibrary is a free platform that helps neighbors and friend
+            groups share more of their stuff.
           </Typography>
           <Box
             sx={{
