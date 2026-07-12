@@ -5,16 +5,20 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BatchAddClient } from '../BatchAddClient';
 
 vi.mock('next/navigation');
-// jsdom has no createImageBitmap/canvas.toBlob — the prep is a browser detail.
-vi.mock('@/lib/image-prep', () => ({
+// jsdom has no createImageBitmap/canvas.toBlob — the canvas work is a
+// browser detail; the crop math stays real.
+vi.mock('@/lib/image-prep', async (importActual) => ({
+  ...(await importActual<typeof import('@/lib/image-prep')>()),
   prepareImage: vi
     .fn()
     .mockResolvedValue(new Blob(['x'], { type: 'image/jpeg' })),
+  imageDimensions: vi.fn().mockResolvedValue({ width: 3000, height: 4000 }),
 }));
 
 global.fetch = vi.fn();
 
 let draftCounter = 0;
+let analysisCounter = 0;
 
 function mockPipelineFetch() {
   (fetch as any).mockImplementation((url: string, init?: RequestInit) => {
@@ -30,11 +34,13 @@ function mockPipelineFetch() {
       return Promise.resolve({ ok: true, json: async () => ({}) });
     }
     if (u.includes('/api/analyze-item')) {
+      analysisCounter += 1;
       return Promise.resolve({
         ok: true,
         json: async () => ({
           recognized: true,
-          name: `Wrench ${draftCounter}`,
+          name: `Wrench ${analysisCounter}`,
+          subjectBox: [0.1, 0.2, 0.3, 0.5],
           description: 'A trusty wrench',
           category: 'tools',
           confidence: 0.9,
@@ -67,6 +73,7 @@ describe('BatchAddClient (#461 camera-roll intake)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     draftCounter = 0;
+    analysisCounter = 0;
     (useRouter as any).mockReturnValue({ push: vi.fn() });
     vi.stubGlobal('URL', {
       ...URL,
