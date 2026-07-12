@@ -58,6 +58,26 @@ describe('Terms of Service Page', () => {
     ).toBeInTheDocument();
   });
 
+  it('includes SMS terms (A2P requirement)', () => {
+    render(<TermsOfServicePage />);
+
+    expect(
+      screen.getByText('10. TEXT MESSAGE (SMS) COMMUNICATIONS')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Message and data rates may apply/)
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Message frequency varies/)).toBeInTheDocument();
+    expect(screen.getByText(/Reply STOP/)).toBeInTheDocument();
+    expect(screen.getByText(/Reply HELP/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Consent to receive text messages is not a condition/)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Carriers are not liable for delayed or undelivered/)
+    ).toBeInTheDocument();
+  });
+
   it('mentions civic utility nature', () => {
     render(<TermsOfServicePage />);
 

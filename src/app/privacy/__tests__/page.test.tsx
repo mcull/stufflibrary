@@ -102,6 +102,21 @@ describe('Privacy Policy Page', () => {
     expect(screen.getByText('privacy@stufflibrary.org')).toBeInTheDocument();
   });
 
+  it('states that mobile opt-in data is never shared for marketing (A2P requirement)', () => {
+    render(<PrivacyPolicyPage />);
+
+    expect(
+      screen.getByText(
+        /No mobile information will be shared with third parties or affiliates for marketing or promotional purposes/
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /text messaging originator opt-in data and consent.*will not be shared with any third parties/
+      )
+    ).toBeInTheDocument();
+  });
+
   it('addresses data sharing limitations', () => {
     render(<PrivacyPolicyPage />);
 
