@@ -1025,6 +1025,30 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
     );
   };
 
+  // The wifi-less garage path (#461): photos already taken come in as a
+  // batch from the camera roll. Shown on the permission screen and under
+  // the live camera alike.
+  const batchLink = (
+    <Box sx={{ textAlign: 'center', mt: 3 }}>
+      <Typography
+        component="a"
+        href={`/add-item/batch${libraryId ? `?library=${libraryId}` : ''}`}
+        sx={{
+          fontFamily: '"Roboto Mono", monospace',
+          fontSize: '13px',
+          color: brandColors.inkBlue,
+          textDecoration: 'none',
+          borderBottom: `2px solid ${brandColors.mustardYellow}`,
+          pb: '2px',
+          cursor: 'pointer',
+          '&:hover': { color: brandColors.tomatoRed },
+        }}
+      >
+        or add from your photos →
+      </Typography>
+    </Box>
+  );
+
   const renderContent = () => {
     if (mode === 'describe') {
       return renderDescribeContent();
@@ -1062,6 +1086,7 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
             >
               Start Camera
             </Button>
+            {batchLink}
           </Box>
         );
 
@@ -1071,231 +1096,207 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
           !!videoRef.current
         );
         return (
-          <Box
-            sx={{
-              position: 'relative',
-              width: '100%',
-              height: '60vh',
-              minHeight: '300px',
-              maxHeight: '500px',
-              mx: 'auto',
-              borderRadius: 2,
-              overflow: 'hidden',
-              bgcolor: 'black',
-            }}
-          >
-            <video
-              ref={(el) => {
-                console.log('🎥 Video element ref set:', !!el);
-                if (el && streamRef.current) {
-                  videoRef.current = el;
-                  console.log('🎬 Setting video source from ref...');
-                  el.srcObject = streamRef.current;
-
-                  // Add event listeners for debugging
-                  el.onloadedmetadata = () => {
-                    console.log('📊 Video metadata loaded');
-                    console.log(
-                      'Video dimensions:',
-                      el.videoWidth,
-                      'x',
-                      el.videoHeight
-                    );
-                  };
-
-                  el.onplay = () => {
-                    console.log('▶️ Video started playing');
-                  };
-
-                  el.oncanplay = () => {
-                    console.log('🎯 Video can play');
-                  };
-
-                  el.onerror = (e) => {
-                    console.error('❌ Video error:', e);
-                  };
-
-                  el.onloadstart = () => {
-                    console.log('🔄 Video load started');
-                  };
-
-                  console.log('📐 Video element setup complete');
-                }
-              }}
-              autoPlay
-              playsInline
-              muted
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                display: 'block',
-                transform: shouldMirrorCamera ? 'scaleX(-1)' : 'none',
-              }}
-              onClick={capturePhoto}
-            />
-
-            {/* Guidance overlay */}
+          <>
             <Box
               sx={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
+                position: 'relative',
+                width: '100%',
+                height: '60vh',
+                minHeight: '300px',
+                maxHeight: '500px',
+                mx: 'auto',
                 borderRadius: 2,
-                pointerEvents: 'none',
+                overflow: 'hidden',
+                bgcolor: 'black',
               }}
             >
-              {/* Top overlay */}
+              <video
+                ref={(el) => {
+                  console.log('🎥 Video element ref set:', !!el);
+                  if (el && streamRef.current) {
+                    videoRef.current = el;
+                    console.log('🎬 Setting video source from ref...');
+                    el.srcObject = streamRef.current;
+
+                    // Add event listeners for debugging
+                    el.onloadedmetadata = () => {
+                      console.log('📊 Video metadata loaded');
+                      console.log(
+                        'Video dimensions:',
+                        el.videoWidth,
+                        'x',
+                        el.videoHeight
+                      );
+                    };
+
+                    el.onplay = () => {
+                      console.log('▶️ Video started playing');
+                    };
+
+                    el.oncanplay = () => {
+                      console.log('🎯 Video can play');
+                    };
+
+                    el.onerror = (e) => {
+                      console.error('❌ Video error:', e);
+                    };
+
+                    el.onloadstart = () => {
+                      console.log('🔄 Video load started');
+                    };
+
+                    console.log('📐 Video element setup complete');
+                  }
+                }}
+                autoPlay
+                playsInline
+                muted
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  display: 'block',
+                  transform: shouldMirrorCamera ? 'scaleX(-1)' : 'none',
+                }}
+                onClick={capturePhoto}
+              />
+
+              {/* Guidance overlay */}
               <Box
                 sx={{
                   position: 'absolute',
                   top: 0,
                   left: 0,
                   right: 0,
-                  height: '10%',
-                  bgcolor: 'rgba(0, 0, 0, 0.75)',
-                }}
-              />
-
-              {/* Bottom overlay */}
-              <Box
-                sx={{
-                  position: 'absolute',
                   bottom: 0,
-                  left: 0,
-                  right: 0,
-                  height: '10%',
-                  bgcolor: 'rgba(0, 0, 0, 0.75)',
-                }}
-              />
-
-              {/* Left overlay */}
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: '10%',
-                  bottom: '10%',
-                  left: 0,
-                  width: '10%',
-                  bgcolor: 'rgba(0, 0, 0, 0.75)',
-                }}
-              />
-
-              {/* Right overlay */}
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: '10%',
-                  bottom: '10%',
-                  right: 0,
-                  width: '10%',
-                  bgcolor: 'rgba(0, 0, 0, 0.75)',
-                }}
-              />
-
-              {/* Guidance rectangle border */}
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: '10%',
-                  left: '10%',
-                  right: '10%',
-                  bottom: '10%',
-                  border: '2px solid white',
                   borderRadius: 2,
-                  boxShadow: '0 0 0 2px rgba(0,0,0,0.3)',
+                  pointerEvents: 'none',
                 }}
               >
-                {/* Instruction text */}
+                {/* Top overlay */}
                 <Box
                   sx={{
                     position: 'absolute',
-                    top: -50,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    color: 'white',
-                    fontSize: '16px',
-                    fontWeight: 600,
-                    textShadow: '0 2px 4px rgba(0,0,0,0.9)',
-                    whiteSpace: 'nowrap',
-                    textAlign: 'center',
-                    bgcolor: 'rgba(0, 0, 0, 0.7)',
-                    px: 2,
-                    py: 1,
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: '10%',
+                    bgcolor: 'rgba(0, 0, 0, 0.75)',
+                  }}
+                />
+
+                {/* Bottom overlay */}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: '10%',
+                    bgcolor: 'rgba(0, 0, 0, 0.75)',
+                  }}
+                />
+
+                {/* Left overlay */}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: '10%',
+                    bottom: '10%',
+                    left: 0,
+                    width: '10%',
+                    bgcolor: 'rgba(0, 0, 0, 0.75)',
+                  }}
+                />
+
+                {/* Right overlay */}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: '10%',
+                    bottom: '10%',
+                    right: 0,
+                    width: '10%',
+                    bgcolor: 'rgba(0, 0, 0, 0.75)',
+                  }}
+                />
+
+                {/* Guidance rectangle border */}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: '10%',
+                    left: '10%',
+                    right: '10%',
+                    bottom: '10%',
+                    border: '2px solid white',
                     borderRadius: 2,
-                    backdropFilter: 'blur(4px)',
-                    WebkitBackdropFilter: 'blur(4px)',
+                    boxShadow: '0 0 0 2px rgba(0,0,0,0.3)',
                   }}
                 >
-                  Center your item in this area
+                  {/* Instruction text */}
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: -50,
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      color: 'white',
+                      fontSize: '16px',
+                      fontWeight: 600,
+                      textShadow: '0 2px 4px rgba(0,0,0,0.9)',
+                      whiteSpace: 'nowrap',
+                      textAlign: 'center',
+                      bgcolor: 'rgba(0, 0, 0, 0.7)',
+                      px: 2,
+                      py: 1,
+                      borderRadius: 2,
+                      backdropFilter: 'blur(4px)',
+                      WebkitBackdropFilter: 'blur(4px)',
+                    }}
+                  >
+                    Center your item in this area
+                  </Box>
                 </Box>
+              </Box>
+
+              {/* Tap item instruction */}
+              <Box
+                sx={{
+                  position: 'absolute',
+                  bottom: 20,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  bgcolor: 'white',
+                  color: 'black',
+                  px: 3,
+                  py: 1.5,
+                  borderRadius: 22,
+                  pointerEvents: 'none',
+                  border: '2px solid rgba(0, 0, 0, 0.1)',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.6)',
+                  backdropFilter: 'blur(8px)',
+                  WebkitBackdropFilter: 'blur(8px)',
+                }}
+              >
+                <Typography
+                  variant="body1"
+                  sx={{
+                    fontWeight: 600,
+                    fontSize: '1rem',
+                    textShadow: 'none',
+                    letterSpacing: '0.5px',
+                    color: 'black',
+                  }}
+                >
+                  Tap to add
+                </Typography>
               </Box>
             </Box>
 
-            {/* Tap item instruction */}
-            <Box
-              sx={{
-                position: 'absolute',
-                bottom: 20,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                bgcolor: 'white',
-                color: 'black',
-                px: 3,
-                py: 1.5,
-                borderRadius: 22,
-                pointerEvents: 'none',
-                border: '2px solid rgba(0, 0, 0, 0.1)',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.6)',
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
-              }}
-            >
-              <Typography
-                variant="body1"
-                sx={{
-                  fontWeight: 600,
-                  fontSize: '1rem',
-                  textShadow: 'none',
-                  letterSpacing: '0.5px',
-                  color: 'black',
-                }}
-              >
-                Tap to add
-              </Typography>
-            </Box>
-
-            {/* The wifi-less garage path (#461): photos already taken can
-                come in as a batch from the camera roll. */}
-            <Box
-              sx={{
-                position: 'absolute',
-                bottom: -44,
-                left: 0,
-                right: 0,
-                textAlign: 'center',
-              }}
-            >
-              <Typography
-                component="a"
-                href={`/add-item/batch${libraryId ? `?library=${libraryId}` : ''}`}
-                sx={{
-                  fontFamily: '"Roboto Mono", monospace',
-                  fontSize: '13px',
-                  color: brandColors.inkBlue,
-                  textDecoration: 'none',
-                  borderBottom: `2px solid ${brandColors.mustardYellow}`,
-                  pb: '2px',
-                  cursor: 'pointer',
-                  '&:hover': { color: brandColors.tomatoRed },
-                }}
-              >
-                or add from your photos →
-              </Typography>
-            </Box>
-          </Box>
+            {/* Outside the viewport box — it clips overflow (#464 follow-up). */}
+            {batchLink}
+          </>
         );
 
       case 'capturing':
