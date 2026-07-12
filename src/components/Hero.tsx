@@ -68,7 +68,7 @@ export function Hero() {
               color: 'rgba(63,52,43,0.85)',
             }}
           >
-            Stuff Library is a free platform that helps neighbors and friend
+            StuffLibrary is a free platform that helps neighbors and friend
             groups share more of their stuff.
           </Typography>
           <Box

@@ -60,7 +60,7 @@ export const metadata: Metadata = {
     template: '%s — StuffLibrary',
   },
   description:
-    'Share more, buy less. Stuff Library is a free platform that helps neighbors and friend groups share more of their stuff.',
+    'Share more, buy less. StuffLibrary is a free platform that helps neighbors and friend groups share more of their stuff.',
   openGraph: {
     type: 'website',
     siteName: 'StuffLibrary',
