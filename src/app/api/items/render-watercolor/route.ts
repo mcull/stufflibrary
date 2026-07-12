@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { itemId } = body;
+    const { itemId, itemName } = body;
 
     if (!itemId) {
       return NextResponse.json(
@@ -94,6 +94,13 @@ export async function POST(request: NextRequest) {
       originalImageBuffer: imageBuffer,
       originalImageName,
       mimeType: contentType,
+      // Recognized name (batch intake sends it): lets the model paint the
+      // complete item even when the crop truncates it (#472).
+      ...(typeof itemName === 'string' && itemName.trim()
+        ? { itemName: itemName.trim().slice(0, 80) }
+        : item.name && item.name !== 'Processing...'
+          ? { itemName: item.name }
+          : {}),
     });
 
     console.log('✅ Watercolor rendering completed:', {

@@ -126,11 +126,13 @@ export function BatchAddClient({ libraryId }: BatchAddClientProps) {
       const { itemId } = await draftRes.json();
       patch(key, { itemId });
 
-      // Watercolor paints in the background from the subject crop.
+      // Watercolor paints in the background from the subject crop — with
+      // the recognized name, so a truncated crop still renders the complete
+      // item (pole-only crop → full push broom; verified A/B).
       fetch('/api/items/render-watercolor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemId }),
+        body: JSON.stringify({ itemId, itemName: analysis.name }),
       })
         .then(async (r) => {
           if (r.ok) {
