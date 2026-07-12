@@ -87,6 +87,7 @@ ${nameHint ? `\n              USER HINT: The user indicated this might be a "${n
               - "category": one of: "tools", "sports", "kitchen", "books", "electronics", "clothing", "furniture", "outdoor", "toys", "other"
               - "prohibited": true if the item falls under content restrictions, false if acceptable
               - "prohibitionReason": string explaining why the item is prohibited (only include if prohibited is true)
+              - "subjectBox": the main object's location as [x, y, width, height], each a fraction of the image dimensions between 0 and 1, drawn tightly around the object (include whenever recognized is true)
 
               If the item is prohibited, set "recognized" to false and "prohibited" to true.
 
@@ -111,7 +112,8 @@ ${nameHint ? `\n              USER HINT: The user indicated this might be a "${n
           ],
         },
       ],
-      max_tokens: 200,
+      // Enough headroom for the JSON plus the subjectBox coordinates.
+      max_tokens: 260,
       temperature: 0.1,
     });
 
@@ -172,6 +174,21 @@ ${nameHint ? `\n              USER HINT: The user indicated this might be a "${n
             result.prohibitionReason ||
             'This item is not permitted in our community sharing library',
         });
+      }
+
+      // subjectBox is advisory (batch intake crops around it, #468): pass it
+      // through only when it's a sane normalized [x, y, w, h].
+      const box = result.subjectBox;
+      const boxValid =
+        Array.isArray(box) &&
+        box.length === 4 &&
+        box.every((n: unknown) => typeof n === 'number' && n >= 0 && n <= 1) &&
+        box[2] > 0 &&
+        box[3] > 0 &&
+        box[0] + box[2] <= 1.001 &&
+        box[1] + box[3] <= 1.001;
+      if (!boxValid) {
+        delete result.subjectBox;
       }
 
       return NextResponse.json(result);
