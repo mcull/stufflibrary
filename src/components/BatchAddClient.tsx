@@ -73,8 +73,11 @@ export function BatchAddClient({ libraryId }: BatchAddClientProps) {
   const processEntry = async (key: string, file: File) => {
     patch(key, { status: 'processing' });
     try {
-      // Canvas re-encode: strips EXIF/GPS, downsizes phone originals.
+      // Canvas re-encode: square-crops to the live-capture contract,
+      // strips EXIF/GPS, downsizes phone originals.
       const blob = await prepareImage(file);
+      // Preview the crop, not the original — you review what the model saw.
+      patch(key, { previewUrl: URL.createObjectURL(blob) });
 
       const draftForm = new FormData();
       draftForm.append('image', blob, 'photo.jpg');
