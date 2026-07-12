@@ -92,7 +92,7 @@ Format your response as JSON:
     let content: string | null = null;
     if (spendCap.allowed) {
       const completion = await openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: enhancementPrompt }],
         temperature: 0.7,
       });
@@ -100,7 +100,7 @@ Format your response as JSON:
         'openai',
         estimateCostCents({
           provider: 'openai',
-          model: 'gpt-3.5-turbo',
+          model: 'gpt-4o-mini',
           inputTokens: completion.usage?.prompt_tokens ?? 0,
           outputTokens: completion.usage?.completion_tokens ?? 0,
         })
