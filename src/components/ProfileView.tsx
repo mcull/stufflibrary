@@ -6,7 +6,9 @@ import {
   Avatar,
   Box,
   Button,
+  Checkbox,
   Container,
+  FormControlLabel,
   IconButton,
   Paper,
   Stack,
@@ -18,19 +20,40 @@ import {
 import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { useState, useRef } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
+import { normalizeUsPhone } from '@/lib/phone';
 import { brandColors } from '@/theme/brandTokens';
 
 import { AddressAutocomplete } from './AddressAutocomplete';
 import { TrustBadge } from './TrustBadge';
 
-const profileSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  bio: z.string().optional(),
-  address: z.string().min(1, 'Address is required'),
-});
+const profileSchema = z
+  .object({
+    name: z.string().min(1, 'Name is required'),
+    bio: z.string().optional(),
+    address: z.string().min(1, 'Address is required'),
+    phone: z.string().optional(),
+    smsOptIn: z.boolean(),
+  })
+  .superRefine((values, ctx) => {
+    const phone = values.phone?.trim();
+    if (phone && !normalizeUsPhone(phone)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['phone'],
+        message: 'Enter a valid US mobile number',
+      });
+    }
+    if (values.smsOptIn && !phone) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['phone'],
+        message: 'Add a mobile number to turn on text notifications',
+      });
+    }
+  });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
 
@@ -40,6 +63,8 @@ interface User {
   email: string | null;
   image: string | null;
   bio: string | null;
+  phone: string | null;
+  smsOptIn: boolean;
   shareInterests: string[];
   borrowInterests: string[];
   profileCompleted: boolean;
@@ -90,6 +115,8 @@ export function ProfileView({
     defaultValues: {
       name: user.name || '',
       bio: user.bio || '',
+      phone: user.phone || '',
+      smsOptIn: user.smsOptIn ?? false,
       address:
         currentAddress?.formattedAddress ||
         `${currentAddress?.address1 || ''}${currentAddress?.address2 ? ', ' + currentAddress.address2 : ''}, ${currentAddress?.city || ''}, ${currentAddress?.state || ''} ${currentAddress?.zip || ''}`
@@ -104,6 +131,7 @@ export function ProfileView({
     handleSubmit,
     setValue,
     watch,
+    control,
     formState: { errors, isDirty },
   } = form;
 
@@ -202,6 +230,8 @@ export function ProfileView({
         formData.append('name', data.name);
         formData.append('bio', data.bio || '');
         formData.append('address', data.address);
+        formData.append('phone', data.phone || '');
+        formData.append('smsOptIn', String(data.smsOptIn));
         formData.append('profileImage', profileImage);
         if (parsedAddress) {
           formData.append('parsedAddress', JSON.stringify(parsedAddress));
@@ -217,6 +247,8 @@ export function ProfileView({
           name: data.name,
           bio: data.bio || '',
           address: data.address,
+          phone: data.phone || '',
+          smsOptIn: data.smsOptIn,
           parsedAddress: parsedAddress,
         };
 
@@ -451,6 +483,60 @@ export function ProfileView({
                 },
               }}
             />
+
+            {/* Text Notifications */}
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
+                Text Notifications
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Borrow requests move faster over text. Add your mobile number
+                and we&rsquo;ll text you when a neighbor wants to borrow
+                something.
+              </Typography>
+              <TextField
+                label="Mobile Number"
+                fullWidth
+                type="tel"
+                placeholder="(555) 555-5555"
+                {...register('phone')}
+                error={!!errors.phone}
+                helperText={errors.phone?.message}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                  },
+                }}
+              />
+              <Controller
+                name="smsOptIn"
+                control={control}
+                render={({ field }) => (
+                  <FormControlLabel
+                    sx={{ mt: 1.5, alignItems: 'flex-start' }}
+                    control={
+                      <Checkbox
+                        checked={field.value}
+                        onChange={(e) => field.onChange(e.target.checked)}
+                        sx={{ mt: -1 }}
+                      />
+                    }
+                    label={
+                      <Box>
+                        <Typography variant="body2">
+                          Text me borrow requests and account updates from
+                          StuffLibrary.
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Message and data rates may apply. Message frequency
+                          varies. Reply HELP for help, STOP to cancel.
+                        </Typography>
+                      </Box>
+                    }
+                  />
+                )}
+              />
+            </Box>
 
             {/* Submit Button */}
             <Box sx={{ pt: 2 }}>

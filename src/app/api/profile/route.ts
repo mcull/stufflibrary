@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { authOptions } from '@/lib/auth';
 import { TERMS_VERSION } from '@/lib/capabilities';
 import { db } from '@/lib/db';
+import { normalizeUsPhone } from '@/lib/phone';
 import { StorageService } from '@/lib/storage';
 import { getUserCapabilities } from '@/lib/user-capabilities';
 
@@ -59,12 +60,12 @@ export async function POST(request: NextRequest) {
     if (userId) {
       user = await db.user.findUnique({
         where: { id: userId },
-        select: { id: true, currentAddressId: true },
+        select: { id: true, currentAddressId: true, phone: true },
       });
     } else if (session.user?.email) {
       user = await db.user.findUnique({
         where: { email: session.user.email },
-        select: { id: true, currentAddressId: true },
+        select: { id: true, currentAddressId: true, phone: true },
       });
     }
 
@@ -77,7 +78,7 @@ export async function POST(request: NextRequest) {
           name: session.user.name || null,
           image: session.user.image || null,
         },
-        select: { id: true, currentAddressId: true },
+        select: { id: true, currentAddressId: true, phone: true },
       });
     }
 
@@ -275,12 +276,12 @@ export async function PUT(request: NextRequest) {
     if (userId) {
       user = await db.user.findUnique({
         where: { id: userId },
-        select: { id: true, currentAddressId: true },
+        select: { id: true, currentAddressId: true, phone: true },
       });
     } else if (session.user?.email) {
       user = await db.user.findUnique({
         where: { email: session.user.email },
-        select: { id: true, currentAddressId: true },
+        select: { id: true, currentAddressId: true, phone: true },
       });
     }
 
@@ -302,6 +303,15 @@ export async function PUT(request: NextRequest) {
       const shareInterests = formData.get('shareInterests') as string;
       const borrowInterests = formData.get('borrowInterests') as string;
       const parsedAddressData = formData.get('parsedAddress') as string;
+
+      const phoneField = formData.get('phone');
+      if (phoneField !== null) {
+        data.phone = phoneField as string;
+      }
+      const smsOptInField = formData.get('smsOptIn');
+      if (smsOptInField !== null) {
+        data.smsOptIn = smsOptInField === 'true';
+      }
 
       if (shareInterests) {
         data.shareInterests = JSON.parse(shareInterests);
@@ -353,6 +363,49 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
     }
 
+    // Phone + SMS opt-in (#477). Consent must ride with a working number.
+    const phoneUpdate: {
+      phone?: string | null;
+      phoneVerified?: boolean;
+      smsOptIn?: boolean;
+      smsConsentAt?: Date;
+    } = {};
+    if (data.phone !== undefined || data.smsOptIn !== undefined) {
+      const rawPhone =
+        typeof data.phone === 'string' ? data.phone.trim() : undefined;
+      const wantsSms = data.smsOptIn === true;
+
+      if (rawPhone) {
+        const normalized = normalizeUsPhone(rawPhone);
+        if (!normalized) {
+          return NextResponse.json(
+            { error: 'Enter a valid US mobile number' },
+            { status: 400 }
+          );
+        }
+        phoneUpdate.phone = normalized;
+        if (normalized !== user.phone) {
+          phoneUpdate.phoneVerified = false;
+        }
+        phoneUpdate.smsOptIn = wantsSms;
+        if (wantsSms) {
+          phoneUpdate.smsConsentAt = new Date();
+        }
+      } else if (rawPhone === '') {
+        // Number removed — nothing to text, so the opt-in goes with it.
+        phoneUpdate.phone = null;
+        phoneUpdate.phoneVerified = false;
+        phoneUpdate.smsOptIn = false;
+      } else if (wantsSms) {
+        return NextResponse.json(
+          { error: 'Add a mobile number to turn on text notifications' },
+          { status: 400 }
+        );
+      } else if (data.smsOptIn !== undefined) {
+        phoneUpdate.smsOptIn = false;
+      }
+    }
+
     // Use a transaction to update user and potentially create/update address
     const result = await db.$transaction(async (tx) => {
       let addressId = user.currentAddressId;
@@ -397,6 +450,7 @@ export async function PUT(request: NextRequest) {
       const updateData: any = {
         name: data.name.trim(),
         currentAddressId: addressId,
+        ...phoneUpdate,
       };
 
       if (data.bio !== undefined) {

@@ -17,6 +17,8 @@ const baseUser = {
   email: 'test@example.com',
   image: null,
   bio: null,
+  phone: null,
+  smsOptIn: false,
   shareInterests: [],
   borrowInterests: [],
   profileCompleted: true,

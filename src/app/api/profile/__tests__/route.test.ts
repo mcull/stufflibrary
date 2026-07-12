@@ -222,6 +222,92 @@ describe('GET /api/profile', () => {
   });
 });
 
+describe('PUT /api/profile phone + SMS opt-in (#477)', () => {
+  function putReq(body: unknown) {
+    return new Request('http://t/api/profile', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    }) as any;
+  }
+
+  beforeEach(() => {
+    mockUserUpdate.mockResolvedValue({
+      id: 'u1',
+      name: 'Marc',
+      email: 'a@b.c',
+    });
+  });
+
+  it('persists a normalized phone and consent timestamp on opt-in', async () => {
+    const res = await PUT(
+      putReq({ name: 'Marc', phone: '(415) 555-2671', smsOptIn: true })
+    );
+    expect(res.status).toBe(200);
+    const data = mockUserUpdate.mock.calls.at(-1)![0].data;
+    expect(data.phone).toBe('+14155552671');
+    expect(data.smsOptIn).toBe(true);
+    expect(data.smsConsentAt).toBeInstanceOf(Date);
+  });
+
+  it('does not stamp consent when the box is unchecked', async () => {
+    const res = await PUT(
+      putReq({ name: 'Marc', phone: '4155552671', smsOptIn: false })
+    );
+    expect(res.status).toBe(200);
+    const data = mockUserUpdate.mock.calls.at(-1)![0].data;
+    expect(data.phone).toBe('+14155552671');
+    expect(data.smsOptIn).toBe(false);
+    expect(data.smsConsentAt).toBeUndefined();
+  });
+
+  it('rejects opt-in without a valid phone (400)', async () => {
+    const res = await PUT(putReq({ name: 'Marc', smsOptIn: true }));
+    expect(res.status).toBe(400);
+    expect(mockUserUpdate).not.toHaveBeenCalled();
+  });
+
+  it('rejects an invalid phone (400)', async () => {
+    const res = await PUT(putReq({ name: 'Marc', phone: '555-26' }));
+    expect(res.status).toBe(400);
+  });
+
+  it('clearing the phone also clears the opt-in', async () => {
+    mockUserFindUnique.mockResolvedValue({
+      id: 'u1',
+      phone: '+14155552671',
+      addresses: [],
+    });
+    const res = await PUT(putReq({ name: 'Marc', phone: '', smsOptIn: true }));
+    expect(res.status).toBe(200);
+    const data = mockUserUpdate.mock.calls.at(-1)![0].data;
+    expect(data.phone).toBeNull();
+    expect(data.smsOptIn).toBe(false);
+  });
+
+  it('resets phoneVerified when the number changes', async () => {
+    mockUserFindUnique.mockResolvedValue({
+      id: 'u1',
+      phone: '+14155550000',
+      addresses: [],
+    });
+    const res = await PUT(
+      putReq({ name: 'Marc', phone: '4155552671', smsOptIn: false })
+    );
+    expect(res.status).toBe(200);
+    const data = mockUserUpdate.mock.calls.at(-1)![0].data;
+    expect(data.phoneVerified).toBe(false);
+  });
+
+  it('leaves phone fields untouched when the request omits them', async () => {
+    const res = await PUT(putReq({ name: 'Marc' }));
+    expect(res.status).toBe(200);
+    const data = mockUserUpdate.mock.calls.at(-1)![0].data;
+    expect('phone' in data).toBe(false);
+    expect('smsOptIn' in data).toBe(false);
+  });
+});
+
 describe('PUT /api/profile with a new photo (#458)', () => {
   function formReq(withImage: boolean) {
     const fd = new FormData();
