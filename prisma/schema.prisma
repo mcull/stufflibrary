@@ -45,6 +45,8 @@ model User {
   image               String?
   phone               String?
   phoneVerified       Boolean         @default(false)
+  smsOptIn            Boolean         @default(false)
+  smsConsentAt        DateTime?
   bio                 String?
   shareInterests      String[]
   borrowInterests     String[]
