@@ -160,6 +160,6 @@ describe('BatchAddClient (#461 camera-roll intake)', () => {
     await waitFor(() => {
       expect(screen.getByText(/0 ADDED TO YOUR SHELF/)).toBeInTheDocument();
     });
-    expect(screen.getByText(/1 we couldn't make out/)).toBeInTheDocument();
+    expect(screen.getByText(/1 we couldn't take in/)).toBeInTheDocument();
   });
 });

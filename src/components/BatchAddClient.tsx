@@ -96,8 +96,12 @@ export function BatchAddClient({ libraryId }: BatchAddClientProps) {
       if (!analysisRes.ok) throw new Error('Recognition failed');
       const analysis = await analysisRes.json();
       if (!analysis.recognized || !analysis.name) {
+        // Prohibitions arrive as { error: reason } — show the real reason
+        // instead of a generic shrug (#469).
         throw new Error(
-          analysis.prohibitionReason || 'Could not make out what this is'
+          analysis.prohibitionReason ||
+            analysis.error ||
+            'Could not make out what this is'
         );
       }
 
@@ -409,6 +413,7 @@ export function BatchAddClient({ libraryId }: BatchAddClientProps) {
                   <Box
                     key={entry.key}
                     sx={{ position: 'relative', width: 64, height: 64 }}
+                    {...(entry.error && { title: entry.error })}
                   >
                     <Box
                       component="img"
@@ -514,8 +519,27 @@ export function BatchAddClient({ libraryId }: BatchAddClientProps) {
               >
                 {summary.skipped > 0 && `${summary.skipped} skipped`}
                 {summary.skipped > 0 && summary.failed > 0 && ' · '}
-                {summary.failed > 0 && `${summary.failed} we couldn't make out`}
+                {summary.failed > 0 && `${summary.failed} we couldn't take in`}
               </Typography>
+            )}
+            {summary.failed > 0 && (
+              <Box sx={{ mb: 3 }}>
+                {entries
+                  .filter((e) => e.status === 'failed' && e.error)
+                  .map((e) => (
+                    <Typography
+                      key={e.key}
+                      sx={{
+                        fontFamily: MONO,
+                        fontSize: '12px',
+                        color: 'rgba(63,52,43,0.6)',
+                      }}
+                    >
+                      {e.name ? `${e.name}: ` : ''}
+                      {e.error}
+                    </Typography>
+                  ))}
+              </Box>
             )}
             <Box
               sx={{ display: 'flex', gap: 2, justifyContent: 'center', mt: 1 }}

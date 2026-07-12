@@ -75,10 +75,9 @@ export async function POST(request: NextRequest) {
               text: `Analyze this image and identify the main object. This is for a community sharing library that only accepts normal household goods.
 ${nameHint ? `\n              USER HINT: The user indicated this might be a "${nameHint}". Use this hint to help identify the object in the image, but still verify it matches what you see.\n` : ''}
               IMPORTANT CONTENT RESTRICTIONS:
-              - REJECT items that are: illegal, unsafe, inappropriate, nudity, weapons, firearms, alcohol, tobacco, drugs, age-restricted items, or anything requiring ID verification
-              - REJECT items that appear dangerous, hazardous, or could cause harm
+              - REJECT items in these categories only: weapons and firearms (including air rifles, BB guns, ammunition); alcohol; tobacco, vapes, and drugs; anything illegal or age-restricted requiring ID; sexual content or nudity; genuinely hazardous materials (explosives, fireworks, toxic chemicals, fuel)
+              - ORDINARY TOOLS ARE THE CORE INVENTORY OF THIS LIBRARY AND ARE ALWAYS ACCEPTABLE: power tools (miter saws, circular saws, table saws, drills, routers, sanders, nail guns, chainsaws), hand tools, kitchen equipment (including kitchen knives), and garden tools (including axes, loppers, machetes). A tool is not a weapon — never reject a tool for being sharp, powerful, or potentially dangerous when used carelessly.
               - REJECT items showing people in inappropriate situations or nudity
-              - ONLY ACCEPT normal household goods that are safe to share in a community
 
               Respond with a JSON object containing:
               - "name": a concise, descriptive name for the object (2-4 words max)
@@ -94,11 +93,12 @@ ${nameHint ? `\n              USER HINT: The user indicated this might be a "${n
 
               Examples of acceptable responses:
               - {"name": "Hammer", "description": "A wooden-handled claw hammer with some wear marks on the metal head, appears to be in good working condition.", "recognized": true, "confidence": 0.95, "category": "tools", "prohibited": false}
+              - {"name": "Miter Saw", "description": "An electric miter saw with an adjustable base for angled crosscuts, blade guard intact, appears well maintained.", "recognized": true, "confidence": 0.95, "category": "tools", "prohibited": false}
               - {"name": "Tennis Racket", "description": "A black and yellow tennis racket with a graphite frame, strings appear to be in good condition with some minor scuffs on the handle.", "recognized": true, "confidence": 0.88, "category": "sports", "prohibited": false}
 
               Examples of prohibited responses:
               - {"name": "Beer Bottle", "description": "A glass beer bottle", "recognized": false, "confidence": 0.9, "category": "other", "prohibited": true, "prohibitionReason": "Alcohol is not permitted in our community sharing library"}
-              - {"name": "Knife", "description": "A large kitchen knife", "recognized": false, "confidence": 0.95, "category": "tools", "prohibited": true, "prohibitionReason": "Sharp weapons and dangerous items are not permitted for safety reasons"}
+              - {"name": "Air Rifle", "description": "A pellet air rifle", "recognized": false, "confidence": 0.95, "category": "other", "prohibited": true, "prohibitionReason": "Weapons and firearms are not permitted in our community sharing library"}
 
               Respond only with the JSON object, no other text.`,
             },
@@ -150,6 +150,20 @@ ${nameHint ? `\n              USER HINT: The user indicated this might be a "${n
       ) {
         throw new Error('Invalid response format');
       }
+
+      // The decision, in the logs — a NO LUCK in the UI is otherwise an
+      // invisible 200 (#469: the mitre-saw rejection took an offline
+      // reproduction to diagnose).
+      console.log(
+        '🔍 analyze-item decision:',
+        JSON.stringify({
+          name: result.name,
+          recognized: result.recognized,
+          prohibited: result.prohibited,
+          reason: result.prohibitionReason,
+          confidence: result.confidence,
+        })
+      );
 
       // Check for prohibited items
       if (result.prohibited) {
