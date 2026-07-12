@@ -1266,6 +1266,35 @@ export function AddItemClient({ libraryId }: AddItemClientProps) {
                 Tap to add
               </Typography>
             </Box>
+
+            {/* The wifi-less garage path (#461): photos already taken can
+                come in as a batch from the camera roll. */}
+            <Box
+              sx={{
+                position: 'absolute',
+                bottom: -44,
+                left: 0,
+                right: 0,
+                textAlign: 'center',
+              }}
+            >
+              <Typography
+                component="a"
+                href={`/add-item/batch${libraryId ? `?library=${libraryId}` : ''}`}
+                sx={{
+                  fontFamily: '"Roboto Mono", monospace',
+                  fontSize: '13px',
+                  color: brandColors.inkBlue,
+                  textDecoration: 'none',
+                  borderBottom: `2px solid ${brandColors.mustardYellow}`,
+                  pb: '2px',
+                  cursor: 'pointer',
+                  '&:hover': { color: brandColors.tomatoRed },
+                }}
+              >
+                or add from your photos →
+              </Typography>
+            </Box>
           </Box>
         );
 
