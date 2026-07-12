@@ -17,6 +17,13 @@ interface WatercolorRenderOptions {
   originalImageName: string;
   mimeType: string;
   /**
+   * The recognized item name, when known before rendering. Telling the
+   * model what the object IS lets it paint the complete item even when the
+   * crop truncates it — a pole-only crop becomes a full push broom once the
+   * prompt says "push broom" (verified A/B, 2026-07-12).
+   */
+  itemName?: string;
+  /**
    * Also upload the original to blob storage (runs in parallel with
    * generation). The add-item flow skips this — create-draft already stored
    * the original (#408) — but the concept flow's source images (Openverse /
@@ -336,7 +343,7 @@ Use descriptive, specific labels that would help someone identify the item for b
   private async generateWatercolor(
     imageBuffer: Buffer,
     _mimeType: string,
-    context?: { itemId?: string; userId?: string }
+    context?: { itemId?: string; userId?: string; itemName?: string }
   ): Promise<Buffer> {
     const startTime = Date.now();
     console.log('🎨 Starting watercolor generation...');
@@ -358,14 +365,18 @@ Use descriptive, specific labels that would help someone identify the item for b
     const deIdentificationText =
       '\n    CRITICAL: If any people appear in this image, you MUST completely remove all people, faces, hands, body parts, and any reflections or silhouettes of people. Focus solely on the shareable item and render it as if no people were ever in the photo.';
 
+    const itemNameText = context?.itemName
+      ? `\n\n    The item in this photo is a: ${context.itemName}.`
+      : '';
+
     const prompt = [
       {
         text: `You are a production image editor for StuffLibrary, a community tool-sharing app. 
-    Convert this item photo into a consistent watercolor illustration with an "analog librarian" feel.${deIdentificationText}
+    Convert this item photo into a consistent watercolor illustration with an "analog librarian" feel.${deIdentificationText}${itemNameText}
 
     Task: Transform the attached photo into a uniform watercolor illustration of the foreground item only.
     Style: subtle ink linework and soft watercolor washes; paper color warm cream (soft off-white); slightly desaturated palette; no drop shadows; no background clutter; no visible people.
-    Composition: center the object on canvas with ~10% margin; maintain real-world orientation and proportions.
+    Composition: center the COMPLETE object on canvas with ~10% margin; maintain real-world orientation and proportions. If the photo crops or truncates the item at any edge (a cut-off handle, pole, tube, or attachment), paint the item IN FULL anyway — reconstruct the out-of-frame portion faithfully to what this kind of object looks like, so the illustration always shows the whole item.
     Constraints: remove any text labels, faces, reflections of people, or household backgrounds. Keep proportions faithful, no cartoonification.
     
     CRITICAL: Do not add any text, numbers, codes, labels, or written characters to the image. The watercolor should contain only the visual illustration of the item with NO TEXT ANYWHERE.
@@ -577,8 +588,13 @@ Use descriptive, specific labels that would help someone identify the item for b
   async renderWatercolor(
     options: WatercolorRenderOptions
   ): Promise<WatercolorResult> {
-    const { itemId, originalImageBuffer, originalImageName, mimeType } =
-      options;
+    const {
+      itemId,
+      originalImageBuffer,
+      originalImageName,
+      mimeType,
+      itemName,
+    } = options;
     const styleVersion = 'wc_v1';
     const aiModel = 'gemini-2.5-flash-image';
 
@@ -620,7 +636,10 @@ Use descriptive, specific labels that would help someone identify the item for b
               console.error('Error detecting persons:', error);
               return true;
             }),
-            this.generateWatercolor(originalImageBuffer, mimeType, { itemId }),
+            this.generateWatercolor(originalImageBuffer, mimeType, {
+              itemId,
+              ...(itemName ? { itemName } : {}),
+            }),
             options.storeOriginal
               ? this.uploadToStorage(
                   originalImageBuffer,

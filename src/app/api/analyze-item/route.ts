@@ -87,7 +87,7 @@ ${nameHint ? `\n              USER HINT: The user indicated this might be a "${n
               - "category": one of: "tools", "sports", "kitchen", "books", "electronics", "clothing", "furniture", "outdoor", "toys", "other"
               - "prohibited": true if the item falls under content restrictions, false if acceptable
               - "prohibitionReason": string explaining why the item is prohibited (only include if prohibited is true)
-              - "subjectBox": the main object's location as [x, y, width, height], each a fraction of the image dimensions between 0 and 1, drawn tightly around the object (include whenever recognized is true)
+              - "subjectBox": the main object's location as [x, y, width, height], each a fraction of the image dimensions between 0 and 1. The box MUST cover the object's FULL extent — including handles, poles, blades, tubes, cords, and attachments, not just the visually dominant part (include whenever recognized is true)
 
               If the item is prohibited, set "recognized" to false and "prohibited" to true.
 
