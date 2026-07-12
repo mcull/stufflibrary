@@ -12,7 +12,9 @@ test.describe('Basic Homepage Tests', () => {
     await page.goto('/');
 
     // Test main headline exists
-    const heading = page.locator('h1', { hasText: /borrow.*lend.*belong/i });
+    const heading = page.locator('h1', {
+      hasText: /share more, buy less/i,
+    });
     await expect(heading).toBeVisible();
   });
 
