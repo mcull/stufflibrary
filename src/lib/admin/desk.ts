@@ -84,6 +84,17 @@ export function formatDelta(delta: number, period: string): string {
   return `${delta > 0 ? '+' : ''}${delta} ${period}`;
 }
 
+const SPARK_INSET = 2;
+
+function sparkY(v: number, min: number, span: number, height: number): number {
+  return span === 0
+    ? height / 2
+    : Math.round(
+        (SPARK_INSET + (1 - (v - min) / span) * (height - SPARK_INSET * 2)) *
+          100
+      ) / 100;
+}
+
 /** Polyline path for the growth sparkline; 2px inset so the stroke survives the viewBox. */
 export function sparklinePath(
   values: number[],
@@ -94,20 +105,26 @@ export function sparklinePath(
   const min = Math.min(...values);
   const max = Math.max(...values);
   const span = max - min;
-  const inset = 2;
   const step = width / (values.length - 1);
   return values
     .map((v, i) => {
       const x = Math.round(i * step * 100) / 100;
-      const y =
-        span === 0
-          ? height / 2
-          : Math.round(
-              (inset + (1 - (v - min) / span) * (height - inset * 2)) * 100
-            ) / 100;
-      return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+      return `${i === 0 ? 'M' : 'L'} ${x} ${sparkY(v, min, span, height)}`;
     })
     .join(' ');
+}
+
+/** Coordinates of the sparkline's last point (for the coral end-dot). */
+export function sparklineEndpoint(
+  values: number[],
+  width: number,
+  height: number
+): { x: number; y: number } | null {
+  if (values.length < 2) return null;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const last = values[values.length - 1]!;
+  return { x: width, y: sparkY(last, min, max - min, height) };
 }
 
 const dollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;

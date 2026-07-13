@@ -6,6 +6,7 @@ import {
   isTabActive,
   mapCirculationEvent,
   paintBudgetView,
+  sparklineEndpoint,
   sparklinePath,
   type RawCirculationEvent,
 } from '@/lib/admin/desk';
@@ -103,6 +104,18 @@ describe('sparklinePath', () => {
   });
   it('returns empty for fewer than 2 points', () => {
     expect(sparklinePath([7], 100, 40)).toBe('');
+  });
+});
+
+describe('sparklineEndpoint', () => {
+  it('lands the end-dot exactly on the path terminus', () => {
+    expect(sparklineEndpoint([0, 5, 10], 100, 40)).toEqual({ x: 100, y: 2 });
+  });
+  it('sits on the midline when values are flat', () => {
+    expect(sparklineEndpoint([3, 3], 100, 40)).toEqual({ x: 100, y: 20 });
+  });
+  it('returns null for fewer than 2 points (matching sparklinePath)', () => {
+    expect(sparklineEndpoint([7], 100, 40)).toBeNull();
   });
 });
 

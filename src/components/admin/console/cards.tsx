@@ -96,6 +96,27 @@ export function KpiCard({
   );
 }
 
+/**
+ * The honest failure line. Each data source that fails renders this in its
+ * own region — never fake or partial numbers.
+ */
+export function DeskErrorLine() {
+  return (
+    <Box
+      component="p"
+      sx={{
+        ...consoleType.deltaLine,
+        fontSize: '11px',
+        color: console_.stampRed,
+        margin: 0,
+        padding: '8px 0',
+      }}
+    >
+      COULD NOT REACH THE DESK — refresh to retry
+    </Box>
+  );
+}
+
 export const STAMP_INK: Record<StampTone, string> = {
   ink: brandColors.inkBlue,
   red: console_.stampRed,
