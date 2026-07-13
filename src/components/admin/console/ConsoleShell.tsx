@@ -160,7 +160,7 @@ export function ConsoleShell({ userName, children }: ConsoleShellProps) {
         <Box
           component="nav"
           aria-label="Admin sections"
-          sx={{ display: 'flex', gap: 3, padding: '0 24px' }}
+          sx={{ display: 'flex', gap: 3, padding: '0 24px', overflowX: 'auto' }}
         >
           {TABS.map((tab) => {
             const active = isTabActive(pathname, tab.href);
