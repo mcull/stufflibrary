@@ -31,15 +31,47 @@ campaigns get slightly better filtering treatment.)
 
 ### Campaign description
 
-> StuffLibrary (stufflibrary.org) is a neighborhood item-sharing platform. Members
-> join a private neighborhood library where they lend and borrow household items
-> (ladders, tools, camping gear) from verified neighbors. This campaign sends
-> transactional account notifications to registered members who have added a mobile
-> number, completed one-time-code verification of that number, and checked an
-> opt-in box on our website: new borrow-request alerts, request approvals and
-> declines, due-date reminders, return confirmations, and sign-in verification
-> codes. Message frequency depends on the member's lending activity. This campaign
-> sends no marketing or promotional content.
+_Rev 3 (FINAL — as submitted). Rev 1 was rejected with Error 30886 ("does not
+clearly explain the messaging program"): vetting wants who-sends /
+who-receives / how-they-opted-in / why-each-message-fires stated literally.
+The field also has a hard 1024-character limit. The brand is registered under
+**Cull Ventures LLC**, so the description names it. This exact string is 1021
+characters:_
+
+> This campaign is sent by StuffLibrary (stufflibrary.org), the consumer-facing
+> brand of Cull Ventures LLC - a free neighborhood item-lending platform.
+> Recipients are StuffLibrary's registered account holders: U.S. consumers with
+> an account who added their mobile number in profile settings, verified it
+> with a one-time code, and checked an unchecked-by-default consent box
+> agreeing to receive account texts (SMS terms at stufflibrary.org/privacy and
+> stufflibrary.org/terms). Messages are sent when the member's account activity
+> requires attention: (1) account notifications - a neighbor requested to
+> borrow the member's item, the member's request was approved or declined, a
+> borrowed item is due back, or a lent item was returned; (2) two-factor
+> authentication - one-time sign-in codes the member requests at login.
+> Frequency varies with activity, typically 0-10 messages per month. No
+> marketing or third-party content is sent. STOP and HELP are honored on every
+> message; phone numbers are never shared with third parties.
+
+_The longer rev-2 narrative below is kept for reference (over the 1024 limit;
+do not paste):_
+
+> This campaign is operated and sent by StuffLibrary (stufflibrary.org), a free
+> neighborhood item-lending platform. Message recipients are StuffLibrary's own
+> registered account holders: adult U.S. consumers who created an account on
+> stufflibrary.org, added their mobile number in profile settings, verified it
+> with a one-time code, and checked an unchecked-by-default consent checkbox
+> agreeing to receive account text messages (consent language and SMS terms at
+> stufflibrary.org/privacy and stufflibrary.org/terms). Messages are sent when
+> the member's own account activity requires attention, in two categories
+> matching this use case: (1) account notifications — a neighbor has requested
+> to borrow the member's item, the member's borrow request was approved or
+> declined, a borrowed item is due back soon, or a lent item was returned; and
+> (2) two-factor authentication — a one-time sign-in code the member requests at
+> login. Message frequency varies with each member's activity, typically 0–10
+> messages per month. No marketing, promotional, or third-party content is ever
+> sent. STOP opt-out and HELP are honored on every message, and phone numbers
+> are never shared with third parties.
 
 ### Message flow / call to action (how consent is collected)
 
