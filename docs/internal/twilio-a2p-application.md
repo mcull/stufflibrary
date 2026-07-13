@@ -31,12 +31,30 @@ campaigns get slightly better filtering treatment.)
 
 ### Campaign description
 
-_Rev 2 — the first version was rejected with Error 30886 ("does not clearly
-explain the messaging program"). Vetting wants who-sends / who-receives /
-how-they-opted-in / why-each-message-fires stated literally. If the registered
-brand's legal name isn't "StuffLibrary" (e.g. sole-prop under Marc's name),
-prepend: "StuffLibrary is the consumer-facing brand of [registered legal
-name]."_
+_Rev 3 (FINAL — as submitted). Rev 1 was rejected with Error 30886 ("does not
+clearly explain the messaging program"): vetting wants who-sends /
+who-receives / how-they-opted-in / why-each-message-fires stated literally.
+The field also has a hard 1024-character limit. The brand is registered under
+**Cull Ventures LLC**, so the description names it. This exact string is 1021
+characters:_
+
+> This campaign is sent by StuffLibrary (stufflibrary.org), the consumer-facing
+> brand of Cull Ventures LLC - a free neighborhood item-lending platform.
+> Recipients are StuffLibrary's registered account holders: U.S. consumers with
+> an account who added their mobile number in profile settings, verified it
+> with a one-time code, and checked an unchecked-by-default consent box
+> agreeing to receive account texts (SMS terms at stufflibrary.org/privacy and
+> stufflibrary.org/terms). Messages are sent when the member's account activity
+> requires attention: (1) account notifications - a neighbor requested to
+> borrow the member's item, the member's request was approved or declined, a
+> borrowed item is due back, or a lent item was returned; (2) two-factor
+> authentication - one-time sign-in codes the member requests at login.
+> Frequency varies with activity, typically 0-10 messages per month. No
+> marketing or third-party content is sent. STOP and HELP are honored on every
+> message; phone numbers are never shared with third parties.
+
+_The longer rev-2 narrative below is kept for reference (over the 1024 limit;
+do not paste):_
 
 > This campaign is operated and sent by StuffLibrary (stufflibrary.org), a free
 > neighborhood item-lending platform. Message recipients are StuffLibrary's own
