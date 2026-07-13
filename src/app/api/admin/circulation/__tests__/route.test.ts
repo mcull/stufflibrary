@@ -64,7 +64,18 @@ function primeHappyPath() {
     ]);
 
   (mockDb.user.findMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
-    { id: 'u1', name: 'Maya', createdAt: new Date('2026-07-12T15:00:00Z') },
+    {
+      id: 'u1',
+      name: 'Maya',
+      createdAt: new Date('2026-07-12T15:00:00Z'),
+      collectionMemberships: [{ collection: { name: 'Maple Street Library' } }],
+    },
+    {
+      id: 'u2',
+      name: 'Noah',
+      createdAt: new Date('2026-07-12T14:30:00Z'),
+      collectionMemberships: [], // no membership yet → StuffLibrary fallback
+    },
   ]);
 
   (mockDb.auditLog.findMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
@@ -103,6 +114,70 @@ function primeHappyPath() {
   ]);
 }
 
+/** Fill every source to its per-source take (15) → 75 events total. */
+function primeManyEvents() {
+  mockRequireAdminAuth.mockResolvedValueOnce({
+    user: { githubUsername: 'mcull' },
+  } as never);
+
+  const at = (i: number) => new Date(Date.UTC(2026, 6, 1, 0, i));
+  const fifteen = <T>(make: (i: number) => T) =>
+    Array.from({ length: 15 }, (_, i) => make(i));
+
+  (mockDb.borrowRequest.findMany as ReturnType<typeof vi.fn>)
+    .mockResolvedValueOnce(
+      fifteen((i) => ({
+        id: `open${i}`,
+        status: 'APPROVED',
+        createdAt: at(i),
+        updatedAt: at(i),
+        approvedAt: at(i),
+        requestedReturnDate: new Date('2026-07-20T12:00:00Z'),
+        borrower: { name: 'B' },
+        item: { name: 'Item' },
+      }))
+    )
+    .mockResolvedValueOnce(
+      fifteen((i) => ({
+        id: `ret${i}`,
+        updatedAt: at(100 + i),
+        returnedAt: at(100 + i),
+        returnCondition: null,
+        borrower: { name: 'B' },
+        item: { name: 'Item' },
+      }))
+    );
+
+  (mockDb.user.findMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+    fifteen((i) => ({
+      id: `u${i}`,
+      name: 'U',
+      createdAt: at(200 + i),
+      collectionMemberships: [],
+    }))
+  );
+
+  (mockDb.auditLog.findMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+    fifteen((i) => ({
+      id: `al${i}`,
+      createdAt: at(300 + i),
+      metadata: { status: 'ok', model: 'm', cost_cents: 1 },
+    }))
+  );
+
+  (
+    mockDb.invitation.findMany as ReturnType<typeof vi.fn>
+  ).mockResolvedValueOnce(
+    fifteen((i) => ({
+      id: `inv${i}`,
+      sentAt: at(400 + i),
+      createdAt: at(400 + i),
+      sender: { name: 'S' },
+      collection: { name: 'Lib' },
+    }))
+  );
+}
+
 describe('/api/admin/circulation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -119,9 +194,9 @@ describe('/api/admin/circulation', () => {
       const rows = await response.json();
 
       expect(response.status).toBe(200);
-      // 2 open borrows + 1 return + 1 join + 1 ok render + 1 invite;
+      // 2 open borrows + 1 return + 2 joins + 1 ok render + 1 invite;
       // the failed render is excluded.
-      expect(rows).toHaveLength(6);
+      expect(rows).toHaveLength(7);
       expect(
         rows.every(
           (r: { id: string }) => !r.id.includes('al2') // failed render absent
@@ -134,31 +209,37 @@ describe('/api/admin/circulation', () => {
       ) as number[];
       expect(times).toEqual([...times].sort((a, b) => b - a));
 
+      // Join subject is the member's first library when they have one
       expect(rows[0]).toMatchObject({
-        text: 'Maya joined StuffLibrary',
+        text: 'Maya joined Maple Street Library',
+        stamp: { label: 'NEW MEMBER' },
+      });
+      // ...and falls back to StuffLibrary when they don't
+      expect(rows[1]).toMatchObject({
+        text: 'Noah joined StuffLibrary',
         stamp: { label: 'NEW MEMBER' },
       });
       // Actor fallback: borrower.name null must never render as 'undefined'
-      expect(rows[1]).toMatchObject({
+      expect(rows[2]).toMatchObject({
         text: 'A member borrowed Ladder',
         sub: 'due Jul 20',
         stamp: { label: 'BORROWED' },
       });
-      expect(rows[2]).toMatchObject({
+      expect(rows[3]).toMatchObject({
         text: 'Sam returned Post Hole Digger',
         sub: 'condition: ok',
         stamp: { label: 'RETURNED' },
       });
-      expect(rows[3]).toMatchObject({
+      expect(rows[4]).toMatchObject({
         sub: '$0.04 · gemini-image',
         stamp: { label: 'PAINTED' },
       });
-      expect(rows[4]).toMatchObject({
+      expect(rows[5]).toMatchObject({
         text: 'Ravi invited a neighbor',
         sub: 'Maple Street',
         stamp: { label: 'INVITED' },
       });
-      expect(rows[5]).toMatchObject({
+      expect(rows[6]).toMatchObject({
         text: 'Priya asked to borrow Stand Mixer',
         stamp: { label: 'REQUESTED' },
       });
@@ -175,7 +256,37 @@ describe('/api/admin/circulation', () => {
 
       expect(rows).toHaveLength(2);
       expect(rows[0].stamp.label).toBe('NEW MEMBER');
-      expect(rows[1].stamp.label).toBe('BORROWED');
+      expect(rows[1].stamp.label).toBe('NEW MEMBER');
+    });
+
+    it('falls back to the default limit for limit=0 and non-numeric limits', async () => {
+      for (const bad of ['0', 'abc']) {
+        vi.clearAllMocks();
+        primeManyEvents();
+
+        const request = new NextRequest(
+          `http://localhost:3000/api/admin/circulation?limit=${bad}`
+        );
+        const response = await GET(request);
+        const rows = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(rows).toHaveLength(30); // default, not everything
+      }
+    });
+
+    it('clamps oversized limits to the per-source ceiling', async () => {
+      primeManyEvents();
+
+      const request = new NextRequest(
+        'http://localhost:3000/api/admin/circulation?limit=9999'
+      );
+      const response = await GET(request);
+      const rows = await response.json();
+
+      expect(response.status).toBe(200);
+      // 5 sources × 15 = 75 events primed; the clamp lets all of them through.
+      expect(rows).toHaveLength(75);
     });
 
     it('requires admin authentication', async () => {

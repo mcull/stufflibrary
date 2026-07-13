@@ -7,7 +7,8 @@ import { db } from '@/lib/db';
 
 const PER_SOURCE_TAKE = 15;
 const DEFAULT_LIMIT = 30;
-const MAX_LIMIT = 100;
+// 5 sources × PER_SOURCE_TAKE = 75 events max, so a higher cap is unreachable.
+const MAX_LIMIT = 75;
 
 const FALLBACK_ACTOR = 'A member';
 
@@ -32,6 +33,8 @@ export async function GET(request: NextRequest) {
     const [openBorrows, returns, joins, renders, invites] = await Promise.all([
       db.borrowRequest.findMany({
         where: { status: { in: ['PENDING', 'ACTIVE', 'APPROVED'] } },
+        // Ordered by updatedAt but stamped at createdAt/approvedAt below; the
+        // mismatch can shuffle which rows make the cut — acceptable at current scale.
         orderBy: { updatedAt: 'desc' },
         take: PER_SOURCE_TAKE,
         select: {
@@ -61,7 +64,16 @@ export async function GET(request: NextRequest) {
       db.user.findMany({
         orderBy: { createdAt: 'desc' },
         take: PER_SOURCE_TAKE,
-        select: { id: true, name: true, createdAt: true },
+        select: {
+          id: true,
+          name: true,
+          createdAt: true,
+          collectionMemberships: {
+            orderBy: { joinedAt: 'asc' },
+            take: 1,
+            select: { collection: { select: { name: true } } },
+          },
+        },
       }),
       db.auditLog.findMany({
         where: { action: 'AI_RENDER' },
@@ -101,6 +113,8 @@ export async function GET(request: NextRequest) {
           kind: 'borrow',
           actor: b.borrower.name ?? FALLBACK_ACTOR,
           subject: b.item.name,
+          // No library name here: Item↔Collection is many-to-many via
+          // ItemCollection, so "the" library of a borrow is ambiguous.
           detail: dueLabel(b.requestedReturnDate),
         });
       }
@@ -125,7 +139,7 @@ export async function GET(request: NextRequest) {
         at: u.createdAt,
         kind: 'join',
         actor: u.name ?? FALLBACK_ACTOR,
-        subject: 'StuffLibrary',
+        subject: u.collectionMemberships[0]?.collection.name ?? 'StuffLibrary',
       });
     }
 

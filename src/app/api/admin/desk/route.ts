@@ -68,10 +68,12 @@ export async function GET() {
         WHERE "createdAt" >= now() - interval '30 days'
         GROUP BY 1
       `,
+      // month_cents sums ALL AI_RENDER rows (money spent is money spent);
+      // renders counts only successful ones, consistent with the ledger.
       db.$queryRaw<Array<{ month_cents: number; renders: number }>>`
         SELECT
           COALESCE(SUM((metadata->>'cost_cents')::int), 0)::int AS month_cents,
-          COUNT(*)::int AS renders
+          COUNT(*) FILTER (WHERE metadata->>'status' = 'ok')::int AS renders
         FROM audit_logs
         WHERE action = 'AI_RENDER' AND "createdAt" >= date_trunc('month', now())
       `,

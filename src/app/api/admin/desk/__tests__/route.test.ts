@@ -55,7 +55,7 @@ function primeHappyPath() {
   (mockDb.$queryRaw as ReturnType<typeof vi.fn>)
     // growth: one signup bucket dated today (bigint count, as Postgres returns)
     .mockResolvedValueOnce([{ d: new Date(), c: BigInt(7) }])
-    // paint: month spend + render count
+    // paint: month spend (SUM over all AI_RENDER rows) + successful-render count
     .mockResolvedValueOnce([{ month_cents: 123, renders: 3 }]);
 }
 
