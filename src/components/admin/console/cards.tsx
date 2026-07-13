@@ -14,7 +14,7 @@ import { console_, consoleType } from './tokens';
 // a 2px ink rule.
 
 const cardSurface = {
-  backgroundColor: '#FFFFFF',
+  backgroundColor: brandColors.white,
   border: `1px solid ${console_.cardBorder}`,
   borderRadius: '8px',
   padding: '16px 18px',
@@ -70,7 +70,7 @@ export function KpiCard({
   label: string;
   value: string | number;
   delta?: string;
-  deltaTone?: 'green' | 'red' | 'mustard' | 'muted';
+  deltaTone?: keyof typeof DELTA_INK;
 }) {
   return (
     <Box sx={cardSurface}>
@@ -88,13 +88,7 @@ export function KpiCard({
         {value}
       </Box>
       {delta && (
-        <Box
-          sx={{
-            fontFamily: '"Roboto Mono", monospace',
-            fontSize: '10.5px',
-            color: DELTA_INK[deltaTone],
-          }}
-        >
+        <Box sx={{ ...consoleType.deltaLine, color: DELTA_INK[deltaTone] }}>
           {delta}
         </Box>
       )}
@@ -102,7 +96,7 @@ export function KpiCard({
   );
 }
 
-const STAMP_INK: Record<StampTone, string> = {
+export const STAMP_INK: Record<StampTone, string> = {
   ink: brandColors.inkBlue,
   red: console_.stampRed,
   mustard: console_.darkMustardText,

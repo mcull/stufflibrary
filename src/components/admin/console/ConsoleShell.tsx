@@ -33,25 +33,30 @@ function dateStampLabel(d: Date): string {
     .toUpperCase();
 }
 
-/** Ticking 24h wall clock; `--:--:--` until mounted so hydration matches. */
-function useWallClock(): string {
-  const [time, setTime] = useState<string | null>(null);
+/**
+ * Ticking 24h wall clock plus the date-stamp label, both deferred to mount
+ * so SSR (server timezone) and the client never disagree: `--:--:--` and an
+ * empty stamp slot pre-mount. The shared 1s tick also rolls the date over
+ * at midnight.
+ */
+function useWallClock(): { clock: string; dateLabel: string | null } {
+  const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
-    const tick = () => {
-      const d = new Date();
-      setTime(
-        [d.getHours(), d.getMinutes(), d.getSeconds()]
-          .map((n) => String(n).padStart(2, '0'))
-          .join(':')
-      );
-    };
+    const tick = () => setNow(new Date());
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, []);
 
-  return time ?? '--:--:--';
+  return {
+    clock: now
+      ? [now.getHours(), now.getMinutes(), now.getSeconds()]
+          .map((n) => String(n).padStart(2, '0'))
+          .join(':')
+      : '--:--:--',
+    dateLabel: now ? dateStampLabel(now) : null,
+  };
 }
 
 interface ConsoleShellProps {
@@ -62,7 +67,7 @@ interface ConsoleShellProps {
 /** The Circulation Desk chrome: wordmark, date stamp, clock, tab nav. */
 export function ConsoleShell({ userName, children }: ConsoleShellProps) {
   const pathname = usePathname() ?? '';
-  const clock = useWallClock();
+  const { clock, dateLabel } = useWallClock();
 
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: brandColors.warmCream }}>
@@ -84,7 +89,6 @@ export function ConsoleShell({ userName, children }: ConsoleShellProps) {
                 component="span"
                 className="vintage-impact-label"
                 sx={{
-                  fontFamily: vintageFonts.label,
                   fontSize: '18px',
                   color: brandColors.warmCream,
                   background: brandColors.tomatoRed,
@@ -107,12 +111,14 @@ export function ConsoleShell({ userName, children }: ConsoleShellProps) {
 
           {/* Right: date stamp, clock, avatar */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <VintageStamp
-              label={dateStampLabel(new Date())}
-              ink={console_.stampRed}
-              rotation={-2}
-              fontSize={10}
-            />
+            {dateLabel && (
+              <VintageStamp
+                label={dateLabel}
+                ink={console_.stampRed}
+                rotation={-2}
+                fontSize={10}
+              />
+            )}
             <Box
               component="span"
               sx={{
@@ -126,7 +132,8 @@ export function ConsoleShell({ userName, children }: ConsoleShellProps) {
             </Box>
             <Box
               component="span"
-              aria-hidden
+              role="img"
+              aria-label={userName}
               sx={{
                 width: 30,
                 height: 30,

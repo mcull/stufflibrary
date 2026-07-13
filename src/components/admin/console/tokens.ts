@@ -29,4 +29,8 @@ export const consoleType = {
     fontWeight: 900,
     fontSize: '30px',
   },
+  deltaLine: {
+    fontFamily: '"Roboto Mono", monospace',
+    fontSize: '10.5px',
+  },
 } as const;

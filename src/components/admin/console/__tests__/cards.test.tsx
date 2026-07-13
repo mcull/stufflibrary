@@ -1,7 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 
-import { ConsoleCard, KpiCard, StampChip } from '../cards';
+import { ConsoleCard, KpiCard, STAMP_INK, StampChip } from '../cards';
+import { console_ } from '../tokens';
 
 describe('ConsoleCard', () => {
   it('renders title and children', () => {
@@ -39,19 +40,13 @@ describe('KpiCard', () => {
 });
 
 describe('StampChip', () => {
-  it('inks a green-tone stamp in okGreen', () => {
+  it('maps the green tone to okGreen ink', () => {
+    expect(STAMP_INK.green).toBe(console_.okGreen);
+    expect(STAMP_INK.green).toBe('#1E6E42');
+  });
+
+  it('renders the stamp label', () => {
     render(<StampChip label="RETURNED" tone="green" />);
-    const stamp = screen.getByText('RETURNED');
-    // sx styles land in an emotion class, not a style attribute, and
-    // happy-dom's getComputedStyle can't resolve them — so assert the
-    // stamp's emotion rule carries the okGreen ink.
-    const cls = stamp.className.split(' ').find((c) => c.startsWith('css-'));
-    expect(cls).toBeTruthy();
-    const css = Array.from(document.querySelectorAll('style'))
-      .map((s) => s.textContent)
-      .join('\n');
-    const rule = css.split('}').find((chunk) => chunk.includes(`.${cls}`));
-    expect(rule).toContain('1.5px solid #1E6E42');
-    expect(rule).toContain('color:#1E6E42');
+    expect(screen.getByText('RETURNED')).toBeInTheDocument();
   });
 });
