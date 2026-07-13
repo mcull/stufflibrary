@@ -104,6 +104,7 @@ export function DeskErrorLine() {
   return (
     <Box
       component="p"
+      role="status"
       sx={{
         ...consoleType.deltaLine,
         fontSize: '11px',

@@ -4,6 +4,7 @@ import { Box, Skeleton } from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
 
 import type { CirculationRow } from '@/lib/admin/desk';
+import { ledgerTimeLabel } from '@/lib/admin/desk';
 
 import { ConsoleCard, DeskErrorLine, StampChip } from './cards';
 import { console_, consoleType } from './tokens';
@@ -13,16 +14,11 @@ const STAMP_ROTATIONS = [-3, 2, -2, 3] as const;
 
 const EMPTY_SET: ReadonlySet<string> = new Set();
 
-function timeLabel(iso: string): string {
-  const d = new Date(iso);
-  return [d.getHours(), d.getMinutes()]
-    .map((n) => String(n).padStart(2, '0'))
-    .join(':');
-}
-
 /**
- * Today's circulation — the live ledger. Rows that appear between polls
- * flash `rowFlash` then fade to transparent over 800ms.
+ * Recent circulation — the live ledger. Rows that appear between polls
+ * flash `rowFlash` then fade to transparent over 800ms. A failed poll
+ * keeps the last-good rows on the page and admits it in the header;
+ * only a failed initial load empties the card.
  */
 export function CirculationLedger({
   rows,
@@ -48,20 +44,40 @@ export function CirculationLedger({
   }, [rows]);
 
   return (
-    <ConsoleCard title="TODAY'S CIRCULATION">
-      {error ? (
-        <DeskErrorLine />
-      ) : rows === null ? (
-        <Box sx={{ display: 'grid', gap: '10px' }}>
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton
-              key={i}
-              variant="rounded"
-              height={30}
-              sx={{ backgroundColor: console_.rowSelected }}
-            />
-          ))}
-        </Box>
+    <ConsoleCard
+      title="RECENT CIRCULATION"
+      action={
+        error && rows !== null ? (
+          <Box
+            component="span"
+            role="status"
+            sx={{
+              fontFamily: '"Roboto Mono", monospace',
+              fontSize: '9.5px',
+              letterSpacing: '1px',
+              color: console_.textMuted,
+            }}
+          >
+            LAST UPDATE FAILED — RETRYING
+          </Box>
+        ) : undefined
+      }
+    >
+      {rows === null ? (
+        error ? (
+          <DeskErrorLine />
+        ) : (
+          <Box sx={{ display: 'grid', gap: '10px' }}>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton
+                key={i}
+                variant="rounded"
+                height={30}
+                sx={{ backgroundColor: console_.rowSelected }}
+              />
+            ))}
+          </Box>
+        )
       ) : rows.length === 0 ? (
         <Box
           component="p"
@@ -73,12 +89,13 @@ export function CirculationLedger({
             padding: '8px 0',
           }}
         >
-          Nothing in circulation yet today — quiet desk.
+          Nothing in circulation yet — quiet desk.
         </Box>
       ) : (
-        <Box>
+        <Box component="ul" sx={{ listStyle: 'none', margin: 0, padding: 0 }}>
           {rows.map((row, i) => (
             <Box
+              component="li"
               key={row.id}
               data-fresh={freshIds.has(row.id) ? 'true' : 'false'}
               sx={{
@@ -96,7 +113,8 @@ export function CirculationLedger({
               }}
             >
               <Box
-                component="span"
+                component="time"
+                dateTime={row.at}
                 sx={{
                   ...consoleType.deltaLine,
                   color: console_.textMuted,
@@ -105,7 +123,7 @@ export function CirculationLedger({
                   fontVariantNumeric: 'tabular-nums',
                 }}
               >
-                {timeLabel(row.at)}
+                {ledgerTimeLabel(row.at, new Date())}
               </Box>
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Box

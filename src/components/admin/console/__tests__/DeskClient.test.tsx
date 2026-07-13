@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { mapCirculationEvent } from '@/lib/admin/desk';
 
+import { CirculationLedger } from '../CirculationLedger';
 import { DeskClient } from '../DeskClient';
 
 const deskPayload = {
@@ -102,7 +103,8 @@ describe('DeskClient', () => {
     expect(screen.getByText('3 overdue')).toBeInTheDocument();
     expect(screen.getByText('41 accepted')).toBeInTheDocument();
 
-    // Ledger rows: text plus stamp labels
+    // Ledger rows: honest title, text plus stamp labels
+    expect(screen.getByText('RECENT CIRCULATION')).toBeInTheDocument();
     expect(
       await screen.findByText('Tom B. borrowed Pressure washer')
     ).toBeInTheDocument();
@@ -128,12 +130,12 @@ describe('DeskClient', () => {
     expect(screen.queryByText(/waitlist/i)).toBeNull();
   });
 
-  it('shows the quiet-desk line when nothing circulated today', async () => {
+  it('shows the quiet-desk line when nothing has circulated', async () => {
     stubFetch({ circulation: () => jsonResponse([]) });
     render(<DeskClient />);
 
     expect(
-      await screen.findByText('Nothing in circulation yet today — quiet desk.')
+      await screen.findByText('Nothing in circulation yet — quiet desk.')
     ).toBeInTheDocument();
   });
 
@@ -157,7 +159,7 @@ describe('DeskClient', () => {
     expect(screen.queryByText(/^0$/)).toBeNull();
   });
 
-  it('shows the failure line inside the ledger only when circulation fails', async () => {
+  it('shows the failure line inside the ledger only when circulation fails on first load', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     stubFetch({ circulation: () => Promise.reject(new Error('boom')) });
     render(<DeskClient />);
@@ -166,5 +168,23 @@ describe('DeskClient', () => {
     expect(
       await screen.findByText('COULD NOT REACH THE DESK — refresh to retry')
     ).toBeInTheDocument();
+  });
+});
+
+describe('CirculationLedger poll resilience', () => {
+  it('keeps last-good rows on a failed poll and admits it in the header', () => {
+    render(<CirculationLedger rows={circulationRows} error={true} />);
+
+    // Stale-but-real rows stay put…
+    expect(
+      screen.getByText('Tom B. borrowed Pressure washer')
+    ).toBeInTheDocument();
+    // …with a small honest note, not the full failure line.
+    expect(
+      screen.getByText('LAST UPDATE FAILED — RETRYING')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('COULD NOT REACH THE DESK — refresh to retry')
+    ).toBeNull();
   });
 });

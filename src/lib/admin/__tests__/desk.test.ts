@@ -4,6 +4,7 @@ import {
   fillDailyBuckets,
   formatDelta,
   isTabActive,
+  ledgerTimeLabel,
   mapCirculationEvent,
   paintBudgetView,
   sparklineEndpoint,
@@ -20,6 +21,19 @@ describe('formatDelta', () => {
   });
   it('keeps negatives honest', () => {
     expect(formatDelta(-3, 'this month')).toBe('-3 this month');
+  });
+});
+
+describe('ledgerTimeLabel', () => {
+  it('shows wall-clock time for events from today', () => {
+    const at = new Date(2026, 6, 13, 14, 24); // local Jul 13, 14:24
+    const now = new Date(2026, 6, 13, 20, 0);
+    expect(ledgerTimeLabel(at.toISOString(), now)).toBe('14:24');
+  });
+  it('shows the date for older events, never a misleading clock time', () => {
+    const at = new Date(2026, 6, 11, 9, 5);
+    const now = new Date(2026, 6, 13, 20, 0);
+    expect(ledgerTimeLabel(at.toISOString(), now)).toBe('Jul 11');
   });
 });
 

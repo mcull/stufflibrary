@@ -3,6 +3,7 @@
 import { Box, Skeleton } from '@mui/material';
 import { useEffect, useState } from 'react';
 
+import type { DeskResponse } from '@/app/api/admin/desk/route';
 import type { CirculationRow } from '@/lib/admin/desk';
 import { formatDelta } from '@/lib/admin/desk';
 
@@ -13,34 +14,6 @@ import { OnTheDesk } from './OnTheDesk';
 import { PaintBudget } from './PaintBudget';
 import { SystemHealthCard } from './SystemHealthCard';
 import { console_ } from './tokens';
-
-// Shape of GET /api/admin/desk (src/app/api/admin/desk/route.ts).
-interface DeskData {
-  kpis: {
-    members: number;
-    membersWeekDelta: number;
-    activeLibraries: number;
-    librariesMonthDelta: number;
-    itemsOnShelves: number;
-    watercolorPct: number;
-    borrowsInFlight: number;
-    overdueBorrows: number;
-    invitesSent30d: number;
-    invitesAccepted30d: number;
-  };
-  onDesk: {
-    openReports: number;
-    activeDisputes: number;
-    overdueBorrows: number;
-  };
-  growth: {
-    daily: number[];
-    signupsToday: number;
-    invitesPending: number;
-    newLibraries7d: number;
-  };
-  paint: { monthCents: number; capCents: number; renders: number };
-}
 
 const CIRCULATION_POLL_MS = 45_000;
 
@@ -73,7 +46,7 @@ const fmt = (n: number) => n.toLocaleString('en-US');
 
 /** The Desk: KPIs, live ledger, growth pulse, health, and the paint budget. */
 export function DeskClient() {
-  const [desk, setDesk] = useState<DeskData | null>(null);
+  const [desk, setDesk] = useState<DeskResponse | null>(null);
   const [deskError, setDeskError] = useState(false);
   const [rows, setRows] = useState<CirculationRow[] | null>(null);
   const [circulationError, setCirculationError] = useState(false);
@@ -84,7 +57,7 @@ export function DeskClient() {
       try {
         const res = await fetch('/api/admin/desk');
         if (!res.ok) throw new Error(`desk fetch ${res.status}`);
-        const data = (await res.json()) as DeskData;
+        const data = (await res.json()) as DeskResponse;
         if (!cancelled) setDesk(data);
       } catch {
         if (!cancelled) setDeskError(true);
@@ -97,23 +70,32 @@ export function DeskClient() {
 
   useEffect(() => {
     let cancelled = false;
+    let controller: AbortController | null = null;
     const load = async () => {
+      // Abort any still-in-flight poll so out-of-order responses can't land.
+      controller?.abort();
+      const ctrl = new AbortController();
+      controller = ctrl;
       try {
-        const res = await fetch('/api/admin/circulation?limit=30');
+        const res = await fetch('/api/admin/circulation?limit=30', {
+          signal: ctrl.signal,
+        });
         if (!res.ok) throw new Error(`circulation fetch ${res.status}`);
         const data = (await res.json()) as CirculationRow[];
-        if (!cancelled) {
+        if (!cancelled && !ctrl.signal.aborted) {
           setRows(data);
           setCirculationError(false);
         }
       } catch {
-        if (!cancelled) setCirculationError(true);
+        // An aborted request is our own doing, not a failure.
+        if (!cancelled && !ctrl.signal.aborted) setCirculationError(true);
       }
     };
     void load();
     const timer = setInterval(() => void load(), CIRCULATION_POLL_MS);
     return () => {
       cancelled = true;
+      controller?.abort();
       clearInterval(timer);
     };
   }, []);
@@ -173,10 +155,8 @@ export function DeskClient() {
       <Box sx={MAIN_GRID}>
         {/* Left: the ledger and the pulse */}
         <Box sx={COLUMN}>
-          <CirculationLedger
-            rows={circulationError ? null : rows}
-            error={circulationError}
-          />
+          {/* Last-good rows survive a failed poll; the ledger says so itself. */}
+          <CirculationLedger rows={rows} error={circulationError} />
           {desk ? (
             <GrowthPulse
               daily={desk.growth.daily}

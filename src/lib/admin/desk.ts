@@ -79,6 +79,25 @@ export function mapCirculationEvent(raw: RawCirculationEvent): CirculationRow {
   };
 }
 
+/**
+ * Ledger timestamps, honestly: an event from today reads as a wall-clock
+ * time ('14:24'); anything older reads as a date ('Jul 11') so stale
+ * events never masquerade as fresh ones.
+ */
+export function ledgerTimeLabel(atIso: string, now: Date): string {
+  const at = new Date(atIso);
+  const sameLocalDay =
+    at.getFullYear() === now.getFullYear() &&
+    at.getMonth() === now.getMonth() &&
+    at.getDate() === now.getDate();
+  if (sameLocalDay) {
+    return [at.getHours(), at.getMinutes()]
+      .map((n) => String(n).padStart(2, '0'))
+      .join(':');
+  }
+  return at.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 export function formatDelta(delta: number, period: string): string {
   if (delta === 0) return `steady ${period}`;
   return `${delta > 0 ? '+' : ''}${delta} ${period}`;

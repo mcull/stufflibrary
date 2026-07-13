@@ -4,6 +4,35 @@ import { fillDailyBuckets } from '@/lib/admin/desk';
 import { requireAdminAuth } from '@/lib/admin-auth';
 import { db } from '@/lib/db';
 
+// The one source of truth for the desk payload shape; DeskClient imports
+// this type (type-only, erased at compile) so the two can't drift.
+export interface DeskResponse {
+  kpis: {
+    members: number;
+    membersWeekDelta: number;
+    activeLibraries: number;
+    librariesMonthDelta: number;
+    itemsOnShelves: number;
+    watercolorPct: number;
+    borrowsInFlight: number;
+    overdueBorrows: number;
+    invitesSent30d: number;
+    invitesAccepted30d: number;
+  };
+  onDesk: {
+    openReports: number;
+    activeDisputes: number;
+    overdueBorrows: number;
+  };
+  growth: {
+    daily: number[];
+    signupsToday: number;
+    invitesPending: number;
+    newLibraries7d: number;
+  };
+  paint: { monthCents: number; capCents: number; renders: number };
+}
+
 // Mirrors the parsing in src/lib/spend-cap.ts (not imported: it pulls in redis).
 const DEFAULT_DAILY_CAP_CENTS = 1000;
 
@@ -82,7 +111,7 @@ export async function GET() {
     const daily = fillDailyBuckets(signupRows, 30, now);
     const paint = paintRows[0];
 
-    return NextResponse.json({
+    const body: DeskResponse = {
       kpis: {
         members,
         membersWeekDelta,
@@ -109,7 +138,8 @@ export async function GET() {
         capCents: dailyCapCents(),
         renders: Number(paint?.renders ?? 0),
       },
-    });
+    };
+    return NextResponse.json(body);
   } catch (error) {
     console.error('Admin desk aggregates fetch error:', error);
     return NextResponse.json(
