@@ -41,12 +41,14 @@ interface LobbyClientProps {
   showWelcome: boolean;
 }
 
+// minmax(0, 1fr), not bare 1fr: a bare 1fr column can't shrink below its
+// content's min width, so one long nowrap item title blows out the whole grid.
 const LIBRARY_GRID = {
   display: 'grid',
   gridTemplateColumns: {
-    xs: '1fr',
-    sm: 'repeat(2, 1fr)',
-    md: 'repeat(3, 1fr)',
+    xs: 'minmax(0, 1fr)',
+    sm: 'repeat(2, minmax(0, 1fr))',
+    md: 'repeat(3, minmax(0, 1fr))',
   },
   gap: '28px',
 } as const;
@@ -54,9 +56,9 @@ const LIBRARY_GRID = {
 const SHELF_GRID = {
   display: 'grid',
   gridTemplateColumns: {
-    xs: 'repeat(2, 1fr)',
-    sm: 'repeat(3, 1fr)',
-    md: 'repeat(4, 1fr)',
+    xs: 'repeat(2, minmax(0, 1fr))',
+    sm: 'repeat(3, minmax(0, 1fr))',
+    md: 'repeat(4, minmax(0, 1fr))',
   },
   gap: '22px',
 } as const;
