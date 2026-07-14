@@ -183,7 +183,8 @@ export function trustBarColor(score: number): 'green' | 'ink' | 'red' {
   return 'red';
 }
 
-const NEW_MEMBER_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+/** How long a member counts as NEW — the roster stamp and its filter chip agree. */
+export const NEW_MEMBER_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * The one stamp a roster row wears (rows stay calm):

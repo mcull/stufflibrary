@@ -16,7 +16,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { UserDetailModal } from '@/components/admin/UserDetailModal';
 import { vintageFonts } from '@/components/member-home/vintageTokens';
-import { memberStamp, monthYearLabel, trustBarColor } from '@/lib/admin/desk';
+import {
+  NEW_MEMBER_WINDOW_MS,
+  memberStamp,
+  monthYearLabel,
+  trustBarColor,
+} from '@/lib/admin/desk';
 import { brandColors } from '@/theme/brandTokens';
 
 import { DeskErrorLine, StampChip } from './cards';
@@ -24,7 +29,6 @@ import { console_, consoleType } from './tokens';
 
 const PAGE_LIMIT = 25;
 const SEARCH_DEBOUNCE_MS = 300;
-const NEW_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 interface MemberRow {
   id: string;
@@ -85,7 +89,7 @@ function TrustCell({ score }: { score: number }) {
   const rounded = Math.round(score);
   const ink = TRUST_INK[trustBarColor(rounded)];
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <Box role="cell" sx={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
       <Box
         aria-hidden
         sx={{
@@ -158,7 +162,9 @@ export function MembersClient() {
         if (filter === 'new') {
           params.set(
             'joinedAfter',
-            new Date(nowRef.current.getTime() - NEW_WINDOW_MS).toISOString()
+            new Date(
+              nowRef.current.getTime() - NEW_MEMBER_WINDOW_MS
+            ).toISOString()
           );
         }
         const res = await fetch(`/api/admin/users?${params}`);
@@ -288,62 +294,54 @@ export function MembersClient() {
         </Box>
       ) : (
         <>
-          {/* Column headers over the 2px ink rule */}
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: GRID_COLS,
-              gap: '10px',
-              alignItems: 'end',
-              borderBottom: `2px solid ${brandColors.inkBlue}`,
-              paddingBottom: '6px',
-            }}
-          >
-            {['MEMBER', 'HOME LIBRARY', 'JOINED'].map((h) => (
-              <Box
-                key={h}
-                component="span"
-                sx={{ ...consoleType.overline, color: console_.textMuted }}
-              >
-                {h}
-              </Box>
-            ))}
-            {['SHARES', 'BORROWS'].map((h) => (
-              <Box
-                key={h}
-                component="span"
-                sx={{
-                  ...consoleType.overline,
-                  color: console_.textMuted,
-                  textAlign: 'right',
-                }}
-              >
-                {h}
-              </Box>
-            ))}
+          <Box role="table" aria-label="Members">
+            {/* Column headers over the 2px ink rule */}
             <Box
-              component="span"
-              sx={{ ...consoleType.overline, color: console_.textMuted }}
-            >
-              TRUST
-            </Box>
-            <Box component="span" />
-          </Box>
-
-          {data.users.length === 0 ? (
-            <Box
-              component="p"
+              role="row"
               sx={{
-                ...mono('11px'),
-                color: console_.textMuted,
-                padding: '18px 0',
-                margin: 0,
+                display: 'grid',
+                gridTemplateColumns: GRID_COLS,
+                gap: '10px',
+                alignItems: 'end',
+                borderBottom: `2px solid ${brandColors.inkBlue}`,
+                paddingBottom: '6px',
               }}
             >
-              No members match.
+              {['MEMBER', 'HOME LIBRARY', 'JOINED'].map((h) => (
+                <Box
+                  key={h}
+                  component="span"
+                  role="columnheader"
+                  sx={{ ...consoleType.overline, color: console_.textMuted }}
+                >
+                  {h}
+                </Box>
+              ))}
+              {['SHARES', 'BORROWS'].map((h) => (
+                <Box
+                  key={h}
+                  component="span"
+                  role="columnheader"
+                  sx={{
+                    ...consoleType.overline,
+                    color: console_.textMuted,
+                    textAlign: 'right',
+                  }}
+                >
+                  {h}
+                </Box>
+              ))}
+              <Box
+                component="span"
+                role="columnheader"
+                sx={{ ...consoleType.overline, color: console_.textMuted }}
+              >
+                TRUST
+              </Box>
+              <Box component="span" role="columnheader" aria-label="Actions" />
             </Box>
-          ) : (
-            data.users.map((user) => {
+
+            {data.users.map((user) => {
               const stamp = memberStamp(
                 {
                   status: user.status,
@@ -356,6 +354,7 @@ export function MembersClient() {
               return (
                 <Box
                   key={user.id}
+                  role="row"
                   // Inline so the dimming is a plain fact of the DOM, not a class.
                   style={{ opacity: user.status === 'suspended' ? 0.55 : 1 }}
                   sx={{
@@ -370,6 +369,7 @@ export function MembersClient() {
                 >
                   {/* MEMBER: avatar initial + name + stamp */}
                   <Box
+                    role="cell"
                     sx={{
                       display: 'flex',
                       alignItems: 'center',
@@ -417,6 +417,7 @@ export function MembersClient() {
                   {/* HOME LIBRARY */}
                   <Box
                     component="span"
+                    role="cell"
                     sx={{
                       ...mono('12px'),
                       color: console_.textSecondary,
@@ -431,6 +432,7 @@ export function MembersClient() {
                   {/* JOINED */}
                   <Box
                     component="span"
+                    role="cell"
                     sx={{ ...mono('12px'), color: console_.textMuted }}
                   >
                     {monthYearLabel(user.createdAt)}
@@ -439,6 +441,7 @@ export function MembersClient() {
                   {/* SHARES / BORROWS */}
                   <Box
                     component="span"
+                    role="cell"
                     sx={{
                       ...mono('12px'),
                       color: console_.textSecondary,
@@ -450,6 +453,7 @@ export function MembersClient() {
                   </Box>
                   <Box
                     component="span"
+                    role="cell"
                     sx={{
                       ...mono('12px'),
                       color: console_.textSecondary,
@@ -464,22 +468,40 @@ export function MembersClient() {
                   <TrustCell score={user.trustScore} />
 
                   {/* Actions */}
-                  <IconButton
-                    size="small"
-                    aria-label={`Actions for ${displayName}`}
-                    onClick={(e) => setMenu({ anchor: e.currentTarget, user })}
-                    sx={{ color: console_.textMuted, justifySelf: 'end' }}
-                  >
-                    <Box
-                      component="span"
-                      sx={{ ...mono('14px'), lineHeight: 1 }}
+                  <Box role="cell" sx={{ justifySelf: 'end' }}>
+                    <IconButton
+                      size="small"
+                      aria-label={`Actions for ${displayName}`}
+                      onClick={(e) =>
+                        setMenu({ anchor: e.currentTarget, user })
+                      }
+                      sx={{ color: console_.textMuted }}
                     >
-                      ⋯
-                    </Box>
-                  </IconButton>
+                      <Box
+                        component="span"
+                        sx={{ ...mono('14px'), lineHeight: 1 }}
+                      >
+                        ⋯
+                      </Box>
+                    </IconButton>
+                  </Box>
                 </Box>
               );
-            })
+            })}
+          </Box>
+
+          {data.users.length === 0 && (
+            <Box
+              component="p"
+              sx={{
+                ...mono('11px'),
+                color: console_.textMuted,
+                padding: '18px 0',
+                margin: 0,
+              }}
+            >
+              No members match.
+            </Box>
           )}
 
           {/* Pagination footer */}

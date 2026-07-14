@@ -27,12 +27,7 @@ const dbUser = (over: Record<string, unknown> = {}) => ({
   email: 'jenny@example.com',
   status: 'active',
   profileCompleted: true,
-  phone: null,
   phoneVerified: false,
-  bio: null,
-  shareInterests: [],
-  borrowInterests: [],
-  movedInDate: null,
   trustScore: 91,
   trustTier: null,
   createdAt: new Date('2026-03-15T12:00:00Z'),
@@ -44,8 +39,6 @@ const dbUser = (over: Record<string, unknown> = {}) => ({
     ownedCollections: 2,
   },
   collectionMemberships: [{ collection: { name: 'Maple St Library' } }],
-  borrowRequests: [],
-  items: [],
   ...over,
 });
 
@@ -88,6 +81,34 @@ describe('/api/admin/users', () => {
       take: 1,
       select: { collection: { select: { name: true } } },
     });
+  });
+
+  it('ships a lean roster payload — no PII columns, no take-5 subqueries, no invented activity', async () => {
+    prime([dbUser()]);
+
+    const response = await GET(
+      new Request('http://localhost:3000/api/admin/users')
+    );
+    const data = await response.json();
+
+    // The select never asks for what the roster never shows
+    const select = (mockDb.user.findMany as ReturnType<typeof vi.fn>).mock
+      .calls[0]![0].select;
+    for (const gone of [
+      'phone',
+      'bio',
+      'shareInterests',
+      'borrowInterests',
+      'movedInDate',
+      'borrowRequests',
+      'items',
+    ]) {
+      expect(select[gone]).toBeUndefined();
+    }
+
+    // ...and users pass through without the old enrichment fields
+    expect(data.users[0].activityLevel).toBeUndefined();
+    expect(data.users[0].recentActivity).toBeUndefined();
   });
 
   it('ownersOnly=true filters by owning ≥1 library in both query and count', async () => {

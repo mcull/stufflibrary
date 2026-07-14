@@ -73,6 +73,11 @@ describe('MembersClient', () => {
     // No home library reads as an em dash, never a fabricated name
     expect(screen.getByText('—')).toBeInTheDocument();
     expect(screen.getByText('22')).toBeInTheDocument();
+
+    // The grid speaks table to assistive tech
+    expect(screen.getByRole('table', { name: 'Members' })).toBeInTheDocument();
+    expect(screen.getAllByRole('columnheader')).toHaveLength(7);
+    expect(screen.getAllByRole('row')).toHaveLength(3); // header + 2 members
   });
 
   it('stamps a suspended member and dims their row', async () => {
