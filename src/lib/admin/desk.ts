@@ -226,6 +226,60 @@ export function isTabActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+// ——— Libraries Branch Atlas (artboard 2a) ———
+
+/**
+ * Where a branch sits on the map: the centroid of its members' located
+ * addresses. A library owns no coordinates of its own, so this is derived
+ * from the points that DO have both a latitude and a longitude. Points
+ * missing either coordinate are dropped (never guessed at zero); if nothing
+ * is located, the branch simply cannot be plotted and we return null — the
+ * central honesty constraint of the Atlas.
+ */
+export function libraryCentroid(
+  points: Array<{ latitude: number | null; longitude: number | null }>
+): { lat: number; lng: number } | null {
+  const located = points.filter(
+    (p): p is { latitude: number; longitude: number } =>
+      p.latitude !== null && p.longitude !== null
+  );
+  if (located.length === 0) return null;
+  const lat = located.reduce((s, p) => s + p.latitude, 0) / located.length;
+  const lng = located.reduce((s, p) => s + p.longitude, 0) / located.length;
+  return { lat, lng };
+}
+
+/**
+ * A branch marker's radius scales with its shelf: 11px at the floor (an
+ * empty or smallest library) up to 20px for the busiest one on the map,
+ * linearly. A zero max (no items anywhere yet) parks everything at the
+ * floor rather than dividing by zero.
+ */
+export function markerRadiusPx(
+  itemCount: number,
+  maxItemCount: number
+): number {
+  const MIN_R = 11;
+  const MAX_R = 20;
+  if (maxItemCount <= 0) return MIN_R;
+  const t = Math.max(0, Math.min(1, itemCount / maxItemCount));
+  return Math.round(MIN_R + t * (MAX_R - MIN_R));
+}
+
+/**
+ * The activity stamp a branch wears in the register and its casefile.
+ * Thresholds are tunable: a silent 30-day window reads QUIET, a handful
+ * (1–9) reads ACTIVE, and ten or more reads BUSY.
+ */
+export function branchActivityStamp(borrows30d: number): {
+  label: string;
+  tone: StampTone;
+} {
+  if (borrows30d <= 0) return { label: 'QUIET', tone: 'mustard' };
+  if (borrows30d < 10) return { label: 'ACTIVE', tone: 'green' };
+  return { label: 'BUSY', tone: 'ink' };
+}
+
 // ——— Borrows state board (artboard 2d) ———
 
 export type BorrowBoardColumn =

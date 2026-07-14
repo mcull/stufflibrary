@@ -3,13 +3,16 @@ import { describe, expect, it } from 'vitest';
 import {
   borrowBoardColumn,
   borrowStatusStamp,
+  branchActivityStamp,
   dueMeter,
   fillDailyBuckets,
   formatDelta,
   isTabActive,
   itemShelfStamp,
   ledgerTimeLabel,
+  libraryCentroid,
   mapCirculationEvent,
+  markerRadiusPx,
   memberStamp,
   monthYearLabel,
   nudgeDecision,
@@ -547,5 +550,73 @@ describe('itemShelfStamp', () => {
       label: 'OUT',
       tone: 'ink',
     });
+  });
+});
+
+// ——— Libraries Branch Atlas (artboard 2a) ———
+
+describe('libraryCentroid', () => {
+  it('averages the located points', () => {
+    expect(
+      libraryCentroid([
+        { latitude: 10, longitude: 20 },
+        { latitude: 30, longitude: 40 },
+      ])
+    ).toEqual({ lat: 20, lng: 30 });
+  });
+
+  it('filters out points missing either coordinate', () => {
+    expect(
+      libraryCentroid([
+        { latitude: 10, longitude: 20 },
+        { latitude: null, longitude: 40 },
+        { latitude: 30, longitude: null },
+        { latitude: 40, longitude: 60 },
+      ])
+    ).toEqual({ lat: 25, lng: 40 });
+  });
+
+  it('returns null when no point has both coordinates', () => {
+    expect(
+      libraryCentroid([
+        { latitude: null, longitude: null },
+        { latitude: 10, longitude: null },
+      ])
+    ).toBeNull();
+    expect(libraryCentroid([])).toBeNull();
+  });
+});
+
+describe('markerRadiusPx', () => {
+  it('sits at the floor for the min (or zero) item count', () => {
+    expect(markerRadiusPx(0, 100)).toBe(11);
+  });
+
+  it('reaches the ceiling for the busiest library', () => {
+    expect(markerRadiusPx(100, 100)).toBe(20);
+  });
+
+  it('scales linearly through the middle', () => {
+    // halfway: 11 + 0.5 * 9 = 15.5 → 16 (rounded)
+    expect(markerRadiusPx(50, 100)).toBe(16);
+  });
+
+  it('guards a zero max — everything sits at the floor', () => {
+    expect(markerRadiusPx(0, 0)).toBe(11);
+    expect(markerRadiusPx(5, 0)).toBe(11);
+  });
+});
+
+describe('branchActivityStamp', () => {
+  it('reads a silent branch as QUIET', () => {
+    expect(branchActivityStamp(0)).toEqual({ label: 'QUIET', tone: 'mustard' });
+  });
+
+  it('reads a handful of borrows as ACTIVE', () => {
+    expect(branchActivityStamp(5)).toEqual({ label: 'ACTIVE', tone: 'green' });
+  });
+
+  it('reads ten or more as BUSY', () => {
+    expect(branchActivityStamp(10)).toEqual({ label: 'BUSY', tone: 'ink' });
   });
 });
