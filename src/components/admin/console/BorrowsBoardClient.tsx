@@ -5,7 +5,12 @@ import { useEffect, useState } from 'react';
 
 import type { AdminBorrowRow } from '@/app/api/admin/borrows/route';
 import type { BorrowBoardColumn } from '@/lib/admin/desk';
-import { borrowBoardColumn, dueMeter, waitingLabel } from '@/lib/admin/desk';
+import {
+  borrowBoardColumn,
+  dueMeter,
+  nudgeDecision,
+  waitingLabel,
+} from '@/lib/admin/desk';
 import { brandColors } from '@/theme/brandTokens';
 
 import { DeskErrorLine, StampChip } from './cards';
@@ -105,6 +110,55 @@ function DueBar({ pct, label }: { pct: number; label: string }) {
   );
 }
 
+/**
+ * The desk's two bell buttons (design artboard 2d): REMIND OWNER wears the
+ * secondary suit, NUDGE the danger one; a spent bell goes quiet grey.
+ */
+function NudgeButton({
+  label,
+  danger = false,
+  disabled = false,
+  onClick,
+}: {
+  label: string;
+  danger?: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  const ink = danger ? console_.stampRed : brandColors.inkBlue;
+  return (
+    <Box
+      component="button"
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      sx={{
+        fontFamily: '"Roboto Mono", monospace',
+        fontSize: '9.5px',
+        letterSpacing: '1px',
+        textTransform: 'uppercase',
+        color: disabled ? console_.textMuted : ink,
+        backgroundColor: brandColors.white,
+        border: `1.5px solid ${disabled ? console_.cardBorder : ink}`,
+        borderRadius: '4px',
+        padding: '5px 10px',
+        marginTop: '8px',
+        cursor: disabled ? 'default' : 'pointer',
+      }}
+    >
+      {label}
+    </Box>
+  );
+}
+
+// What this card's bell has done this session. The server is the referee
+// (409/429); the card only remembers its own presses.
+type NudgePhase =
+  | { state: 'idle' }
+  | { state: 'sent' }
+  | { state: 'throttled'; lastAt: string | null }
+  | { state: 'failed' };
+
 function BorrowCard({
   row,
   column,
@@ -114,10 +168,54 @@ function BorrowCard({
   column: BorrowBoardColumn;
   now: Date;
 }) {
+  const [nudge, setNudge] = useState<NudgePhase>({ state: 'idle' });
+
   const meter =
     column === 'out' || column === 'overdue'
       ? dueMeter(row.requestedReturnDate, row.approvedAt ?? row.createdAt, now)
       : null;
+
+  // Only the two actionable columns ask the pure helper; it says which
+  // bell (if any) this card may ring — same rules the endpoint enforces.
+  const decision =
+    column === 'requested' || column === 'overdue'
+      ? nudgeDecision(row, now)
+      : null;
+
+  // The freshest true reminder fact we hold: an ok press means "today",
+  // a 429 carries the server's date, otherwise whatever the row said.
+  const lastReminderAt =
+    nudge.state === 'sent'
+      ? now.toISOString()
+      : nudge.state === 'throttled'
+        ? (nudge.lastAt ?? row.lastOverdueReminderAt)
+        : row.lastOverdueReminderAt;
+
+  const sendNudge = async () => {
+    try {
+      const res = await fetch(`/api/admin/borrows/${row.id}/nudge`, {
+        method: 'POST',
+      });
+      if (res.ok) {
+        setNudge({ state: 'sent' });
+        return;
+      }
+      if (res.status === 429) {
+        // Someone beat us to it — show the reminder fact, not an error.
+        const body = (await res.json().catch(() => null)) as {
+          lastOverdueReminderAt?: string | null;
+        } | null;
+        setNudge({
+          state: 'throttled',
+          lastAt: body?.lastOverdueReminderAt ?? null,
+        });
+        return;
+      }
+      setNudge({ state: 'failed' });
+    } catch {
+      setNudge({ state: 'failed' });
+    }
+  };
 
   return (
     <Box
@@ -147,9 +245,20 @@ function BorrowCard({
       </Box>
 
       {column === 'requested' && (
-        <Box sx={{ ...monoLine, color: console_.textMuted, marginTop: '6px' }}>
-          {waitingLabel(row.createdAt, now)}
-        </Box>
+        <>
+          <Box
+            sx={{ ...monoLine, color: console_.textMuted, marginTop: '6px' }}
+          >
+            {waitingLabel(row.createdAt, now)}
+          </Box>
+          {lastReminderAt && (
+            <Box
+              sx={{ ...monoLine, color: console_.textMuted, marginTop: '4px' }}
+            >
+              last reminder {shortDate(lastReminderAt)}
+            </Box>
+          )}
+        </>
       )}
 
       {column === 'out' && meter && (
@@ -177,11 +286,35 @@ function BorrowCard({
             <StampChip label={meter.label.toUpperCase()} tone="red" />
           </Box>
           {/* Real reminder facts only — no invented nudge history. */}
-          {row.lastOverdueReminderAt && (
+          {lastReminderAt && (
             <Box
               sx={{ ...monoLine, color: console_.textMuted, marginTop: '6px' }}
             >
-              last reminder {shortDate(row.lastOverdueReminderAt)}
+              last reminder {shortDate(lastReminderAt)}
+            </Box>
+          )}
+        </>
+      )}
+
+      {decision && (
+        <>
+          <NudgeButton
+            label={
+              nudge.state === 'sent'
+                ? 'REMINDED'
+                : decision.kind === 'REMIND_OWNER'
+                  ? 'REMIND OWNER'
+                  : 'NUDGE'
+            }
+            danger={decision.kind === 'NUDGE_BORROWER'}
+            disabled={nudge.state === 'sent'}
+            onClick={() => void sendNudge()}
+          />
+          {nudge.state === 'failed' && (
+            <Box
+              sx={{ ...monoLine, color: console_.stampRed, marginTop: '4px' }}
+            >
+              could not send
             </Box>
           )}
         </>
@@ -207,8 +340,9 @@ function BorrowCard({
 
 /**
  * The Borrows state board (artboard 2d): four columns, every in-flight
- * borrow in exactly one of them. Read-only this PR — the design's
- * REMIND OWNER / NUDGE buttons wait on an admin-nudge mechanism.
+ * borrow in exactly one of them. Cards that can act carry a bell:
+ * REMIND OWNER on requests that have waited over a day, NUDGE on
+ * overdue loans — both through POST /api/admin/borrows/[id]/nudge.
  */
 export function BorrowsBoardClient() {
   const [rows, setRows] = useState<AdminBorrowRow[] | null>(null);

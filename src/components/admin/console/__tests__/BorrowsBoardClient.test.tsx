@@ -1,4 +1,10 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { AdminBorrowRow } from '@/app/api/admin/borrows/route';
@@ -90,15 +96,24 @@ const boardRows: AdminBorrowRow[] = [
   },
 ];
 
-function stubFetch(rows: AdminBorrowRow[] | Error) {
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(() =>
-      rows instanceof Error
-        ? Promise.reject(rows)
-        : Promise.resolve({ ok: true, status: 200, json: async () => rows })
-    )
-  );
+function stubFetch(
+  rows: AdminBorrowRow[] | Error,
+  post: { status: number; body?: unknown } = { status: 200, body: { ok: true } }
+) {
+  const mock = vi.fn((_url: unknown, init?: { method?: string }) => {
+    if (init?.method === 'POST') {
+      return Promise.resolve({
+        ok: post.status < 400,
+        status: post.status,
+        json: async () => post.body ?? {},
+      });
+    }
+    return rows instanceof Error
+      ? Promise.reject(rows)
+      : Promise.resolve({ ok: true, status: 200, json: async () => rows });
+  });
+  vi.stubGlobal('fetch', mock);
+  return mock;
 }
 
 afterEach(() => {
@@ -167,6 +182,87 @@ describe('BorrowsBoardClient', () => {
     expect(screen.getByText('nothing overdue')).toBeInTheDocument();
     expect(screen.getByText('no returns today')).toBeInTheDocument();
     expect(screen.queryByText('none waiting')).toBeNull();
+  });
+
+  it('offers REMIND OWNER only on requests that have waited over a day', async () => {
+    stubFetch([
+      boardRows[0]!, // fresh: waiting 3h — no button
+      {
+        ...baseRow,
+        id: 'req-stale',
+        status: 'PENDING',
+        createdAt: iso(now - 30 * HOUR),
+        requestedReturnDate: iso(now + 7 * DAY),
+        borrower: { name: 'Leo M.' },
+        lender: { name: 'Grace W.' },
+        item: { name: 'Post hole digger' },
+      },
+    ]);
+    render(<BorrowsBoardClient />);
+
+    await screen.findByText('Post hole digger');
+    // Exactly one button on the board — the stale request's, not the fresh one's.
+    expect(
+      screen.getAllByRole('button', { name: 'REMIND OWNER' })
+    ).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: 'NUDGE' })).toBeNull();
+  });
+
+  it('NUDGE posts to the bell and stamps the card REMINDED', async () => {
+    const mock = stubFetch(
+      [boardRows[2]!],
+      { status: 200, body: { ok: true, kind: 'NUDGE_BORROWER' } } // over-1
+    );
+    render(<BorrowsBoardClient />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'NUDGE' }));
+
+    const reminded = await screen.findByRole('button', { name: 'REMINDED' });
+    expect(reminded).toBeDisabled();
+    expect(mock).toHaveBeenCalledWith('/api/admin/borrows/over-1/nudge', {
+      method: 'POST',
+    });
+    // Optimistic fact line: reminded today, not the stale Jul 11 date.
+    const today = new Date(now).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    });
+    expect(screen.getByText(`last reminder ${today}`)).toBeInTheDocument();
+    expect(screen.queryByText('last reminder Jul 11')).toBeNull();
+  });
+
+  it('a 429 shows the reminder fact instead of error theatrics', async () => {
+    stubFetch([{ ...boardRows[2]!, lastOverdueReminderAt: null }], {
+      status: 429,
+      body: {
+        error: 'reminded recently',
+        lastOverdueReminderAt: iso(now - 2 * HOUR),
+      },
+    });
+    render(<BorrowsBoardClient />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'NUDGE' }));
+
+    const today = new Date(now).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    });
+    expect(
+      await screen.findByText(`last reminder ${today}`)
+    ).toBeInTheDocument();
+    expect(screen.queryByText('could not send')).toBeNull();
+    // Not falsely stamped REMINDED — this session sent nothing.
+    expect(screen.queryByRole('button', { name: 'REMINDED' })).toBeNull();
+  });
+
+  it('admits it when the nudge could not be sent', async () => {
+    stubFetch([boardRows[2]!], { status: 500, body: { error: 'boom' } });
+    render(<BorrowsBoardClient />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'NUDGE' }));
+
+    expect(await screen.findByText('could not send')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'REMINDED' })).toBeNull();
   });
 
   it('shows the honest failure line when the fetch dies', async () => {
