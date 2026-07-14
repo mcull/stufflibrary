@@ -75,8 +75,12 @@ const secondaryButtonSx = {
 
 function ItemCard({ item }: { item: ItemRow }) {
   const stamp = itemShelfStamp(item);
-  const art = item.watercolorThumbUrl || item.watercolorUrl || item.imageUrl;
+  const artUrl = item.watercolorThumbUrl || item.watercolorUrl || item.imageUrl;
   const library = item.libraries[0]?.name ?? '—';
+  // Fall back to the 📦 box if the art URL is missing OR fails to load (stale
+  // blob CDN links happen), not just when it's absent.
+  const [artBroken, setArtBroken] = useState(false);
+  const art = artUrl && !artBroken ? artUrl : null;
 
   return (
     <Box
@@ -101,7 +105,8 @@ function ItemCard({ item }: { item: ItemRow }) {
           <Box
             component="img"
             src={art}
-            alt={item.name}
+            alt=""
+            onError={() => setArtBroken(true)}
             sx={{
               width: '100%',
               aspectRatio: '1.05',
