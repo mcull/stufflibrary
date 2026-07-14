@@ -1,11 +1,5 @@
-import { OldConsoleNote } from '@/components/admin/console/OldConsoleNote';
-import { LibraryManagement } from '@/components/admin/LibraryManagement';
+import { BranchAtlasClient } from '@/components/admin/console/BranchAtlasClient';
 
 export default function AdminConsoleLibrariesPage() {
-  return (
-    <>
-      <OldConsoleNote />
-      <LibraryManagement />
-    </>
-  );
+  return <BranchAtlasClient />;
 }
