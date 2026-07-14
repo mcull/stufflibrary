@@ -283,6 +283,32 @@ export function dueMeter(
   return { pct, label: `due in ${left} day${left === 1 ? '' : 's'}` };
 }
 
+/**
+ * The stamp a borrow line wears on the member record card. Every
+ * out-of-the-building status (APPROVED/ACTIVE/RETURN_PENDING) reads OUT —
+ * the same truth borrowBoardColumn tells. CANCELLED and anything the desk
+ * doesn't recognize get quiet grey text instead of ink: tone null = no stamp.
+ */
+export function borrowStatusStamp(status: string): {
+  label: string;
+  tone: StampTone | null;
+} {
+  switch (status) {
+    case 'PENDING':
+      return { label: 'REQUESTED', tone: 'ink' };
+    case 'APPROVED':
+    case 'ACTIVE':
+    case 'RETURN_PENDING':
+      return { label: 'OUT', tone: 'ink' };
+    case 'RETURNED':
+      return { label: 'RETURNED', tone: 'green' };
+    case 'DECLINED':
+      return { label: 'DECLINED', tone: 'red' };
+    default:
+      return { label: status, tone: null };
+  }
+}
+
 /** How long a request has sat unanswered: 'waiting 3h' under a day, 'waiting 2d' after. */
 export function waitingLabel(createdAt: string | Date, now: Date): string {
   const ms = Math.max(0, now.getTime() - new Date(createdAt).getTime());

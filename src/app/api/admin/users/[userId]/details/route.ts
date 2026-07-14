@@ -19,6 +19,7 @@ export async function GET(
             items: true,
             borrowRequests: true,
             addresses: true,
+            ownedCollections: true,
           },
         },
         addresses: {
@@ -81,44 +82,25 @@ export async function GET(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Calculate detailed metrics
+    // Honest aggregates only. The persisted trustScore/trustTier (phase 1B,
+    // src/lib/trust-score.ts) ride along on the user record itself — this
+    // endpoint no longer computes a rival trust formula.
     const totalBorrowRequests = user._count.borrowRequests;
-    const approvedRequests = user.borrowRequests.filter(
-      (req: any) => req.status === 'APPROVED'
-    ).length;
-    const rejectedRequests = user.borrowRequests.filter(
-      (req: any) => req.status === 'DECLINED'
-    ).length;
-    const pendingRequests = user.borrowRequests.filter(
-      (req: any) => req.status === 'PENDING'
-    ).length;
+    const countByStatus = (status: string) =>
+      user.borrowRequests.filter((req) => req.status === status).length;
+    const approvedRequests = countByStatus('APPROVED');
+    const rejectedRequests = countByStatus('DECLINED');
+    const pendingRequests = countByStatus('PENDING');
 
     const recentActivity = user.borrowRequests.filter(
-      (req: any) =>
+      (req) =>
         new Date(req.createdAt) >
         new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
     ).length;
 
-    // Trust score calculation
-    const profileScore = user.profileCompleted ? 25 : 0;
-    const phoneScore = user.phoneVerified ? 25 : 0;
-    const itemsScore = Math.min(user._count.items * 5, 25);
-    const activityScore = Math.min(totalBorrowRequests * 2, 25);
-    const trustScore = profileScore + phoneScore + itemsScore + activityScore;
-
-    // Activity level
-    let activityLevel = 'low';
-    if (recentActivity > 5 || totalBorrowRequests > 10) {
-      activityLevel = 'high';
-    } else if (recentActivity > 2 || totalBorrowRequests > 5) {
-      activityLevel = 'medium';
-    }
-
     const enrichedUser = {
       ...user,
       metrics: {
-        trustScore,
-        activityLevel,
         recentActivity,
         totalBorrowRequests,
         approvedRequests,

@@ -47,3 +47,6 @@ next-env.d.ts
 # Raw homepage item photos (local inputs; only the watercolors ship, via blob)
 docs/homepage-item-photos/*
 !docs/homepage-item-photos/NAMING.md
+
+# local scratch (repro scripts, test photos) — never commit
+/tmp/

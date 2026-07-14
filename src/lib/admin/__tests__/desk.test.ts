@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   borrowBoardColumn,
+  borrowStatusStamp,
   dueMeter,
   fillDailyBuckets,
   formatDelta,
@@ -378,5 +379,39 @@ describe('memberStamp', () => {
         now
       )
     ).toBeNull();
+  });
+});
+
+describe('borrowStatusStamp', () => {
+  it('stamps the lifecycle: REQUESTED, RETURNED, DECLINED', () => {
+    expect(borrowStatusStamp('PENDING')).toEqual({
+      label: 'REQUESTED',
+      tone: 'ink',
+    });
+    expect(borrowStatusStamp('RETURNED')).toEqual({
+      label: 'RETURNED',
+      tone: 'green',
+    });
+    expect(borrowStatusStamp('DECLINED')).toEqual({
+      label: 'DECLINED',
+      tone: 'red',
+    });
+  });
+
+  it('reads every out-of-the-building status as OUT — same truth as the board', () => {
+    for (const status of ['ACTIVE', 'APPROVED', 'RETURN_PENDING']) {
+      expect(borrowStatusStamp(status)).toEqual({ label: 'OUT', tone: 'ink' });
+    }
+  });
+
+  it('leaves CANCELLED (and strangers) as quiet text — no stamp ink', () => {
+    expect(borrowStatusStamp('CANCELLED')).toEqual({
+      label: 'CANCELLED',
+      tone: null,
+    });
+    expect(borrowStatusStamp('SOMETHING_ELSE')).toEqual({
+      label: 'SOMETHING_ELSE',
+      tone: null,
+    });
   });
 });
