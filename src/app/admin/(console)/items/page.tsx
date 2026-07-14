@@ -1,11 +1,5 @@
-import { OldConsoleNote } from '@/components/admin/console/OldConsoleNote';
-import { ItemManagement } from '@/components/admin/ItemManagement';
+import { ItemsGridClient } from '@/components/admin/console/ItemsGridClient';
 
 export default function AdminConsoleItemsPage() {
-  return (
-    <>
-      <OldConsoleNote />
-      <ItemManagement />
-    </>
-  );
+  return <ItemsGridClient />;
 }
