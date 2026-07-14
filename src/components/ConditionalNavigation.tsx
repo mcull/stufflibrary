@@ -27,11 +27,19 @@ function NavigationContent({
   const isAuthPage = pathname.startsWith('/auth/');
   const isProfileCreation = pathname.startsWith('/profile/create');
 
+  // The admin console brings its own chrome (ConsoleShell)
+  const isAdminConsole = pathname.startsWith('/admin');
+
   // Don't show navigation for guest users on collection pages
   const isCollectionPage = pathname.startsWith('/library/');
   const isGuest = searchParams.get('guest') === '1';
 
-  if (isAuthPage || isProfileCreation || (isCollectionPage && isGuest)) {
+  if (
+    isAuthPage ||
+    isProfileCreation ||
+    isAdminConsole ||
+    (isCollectionPage && isGuest)
+  ) {
     return null;
   }
 

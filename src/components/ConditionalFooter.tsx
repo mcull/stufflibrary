@@ -9,11 +9,13 @@ export function ConditionalFooter() {
   const pathname = usePathname();
   const { data: session } = useSession();
 
-  // Don't show the marketing footer on focused flows (auth + onboarding).
+  // Don't show the marketing footer on focused flows (auth + onboarding),
+  // or under the admin console's own chrome.
   const isAuthPage = pathname.startsWith('/auth/');
   const isProfileCreation = pathname.startsWith('/profile/create');
+  const isAdminConsole = pathname.startsWith('/admin');
 
-  if (isAuthPage || isProfileCreation) {
+  if (isAuthPage || isProfileCreation || isAdminConsole) {
     return null;
   }
 
