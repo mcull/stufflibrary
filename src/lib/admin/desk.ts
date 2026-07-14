@@ -254,6 +254,58 @@ export function borrowBoardColumn(
   }
 }
 
+export type NudgeKind = 'REMIND_OWNER' | 'NUDGE_BORROWER';
+
+/**
+ * A nudge (either kind) rings the same bell at most once per ~day;
+ * 20h rather than 24 so a daily-rhythm admin isn't refused for being
+ * four minutes early. lastOverdueReminderAt records the last admin or
+ * system reminder of any kind — the throttle is shared with the cron.
+ */
+export const NUDGE_THROTTLE_MS = 20 * 60 * 60 * 1000;
+
+/** How long a request may sit unanswered before the desk offers REMIND OWNER. */
+export const REMIND_OWNER_AFTER_MS = DAY_MS;
+
+/**
+ * What (if anything) the desk can nudge on a borrow — the single source
+ * of truth for the board's REMIND OWNER / NUDGE buttons and the nudge
+ * endpoint. A PENDING request that has waited over a day can remind the
+ * owner; any out-of-the-building borrow past its due date can nudge the
+ * borrower. Everything else: nothing to nudge.
+ */
+export function nudgeDecision(
+  req: {
+    id: string;
+    status: string;
+    createdAt: string | Date;
+    requestedReturnDate: string | Date;
+    lastOverdueReminderAt: string | Date | null;
+  },
+  now: Date
+): { kind: NudgeKind; throttled: boolean } | null {
+  let kind: NudgeKind;
+  if (
+    req.status === 'PENDING' &&
+    now.getTime() - new Date(req.createdAt).getTime() > REMIND_OWNER_AFTER_MS
+  ) {
+    kind = 'REMIND_OWNER';
+  } else if (
+    ['APPROVED', 'ACTIVE', 'RETURN_PENDING'].includes(req.status) &&
+    new Date(req.requestedReturnDate).getTime() < now.getTime()
+  ) {
+    kind = 'NUDGE_BORROWER';
+  } else {
+    return null;
+  }
+
+  const throttled =
+    req.lastOverdueReminderAt !== null &&
+    now.getTime() - new Date(req.lastOverdueReminderAt).getTime() <
+      NUDGE_THROTTLE_MS;
+  return { kind, throttled };
+}
+
 /**
  * Loan progress for the due bar: pct of the loan elapsed (clamped 0–100)
  * plus an honest label — 'due in N days', 'due today' inside the final

@@ -11,6 +11,7 @@ import {
   mapCirculationEvent,
   memberStamp,
   monthYearLabel,
+  nudgeDecision,
   trustBarColor,
   paintBudgetView,
   sparklineEndpoint,
@@ -232,6 +233,110 @@ describe('borrowBoardColumn', () => {
     for (const status of ['DECLINED', 'CANCELLED']) {
       expect(
         borrowBoardColumn({ status, requestedReturnDate: future }, now)
+      ).toBeNull();
+    }
+  });
+});
+
+describe('nudgeDecision', () => {
+  const now = new Date('2026-07-13T12:00:00Z');
+  const hours = (n: number) =>
+    new Date(now.getTime() - n * 60 * 60 * 1000).toISOString();
+  const base = {
+    id: 'br-1',
+    requestedReturnDate: hours(-7 * 24), // due a week out
+    lastOverdueReminderAt: null,
+  };
+
+  it('leaves a fresh PENDING request alone', () => {
+    expect(
+      nudgeDecision({ ...base, status: 'PENDING', createdAt: hours(3) }, now)
+    ).toBeNull();
+  });
+
+  it('offers REMIND_OWNER once a request has waited a day', () => {
+    expect(
+      nudgeDecision({ ...base, status: 'PENDING', createdAt: hours(30) }, now)
+    ).toEqual({ kind: 'REMIND_OWNER', throttled: false });
+  });
+
+  it('offers NUDGE_BORROWER on any out-of-the-building borrow past due', () => {
+    for (const status of ['APPROVED', 'ACTIVE', 'RETURN_PENDING']) {
+      expect(
+        nudgeDecision(
+          {
+            ...base,
+            status,
+            createdAt: hours(10 * 24),
+            requestedReturnDate: hours(2 * 24),
+          },
+          now
+        )
+      ).toEqual({ kind: 'NUDGE_BORROWER', throttled: false });
+    }
+  });
+
+  it('throttles when a reminder went out within 20h — either kind', () => {
+    expect(
+      nudgeDecision(
+        {
+          ...base,
+          status: 'ACTIVE',
+          createdAt: hours(10 * 24),
+          requestedReturnDate: hours(2 * 24),
+          lastOverdueReminderAt: hours(2),
+        },
+        now
+      )
+    ).toEqual({ kind: 'NUDGE_BORROWER', throttled: true });
+    expect(
+      nudgeDecision(
+        {
+          ...base,
+          status: 'PENDING',
+          createdAt: hours(30),
+          lastOverdueReminderAt: hours(19),
+        },
+        now
+      )
+    ).toEqual({ kind: 'REMIND_OWNER', throttled: true });
+  });
+
+  it('lets the bell ring again after the 20h throttle passes', () => {
+    expect(
+      nudgeDecision(
+        {
+          ...base,
+          status: 'ACTIVE',
+          createdAt: hours(10 * 24),
+          requestedReturnDate: hours(2 * 24),
+          lastOverdueReminderAt: hours(21),
+        },
+        now
+      )
+    ).toEqual({ kind: 'NUDGE_BORROWER', throttled: false });
+  });
+
+  it('has nothing to nudge on borrows still on schedule, or off the board', () => {
+    // Out on loan but not yet due
+    expect(
+      nudgeDecision(
+        { ...base, status: 'ACTIVE', createdAt: hours(2 * 24) },
+        now
+      )
+    ).toBeNull();
+    // RETURNED / DECLINED / CANCELLED: the transaction is over
+    for (const status of ['RETURNED', 'DECLINED', 'CANCELLED']) {
+      expect(
+        nudgeDecision(
+          {
+            ...base,
+            status,
+            createdAt: hours(10 * 24),
+            requestedReturnDate: hours(2 * 24),
+          },
+          now
+        )
       ).toBeNull();
     }
   });
