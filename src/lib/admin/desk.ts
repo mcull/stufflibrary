@@ -205,6 +205,22 @@ export function memberStamp(
   return null;
 }
 
+/**
+ * The one stamp a catalog card wears, from real fields only:
+ * a not-yet-active item is still in creation (DRAFT); once active it reads
+ * ON SHELF when available and OUT when it's on loan. No OVERDUE/IN REVIEW —
+ * this endpoint doesn't cleanly know those, and omission beats fabrication.
+ */
+export function itemShelfStamp(item: {
+  active: boolean;
+  isAvailable: boolean;
+}): { label: string; tone: StampTone } {
+  if (!item.active) return { label: 'DRAFT', tone: 'mustard' };
+  return item.isAvailable
+    ? { label: 'ON SHELF', tone: 'green' }
+    : { label: 'OUT', tone: 'ink' };
+}
+
 export function isTabActive(pathname: string, href: string): boolean {
   if (href === '/admin') return pathname === '/admin';
   return pathname === href || pathname.startsWith(`${href}/`);
