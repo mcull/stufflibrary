@@ -7,6 +7,7 @@ import {
   fillDailyBuckets,
   formatDelta,
   isTabActive,
+  itemShelfStamp,
   ledgerTimeLabel,
   mapCirculationEvent,
   memberStamp,
@@ -517,6 +518,34 @@ describe('borrowStatusStamp', () => {
     expect(borrowStatusStamp('SOMETHING_ELSE')).toEqual({
       label: 'SOMETHING_ELSE',
       tone: null,
+    });
+  });
+});
+
+describe('itemShelfStamp', () => {
+  it('reads an inactive item as DRAFT — still in creation, not on shelves', () => {
+    expect(itemShelfStamp({ active: false, isAvailable: true })).toEqual({
+      label: 'DRAFT',
+      tone: 'mustard',
+    });
+    // isAvailable is irrelevant while a draft has not been published
+    expect(itemShelfStamp({ active: false, isAvailable: false })).toEqual({
+      label: 'DRAFT',
+      tone: 'mustard',
+    });
+  });
+
+  it('reads an active, available item as ON SHELF', () => {
+    expect(itemShelfStamp({ active: true, isAvailable: true })).toEqual({
+      label: 'ON SHELF',
+      tone: 'green',
+    });
+  });
+
+  it('reads an active, borrowed item as OUT', () => {
+    expect(itemShelfStamp({ active: true, isAvailable: false })).toEqual({
+      label: 'OUT',
+      tone: 'ink',
     });
   });
 });
