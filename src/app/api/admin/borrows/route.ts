@@ -1,3 +1,4 @@
+import type { BorrowRequestStatus } from '@prisma/client';
 import { NextResponse } from 'next/server';
 
 import { requireAdminAuth } from '@/lib/admin-auth';
@@ -9,7 +10,7 @@ import { db } from '@/lib/db';
 // stays the single source of truth for the board's rules.
 export interface AdminBorrowRow {
   id: string;
-  status: string; // BorrowRequestStatus
+  status: BorrowRequestStatus | (string & {}); // enum today; tolerant of drift at runtime
   createdAt: string;
   approvedAt: string | null;
   requestedReturnDate: string;
@@ -56,7 +57,9 @@ export async function GET() {
           status: { in: ['PENDING', 'APPROVED', 'ACTIVE', 'RETURN_PENDING'] },
         },
         select: ROW_SELECT,
-        orderBy: { createdAt: 'desc' },
+        // Soonest-due first: if the cap ever bites, it drops far-future rows,
+        // never the overdue ones — an empty OVERDUE column must mean empty.
+        orderBy: { requestedReturnDate: 'asc' },
         take: QUERY_CAP,
       }),
       db.borrowRequest.findMany({

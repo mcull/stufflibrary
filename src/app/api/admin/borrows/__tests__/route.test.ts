@@ -93,9 +93,12 @@ describe('/api/admin/borrows', () => {
     const windowMs = Date.now() - returnedArgs.where.returnedAt.gte.getTime();
     expect(windowMs).toBeGreaterThan(23.9 * 60 * 60 * 1000);
     expect(windowMs).toBeLessThan(24.1 * 60 * 60 * 1000);
+    // In-flight orders soonest-due first so the cap can never silently drop
+    // overdue rows; the returned query has no such risk.
+    expect(inFlightArgs.orderBy).toEqual({ requestedReturnDate: 'asc' });
+    expect(returnedArgs.orderBy).toEqual({ createdAt: 'desc' });
     for (const args of [inFlightArgs, returnedArgs]) {
       expect(args.take).toBe(100);
-      expect(args.orderBy).toEqual({ createdAt: 'desc' });
       expect(args.select.borrower).toEqual({ select: { name: true } });
       expect(args.select.lender).toEqual({ select: { name: true } });
       expect(args.select.item).toEqual({ select: { name: true } });
