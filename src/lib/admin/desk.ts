@@ -167,6 +167,43 @@ export function paintBudgetView(input: {
   };
 }
 
+/** `'Mar 2026'` — how a roster remembers a join date. */
+export function monthYearLabel(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', {
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
+/** Trust bar ink: ≥70 green, 45–69 ink, below 45 red. */
+export function trustBarColor(score: number): 'green' | 'ink' | 'red' {
+  if (score >= 70) return 'green';
+  if (score >= 45) return 'ink';
+  return 'red';
+}
+
+const NEW_MEMBER_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * The one stamp a roster row wears (rows stay calm):
+ * SUSPENDED beats NEW (joined ≤7d ago) beats OWNER (owns ≥1 library).
+ */
+export function memberStamp(
+  user: { status: string; createdAt: string; ownedLibraries: number },
+  now: Date
+): { label: string; tone: StampTone } | null {
+  if (user.status === 'suspended') return { label: 'SUSPENDED', tone: 'red' };
+  if (
+    now.getTime() - new Date(user.createdAt).getTime() <=
+    NEW_MEMBER_WINDOW_MS
+  ) {
+    return { label: 'NEW', tone: 'mustard' };
+  }
+  if (user.ownedLibraries > 0) return { label: 'OWNER', tone: 'ink' };
+  return null;
+}
+
 export function isTabActive(pathname: string, href: string): boolean {
   if (href === '/admin') return pathname === '/admin';
   return pathname === href || pathname.startsWith(`${href}/`);

@@ -14,6 +14,7 @@ export async function GET(request: Request) {
     const joinedAfter = searchParams.get('joinedAfter');
     const joinedBefore = searchParams.get('joinedBefore');
     const activityLevel = searchParams.get('activityLevel') || '';
+    const ownersOnly = searchParams.get('ownersOnly') === 'true';
     const sortBy = searchParams.get('sortBy') || 'createdAt';
     const sortOrder = searchParams.get('sortOrder') || 'desc';
     const page = parseInt(searchParams.get('page') || '1');
@@ -39,6 +40,12 @@ export async function GET(request: Request) {
     // Profile completion filter
     if (profileCompleted) {
       where.profileCompleted = profileCompleted === 'true';
+    }
+
+    // Owners filter (owns ≥1 library) — a real where clause so the
+    // pagination totalCount stays consistent with the page contents
+    if (ownersOnly) {
+      where.ownedCollections = { some: {} };
     }
 
     // Date range filters
@@ -76,7 +83,14 @@ export async function GET(request: Request) {
             items: true,
             borrowRequests: true,
             addresses: true,
+            ownedCollections: true,
           },
+        },
+        // First membership = home library (same pattern as the circulation ledger)
+        collectionMemberships: {
+          orderBy: { joinedAt: 'asc' },
+          take: 1,
+          select: { collection: { select: { name: true } } },
         },
         borrowRequests: {
           select: {
