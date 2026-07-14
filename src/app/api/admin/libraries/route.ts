@@ -6,9 +6,11 @@ import { db } from '@/lib/db';
 
 /**
  * One branch as the Atlas register sees it. A library owns no coordinates
- * of its own — `centroid` is derived from its members' located addresses
- * (owner address as fallback) and is null when nothing can be plotted:
- * that branch lives in the register marked "off map", never faked onto it.
+ * of its own — `centroid` is the average of its active members' located
+ * addresses AND the owner's (the owner is a member conceptually, not just a
+ * fallback). It's null when nothing can be plotted: that branch lives in the
+ * register marked "off map", never faked onto it. `memberCount` matches the
+ * sibling admin/collections route: active members + 1 for the owner.
  */
 export interface AdminLibraryRow {
   id: string;
@@ -27,6 +29,19 @@ export interface AdminLibrariesResponse {
 }
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
+// A borrow only "counts" once it's a real loan — PENDING/DECLINED/CANCELLED
+// requests never left the shelf, so they don't feed the activity stamp.
+const REAL_BORROW_STATES = [
+  'APPROVED',
+  'ACTIVE',
+  'RETURN_PENDING',
+  'RETURNED',
+] as const;
+
+// Only active members of active users count — parity with the sibling
+// admin/collections route so the two screens never disagree on head count.
+const ACTIVE_MEMBER = { isActive: true, user: { status: 'active' } } as const;
 
 const activeAddress = {
   where: { isActive: true },
@@ -49,9 +64,10 @@ export async function GET() {
           select: { name: true, addresses: activeAddress },
         },
         members: {
+          where: ACTIVE_MEMBER,
           select: { user: { select: { addresses: activeAddress } } },
         },
-        _count: { select: { members: true, items: true } },
+        _count: { select: { members: { where: ACTIVE_MEMBER }, items: true } },
       },
     });
 
@@ -65,22 +81,26 @@ export async function GET() {
         const borrows30d = await db.borrowRequest.count({
           where: {
             createdAt: { gte: since },
+            status: { in: [...REAL_BORROW_STATES] },
             item: { collections: { some: { collectionId: lib.id } } },
           },
         });
 
-        // Centroid from members' located addresses; owner address as the
-        // honest fallback. Null when neither is located — off map.
-        const memberPoints = lib.members.map((m) => ({
-          latitude: m.user.addresses[0]?.latitude ?? null,
-          longitude: m.user.addresses[0]?.longitude ?? null,
-        }));
-        const ownerPoints = lib.owner.addresses.map((a) => ({
-          latitude: a.latitude ?? null,
-          longitude: a.longitude ?? null,
-        }));
-        const centroid =
-          libraryCentroid(memberPoints) ?? libraryCentroid(ownerPoints);
+        // Centroid = the average of every located point that belongs to this
+        // branch: each active member's first active address PLUS the owner's.
+        // The owner is a real point, not an all-or-nothing fallback; departed
+        // and inactive members never pull the position. Null if none located.
+        const points = [
+          ...lib.members.map((m) => ({
+            latitude: m.user.addresses[0]?.latitude ?? null,
+            longitude: m.user.addresses[0]?.longitude ?? null,
+          })),
+          ...lib.owner.addresses.map((a) => ({
+            latitude: a.latitude ?? null,
+            longitude: a.longitude ?? null,
+          })),
+        ];
+        const centroid = libraryCentroid(points);
 
         return {
           id: lib.id,
@@ -88,7 +108,7 @@ export async function GET() {
           isArchived: lib.isArchived,
           createdAt: lib.createdAt.toISOString(),
           ownerName: lib.owner.name,
-          memberCount: lib._count.members,
+          memberCount: lib._count.members + 1, // +1 for the owner (not a member row)
           itemCount: lib._count.items,
           borrows30d,
           centroid,

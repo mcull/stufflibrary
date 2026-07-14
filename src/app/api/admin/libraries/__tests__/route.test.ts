@@ -26,7 +26,7 @@ const dbLibrary = (over: Record<string, unknown> = {}) => ({
   createdAt: new Date('2026-03-15T12:00:00Z'),
   owner: {
     name: 'Jenny L.',
-    addresses: [{ latitude: 40, longitude: -70 }],
+    addresses: [{ latitude: 50, longitude: 60 }],
   },
   members: [
     { user: { addresses: [{ latitude: 10, longitude: 20 }] } },
@@ -65,13 +65,14 @@ describe('/api/admin/libraries', () => {
     expect(row.id).toBe('lib1');
     expect(row.name).toBe('Maple St Library');
     expect(row.ownerName).toBe('Jenny L.');
-    expect(row.memberCount).toBe(214);
+    // +1 for the owner — parity with admin/collections (214 active members + owner)
+    expect(row.memberCount).toBe(215);
     expect(row.itemCount).toBe(612);
     expect(row.borrows30d).toBe(88);
     expect(row.isArchived).toBe(false);
-    // Centroid = average of the two located member addresses (owner ignored
-    // because members ARE located).
-    expect(row.centroid).toEqual({ lat: 20, lng: 30 });
+    // Centroid = average of the two member addresses AND the owner's:
+    // lat (10+30+50)/3, lng (20+40+60)/3.
+    expect(row.centroid).toEqual({ lat: 30, lng: 40 });
   });
 
   it('scopes the borrow count to the last 30 days and this library only', async () => {
@@ -89,6 +90,13 @@ describe('/api/admin/libraries', () => {
       .calls[0]![0].where;
     expect(where.item.collections.some.collectionId).toBe('libX');
     expect(where.createdAt.gte).toBeInstanceOf(Date);
+    // Only real loans count — PENDING/DECLINED/CANCELLED never left the shelf.
+    expect(where.status.in).toEqual([
+      'APPROVED',
+      'ACTIVE',
+      'RETURN_PENDING',
+      'RETURNED',
+    ]);
     // ~30 days back
     const ageMs = Date.now() - where.createdAt.gte.getTime();
     expect(ageMs).toBeGreaterThan(29 * 24 * 60 * 60 * 1000);

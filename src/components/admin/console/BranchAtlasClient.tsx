@@ -169,8 +169,15 @@ function RegisterRow({
   const stamp = branchActivityStamp(branch.borrows30d);
   return (
     <Box
-      role="row"
+      role="option"
+      tabIndex={0}
       onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
       aria-selected={selected}
       style={{ opacity: branch.isArchived ? 0.55 : 1 }}
       sx={{
@@ -182,6 +189,7 @@ function RegisterRow({
         padding: '9px 8px',
         borderBottom: `1px dashed ${console_.dashedLine}`,
         backgroundColor: selected ? console_.rowSelected : 'transparent',
+        outlineOffset: '-2px',
         '&:hover': {
           backgroundColor: selected ? console_.rowSelected : console_.rowHover,
         },
@@ -384,7 +392,7 @@ export function BranchAtlasClient() {
               No libraries yet.
             </Box>
           ) : (
-            <Box role="table" aria-label="Branch register">
+            <Box role="listbox" aria-label="Branch register">
               {libraries.map((branch) => (
                 <RegisterRow
                   key={branch.id}

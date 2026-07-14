@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { AdminLibraryRow } from '@/app/api/admin/libraries/route';
 
@@ -34,7 +34,14 @@ function stubFetch(libraries: AdminLibraryRow[], ok = true) {
   return mock;
 }
 
+// Force the map's no-key degradation path so this suite can't flake on a dev
+// machine that happens to have the Maps key set in its env.
+beforeEach(() => {
+  vi.stubEnv('NEXT_PUBLIC_GOOGLE_MAPS_API_KEY', '');
+});
+
 afterEach(() => {
+  vi.unstubAllEnvs();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
@@ -76,6 +83,20 @@ describe('BranchAtlasClient', () => {
     expect(link).toHaveAttribute('href', '/library/lib1');
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+  });
+
+  it('selects a focused register row with the Enter key', async () => {
+    stubFetch([branch()]);
+    render(<BranchAtlasClient />);
+
+    await screen.findByText('Maple St Library');
+    // The register is a keyboard-navigable listbox of options
+    const option = screen.getByRole('option', { name: /Maple St Library/i });
+    option.focus();
+    fireEvent.keyDown(option, { key: 'Enter' });
+
+    expect(await screen.findByText('Steward · Jenny L.')).toBeInTheDocument();
+    expect(option).toHaveAttribute('aria-selected', 'true');
   });
 
   it('marks an off-map branch in the register and its casefile', async () => {
