@@ -210,6 +210,86 @@ export function isTabActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+// ——— Borrows state board (artboard 2d) ———
+
+export type BorrowBoardColumn =
+  | 'requested'
+  | 'out'
+  | 'overdue'
+  | 'returnedToday';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Which column a borrow lives in — the single source of truth for the
+ * board. Overdue borrows come OUT of the out-on-loan column (never
+ * double-listed); returns fall off the board 24h after returnedAt, which
+ * is exactly what the footer line promises. DECLINED/CANCELLED (and a
+ * RETURNED row with no returnedAt on record) have nothing honest to show.
+ */
+export function borrowBoardColumn(
+  req: {
+    status: string;
+    requestedReturnDate: string | Date;
+    returnedAt?: string | Date | null;
+  },
+  now: Date
+): BorrowBoardColumn | null {
+  switch (req.status) {
+    case 'PENDING':
+      return 'requested';
+    case 'APPROVED':
+    case 'ACTIVE':
+    case 'RETURN_PENDING':
+      return new Date(req.requestedReturnDate).getTime() < now.getTime()
+        ? 'overdue'
+        : 'out';
+    case 'RETURNED': {
+      if (!req.returnedAt) return null;
+      const age = now.getTime() - new Date(req.returnedAt).getTime();
+      return age < DAY_MS ? 'returnedToday' : null;
+    }
+    default:
+      return null;
+  }
+}
+
+/**
+ * Loan progress for the due bar: pct of the loan elapsed (clamped 0–100)
+ * plus an honest label — 'due in N days', 'due today' inside the final
+ * 24h, 'N days late' past due (N = ceil of whole days).
+ */
+export function dueMeter(
+  due: string | Date,
+  start: string | Date,
+  now: Date
+): { pct: number; label: string } {
+  const dueMs = new Date(due).getTime();
+  const startMs = new Date(start).getTime();
+  const total = dueMs - startMs;
+  const elapsed = now.getTime() - startMs;
+  const pct =
+    total > 0
+      ? Math.min(100, Math.max(0, Math.round((100 * elapsed) / total)))
+      : 100;
+
+  const remaining = dueMs - now.getTime();
+  if (remaining < 0) {
+    const late = Math.ceil(-remaining / DAY_MS);
+    return { pct, label: `${late} day${late === 1 ? '' : 's'} late` };
+  }
+  if (remaining < DAY_MS) return { pct, label: 'due today' };
+  const left = Math.ceil(remaining / DAY_MS);
+  return { pct, label: `due in ${left} day${left === 1 ? '' : 's'}` };
+}
+
+/** How long a request has sat unanswered: 'waiting 3h' under a day, 'waiting 2d' after. */
+export function waitingLabel(createdAt: string | Date, now: Date): string {
+  const ms = Math.max(0, now.getTime() - new Date(createdAt).getTime());
+  if (ms < DAY_MS) return `waiting ${Math.floor(ms / (60 * 60 * 1000))}h`;
+  return `waiting ${Math.floor(ms / DAY_MS)}d`;
+}
+
 /** Zero-fill `days` daily buckets ending today (UTC); rows carry a day + count. */
 export function fillDailyBuckets(
   rows: Array<{ d: Date | string; c: number | bigint }>,

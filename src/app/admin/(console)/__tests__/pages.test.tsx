@@ -2,17 +2,9 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 
 import AdminConsoleAuditPage from '../audit/page';
-import AdminConsoleBorrowsPage from '../borrows/page';
 
-describe('AdminConsoleBorrowsPage', () => {
-  it('renders the honest placeholder with no fake data', () => {
-    const { container } = render(<AdminConsoleBorrowsPage />);
-
-    expect(screen.getByText('BORROW BOARD — QUEUED')).toBeInTheDocument();
-    expect(screen.getByText('PLACEHOLDER')).toBeInTheDocument();
-    expect(container.querySelector('.MuiSkeleton-root')).toBeNull();
-  });
-});
+// The borrows page is now the live state board; its behavior is covered in
+// src/components/admin/console/__tests__/BorrowsBoardClient.test.tsx.
 
 describe('AdminConsoleAuditPage', () => {
   it('renders the blocked-out audit ledger with ghost headers and chips', () => {
