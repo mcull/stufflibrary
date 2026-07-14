@@ -14,7 +14,6 @@ import {
 } from '@mui/material';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { UserDetailModal } from '@/components/admin/UserDetailModal';
 import { vintageFonts } from '@/components/member-home/vintageTokens';
 import {
   NEW_MEMBER_WINDOW_MS,
@@ -25,6 +24,7 @@ import {
 import { brandColors } from '@/theme/brandTokens';
 
 import { DeskErrorLine, StampChip } from './cards';
+import { MemberRecordModal } from './MemberRecordModal';
 import { console_, consoleType } from './tokens';
 
 const PAGE_LIMIT = 25;
@@ -638,7 +638,7 @@ export function MembersClient() {
       </Dialog>
 
       {detailUserId && (
-        <UserDetailModal
+        <MemberRecordModal
           userId={detailUserId}
           isOpen={true}
           onClose={() => setDetailUserId(null)}

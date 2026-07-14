@@ -3,9 +3,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { MembersClient } from '../MembersClient';
 
-vi.mock('@/components/admin/UserDetailModal', () => ({
-  UserDetailModal: ({ userId }: { userId: string }) => (
-    <div data-testid="user-detail-modal">record:{userId}</div>
+vi.mock('../MemberRecordModal', () => ({
+  MemberRecordModal: ({ userId }: { userId: string }) => (
+    <div data-testid="member-record-modal">record:{userId}</div>
   ),
 }));
 
@@ -173,7 +173,7 @@ describe('MembersClient', () => {
     );
     fireEvent.click(screen.getByText('Open record'));
 
-    expect(screen.getByTestId('user-detail-modal')).toHaveTextContent(
+    expect(screen.getByTestId('member-record-modal')).toHaveTextContent(
       'record:u1'
     );
   });
