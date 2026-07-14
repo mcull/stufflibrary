@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  borrowBoardColumn,
+  dueMeter,
   fillDailyBuckets,
   formatDelta,
   isTabActive,
@@ -9,6 +11,7 @@ import {
   paintBudgetView,
   sparklineEndpoint,
   sparklinePath,
+  waitingLabel,
   type RawCirculationEvent,
 } from '@/lib/admin/desk';
 
@@ -161,6 +164,118 @@ describe('isTabActive', () => {
   it('matches sub-tabs by prefix', () => {
     expect(isTabActive('/admin/members', '/admin/members')).toBe(true);
     expect(isTabActive('/admin/members/abc', '/admin/members')).toBe(true);
+  });
+});
+
+describe('borrowBoardColumn', () => {
+  const now = new Date('2026-07-13T12:00:00Z');
+  const future = new Date('2026-07-20T12:00:00Z');
+  const past = new Date('2026-07-10T12:00:00Z');
+
+  it('puts PENDING in the requested column', () => {
+    expect(
+      borrowBoardColumn({ status: 'PENDING', requestedReturnDate: future }, now)
+    ).toBe('requested');
+  });
+
+  it('puts APPROVED / ACTIVE / RETURN_PENDING with a future due date in out', () => {
+    for (const status of ['APPROVED', 'ACTIVE', 'RETURN_PENDING']) {
+      expect(
+        borrowBoardColumn({ status, requestedReturnDate: future }, now)
+      ).toBe('out');
+    }
+  });
+
+  it('moves any in-flight borrow past its due date to overdue (never both)', () => {
+    for (const status of ['APPROVED', 'ACTIVE', 'RETURN_PENDING']) {
+      expect(
+        borrowBoardColumn({ status, requestedReturnDate: past }, now)
+      ).toBe('overdue');
+    }
+  });
+
+  it('shows RETURNED only within 24h of returnedAt', () => {
+    expect(
+      borrowBoardColumn(
+        {
+          status: 'RETURNED',
+          requestedReturnDate: past,
+          returnedAt: new Date('2026-07-13T02:00:00Z'),
+        },
+        now
+      )
+    ).toBe('returnedToday');
+    expect(
+      borrowBoardColumn(
+        {
+          status: 'RETURNED',
+          requestedReturnDate: past,
+          returnedAt: new Date('2026-07-10T02:00:00Z'),
+        },
+        now
+      )
+    ).toBeNull();
+    // RETURNED with no returnedAt on record: nothing honest to show
+    expect(
+      borrowBoardColumn(
+        { status: 'RETURNED', requestedReturnDate: past, returnedAt: null },
+        now
+      )
+    ).toBeNull();
+  });
+
+  it('drops DECLINED and CANCELLED from the board', () => {
+    for (const status of ['DECLINED', 'CANCELLED']) {
+      expect(
+        borrowBoardColumn({ status, requestedReturnDate: future }, now)
+      ).toBeNull();
+    }
+  });
+});
+
+describe('dueMeter', () => {
+  const day = 24 * 60 * 60 * 1000;
+  const start = new Date('2026-07-06T12:00:00Z');
+  const due = new Date('2026-07-16T12:00:00Z'); // 10-day loan
+
+  it('reads mid-loan progress and days remaining', () => {
+    const now = new Date('2026-07-13T12:00:00Z'); // 7 of 10 days elapsed
+    expect(dueMeter(due, start, now)).toEqual({
+      pct: 70,
+      label: 'due in 3 days',
+    });
+  });
+
+  it('says due today inside the final 24 hours', () => {
+    const now = new Date(due.getTime() - day / 2);
+    const meter = dueMeter(due, start, now);
+    expect(meter.label).toBe('due today');
+    expect(meter.pct).toBe(95);
+  });
+
+  it('counts days late past due and clamps the bar at 100', () => {
+    const now = new Date(due.getTime() + 2.5 * day);
+    expect(dueMeter(due, start, now)).toEqual({
+      pct: 100,
+      label: '3 days late',
+    });
+    expect(dueMeter(due, start, new Date(due.getTime() + day)).label).toBe(
+      '1 day late'
+    );
+  });
+});
+
+describe('waitingLabel', () => {
+  const now = new Date('2026-07-13T12:00:00Z');
+  it('counts hours under a day', () => {
+    expect(waitingLabel(new Date('2026-07-13T08:30:00Z'), now)).toBe(
+      'waiting 3h'
+    );
+  });
+  it('switches to days after 24h', () => {
+    expect(waitingLabel(new Date('2026-07-11T06:00:00Z'), now)).toBe(
+      'waiting 2d'
+    );
   });
 });
 
