@@ -36,8 +36,8 @@ export function InBeta() {
           m: '0 0 32px 0',
         }}
       >
-        We&rsquo;re in beta, opening one neighborhood at a time. Anchors go
-        first.
+        New libraries open wherever a neighbor starts one. Sign up, stock your
+        shelf, and invite the people on your street.
       </Typography>
       <Box
         component={Link}
