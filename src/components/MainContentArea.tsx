@@ -13,14 +13,16 @@ export function MainContentArea({ children }: MainContentAreaProps) {
   const { data: session } = useSession();
   const pathname = usePathname();
 
-  // Don't add bottom padding on auth pages or profile creation
+  // Don't add bottom padding on auth pages, profile creation, or the admin
+  // console (no BottomNav renders there)
   const isAuthPage = pathname.startsWith('/auth/');
   const isProfileCreation = pathname.startsWith('/profile/create');
+  const isAdminConsole = pathname.startsWith('/admin');
   const isUnauthenticated = !session?.user;
 
   // Add bottom padding for authenticated users on mobile to account for bottom navigation
   const needsBottomPadding =
-    !isAuthPage && !isProfileCreation && !isUnauthenticated;
+    !isAuthPage && !isProfileCreation && !isAdminConsole && !isUnauthenticated;
 
   return (
     <Box
