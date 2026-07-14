@@ -6,6 +6,9 @@ import {
   isTabActive,
   ledgerTimeLabel,
   mapCirculationEvent,
+  memberStamp,
+  monthYearLabel,
+  trustBarColor,
   paintBudgetView,
   sparklineEndpoint,
   sparklinePath,
@@ -184,5 +187,81 @@ describe('fillDailyBuckets', () => {
       now
     );
     expect(out.every((v) => v === 0)).toBe(true);
+  });
+});
+
+describe('monthYearLabel', () => {
+  it("renders 'Mar 2026' style joined labels", () => {
+    expect(monthYearLabel('2026-03-15T12:00:00Z')).toBe('Mar 2026');
+  });
+  it('handles January and December without off-by-one drift', () => {
+    expect(monthYearLabel('2025-01-02T12:00:00Z')).toBe('Jan 2025');
+    expect(monthYearLabel('2025-12-30T12:00:00Z')).toBe('Dec 2025');
+  });
+});
+
+describe('trustBarColor', () => {
+  it('is green from 70 up', () => {
+    expect(trustBarColor(70)).toBe('green');
+    expect(trustBarColor(91)).toBe('green');
+  });
+  it('is ink for the 45–69 middle band', () => {
+    expect(trustBarColor(45)).toBe('ink');
+    expect(trustBarColor(69)).toBe('ink');
+  });
+  it('is red below 45', () => {
+    expect(trustBarColor(44)).toBe('red');
+    expect(trustBarColor(0)).toBe('red');
+  });
+});
+
+describe('memberStamp', () => {
+  const now = new Date('2026-07-13T12:00:00Z');
+  const daysAgo = (n: number) =>
+    new Date(now.getTime() - n * 24 * 60 * 60 * 1000).toISOString();
+
+  it('stamps SUSPENDED red before anything else', () => {
+    expect(
+      memberStamp(
+        { status: 'suspended', createdAt: daysAgo(1), ownedLibraries: 3 },
+        now
+      )
+    ).toEqual({ label: 'SUSPENDED', tone: 'red' });
+  });
+  it('stamps NEW mustard for members within 7 days, even owners', () => {
+    expect(
+      memberStamp(
+        { status: 'active', createdAt: daysAgo(6), ownedLibraries: 1 },
+        now
+      )
+    ).toEqual({ label: 'NEW', tone: 'mustard' });
+    expect(
+      memberStamp(
+        { status: 'active', createdAt: daysAgo(7), ownedLibraries: 0 },
+        now
+      )
+    ).toEqual({ label: 'NEW', tone: 'mustard' });
+  });
+  it('stamps OWNER ink for library owners past the new window', () => {
+    expect(
+      memberStamp(
+        { status: 'active', createdAt: daysAgo(30), ownedLibraries: 2 },
+        now
+      )
+    ).toEqual({ label: 'OWNER', tone: 'ink' });
+  });
+  it('stays quiet for a plain settled member', () => {
+    expect(
+      memberStamp(
+        { status: 'active', createdAt: daysAgo(30), ownedLibraries: 0 },
+        now
+      )
+    ).toBeNull();
+    expect(
+      memberStamp(
+        { status: 'inactive', createdAt: daysAgo(30), ownedLibraries: 0 },
+        now
+      )
+    ).toBeNull();
   });
 });

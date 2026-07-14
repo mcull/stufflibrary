@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     const profileCompleted = searchParams.get('profileCompleted') || '';
     const joinedAfter = searchParams.get('joinedAfter');
     const joinedBefore = searchParams.get('joinedBefore');
-    const activityLevel = searchParams.get('activityLevel') || '';
+    const ownersOnly = searchParams.get('ownersOnly') === 'true';
     const sortBy = searchParams.get('sortBy') || 'createdAt';
     const sortOrder = searchParams.get('sortOrder') || 'desc';
     const page = parseInt(searchParams.get('page') || '1');
@@ -41,6 +41,12 @@ export async function GET(request: Request) {
       where.profileCompleted = profileCompleted === 'true';
     }
 
+    // Owners filter (owns ≥1 library) — a real where clause so the
+    // pagination totalCount stays consistent with the page contents
+    if (ownersOnly) {
+      where.ownedCollections = { some: {} };
+    }
+
     // Date range filters
     if (joinedAfter || joinedBefore) {
       where.createdAt = {};
@@ -52,7 +58,8 @@ export async function GET(request: Request) {
       }
     }
 
-    // Get users with comprehensive data
+    // The roster's facts and nothing more — no PII the screen never shows,
+    // no per-user take-5 subqueries. (Detail lives at /users/[userId]/details.)
     const users = await db.user.findMany({
       where,
       select: {
@@ -61,12 +68,7 @@ export async function GET(request: Request) {
         email: true,
         status: true,
         profileCompleted: true,
-        phone: true,
         phoneVerified: true,
-        bio: true,
-        shareInterests: true,
-        borrowInterests: true,
-        movedInDate: true,
         trustScore: true,
         trustTier: true,
         createdAt: true,
@@ -76,24 +78,14 @@ export async function GET(request: Request) {
             items: true,
             borrowRequests: true,
             addresses: true,
+            ownedCollections: true,
           },
         },
-        borrowRequests: {
-          select: {
-            status: true,
-            createdAt: true,
-          },
-          orderBy: { createdAt: 'desc' },
-          take: 5,
-        },
-        items: {
-          select: {
-            id: true,
-            name: true,
-            createdAt: true,
-          },
-          orderBy: { createdAt: 'desc' },
-          take: 5,
+        // First membership = home library (same pattern as the circulation ledger)
+        collectionMemberships: {
+          orderBy: { joinedAt: 'asc' },
+          take: 1,
+          select: { collection: { select: { name: true } } },
         },
       },
       orderBy: {
@@ -103,41 +95,11 @@ export async function GET(request: Request) {
       take: limit,
     });
 
-    // Calculate activity levels and trust scores
-    const enrichedUsers = users.map((user) => {
-      const recentActivity = user.borrowRequests.filter(
-        (req) =>
-          new Date(req.createdAt) >
-          new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-      ).length;
-
-      const totalRequests = user._count.borrowRequests;
-
-      // Simple activity level calculation
-      let activityLevel = 'low';
-      if (recentActivity > 5 || totalRequests > 10) {
-        activityLevel = 'high';
-      } else if (recentActivity > 2 || totalRequests > 5) {
-        activityLevel = 'medium';
-      }
-
-      return {
-        ...user,
-        activityLevel,
-        recentActivity,
-      };
-    });
-
-    // Filter by activity level if specified
-    const filteredUsers = activityLevel
-      ? enrichedUsers.filter((user) => user.activityLevel === activityLevel)
-      : enrichedUsers;
-
     // Get total count for pagination
     const totalCount = await db.user.count({ where });
 
     return NextResponse.json({
-      users: filteredUsers,
+      users,
       pagination: {
         total: totalCount,
         page,
