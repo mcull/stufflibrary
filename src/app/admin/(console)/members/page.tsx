@@ -1,11 +1,5 @@
-import { AdminUserManagement } from '@/components/admin/AdminUserManagement';
-import { OldConsoleNote } from '@/components/admin/console/OldConsoleNote';
+import { MembersClient } from '@/components/admin/console/MembersClient';
 
 export default function AdminConsoleMembersPage() {
-  return (
-    <>
-      <OldConsoleNote />
-      <AdminUserManagement />
-    </>
-  );
+  return <MembersClient />;
 }
