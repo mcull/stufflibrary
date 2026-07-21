@@ -21,8 +21,14 @@ import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 
 import { geocodeAddress } from '@/lib/geocode';
+import { checkSpendCap, recordSpend } from '@/lib/spend-cap';
 
 const prisma = new PrismaClient();
+
+// Google's Geocoding API is $5 per 1000 requests — 0.5¢ per call. Rounded up
+// to a whole cent so the cap errs toward under-spending. (recordSpend floors
+// every call at 1 cent anyway, so sub-cent values can't be expressed.)
+const GEOCODE_COST_CENTS = 1;
 
 // Google's geocoding quota is generous but it throttles tight loops, and every
 // call is billable. ~5/sec is well under the published limits and keeps a
@@ -82,8 +88,12 @@ async function main() {
   let succeeded = 0;
   let failed = 0;
   let skipped = 0;
+  let processed = 0;
+  let stoppedByCap = false;
 
   for (const address of addresses) {
+    processed++;
+
     // Not enough text to be worth a billable lookup.
     if (!address.address1 || !address.city || !address.state) {
       console.log(`⏭️  ${address.id}: too little address text — skipped`);
@@ -101,6 +111,20 @@ async function main() {
       .filter(Boolean)
       .join(', ');
 
+    // This loop is the one place that can make hundreds of billable calls in a
+    // row, so the cap is checked before every one that would actually spend.
+    // When it's blown we stop cleanly rather than grinding through the rest;
+    // the summary reports how far we got so the operator knows where to resume.
+    const spendCap = await checkSpendCap('places');
+    if (!spendCap.allowed) {
+      console.warn(
+        `\n🛑 Daily spend cap reached (${spendCap.reason}). Stopping before ${address.id}.`
+      );
+      processed--;
+      stoppedByCap = true;
+      break;
+    }
+
     attempted++;
 
     try {
@@ -111,6 +135,8 @@ async function main() {
         failed++;
         continue;
       }
+
+      await recordSpend('places', GEOCODE_COST_CENTS);
 
       if (apply) {
         await prisma.address.update({
@@ -139,9 +165,20 @@ async function main() {
   }
 
   console.log(
-    `\nDone (${apply ? 'applied' : 'dry run'}). ` +
+    `\n${stoppedByCap ? 'Stopped early' : 'Done'} (${apply ? 'applied' : 'dry run'}). ` +
+      `Processed ${processed} of ${addresses.length} selected. ` +
       `Attempted: ${attempted}, Succeeded: ${succeeded}, Failed: ${failed}, Skipped: ${skipped}`
   );
+
+  if (stoppedByCap) {
+    console.log(
+      `${addresses.length - processed} address(es) from this batch were not reached. ` +
+        'Re-run once the cap resets (counters are per UTC day).' +
+        (apply
+          ? ' The query only selects addresses still missing coordinates, so it resumes where this left off.'
+          : ' This was a dry run, so nothing was written and a re-run starts over.')
+    );
+  }
 
   if (!apply && succeeded > 0) {
     console.log('Re-run with --apply to persist these coordinates.');

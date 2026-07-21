@@ -13,6 +13,12 @@ const mockAddressCreate = vi.hoisted(() =>
 );
 const mockGeocodeAddress = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/geocode', () => ({ geocodeAddress: mockGeocodeAddress }));
+const mockCheckSpendCap = vi.hoisted(() => vi.fn());
+const mockRecordSpend = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/spend-cap', () => ({
+  checkSpendCap: mockCheckSpendCap,
+  recordSpend: mockRecordSpend,
+}));
 
 vi.mock('@/lib/db', () => ({
   db: {
@@ -71,6 +77,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockAddressCreate.mockResolvedValue({ id: 'a1' });
   mockGeocodeAddress.mockResolvedValue(null);
+  mockCheckSpendCap.mockResolvedValue({ allowed: true });
+  mockRecordSpend.mockResolvedValue(undefined);
   mockGetServerSession.mockResolvedValue({
     user: { id: 'u1', email: 'a@b.c' },
   });
@@ -175,6 +183,78 @@ describe('POST /api/profile address coordinates', () => {
     const created = mockAddressCreate.mock.calls[0]![0].data;
     expect(created.latitude).toBe(37.77);
     expect(created.longitude).toBe(-122.42);
+  });
+
+  it('records places spend for a successful geocode', async () => {
+    mockGeocodeAddress.mockResolvedValue({
+      latitude: 37.77,
+      longitude: -122.42,
+    });
+
+    await POST(
+      req({
+        name: 'Jo',
+        agreedToTerms: true,
+        parsedAddress: addressWithoutCoords,
+      })
+    );
+
+    expect(mockCheckSpendCap).toHaveBeenCalledWith('places');
+    expect(mockRecordSpend).toHaveBeenCalledWith('places', 1);
+  });
+
+  it('does not record spend when the client supplied coordinates', async () => {
+    await POST(
+      req({
+        name: 'Jo',
+        agreedToTerms: true,
+        parsedAddress: {
+          ...addressWithoutCoords,
+          latitude: 34.05,
+          longitude: -118.24,
+        },
+      })
+    );
+
+    expect(mockCheckSpendCap).not.toHaveBeenCalled();
+    expect(mockRecordSpend).not.toHaveBeenCalled();
+  });
+
+  it('skips the geocode but still saves when the spend cap is exceeded', async () => {
+    mockCheckSpendCap.mockResolvedValue({
+      allowed: false,
+      reason: 'Daily spend cap reached. Please try again tomorrow.',
+    });
+
+    const res = await POST(
+      req({
+        name: 'Jo',
+        agreedToTerms: true,
+        parsedAddress: addressWithoutCoords,
+      })
+    );
+
+    // The save must survive a blown cap — only the coordinates are missing.
+    expect(res.status).toBe(200);
+    expect(mockGeocodeAddress).not.toHaveBeenCalled();
+    expect(mockRecordSpend).not.toHaveBeenCalled();
+    const created = mockAddressCreate.mock.calls[0]![0].data;
+    expect(created.latitude).toBeNull();
+    expect(created.longitude).toBeNull();
+  });
+
+  it('does not record spend when geocoding fails', async () => {
+    mockGeocodeAddress.mockResolvedValue(null);
+
+    await POST(
+      req({
+        name: 'Jo',
+        agreedToTerms: true,
+        parsedAddress: addressWithoutCoords,
+      })
+    );
+
+    expect(mockRecordSpend).not.toHaveBeenCalled();
   });
 
   it('still saves the address when geocoding fails', async () => {

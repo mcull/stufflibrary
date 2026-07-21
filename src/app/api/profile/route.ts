@@ -7,6 +7,7 @@ import { TERMS_VERSION } from '@/lib/capabilities';
 import { db } from '@/lib/db';
 import { geocodeAddress, type Coordinates } from '@/lib/geocode';
 import { normalizeUsPhone } from '@/lib/phone';
+import { checkSpendCap, recordSpend } from '@/lib/spend-cap';
 import { StorageService } from '@/lib/storage';
 import { getUserCapabilities } from '@/lib/user-capabilities';
 
@@ -41,6 +42,11 @@ const createProfileSchema = z.object({
     })
     .optional(),
 });
+
+// Google's Geocoding API is $5 per 1000 requests — 0.5¢ per call. Rounded up
+// to a whole cent so the cap errs toward under-spending. (recordSpend floors
+// every call at 1 cent anyway, so sub-cent values can't be expressed.)
+const GEOCODE_COST_CENTS = 1;
 
 /**
  * The address fields both save paths supply. Loose/optional throughout because
@@ -81,7 +87,10 @@ async function resolveCoordinates(
     return { latitude: parsed.latitude, longitude: parsed.longitude };
   }
 
-  // Not enough to be worth a billable lookup.
+  // Not enough to be worth a billable lookup. Unreachable from POST, whose
+  // caller already requires all four fields — but live for PUT, which parses
+  // its body untyped. Kept deliberately: a guard on a billable call earns its
+  // place even when one caller can't trip it.
   if (!parsed.address1 || !parsed.city || !parsed.state) {
     return null;
   }
@@ -96,7 +105,24 @@ async function resolveCoordinates(
     .filter(Boolean)
     .join(', ');
 
-  return geocodeAddress(addressText);
+  // Geocoding is billable, so it answers to the same daily cap as the Places
+  // routes. A blown cap must never block a profile save — skip the lookup and
+  // save without coordinates, as on any other geocoding failure. Logged
+  // distinctly so it isn't mistaken for Google refusing the request.
+  const spendCap = await checkSpendCap('places');
+  if (!spendCap.allowed) {
+    console.warn(
+      `Geocoding skipped: daily spend cap reached (${spendCap.reason}). ` +
+        'Address will save without coordinates; the backfill script can pick it up.'
+    );
+    return null;
+  }
+
+  const coordinates = await geocodeAddress(addressText);
+  if (coordinates) {
+    await recordSpend('places', GEOCODE_COST_CENTS);
+  }
+  return coordinates;
 }
 
 export async function POST(request: NextRequest) {
