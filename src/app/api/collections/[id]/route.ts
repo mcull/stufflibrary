@@ -5,10 +5,9 @@ import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { libraryMemberCount, nonOwnerMemberRows } from '@/lib/library-members';
 import {
-  anonymousProfile,
   canSeeExactMemberLocations,
-  neighbourProfile,
   toMemberAreas,
+  toNeighborProfile,
 } from '@/lib/member-location-privacy';
 
 export async function GET(
@@ -222,14 +221,14 @@ export async function GET(
             id: 'owner-' + library.owner.id,
             role: 'owner',
             joinedAt: library.createdAt,
-            user: neighbourProfile(library.owner),
+            user: toNeighborProfile(library.owner),
           },
           // Then include other members
           ...nonOwnerRows.map((member) => ({
             id: member.id,
             role: member.role,
             joinedAt: member.joinedAt,
-            user: neighbourProfile(member.user),
+            user: toNeighborProfile(member.user),
           })),
         ]
       : [];
@@ -250,9 +249,10 @@ export async function GET(
       isPublic: library.isPublic,
       createdAt: library.createdAt,
       updatedAt: library.updatedAt,
-      owner: insideTheLibrary
-        ? neighbourProfile(library.owner)
-        : anonymousProfile(library.owner),
+      // Guests get no owner object at all. Nothing in the client reads the
+      // library owner's id, so sending one would be a stable identifier for a
+      // real person handed to someone who is told nothing else about them.
+      owner: insideTheLibrary ? toNeighborProfile(library.owner) : null,
       userRole: effectiveRole,
       // Owner counts once; a stray owner self-member row (#409 dirty data)
       // must not inflate the count or list the owner twice.

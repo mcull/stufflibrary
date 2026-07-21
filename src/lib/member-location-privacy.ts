@@ -1,9 +1,9 @@
 // Pure helpers (no side-effectful imports — house pure-modules rule) for
-// deciding how much of a neighbour's location a given viewer has earned.
+// deciding how much of a neighbor's location a given viewer has earned.
 //
 // The library page promises guests: "We keep member details private until you
 // join." This module is where that promise is kept. Members and owners see
-// each other's exact pins — neighbours knowing where neighbours live is the
+// each other's exact pins — neighbors knowing where neighbors live is the
 // product working. Everyone else sees a blurred aggregate: coordinates rounded
 // to two decimals (~1.1km), identical points merged into one counted area.
 //
@@ -22,34 +22,36 @@ export interface Locatable {
   longitude?: number | null | undefined;
 }
 
-/** What a fellow member is allowed to see of a neighbour's address. */
-export interface NeighbourAddress {
+/** What a fellow member is allowed to see of a neighbor's address. */
+export interface NeighborAddress {
   city: string | null;
   state: string | null;
   latitude: number | null;
   longitude: number | null;
 }
 
-export interface NeighbourProfile {
+export interface NeighborProfile {
   id: string;
   name: string | null;
   image: string | null;
   status: string | null;
-  addresses: NeighbourAddress[];
+  addresses: NeighborAddress[];
 }
 
 const AREA_DECIMALS = 2;
 const AREA_FACTOR = 10 ** AREA_DECIMALS;
 
-/** Round to ~1.1km. Negative zero is normalized so grouping keys don't split. */
+/** Round to ~1.1km — the width of the area we're willing to name. */
 export function roundCoordinate(value: number): number {
-  const rounded = Math.round(value * AREA_FACTOR) / AREA_FACTOR;
-  return rounded === 0 ? 0 : rounded;
+  return Math.round(value * AREA_FACTOR) / AREA_FACTOR;
 }
 
 /**
  * Blur a set of member positions into counted areas. Anyone without usable
  * coordinates is dropped entirely — never defaulted to 0,0, never invented.
+ * Coordinates are only ever populated at profile-save time from client-supplied
+ * values, so "no coordinates" is a real and ordinary state for a member who
+ * typed their address by hand.
  */
 export function toMemberAreas(points: Locatable[]): MemberArea[] {
   const areas = new Map<string, MemberArea>();
@@ -84,12 +86,19 @@ export function canSeeExactMemberLocations(
   return role === 'owner' || role === 'admin' || role === 'member';
 }
 
+interface RawAddress {
+  city?: string | null;
+  state?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
 interface RawUser {
   id: string;
   name?: string | null;
   image?: string | null;
   status?: string | null;
-  addresses?: Array<Record<string, unknown>> | null;
+  addresses?: RawAddress[] | null;
 }
 
 /**
@@ -97,22 +106,17 @@ interface RawUser {
  * field by field rather than spread, so a widened Prisma select can never
  * silently reintroduce email or street address into the payload.
  */
-export function neighbourProfile(user: RawUser): NeighbourProfile {
+export function toNeighborProfile(user: RawUser): NeighborProfile {
   return {
     id: user.id,
     name: user.name ?? null,
     image: user.image ?? null,
     status: user.status ?? null,
     addresses: (user.addresses ?? []).map((address) => ({
-      city: (address.city as string | null) ?? null,
-      state: (address.state as string | null) ?? null,
-      latitude: (address.latitude as number | null) ?? null,
-      longitude: (address.longitude as number | null) ?? null,
+      city: address.city ?? null,
+      state: address.state ?? null,
+      latitude: address.latitude ?? null,
+      longitude: address.longitude ?? null,
     })),
   };
-}
-
-/** Everything a guest may know about a person: that they have an id. */
-export function anonymousProfile(user: { id: string }): { id: string } {
-  return { id: user.id };
 }

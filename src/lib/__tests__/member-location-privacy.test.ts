@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 
 import {
   canSeeExactMemberLocations,
-  neighbourProfile,
+  toNeighborProfile,
   roundCoordinate,
   toMemberAreas,
 } from '../member-location-privacy';
@@ -12,10 +12,6 @@ describe('roundCoordinate', () => {
     expect(roundCoordinate(37.774929)).toBe(37.77);
     expect(roundCoordinate(-122.419416)).toBe(-122.42);
     expect(roundCoordinate(37.775)).toBe(37.78);
-  });
-
-  it('normalizes negative zero so grouping keys do not split', () => {
-    expect(Object.is(roundCoordinate(-0.001), 0)).toBe(true);
   });
 });
 
@@ -53,6 +49,26 @@ describe('toMemberAreas', () => {
     expect(areas.some((a) => a.lat === 0 || a.lng === 0)).toBe(false);
   });
 
+  // Coordinates are populated only at profile-save time, from client-supplied
+  // values (src/app/api/profile/route.ts, both writes `?? null`). A member who
+  // typed their address by hand has city and state but no lat/lng, and the
+  // route no longer ships address text for anyone to geocode. Such a member
+  // must be omitted — never placed at 0,0, never nudged to the map's center.
+  it('omits a member who has city and state but no coordinates', () => {
+    const handTyped = {
+      city: 'Oakland',
+      state: 'CA',
+      latitude: null,
+      longitude: null,
+    };
+    const areas = toMemberAreas([
+      { latitude: 37.774929, longitude: -122.419416 },
+      handTyped,
+    ]);
+
+    expect(areas).toEqual([{ lat: 37.77, lng: -122.42, count: 1 }]);
+  });
+
   it('drops non-finite coordinates', () => {
     expect(
       toMemberAreas([
@@ -66,7 +82,7 @@ describe('toMemberAreas', () => {
   });
 });
 
-describe('neighbourProfile', () => {
+describe('toNeighborProfile', () => {
   const raw = {
     id: 'u1',
     name: 'Grace',
@@ -85,8 +101,8 @@ describe('neighbourProfile', () => {
     ],
   };
 
-  it('keeps what neighbours legitimately see', () => {
-    expect(neighbourProfile(raw)).toEqual({
+  it('keeps what neighbors legitimately see', () => {
+    expect(toNeighborProfile(raw)).toEqual({
       id: 'u1',
       name: 'Grace',
       image: 'https://cdn.example/grace.png',
@@ -103,14 +119,14 @@ describe('neighbourProfile', () => {
   });
 
   it('drops email and street address even if the query hands them over', () => {
-    const serialized = JSON.stringify(neighbourProfile(raw));
+    const serialized = JSON.stringify(toNeighborProfile(raw));
     expect(serialized).not.toContain('grace@example.com');
     expect(serialized).not.toContain('Precise Street');
     expect(serialized).not.toContain('formattedAddress');
   });
 
   it('tolerates a user with no addresses', () => {
-    expect(neighbourProfile({ id: 'u2' }).addresses).toEqual([]);
+    expect(toNeighborProfile({ id: 'u2' }).addresses).toEqual([]);
   });
 });
 

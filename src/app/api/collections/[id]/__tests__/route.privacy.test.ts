@@ -114,7 +114,7 @@ beforeEach(() => {
 });
 
 describe('GET /api/collections/[id] — member location privacy', () => {
-  it('gives a member the exact coordinates of their neighbours', async () => {
+  it('gives a member the exact coordinates of their neighbors', async () => {
     mockGetServerSession.mockResolvedValue({ user: { id: MEMBER_ID } });
 
     const { status, body } = await callGET();
@@ -165,6 +165,9 @@ describe('GET /api/collections/[id] — member location privacy', () => {
     expect(status).toBe(200);
     expect(body.collection.userRole).toBe('guest');
     expect(body.collection.members).toEqual([]);
+    // Not even a bare id: a stable identifier for a real person, handed to
+    // someone we are otherwise telling nothing.
+    expect(body.collection.owner).toBeNull();
 
     // The owner and the located member both round into one shared area; the
     // member without coordinates is dropped rather than invented at 0,0.
@@ -181,7 +184,7 @@ describe('GET /api/collections/[id] — member location privacy', () => {
     expect(serialized).not.toContain('San Francisco');
   });
 
-  it('still tells a guest how many neighbours there are', async () => {
+  it('still tells a guest how many neighbors there are', async () => {
     mockGetServerSession.mockResolvedValue(null);
 
     const { body } = await callGET({
@@ -216,6 +219,7 @@ describe('GET /api/collections/[id] — member location privacy', () => {
     expect(body.collection.userRole).toBe('owner');
     expect(body.collection.members).toHaveLength(3);
     expect(body.collection.owner.name).toBe('Ada Owner');
+    expect(body.collection.owner.email).toBeUndefined();
     expect(body.collection.memberAreas).toEqual([]);
   });
 });

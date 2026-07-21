@@ -101,6 +101,7 @@ interface LibraryData {
   isPublic: boolean;
   inviteRateLimitPerHour?: number;
   createdAt: string;
+  // null for guests: the API sends no owner identity until you've joined.
   owner: {
     id: string;
     name?: string;
@@ -115,7 +116,7 @@ interface LibraryData {
       longitude?: number;
       formattedAddress?: string;
     }>;
-  };
+  } | null;
   userRole: 'owner' | 'admin' | 'member' | 'guest' | null;
   memberCount: number;
   itemCount: number;
@@ -529,10 +530,10 @@ export function CollectionDetailClient({
   const mapCurrentUser = useMemo(
     () => ({
       id: (session?.user as { id?: string })?.id || '',
-      latitude: library?.owner.addresses?.[0]?.latitude,
-      longitude: library?.owner.addresses?.[0]?.longitude,
+      latitude: library?.owner?.addresses?.[0]?.latitude,
+      longitude: library?.owner?.addresses?.[0]?.longitude,
     }),
-    [session?.user, library?.owner.addresses]
+    [session?.user, library?.owner?.addresses]
   );
 
   // How many people are actually on the map? Zero -> show the address CTA
