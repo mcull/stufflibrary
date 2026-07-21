@@ -3,8 +3,48 @@ import { getServerSession } from 'next-auth';
 
 import { authOptions } from './auth';
 import { db } from './db';
+import { normalizeJoinCode } from './join-code';
+import { recordJoinCodeUse, resolveJoinCode } from './join-code-service';
 
 const INVITE_COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
+
+/**
+ * `invite_token` carries two unrelated things. A bare value is a personal
+ * invitation token — bound to an address, single use, burned on accept. A
+ * `jc:`-prefixed value is a JoinCode id — bearer, multi-use, burned never.
+ * Every reader must branch on this, so the prefix and its parser live in one
+ * place rather than as a `startsWith` scattered across call sites that will
+ * drift apart.
+ */
+export const JOIN_CODE_COOKIE_PREFIX = 'jc:';
+
+/** The JoinCode id inside an invite cookie, or null if it holds a token. */
+export function parseJoinCodeCookie(value: string): string | null {
+  if (!value.startsWith(JOIN_CODE_COOKIE_PREFIX)) return null;
+  const id = value.slice(JOIN_CODE_COOKIE_PREFIX.length);
+  return id.length > 0 ? id : null;
+}
+
+/**
+ * Attribution for a member who arrived on a join code: which piece of paper
+ * brought them in, and one more tick on that code's counter.
+ *
+ * Call only when the join actually added someone. `useCount` is what an owner
+ * reads as "how many people did the corkboard bring in", so an existing member
+ * re-scanning must not move it, and neither must the owner testing their own
+ * flyer.
+ */
+export async function attributeJoinCode(
+  userId: string,
+  collectionId: string,
+  codeId: string
+): Promise<void> {
+  await db.collectionMember.updateMany({
+    where: { userId, collectionId },
+    data: { joinedViaCodeId: codeId },
+  });
+  await recordJoinCodeUse(codeId);
+}
 
 export async function ensureActiveMembership(
   userId: string,
@@ -201,6 +241,63 @@ export async function handleInviteLanding(
       new URL(`/library/${libId}?guest=1`, request.url)
     );
     setInviteCookies(res, token, libId);
+    return res;
+  } catch {
+    return NextResponse.redirect(new URL('/?invite=error', request.url));
+  }
+}
+
+/**
+ * Join codes keep the guest preview; personal invites do not.
+ *
+ * A stranger who scanned a corkboard QR asked no question — they need to see
+ * the shelf before deciding whether to bother making an account. Dave, invited
+ * by name to a specific library, asked a direct one and gets a direct answer.
+ * See `handleInviteLanding`, which sends him straight to sign-in.
+ *
+ * There is no binding check here and there cannot be one: a join code is
+ * addressed to nobody, so there is no address to compare a session against.
+ * Bearer is the whole design, not an omission.
+ *
+ * Returns null when no active code matches, so the caller can go on to try
+ * `Invitation.shortCode` and, failing that, count the miss. A thrown error is
+ * NOT a miss — it comes back as a response, because an outage is not a guess
+ * and must not spend anyone's rate-limit budget.
+ */
+export async function handleJoinCodeLanding(
+  request: NextRequest,
+  rawCode: string
+): Promise<NextResponse | null> {
+  try {
+    const resolved = await resolveJoinCode(normalizeJoinCode(rawCode));
+    if (!resolved) return null;
+
+    const libId = resolved.collectionId;
+    const session = await getServerSession(authOptions);
+    const userId = (session?.user as { id?: string } | undefined)?.id;
+
+    if (!userId) {
+      const res = NextResponse.redirect(
+        new URL(`/library/${libId}?guest=1`, request.url)
+      );
+      setInviteCookies(res, `${JOIN_CODE_COOKIE_PREFIX}${resolved.id}`, libId);
+      return res;
+    }
+
+    const membership = await ensureActiveMembership(userId, libId);
+
+    let message = 'already_member';
+    if (membership.owner) {
+      message = 'own_library';
+    } else if (membership.created || membership.reactivated) {
+      message = 'joined_successfully';
+      await attributeJoinCode(userId, libId, resolved.id);
+    }
+
+    const res = NextResponse.redirect(
+      new URL(`/library/${libId}?message=${message}`, request.url)
+    );
+    clearInviteCookies(res);
     return res;
   } catch {
     return NextResponse.redirect(new URL('/?invite=error', request.url));

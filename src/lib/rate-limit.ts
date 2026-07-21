@@ -66,6 +66,48 @@ export function rateLimit(options: Options) {
 
       checkInMemory(limit, token);
     },
+    /**
+     * Current count for a token, without adding to it.
+     *
+     * `check` conflates "am I over?" with "count this one", which is right for
+     * a limiter that meters every request. It is wrong for one that meters
+     * only *failures* but must be consulted on every request — asking the
+     * question would itself be an answer, and a user opening a working link
+     * repeatedly would throttle themselves. Splitting the read from the write
+     * is what lets the guard run before the work it is protecting.
+     */
+    peek: async (token: string): Promise<number> => {
+      if (redis) {
+        try {
+          const raw = await redis.get(redisKey(token));
+          return raw == null ? 0 : Number(raw) || 0;
+        } catch (error) {
+          console.error(
+            `Rate limiter '${name}' Redis peek failed; falling back to in-memory:`,
+            error
+          );
+        }
+      }
+      return tokenCache.get(token) ?? 0;
+    },
+    /** Count one event against a token without judging the total. */
+    record: async (token: string): Promise<void> => {
+      if (redis) {
+        try {
+          const count = await redis.incr(redisKey(token));
+          if (count === 1) {
+            await redis.expire(redisKey(token), ttlSeconds);
+          }
+          return;
+        } catch (error) {
+          console.error(
+            `Rate limiter '${name}' Redis record failed; falling back to in-memory:`,
+            error
+          );
+        }
+      }
+      tokenCache.set(token, (tokenCache.get(token) || 0) + 1);
+    },
     reset: async (token: string): Promise<void> => {
       tokenCache.delete(token);
       if (redis) {

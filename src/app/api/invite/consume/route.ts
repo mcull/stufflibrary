@@ -4,10 +4,12 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import {
   acceptInvitation,
+  attributeJoinCode,
   clearInviteCookies,
   emailMatchesInvitation,
   ensureActiveMembership,
   maskEmail,
+  parseJoinCodeCookie,
   validateLibraryInvite,
 } from '@/lib/invite';
 
@@ -41,6 +43,21 @@ export async function POST(request: NextRequest) {
     // Build base response now so we can always clear cookies
     const res = NextResponse.json({ redirect: `/library/${inviteLibrary}` });
     clearInviteCookies(res);
+
+    // A join code, not an invitation. Bearer by design: no address is
+    // attached to it, so there is nothing to bind a session to and the
+    // binding check below must not run — it would refuse every arrival.
+    // Nothing is burned either; the code stays live for the next scan.
+    const joinCodeId = parseJoinCodeCookie(inviteToken);
+    if (joinCodeId) {
+      const membership = await ensureActiveMembership(userId, inviteLibrary);
+      if (membership.created || membership.reactivated) {
+        await attributeJoinCode(userId, inviteLibrary, joinCodeId);
+      } else {
+        console.log('[invite/consume] join code: owner or existing member');
+      }
+      return res;
+    }
 
     // Validate invite
     const validation = await validateLibraryInvite(inviteToken);
