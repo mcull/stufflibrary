@@ -1120,7 +1120,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth';
-import { getUserCapabilities } from '@/lib/capabilities';
+import { getUserCapabilities } from '@/lib/user-capabilities';
 import { createJoinCode } from '@/lib/join-code-service';
 import { db } from '@/lib/db';
 
@@ -1183,7 +1183,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth';
-import { getUserCapabilities } from '@/lib/capabilities';
+import { getUserCapabilities } from '@/lib/user-capabilities';
 import { rotateJoinCode } from '@/lib/join-code-service';
 
 export async function POST(
@@ -1201,7 +1201,10 @@ export async function POST(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const replacement = await rotateJoinCode(codeId, userId);
+  // Scope to the library the caller was gated on — codeId is a path segment
+  // they chose independently, so an unscoped rotate lets an admin of library A
+  // revoke library B's corkboard code.
+  const replacement = await rotateJoinCode(codeId, userId, id);
   if (!replacement) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
@@ -1236,7 +1239,9 @@ Verified broken in a browser: scan a join code for a **private** library and the
 
 The consequence is the whole flyer flow: scan QR → land on the guest preview → 403. Join codes exist to keep that preview, and the preview is exactly what fails.
 
-Fix: in the same block that validates an invite token, use `parseJoinCodeCookie` (`src/lib/invite.ts`) and, on a `jc:` value, resolve it with `resolveJoinCode` and grant `'guest'` when the code is active and its `collectionId` matches the library being viewed. Match the existing invitation branch's strictness — a code for a _different_ library must not grant anything.
+Fix: in the same block that validates an invite token, use `parseJoinCodeCookie` (`src/lib/invite.ts`) and, on a `jc:` value, grant `'guest'` when the code is active and its `collectionId` matches the library being viewed. Match the existing invitation branch's strictness — a code for a _different_ library must not grant anything.
+
+**Use `resolveJoinCodeById`, not `resolveJoinCode`.** The cookie carries a JoinCode **id**; `resolveJoinCode` normalizes its argument and matches on `code`, so an id never matches — following that instruction would ship a "fix" that 403s exactly as before.
 
 Test both: a `jc:` cookie for this library yields the redacted guest payload (`members: []`, `memberAreas` populated); a `jc:` cookie for another library still 403s.
 
