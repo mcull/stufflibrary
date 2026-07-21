@@ -10,6 +10,17 @@
 
 **Spec:** `docs/superpowers/specs/2026-07-20-library-invitations-design.md`
 
+> **A note on the test sketches below.** They are a floor, not a ceiling. Task 2's original
+> sketch passed against three of four deliberately broken implementations — including one that
+> silently cut the keyspace from 2^40 to 2^32, which is the single property this feature's
+> security rests on. One of its assertions compared generated output against the very constant
+> that produced it, so it could not fail at all.
+>
+> Before marking any task done, **mutate the implementation and confirm the tests go red.** If a
+> test still passes against code you deliberately broke, it is decoration. This applies especially
+> to anything asserting a security property — those are the tests most likely to be trusted and
+> least likely to be exercised.
+
 **Scope note:** QR rendering, the flyer generator, and SMS compose are a separate plan. This one ends with a working, testable join flow.
 
 ---
@@ -430,6 +441,34 @@ describe('resolveJoinCode', () => {
   });
 });
 
+describe('createJoinCode collision handling', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('retries with a fresh code when the unique constraint fires', async () => {
+    const collision = Object.assign(new Error('unique'), { code: 'P2002' });
+    mockCreate.mockRejectedValueOnce(collision).mockResolvedValueOnce({
+      id: 'jc-2',
+    });
+
+    const created = await createJoinCode('col-1', 'user-1');
+
+    expect(created).toEqual({ id: 'jc-2' });
+    expect(mockCreate).toHaveBeenCalledTimes(2);
+    // A retry that reuses the colliding code would loop forever.
+    expect(mockCreate.mock.calls[0]![0].data.code).not.toBe(
+      mockCreate.mock.calls[1]![0].data.code
+    );
+  });
+
+  it('rethrows errors that are not collisions rather than burning retries', async () => {
+    mockCreate.mockRejectedValue(new Error('connection lost'));
+    await expect(createJoinCode('col-1', 'user-1')).rejects.toThrow(
+      'connection lost'
+    );
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('rotateJoinCode', () => {
   beforeEach(() => vi.clearAllMocks());
 
@@ -492,19 +531,35 @@ export interface ResolvedJoinCode {
   collectionId: string;
 }
 
+/**
+ * Retries on the unique constraint. At 2^40 a collision is vanishingly
+ * unlikely, but "vanishingly unlikely" surfaces to a user as a raw Prisma
+ * error on a button click, and the recovery is one more random draw.
+ */
 export async function createJoinCode(
   collectionId: string,
   createdById: string,
   label?: string
 ) {
-  return db.joinCode.create({
-    data: {
-      code: generateJoinCode(),
-      collectionId,
-      createdById,
-      label: label ?? null,
-    },
-  });
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      return await db.joinCode.create({
+        data: {
+          code: generateJoinCode(),
+          collectionId,
+          createdById,
+          label: label ?? null,
+        },
+      });
+    } catch (error) {
+      const isCollision =
+        typeof error === 'object' &&
+        error !== null &&
+        (error as { code?: string }).code === 'P2002';
+      if (!isCollision || attempt === 4) throw error;
+    }
+  }
+  throw new Error('Failed to generate a unique join code');
 }
 
 export async function resolveJoinCode(
