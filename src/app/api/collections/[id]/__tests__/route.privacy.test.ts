@@ -340,8 +340,11 @@ describe('GET /api/collections/[id] — item owner names', () => {
 
     const { body } = await callGET();
 
+    // toMatchObject, not toEqual: this test is about the name and avatar
+    // surviving for an insider. A legitimately-added field shouldn't fail it.
+    // The guest tests keep exact-shape assertions, where strictness earns it.
     const item = body.collection.items[0];
-    expect(item.owner).toEqual({
+    expect(item.owner).toMatchObject({
       id: ANA_ID,
       name: 'Ana Restrepo',
       image: 'https://avatars.example/ana-restrepo.png',

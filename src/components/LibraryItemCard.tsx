@@ -204,33 +204,40 @@ export function LibraryItemCard({ item, libraryId }: LibraryItemCardProps) {
                   const displayUser = isOffline
                     ? item.owner
                     : item.currentBorrow?.borrower;
+                  // Guests are sent no id for an item owner, so there is
+                  // nobody to navigate to. Don't offer the affordance: a
+                  // pointer cursor and a hover lift that lead nowhere read as
+                  // a broken card, not a private one.
                   const userId = displayUser?.id;
+                  const canOpenProfile = Boolean(userId);
 
                   return (
                     <Avatar
                       {...(displayUser?.image && {
                         src: displayUser.image,
                       })}
-                      onClick={(e: React.MouseEvent) => {
-                        e.stopPropagation();
-                        if (userId) {
+                      {...(canOpenProfile && {
+                        onClick: (e: React.MouseEvent) => {
+                          e.stopPropagation();
                           router.push(`/stuff/m/${userId}`);
-                        }
-                      }}
+                        },
+                      })}
                       sx={{
                         position: 'absolute',
                         top: 4,
                         right: 4,
                         width: 24,
                         height: 24,
-                        cursor: 'pointer',
+                        cursor: canOpenProfile ? 'pointer' : 'default',
                         border: '1px solid white',
                         boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
                         fontSize: '0.7rem',
-                        '&:hover': {
-                          transform: 'scale(1.1)',
-                          transition: 'transform 0.2s ease',
-                        },
+                        ...(canOpenProfile && {
+                          '&:hover': {
+                            transform: 'scale(1.1)',
+                            transition: 'transform 0.2s ease',
+                          },
+                        }),
                       }}
                     >
                       {!displayUser?.image && (displayUser?.name?.[0] || '?')}

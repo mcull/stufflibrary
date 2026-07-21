@@ -35,9 +35,16 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 
 import { useCapabilities } from '@/hooks/useCapabilities';
 import type { CapabilityReason } from '@/lib/capabilities';
-import type { MemberArea } from '@/lib/member-location-privacy';
+import {
+  canSeeExactMemberLocations,
+  type MemberArea,
+} from '@/lib/member-location-privacy';
 import { brandColors, spacing } from '@/theme/brandTokens';
 
+import {
+  chooseMapCaption,
+  unplottedCaptionText,
+} from './collection-map-caption';
 import { CompleteProfilePrompt } from './CompleteProfilePrompt';
 import { EditCollectionModal } from './EditCollectionModal';
 import { ExpandableText } from './ExpandableText';
@@ -139,6 +146,20 @@ interface LibraryData {
   memberAreas?: MemberArea[];
   items?: LibraryItem[];
   itemsByCategory: Record<string, LibraryItem[]>;
+}
+
+/**
+ * A member we can honestly put on the map. Coordinates arrive only at
+ * profile-save time from client-supplied values, so a member without them is
+ * an ordinary state — and one we show nothing for rather than guess at.
+ */
+function isPlottable(
+  address: NeighborAddress | undefined
+): address is NeighborAddress & { latitude: number; longitude: number } {
+  return (
+    typeof address?.latitude === 'number' &&
+    typeof address?.longitude === 'number'
+  );
 }
 
 interface CollectionDetailClientProps {
@@ -519,17 +540,14 @@ export function CollectionDetailClient({
     if (!library) return [];
     return library.members.flatMap((member) => {
       const address = member.user.addresses?.[0];
-      const { latitude, longitude } = address ?? {};
-      if (typeof latitude !== 'number' || typeof longitude !== 'number') {
-        return [];
-      }
+      if (!isPlottable(address)) return [];
       return [
         {
           id: member.user.id,
           name: member.user.name || null,
           image: member.user.image || null,
-          latitude,
-          longitude,
+          latitude: address.latitude,
+          longitude: address.longitude,
         },
       ];
     });
@@ -539,11 +557,20 @@ export function CollectionDetailClient({
   const mapAreas = useMemo(() => library?.memberAreas ?? [], [library]);
 
   // Members the map cannot honestly place. Worth naming under the map so the
-  // pin count doesn't read as the whole neighborhood.
+  // pin count doesn't read as the whole neighborhood. Counted from the
+  // predicate rather than as (total - plotted): the moment anything else
+  // filters mapMembers, subtraction becomes a wrong number in a sentence we
+  // show to a user.
   const unplottedCount = useMemo(() => {
     if (!library) return 0;
-    return library.members.length - mapMembers.length;
-  }, [library, mapMembers]);
+    return library.members.filter(
+      (member) => !isPlottable(member.user.addresses?.[0])
+    ).length;
+  }, [library]);
+
+  // The same insider/outsider call the server made. Guests and anonymous
+  // viewers of a public library were sent areas, not people.
+  const viewerSeesPins = canSeeExactMemberLocations(library?.userRole);
 
   const mapCurrentUser = useMemo(
     () => ({
@@ -578,6 +605,12 @@ export function CollectionDetailClient({
 
   const hasMapAnchor = locatedCount > 0;
   const mapEarnsFullSize = locatedCount >= 2;
+
+  const mapCaption = chooseMapCaption({
+    userRole: library?.userRole,
+    unplottedCount,
+    mapEarnsFullSize,
+  });
 
   const isLibraryManager =
     library?.userRole === 'owner' || library?.userRole === 'admin';
@@ -1194,58 +1227,64 @@ export function CollectionDetailClient({
               transition: 'height 0.3s ease',
             }}
           >
-            <LibraryMap
-              libraryName={library?.name}
-              members={mapMembers}
-              areas={mapAreas}
-              currentUser={mapCurrentUser}
-              isGuest={library?.userRole === 'guest'}
-            />
+            {/* Pins or areas — the same insider/outsider call the server
+                made when it decided what to send. */}
+            {viewerSeesPins ? (
+              <LibraryMap
+                libraryName={library?.name}
+                view="pins"
+                members={mapMembers}
+                currentUser={mapCurrentUser}
+              />
+            ) : (
+              <LibraryMap
+                libraryName={library?.name}
+                view="areas"
+                areas={mapAreas}
+                locked={library?.userRole === 'guest'}
+              />
+            )}
           </Box>
-          {/* One caption at most. If neighbors are here but unplaceable, say
-              so — otherwise the pin count reads as the whole neighborhood, and
-              "invite a neighbor" is the wrong next step. */}
-          {library?.userRole && library.userRole !== 'guest' ? (
-            unplottedCount > 0 ? (
-              <Typography
-                variant="body2"
-                sx={{ color: 'text.secondary', textAlign: 'center', mt: 1 }}
-              >
-                {unplottedCount === 1
-                  ? '1 member hasn’t added a location yet'
-                  : `${unplottedCount} members haven’t added a location yet`}
+          {/* One caption at most; the precedence lives in chooseMapCaption
+              so it can be tested without mounting this tree. */}
+          {mapCaption === 'unplotted' && (
+            <Typography
+              variant="body2"
+              sx={{ color: 'text.secondary', textAlign: 'center', mt: 1 }}
+            >
+              {unplottedCaptionText(unplottedCount)}
+            </Typography>
+          )}
+          {mapCaption === 'invite' && (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 1,
+                mt: 1,
+              }}
+            >
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                Just you on the map so far &mdash;
               </Typography>
-            ) : !mapEarnsFullSize ? (
-              <Box
+              <Button
+                variant="text"
+                size="small"
+                onClick={handleInviteClick}
                 sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 1,
-                  mt: 1,
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  color: brandColors.inkBlue,
+                  p: 0,
+                  minWidth: 0,
+                  '&:hover': { backgroundColor: 'transparent' },
                 }}
               >
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  Just you on the map so far —
-                </Typography>
-                <Button
-                  variant="text"
-                  size="small"
-                  onClick={handleInviteClick}
-                  sx={{
-                    textTransform: 'none',
-                    fontWeight: 600,
-                    color: brandColors.inkBlue,
-                    p: 0,
-                    minWidth: 0,
-                    '&:hover': { backgroundColor: 'transparent' },
-                  }}
-                >
-                  invite a neighbor to fill it in
-                </Button>
-              </Box>
-            ) : null
-          ) : null}
+                invite a neighbor to fill it in
+              </Button>
+            </Box>
+          )}
         </Box>
       ) : isLibraryManager ? (
         <Box
