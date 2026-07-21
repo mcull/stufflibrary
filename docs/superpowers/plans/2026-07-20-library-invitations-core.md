@@ -1212,6 +1212,22 @@ export async function POST(
 
 The confirmation copy — _"corkboard flyer — used 14 times. Anyone holding a flyer with XKF7-2M9Q won't be able to join."_ — belongs in the UI that calls this, which is the artifacts plan. The endpoint just rotates.
 
+- [ ] **Step 0: Move link-mode sharing onto `JoinCode` — LAUNCH BLOCKER**
+
+Do this first; it is a regression introduced by Tasks 5 and 7, not a new feature.
+
+`ManageMembersModal.tsx:739` ("Share Link" / "Copy Join Link") POSTs `mode: 'link'`, which creates an `Invitation` with a fabricated address, `link-<token>@share.stufflibrary.local`. That fiction existed only to satisfy `@@unique([email, senderId, libraryId])`. It is now fatal:
+
+- **Before Task 5:** worked — guest preview, sign in, consume.
+- **After Task 5:** a signed-in recipient hits the `wrong_account` dead end, because no real session can match a synthetic address.
+- **After Task 7:** a signed-out recipient reaches sign-in with `link-<64hex>@share.stufflibrary.local` prefilled **and locked**. They cannot sign in at all.
+
+**Do not fix this by exempting the synthetic address from the binding check.** That is the "security guard with an exemption in it" this spec argues against throughout, and the exemption would be keyed on a string pattern any invitation could be made to match.
+
+The correct fix is the one the spec already describes: a bearer share link is a `JoinCode`, not a personal invitation with a fake addressee. Change `mode: 'link'` to create (or reuse) a `JoinCode` for the library and return `/join/<code>`. The synthetic-address branch and its comment come out entirely.
+
+Existing `link-*@share.stufflibrary.local` rows can be left alone — they resolve through `/j/<token>` as before, and Task 5's binding will refuse them, which is the same outcome as today for anyone who didn't already use them.
+
 - [ ] **Step 2b: Teach `/api/collections/[id]/join` about `jc:` cookies**
 
 `src/app/api/collections/[id]/join/route.ts:68` does `db.invitation.findFirst({ token: inviteToken })`, which a `jc:<id>` value can never match. So a signed-in user holding a join-code cookie who clicks Join in `CollectionDetailClient` on a **private** library is refused.
