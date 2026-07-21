@@ -201,13 +201,16 @@ export async function handleInviteLanding(
       if (
         !emailMatchesInvitation(sessionUser?.email, result.invitation.email)
       ) {
-        const masked = encodeURIComponent(maskEmail(result.invitation.email));
-        // Invite cookies are left alone: the dead end offers "sign in as that
-        // address", and consume needs the token still there to finish the job
-        // once the right person arrives.
-        return NextResponse.redirect(
-          new URL(`/?invite=wrong_account&invited=${masked}`, request.url)
+        // The address stays out of the URL entirely — masked or not, a query
+        // parameter lands in browser history and outbound Referer. The dead
+        // end reads it back off the cookie instead, which is also what
+        // consume needs still sitting there to finish the job once the right
+        // person arrives.
+        const res = NextResponse.redirect(
+          new URL('/?invite=wrong_account', request.url)
         );
+        setInviteCookies(res, token, libId);
+        return res;
       }
 
       const membership = await ensureActiveMembership(userId, libId);
@@ -237,9 +240,12 @@ export async function handleInviteLanding(
       return res;
     }
 
-    const res = NextResponse.redirect(
-      new URL(`/library/${libId}?guest=1`, request.url)
-    );
+    // No guest preview for a personal invite. Dave asked to join this library
+    // by name; a browse-first detour answers a question he did not ask. He
+    // goes to sign-in, where /api/invite/context reads the cookie set here and
+    // locks the field to the invited address. Join codes keep the preview —
+    // see handleJoinCodeLanding.
+    const res = NextResponse.redirect(new URL('/auth/signin', request.url));
     setInviteCookies(res, token, libId);
     return res;
   } catch {

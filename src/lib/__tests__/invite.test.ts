@@ -220,7 +220,7 @@ describe('handleInviteLanding', () => {
     );
     expect(res.headers.get('location')).toContain('/?invite=expired');
   });
-  it('unauthenticated user gets guest cookies and redirected to collection?guest=1', async () => {
+  it('unauthenticated user gets invite cookies and is sent to sign-in', async () => {
     mockInvitationFindFirst.mockResolvedValue({
       libraryId: 'c1',
       expiresAt: new Date(Date.now() + 86400000),
@@ -232,6 +232,8 @@ describe('handleInviteLanding', () => {
       'tok'
     );
     expect(res.status).toBe(307);
-    expect(res.headers.get('location')).toContain('/library/c1?guest=1');
+    expect(res.headers.get('location')).toContain('/auth/signin');
+    expect(res.cookies.get('invite_token')?.value).toBe('tok');
+    expect(res.cookies.get('invite_library')?.value).toBe('c1');
   });
 });

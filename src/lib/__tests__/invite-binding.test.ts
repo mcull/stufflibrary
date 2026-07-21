@@ -173,7 +173,10 @@ describe('handleInviteLanding — the already-signed-in forwardee', () => {
     expect(mockInvitationUpdateMany).not.toHaveBeenCalled();
   });
 
-  it('tells the stranger which address it was for, masked', async () => {
+  // Masked is not harvestable, but it still lands in browser history and
+  // outbound Referer — the same channel this design rejects for the plain
+  // address. The dead-end screen reads the cookie instead.
+  it('puts no form of the address in the URL, masked or otherwise', async () => {
     mockInvitationFindFirst.mockResolvedValue(inviteRow());
     mockGetServerSession.mockResolvedValue({
       user: { id: 'u2', email: 'stranger@example.com' },
@@ -181,11 +184,29 @@ describe('handleInviteLanding — the already-signed-in forwardee', () => {
     mockMemberFindUnique.mockResolvedValue(null);
 
     const res = await landing();
-    const location = res.headers.get('location') ?? '';
+    const location = decodeURIComponent(res.headers.get('location') ?? '');
 
-    expect(decodeURIComponent(location)).toContain('d•••@example.com');
-    expect(location).not.toContain('dave%40example.com');
-    expect(decodeURIComponent(location)).not.toContain('dave@example.com');
+    expect(location).not.toContain('d•••@example.com');
+    expect(location).not.toContain('dave@example.com');
+    expect(location).not.toContain('invited=');
+    expect(location).not.toContain('example.com');
+  });
+
+  // The dead end's offer is "sign in as that address". It reads the invited
+  // address off the cookie, and consume needs the token still there once the
+  // right person arrives — so the refusal has to leave one behind. Nothing is
+  // granted by the cookie itself; every consumer re-checks the binding.
+  it('leaves the stranger holding the invite cookies so the screen has something to recover', async () => {
+    mockInvitationFindFirst.mockResolvedValue(inviteRow());
+    mockGetServerSession.mockResolvedValue({
+      user: { id: 'u2', email: 'stranger@example.com' },
+    });
+    mockMemberFindUnique.mockResolvedValue(null);
+
+    const res = await landing();
+
+    expect(res.cookies.get('invite_token')?.value).toBe('tok');
+    expect(res.cookies.get('invite_library')?.value).toBe('c1');
   });
 
   it('refuses an OAuth session with no email at all rather than passing', async () => {
@@ -245,13 +266,32 @@ describe('handleInviteLanding — the already-signed-in forwardee', () => {
     expect(mockInvitationUpdateMany).not.toHaveBeenCalled();
   });
 
-  it('leaves the unauthenticated guest preview untouched', async () => {
+  it('sends the unauthenticated invitee to sign-in, not the guest preview', async () => {
     mockInvitationFindFirst.mockResolvedValue(inviteRow());
     mockGetServerSession.mockResolvedValue(null);
 
     const res = await landing();
+    const location = res.headers.get('location') ?? '';
 
-    expect(res.headers.get('location')).toContain('/library/c1?guest=1');
+    expect(location).toContain('/auth/signin');
+    expect(location).not.toContain('guest=1');
+  });
+
+  // The whole point of the cookie: the address is what sign-in locks to, and
+  // a query parameter would put it in browser history and outbound Referer.
+  it('carries the invitation in cookies and never the address in the URL', async () => {
+    mockInvitationFindFirst.mockResolvedValue(inviteRow());
+    mockGetServerSession.mockResolvedValue(null);
+
+    const res = await landing();
+    const location = res.headers.get('location') ?? '';
+
+    expect(res.cookies.get('invite_token')?.value).toBe('tok');
+    expect(res.cookies.get('invite_library')?.value).toBe('c1');
+    expect(res.cookies.get('invite_token')?.httpOnly).toBe(true);
+    expect(decodeURIComponent(location)).not.toContain('dave@example.com');
+    expect(location).not.toContain('dave%40example.com');
+    expect(location).not.toContain('email=');
   });
 });
 

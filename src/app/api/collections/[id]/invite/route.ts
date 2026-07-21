@@ -7,6 +7,7 @@ import { Resend } from 'resend';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { buildLibraryInviteEmail } from '@/lib/invite-email';
+import { generateJoinCode } from '@/lib/join-code';
 import { getUserCapabilities } from '@/lib/user-capabilities';
 
 export async function POST(
@@ -217,14 +218,24 @@ export async function POST(
     const isLiveInvitation = liveToken !== null;
     const token = liveToken ?? crypto.randomBytes(32).toString('hex');
 
+    // The short code is what the email actually prints, so it follows the same
+    // reuse rule as the token: a live invitation keeps the code already sitting
+    // in someone's inbox. Rows predating the column are live but codeless, and
+    // get one minted without disturbing their token.
+    const liveShortCode = isLiveInvitation
+      ? (existingInvitation?.shortCode ?? null)
+      : null;
+    const shortCode = liveShortCode ?? generateJoinCode();
+
     let invitation;
     if (existingInvitation) {
       invitation = await db.invitation.update({
         where: { id: existingInvitation.id },
         data: isLiveInvitation
-          ? {}
+          ? { shortCode }
           : {
               token,
+              shortCode,
               status: 'PENDING',
               expiresAt,
               acceptedAt: null,
@@ -241,6 +252,7 @@ export async function POST(
           type: 'library',
           status: 'PENDING',
           token,
+          shortCode,
           libraryId,
           senderId: userId,
           expiresAt,
@@ -250,7 +262,7 @@ export async function POST(
     }
 
     const baseUrl = process.env.NEXTAUTH_URL || '';
-    const shareLink = `${baseUrl}/j/${token}`;
+    const shareLink = `${baseUrl}/join/${shortCode}`;
     console.log('[api/collections/:id/invite] created token', {
       mode,
       tokenLen: token.length,

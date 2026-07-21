@@ -29,6 +29,8 @@ function SignInForm() {
     libraryName: string;
     inviterName: string;
   } | null>(null);
+  // The address a personal invitation is bound to. Set means locked.
+  const [boundEmail, setBoundEmail] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const invitationToken = searchParams.get('invitation');
   const isMagicLink = searchParams.get('magic') === 'true';
@@ -126,6 +128,27 @@ function SignInForm() {
         })
         .catch(console.error);
     }
+  }, [invitationToken, prefilledEmail]);
+
+  // A personal invitation arriving on the httpOnly invite cookie. This page is
+  // a client component and cannot read that cookie, and the address must not
+  // travel in the URL, so it is asked for server-side. The legacy `?invitation=`
+  // and magic-link `?email=` paths carry their own prefill and are not bound —
+  // they win, and the field stays open for them.
+  useEffect(() => {
+    if (invitationToken || prefilledEmail) return;
+    let cancelled = false;
+    fetch('/api/invite/context')
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled || !data?.invite?.email) return;
+        setBoundEmail(data.invite.email);
+        setEmail(data.invite.email);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, [invitationToken, prefilledEmail]);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
@@ -598,8 +621,18 @@ function SignInForm() {
 
             {/* Email Form */}
             <Box component="form" onSubmit={handleEmailSubmit}>
+              {/* No edit affordance — that is what binding means. */}
+              {boundEmail && (
+                <Typography
+                  variant="body2"
+                  sx={{ mb: 1, color: brandColors.charcoal }}
+                >
+                  You were invited as <strong>{boundEmail}</strong>.
+                </Typography>
+              )}
               <TextField
                 fullWidth
+                disabled={!!boundEmail}
                 id="email"
                 name="email"
                 type="email"
