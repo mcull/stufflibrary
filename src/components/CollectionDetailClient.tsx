@@ -106,7 +106,9 @@ interface LibraryData {
     name?: string;
     image?: string;
     addresses?: Array<{
-      address1: string;
+      // Redacted server-side (privacy): the API no longer sends street
+      // address or email at any role. Optional until the map stops asking.
+      address1?: string;
       city: string;
       state: string;
       latitude?: number;
@@ -126,7 +128,7 @@ interface LibraryData {
       name?: string;
       image?: string;
       addresses?: Array<{
-        address1: string;
+        address1?: string;
         city: string;
         state: string;
         latitude?: number;

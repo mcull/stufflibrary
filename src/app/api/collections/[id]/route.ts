@@ -4,6 +4,12 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { libraryMemberCount, nonOwnerMemberRows } from '@/lib/library-members';
+import {
+  anonymousProfile,
+  canSeeExactMemberLocations,
+  neighbourProfile,
+  toMemberAreas,
+} from '@/lib/member-location-privacy';
 
 export async function GET(
   request: NextRequest,
@@ -46,12 +52,10 @@ export async function GET(
             addresses: {
               where: { isActive: true },
               select: {
-                address1: true,
                 city: true,
                 state: true,
                 latitude: true,
                 longitude: true,
-                formattedAddress: true,
               },
               take: 1,
             },
@@ -66,16 +70,13 @@ export async function GET(
                 name: true,
                 image: true,
                 status: true,
-                email: true,
                 addresses: {
                   where: { isActive: true },
                   select: {
-                    address1: true,
                     city: true,
                     state: true,
                     latitude: true,
                     longitude: true,
-                    formattedAddress: true,
                   },
                   take: 1,
                 },
@@ -206,6 +207,40 @@ export async function GET(
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
+    // Redact by role. Members/admins/owners see each other's exact pins;
+    // guests and anonymous viewers of a public library see only blurred,
+    // counted areas — no names, no avatars, no per-person coordinates. The
+    // page tells guests "you'll see who's who once you're in"; this keeps it.
+    const insideTheLibrary = canSeeExactMemberLocations(effectiveRole);
+
+    const nonOwnerRows = nonOwnerMemberRows(library.ownerId, library.members);
+
+    const members = insideTheLibrary
+      ? [
+          // Include owner as first member
+          {
+            id: 'owner-' + library.owner.id,
+            role: 'owner',
+            joinedAt: library.createdAt,
+            user: neighbourProfile(library.owner),
+          },
+          // Then include other members
+          ...nonOwnerRows.map((member) => ({
+            id: member.id,
+            role: member.role,
+            joinedAt: member.joinedAt,
+            user: neighbourProfile(member.user),
+          })),
+        ]
+      : [];
+
+    const memberAreas = insideTheLibrary
+      ? []
+      : toMemberAreas([
+          library.owner.addresses?.[0] ?? {},
+          ...nonOwnerRows.map((member) => member.user.addresses?.[0] ?? {}),
+        ]);
+
     // Format response
     const formattedLibrary = {
       id: library.id,
@@ -215,7 +250,9 @@ export async function GET(
       isPublic: library.isPublic,
       createdAt: library.createdAt,
       updatedAt: library.updatedAt,
-      owner: library.owner,
+      owner: insideTheLibrary
+        ? neighbourProfile(library.owner)
+        : anonymousProfile(library.owner),
       userRole: effectiveRole,
       // Owner counts once; a stray owner self-member row (#409 dirty data)
       // must not inflate the count or list the owner twice.
@@ -226,24 +263,8 @@ export async function GET(
       }),
       itemCount: items.length,
       inviteRateLimitPerHour: (library as any).inviteRateLimitPerHour ?? 0,
-      members: [
-        // Include owner as first member
-        {
-          id: 'owner-' + library.owner.id,
-          role: 'owner',
-          joinedAt: library.createdAt,
-          user: library.owner,
-        },
-        // Then include other members
-        ...nonOwnerMemberRows(library.ownerId, library.members).map(
-          (member) => ({
-            id: member.id,
-            role: member.role,
-            joinedAt: member.joinedAt,
-            user: member.user,
-          })
-        ),
-      ],
+      members,
+      memberAreas,
       items: items.map((item) => {
         const activeBorrow = item.borrowRequests.find(
           (req) => req.status === 'ACTIVE' || req.status === 'APPROVED'
