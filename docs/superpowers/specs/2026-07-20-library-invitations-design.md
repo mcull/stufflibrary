@@ -169,6 +169,16 @@ generated once link-mode moves to `JoinCode`; existing rows are left alone.
 
 The unused `qrCode` column stays unused — QR codes are rendered on demand, not stored.
 
+**`JoinCode.createdBy` is `ON DELETE RESTRICT`, deliberately.** Every other `User` relation in the
+schema uses `Cascade` (11 of 11), so this is a conscious deviation and should not be "fixed" for
+consistency. Cascade would mean deleting a user silently destroys their join codes — invalidating
+flyers already sitting in mailboxes for a library that still exists and that they may not even own.
+`RESTRICT` fails loudly instead. Nothing in the app hard-deletes users today (`User.status` is a
+flag; the only `user.delete` in the tree is test cleanup), so this costs nothing now and forces an
+explicit decision whenever account deletion is built. The likely answer then is `SetNull` with a
+nullable `createdById` — the code should outlive its author — but that trades away the guarantee
+that every code has an attributable creator, which is half of why the field exists.
+
 ### Changed: `CollectionMember`
 
 ```prisma
