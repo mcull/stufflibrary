@@ -105,4 +105,47 @@ describe('GET /api/collections/[id]/members', () => {
     expect(ids).toContain('bob');
     expect(body.members).toHaveLength(2);
   });
+
+  it('never selects email or street address for regular members', async () => {
+    mockMemberFindMany.mockResolvedValue([]);
+
+    await callGET();
+
+    const memberSelect =
+      mockMemberFindMany.mock.calls[0]![0].include.user.select;
+    expect(memberSelect.email).toBeUndefined();
+    expect(memberSelect.addresses.select.address1).toBeUndefined();
+    expect(memberSelect.addresses.select.formattedAddress).toBeUndefined();
+  });
+
+  it('never selects email or street address for the owner', async () => {
+    mockMemberFindMany.mockResolvedValue([]);
+
+    await callGET();
+
+    const ownerSelect =
+      mockCollectionFindUnique.mock.calls[0]![0].include.owner.select;
+    expect(ownerSelect.email).toBeUndefined();
+    expect(ownerSelect.addresses.select.address1).toBeUndefined();
+    expect(ownerSelect.addresses.select.formattedAddress).toBeUndefined();
+  });
+
+  it('still selects city, state, and zip so the map keeps working', async () => {
+    mockMemberFindMany.mockResolvedValue([]);
+
+    await callGET();
+
+    const memberAddr =
+      mockMemberFindMany.mock.calls[0]![0].include.user.select.addresses.select;
+    expect(memberAddr.city).toBe(true);
+    expect(memberAddr.state).toBe(true);
+    expect(memberAddr.zip).toBe(true);
+
+    const ownerAddr =
+      mockCollectionFindUnique.mock.calls[0]![0].include.owner.select.addresses
+        .select;
+    expect(ownerAddr.city).toBe(true);
+    expect(ownerAddr.state).toBe(true);
+    expect(ownerAddr.zip).toBe(true);
+  });
 });

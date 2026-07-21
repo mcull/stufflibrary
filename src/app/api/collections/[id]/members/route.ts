@@ -54,18 +54,15 @@ export async function GET(
           select: {
             id: true,
             name: true,
-            email: true,
             image: true,
             status: true,
             addresses: {
               where: { isActive: true },
               take: 1,
               select: {
-                address1: true,
                 city: true,
                 state: true,
                 zip: true,
-                formattedAddress: true,
               },
             },
           },
@@ -85,18 +82,15 @@ export async function GET(
           select: {
             id: true,
             name: true,
-            email: true,
             image: true,
             status: true,
             addresses: {
               where: { isActive: true },
               take: 1,
               select: {
-                address1: true,
                 city: true,
                 state: true,
                 zip: true,
-                formattedAddress: true,
               },
             },
           },
