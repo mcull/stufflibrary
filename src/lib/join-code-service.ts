@@ -60,6 +60,21 @@ export async function resolveJoinCode(
 }
 
 /**
+ * The `jc:` cookie carries a JoinCode **id**, not a code, so the guest-preview
+ * and join readers cannot go through `resolveJoinCode` — that one normalizes
+ * its input and matches on `code`, and an id would never match. Same liveness
+ * rule, different key. Callers must still compare `collectionId` against the
+ * library being viewed: a cookie is not proof of which library it is for.
+ */
+export async function resolveJoinCodeById(
+  id: string
+): Promise<ResolvedJoinCode | null> {
+  const row = await db.joinCode.findFirst({ where: { id, isActive: true } });
+  if (!row) return null;
+  return { id: row.id, collectionId: row.collectionId };
+}
+
+/**
  * Rotation is the only revocation. The old row is deactivated rather than
  * deleted so the audit trail — and every member's joinedViaCodeId — survives.
  *
@@ -88,9 +103,20 @@ export async function resolveJoinCode(
  * Two live codes is visible, harmless and self-correcting. Zero is a silent
  * outage on physical paper.
  */
-export async function rotateJoinCode(codeId: string, actorId: string) {
+export async function rotateJoinCode(
+  codeId: string,
+  actorId: string,
+  collectionId?: string
+) {
   const existing = await db.joinCode.findFirst({
-    where: { id: codeId, isActive: true },
+    // Scoped when the caller knows which library it authorized against, so a
+    // code id from another library resolves to nothing rather than being
+    // rotated by someone with no standing over it.
+    where: {
+      id: codeId,
+      isActive: true,
+      ...(collectionId && { collectionId }),
+    },
   });
   if (!existing) return null;
 

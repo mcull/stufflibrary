@@ -8,7 +8,14 @@ import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { buildLibraryInviteEmail } from '@/lib/invite-email';
 import { generateJoinCode } from '@/lib/join-code';
+import { createJoinCode } from '@/lib/join-code-service';
 import { getUserCapabilities } from '@/lib/user-capabilities';
+
+/**
+ * Marks the one code behind the "Share Link" button, so repeated clicks reuse
+ * it and rotating a corkboard flyer never disturbs it.
+ */
+const SHARE_LINK_LABEL = 'share link';
 
 export async function POST(
   request: NextRequest,
@@ -110,6 +117,43 @@ export async function POST(
       );
     }
 
+    // "Share Link" is a bearer link: it goes on a group chat or a flyer and
+    // is addressed to nobody. That is a JoinCode, not a personal invitation.
+    //
+    // It used to be an Invitation carrying a fabricated
+    // `link-<token>@share.stufflibrary.local` addressee, invented only to
+    // satisfy @@unique([email, senderId, libraryId]). Once invitations became
+    // bound to their address that fiction turned fatal: no real session can
+    // match a synthetic address, so the recipient reached sign-in with it
+    // prefilled and locked and could not sign in at all. Exempting the fake
+    // address from the binding check was the wrong repair — an exemption keyed
+    // on a string pattern is not a security control, and any invitation could
+    // be made to match it. The object was simply wrong, so the object changed.
+    if (mode === 'link') {
+      // One live share link per library, not one per click. Each mint is
+      // another bearer credential that no one can recall from a group chat,
+      // and rotation is the only revocation there is. The label keeps it
+      // distinct from a corkboard flyer, so rotating either leaves the other
+      // alone.
+      const existing = await db.joinCode.findFirst({
+        where: {
+          collectionId: libraryId,
+          isActive: true,
+          label: SHARE_LINK_LABEL,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+      const joinCode =
+        existing ?? (await createJoinCode(libraryId, userId, SHARE_LINK_LABEL));
+
+      const base = process.env.NEXTAUTH_URL || '';
+      return NextResponse.json({
+        success: true,
+        code: joinCode.code,
+        link: `${base}/join/${joinCode.code}`,
+      });
+    }
+
     // Non-owner path: re-load the collection for the email payload.
     if (!library) {
       library = await db.collection.findFirst({
@@ -129,16 +173,13 @@ export async function POST(
     }
 
     // Check if user is already a member (active or inactive)
-    const existingMember =
-      mode === 'link'
-        ? null
-        : await db.collectionMember.findFirst({
-            where: {
-              collectionId: libraryId,
-              user: { email: email! },
-            },
-            select: { id: true, isActive: true },
-          });
+    const existingMember = await db.collectionMember.findFirst({
+      where: {
+        collectionId: libraryId,
+        user: { email: email! },
+      },
+      select: { id: true, isActive: true },
+    });
 
     if (existingMember) {
       if (!existingMember.isActive) {
@@ -162,12 +203,9 @@ export async function POST(
     // a unique constraint on that triple, so a second create would 500 (#409).
     // A live one gets re-sent as-is; a consumed/expired/declined one gets
     // re-issued with a fresh token so a wrongly-burned invite heals itself.
-    const existingInvitation =
-      mode === 'link'
-        ? null
-        : await db.invitation.findFirst({
-            where: { email: email!, libraryId, senderId: userId },
-          });
+    const existingInvitation = await db.invitation.findFirst({
+      where: { email: email!, libraryId, senderId: userId },
+    });
 
     // Rate limiting per library (0 = unlimited)
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
@@ -247,8 +285,7 @@ export async function POST(
     } else {
       invitation = await db.invitation.create({
         data: {
-          email:
-            mode === 'link' ? `link-${token}@share.stufflibrary.local` : email!,
+          email: email!,
           type: 'library',
           status: 'PENDING',
           token,
