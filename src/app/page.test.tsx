@@ -27,7 +27,7 @@ describe('Home Page', () => {
   it('renders the main heading for signed-out visitors', async () => {
     mockGetServerSession.mockResolvedValue(null);
 
-    render(await Home());
+    render(await Home({ searchParams: Promise.resolve({}) }));
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
       /share more, buy less/i
@@ -37,7 +37,7 @@ describe('Home Page', () => {
   it('renders the main subheading for signed-out visitors', async () => {
     mockGetServerSession.mockResolvedValue(null);
 
-    render(await Home());
+    render(await Home({ searchParams: Promise.resolve({}) }));
 
     expect(
       screen.getByText(
@@ -53,7 +53,9 @@ describe('Home Page', () => {
       throw new Error('NEXT_REDIRECT');
     });
 
-    await expect(Home()).rejects.toThrow('NEXT_REDIRECT');
+    await expect(Home({ searchParams: Promise.resolve({}) })).rejects.toThrow(
+      'NEXT_REDIRECT'
+    );
     expect(mockRedirect).toHaveBeenCalledWith('/home');
   });
 });

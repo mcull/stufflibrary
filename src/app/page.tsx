@@ -24,8 +24,12 @@ const INVITE_STATUSES: InviteNoticeStatus[] = [
 export default async function Home({
   searchParams,
 }: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-} = {}) {
+  // Next's generated PageProps constraint rejects an optional props object, so
+  // the param itself must not be defaultable — only the promise's contents are
+  // optional. `npm run typecheck` does not catch this; only `npm run build`
+  // does, because the constraint lives in generated .next/types.
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const raw = (await searchParams)?.invite;
   const status = INVITE_STATUSES.find((s) => s === raw);
 
