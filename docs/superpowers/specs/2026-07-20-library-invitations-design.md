@@ -174,19 +174,52 @@ not suspicious, a sweep of invalid ones is. This is the control that turns the d
 
 ## Flows
 
+> **Two different codes appear below.** The **join code** is the 8-character Crockford string in the
+> URL (`XKF7-2M9Q`). The **sign-in code** is the existing 6-digit number emailed by the `email-code`
+> provider (`src/lib/auth.ts:33`). They are unrelated and never interchangeable.
+
 ### Personal invite
 
-1. Owner invites `dave@example.com`. Row created, short code minted, email sent with
+1. Owner invites `dave@example.com`. Row created, join code minted, email sent with
    `/join/XXXXXXXX`.
-2. Dave clicks. Not signed in → straight to sign-in, email prefilled and locked, no guest detour.
-3. Enters his code, lands at `/auth/callback`, existing consume path runs.
-4. Email matches → membership created, invitation burned, on to the library (or `/profile/create`
-   first, unchanged).
-5. Email does not match → _"This invitation was sent to d•••@example.com."_ Nothing is burned,
-   nothing is granted.
+2. Dave clicks. The route resolves the join code to an `Invitation` and finds no session. It sets
+   the existing `invite_token` + `invite_library` cookies and redirects to `/auth/signin` — not to
+   the guest preview. Sign-in shows his address prefilled and locked.
+3. He requests a **sign-in code**, which is emailed to that locked address, and enters the 6 digits.
+   `authorize()` verifies it and upserts him with `profileCompleted: false`. NextAuth redirects to
+   `/auth/callback`.
+4. `/auth/callback` POSTs `/api/invite/consume` exactly as it does today
+   (`src/app/auth/callback/page.tsx:75`). Membership is created, the invitation is burned, and he
+   lands on the library — or `/profile/create?returnTo=/library/<id>` if name and terms are
+   outstanding. Unchanged.
 
 Signed-in behavior is unchanged, including the #409 rules: owners and existing members never burn
 an invite for its real addressee.
+
+**Where the prefilled address comes from.** `invitation.email`, on the row resolved in step 2,
+carried forward in the httpOnly invite cookie — **not** a query parameter. `?email=dave@example.com`
+would land in browser history and outbound `Referer` headers, and the sign-in page can read the
+cookie server-side instead. No reason to leak it.
+
+### Binding enforcement
+
+`/api/invite/consume` gains one comparison: does `session.user.email` equal `invitation.email`? On
+mismatch nothing is burned and nothing is granted — the user sees _"This invitation was sent to
+d•••@example.com"_ with a button to sign in as that address.
+
+**This check cannot fail during the flow above.** Dave signed in by proving control of an address
+that was locked to the invitation, so it matches by construction. Prefilling is what makes the happy
+path pass automatically.
+
+The check exists to catch arrivals by every _other_ route:
+
+- **OAuth.** `GitHubProvider` is configured (`src/lib/auth.ts:27`). A user who signs in with GitHub
+  under a different address never touches the locked field.
+- **An existing session.** Sessions last 90 days (`src/lib/auth.ts:21`), so a forwardee may already
+  be signed in as themselves and skip sign-in entirely.
+- **The signed-in branch of the join route**, which bypasses sign-in by design.
+
+Implement it once, in `consume`, rather than per-entry-path — every route converges there.
 
 ### Join code
 
@@ -278,7 +311,12 @@ path currently believe SMS is being delivered.
 - **Code generation:** alphabet excludes I/L/O/U; profanity filter rejects and regenerates;
   collision retry; case-insensitive and `1`/`I`, `0`/`O` normalization on lookup.
 - **Binding:** matching email joins; non-matching email is refused, invite not burned, no membership
-  created; owner and existing-member paths still do not burn (#409 regression coverage).
+  created; owner and existing-member paths still do not burn (#409 regression coverage). Cover the
+  paths that actually trigger it, not just the prefilled happy path — OAuth sign-in under a
+  different address, and a forwardee arriving with a live session of their own. The happy path
+  passes by construction and proves nothing.
+- **Prefill:** the invited address reaches the sign-in page via cookie and never appears in the
+  URL.
 - **Join codes:** multi-use; `useCount` increments; rotation deactivates the old code and the old
   code then fails; `joinedViaCodeId` is recorded.
 - **Roster:** default member response contains neither `address1` nor `email`.
