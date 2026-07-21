@@ -1228,6 +1228,18 @@ The correct fix is the one the spec already describes: a bearer share link is a 
 
 Existing `link-*@share.stufflibrary.local` rows can be left alone — they resolve through `/j/<token>` as before, and Task 5's binding will refuse them, which is the same outcome as today for anyone who didn't already use them.
 
+- [ ] **Step 0b: Grant guest role for `jc:` cookies in the library detail API — BLOCKER**
+
+Verified broken in a browser: scan a join code for a **private** library and the guest preview returns **403**.
+
+`src/app/api/collections/[id]/route.ts:113-127` grants `userRole = 'guest'` only when the `invite_token` cookie matches a live `Invitation` row. `handleJoinCodeLanding` sets that cookie to `jc:<joinCodeId>`, which can never match one, so `effectiveRole` stays null and line ~205 refuses any non-public library.
+
+The consequence is the whole flyer flow: scan QR → land on the guest preview → 403. Join codes exist to keep that preview, and the preview is exactly what fails.
+
+Fix: in the same block that validates an invite token, use `parseJoinCodeCookie` (`src/lib/invite.ts`) and, on a `jc:` value, resolve it with `resolveJoinCode` and grant `'guest'` when the code is active and its `collectionId` matches the library being viewed. Match the existing invitation branch's strictness — a code for a _different_ library must not grant anything.
+
+Test both: a `jc:` cookie for this library yields the redacted guest payload (`members: []`, `memberAreas` populated); a `jc:` cookie for another library still 403s.
+
 - [ ] **Step 2b: Teach `/api/collections/[id]/join` about `jc:` cookies**
 
 `src/app/api/collections/[id]/join/route.ts:68` does `db.invitation.findFirst({ token: inviteToken })`, which a `jc:<id>` value can never match. So a signed-in user holding a join-code cookie who clicks Join in `CollectionDetailClient` on a **private** library is refused.
