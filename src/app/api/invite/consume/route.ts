@@ -61,6 +61,8 @@ export async function POST(request: NextRequest) {
         { redirect: null, error: `invite_${validation.reason}` },
         { status: 200 }
       );
+      // A dead invite has no recovery — no address can revive it — so the
+      // cookies go, as they did before this branch was named.
       clearInviteCookies(dead);
       return dead;
     }
@@ -83,7 +85,9 @@ export async function POST(request: NextRequest) {
         },
         { status: 200 }
       );
-      clearInviteCookies(refused);
+      // The cookies deliberately survive. The dead end offers "sign in as that
+      // address"; clearing here would leave that button with nothing to
+      // consume. They grant nothing on their own — this check runs every time.
       return refused;
     }
 

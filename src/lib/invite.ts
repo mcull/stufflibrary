@@ -162,11 +162,12 @@ export async function handleInviteLanding(
         !emailMatchesInvitation(sessionUser?.email, result.invitation.email)
       ) {
         const masked = encodeURIComponent(maskEmail(result.invitation.email));
-        const res = NextResponse.redirect(
+        // Invite cookies are left alone: the dead end offers "sign in as that
+        // address", and consume needs the token still there to finish the job
+        // once the right person arrives.
+        return NextResponse.redirect(
           new URL(`/?invite=wrong_account&invited=${masked}`, request.url)
         );
-        clearInviteCookies(res);
-        return res;
       }
 
       const membership = await ensureActiveMembership(userId, libId);

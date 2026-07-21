@@ -385,12 +385,25 @@ describe('POST /api/invite/consume — binding', () => {
     expect(body.error).toBeUndefined();
   });
 
-  it('clears the invite cookies on refusal so the dead end is not sticky', async () => {
+  // The dead end's whole offer is "sign in as that address". Clearing the
+  // cookies here would leave that button with nothing left to consume.
+  it('leaves the invite cookies intact on refusal so the right person can still claim it', async () => {
     mockInvitationFindFirst.mockResolvedValue(inviteRow());
     mockGetServerSession.mockResolvedValue({
       user: { id: 'u2', email: 'stranger@example.com' },
     });
     mockMemberFindUnique.mockResolvedValue(null);
+
+    const res = await consume(COOKIES);
+
+    expect(res.cookies.get('invite_token')).toBeUndefined();
+  });
+
+  it('clears the cookies on a dead invite, which no address can revive', async () => {
+    mockInvitationFindFirst.mockResolvedValue(null);
+    mockGetServerSession.mockResolvedValue({
+      user: { id: 'u1', email: 'dave@example.com' },
+    });
 
     const res = await consume(COOKIES);
 
