@@ -1212,6 +1212,14 @@ export async function POST(
 
 The confirmation copy — _"corkboard flyer — used 14 times. Anyone holding a flyer with XKF7-2M9Q won't be able to join."_ — belongs in the UI that calls this, which is the artifacts plan. The endpoint just rotates.
 
+- [ ] **Step 2b: Teach `/api/collections/[id]/join` about `jc:` cookies**
+
+`src/app/api/collections/[id]/join/route.ts:68` does `db.invitation.findFirst({ token: inviteToken })`, which a `jc:<id>` value can never match. So a signed-in user holding a join-code cookie who clicks Join in `CollectionDetailClient` on a **private** library is refused.
+
+Narrow, but real: the documented flow is guest preview → sign-in → `consume` (handled), and a signed-in arrival at `/join/<code>` joins directly (handled). This is the third path — guest preview, then sign in elsewhere, then come back and click Join.
+
+Use `parseJoinCodeCookie` from `src/lib/invite.ts` rather than writing a second `jc:` check; Task 6 factored it out for exactly this.
+
 - [ ] **Step 3: Verify the capability gate**
 
 Run: `npm run dev`, then `curl` the POST endpoint as a non-member.
