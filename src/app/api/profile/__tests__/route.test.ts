@@ -8,6 +8,24 @@ const mockUserCreate = vi.hoisted(() => vi.fn());
 const mockGetServerSession = vi.hoisted(() => vi.fn());
 const mockGetUserCapabilities = vi.hoisted(() => vi.fn());
 const mockAddressFindUnique = vi.hoisted(() => vi.fn());
+const mockAddressCreate = vi.hoisted(() =>
+  vi.fn().mockResolvedValue({ id: 'a1' })
+);
+const mockGeocodeAddress = vi.hoisted(() => vi.fn());
+// isBillableOutcome is pure and its behaviour is the thing under test here
+// (does a no_match record spend?), so use the real implementation rather than
+// a stub that would just echo whatever we told it.
+vi.mock('@/lib/geocode', async () => {
+  const actual =
+    await vi.importActual<typeof import('@/lib/geocode')>('@/lib/geocode');
+  return { ...actual, geocodeAddress: mockGeocodeAddress };
+});
+const mockCheckSpendCap = vi.hoisted(() => vi.fn());
+const mockRecordSpend = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/spend-cap', () => ({
+  checkSpendCap: mockCheckSpendCap,
+  recordSpend: mockRecordSpend,
+}));
 
 vi.mock('@/lib/db', () => ({
   db: {
@@ -25,7 +43,7 @@ vi.mock('@/lib/db', () => ({
       fn({
         address: {
           updateMany: vi.fn(),
-          create: vi.fn().mockResolvedValue({ id: 'a1' }),
+          create: mockAddressCreate,
         },
         user: { update: mockUserUpdate },
       }),
@@ -64,6 +82,13 @@ function req(body: unknown) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockAddressCreate.mockResolvedValue({ id: 'a1' });
+  mockGeocodeAddress.mockResolvedValue({
+    outcome: 'failed',
+    reason: 'test default',
+  });
+  mockCheckSpendCap.mockResolvedValue({ allowed: true });
+  mockRecordSpend.mockResolvedValue(undefined);
   mockGetServerSession.mockResolvedValue({
     user: { id: 'u1', email: 'a@b.c' },
   });
@@ -118,6 +143,225 @@ describe('POST /api/profile full mode persists terms', () => {
     expect(data.profileCompleted).toBe(true);
     expect(data.agreedToTermsAt).toBeInstanceOf(Date);
     expect(data.agreedTermsVersion).toBe(TERMS_VERSION);
+  });
+});
+
+describe('POST /api/profile address coordinates', () => {
+  const addressWithoutCoords = {
+    address1: '1 St',
+    city: 'Town',
+    state: 'CA',
+    zip: '90001',
+  };
+
+  it('does not geocode when the client already supplied coordinates', async () => {
+    const res = await POST(
+      req({
+        name: 'Jo',
+        agreedToTerms: true,
+        parsedAddress: {
+          ...addressWithoutCoords,
+          latitude: 34.05,
+          longitude: -118.24,
+        },
+      })
+    );
+
+    expect(res.status).toBe(200);
+    expect(mockGeocodeAddress).not.toHaveBeenCalled();
+    const created = mockAddressCreate.mock.calls[0]![0].data;
+    expect(created.latitude).toBe(34.05);
+    expect(created.longitude).toBe(-118.24);
+  });
+
+  it('geocodes server-side when coordinates are missing', async () => {
+    mockGeocodeAddress.mockResolvedValue({
+      outcome: 'ok',
+      coordinates: { latitude: 37.77, longitude: -122.42 },
+    });
+
+    const res = await POST(
+      req({
+        name: 'Jo',
+        agreedToTerms: true,
+        parsedAddress: addressWithoutCoords,
+      })
+    );
+
+    expect(res.status).toBe(200);
+    expect(mockGeocodeAddress).toHaveBeenCalledWith('1 St, Town, CA, 90001');
+    const created = mockAddressCreate.mock.calls[0]![0].data;
+    expect(created.latitude).toBe(37.77);
+    expect(created.longitude).toBe(-122.42);
+  });
+
+  it('records places spend for a successful geocode', async () => {
+    mockGeocodeAddress.mockResolvedValue({
+      outcome: 'ok',
+      coordinates: { latitude: 37.77, longitude: -122.42 },
+    });
+
+    await POST(
+      req({
+        name: 'Jo',
+        agreedToTerms: true,
+        parsedAddress: addressWithoutCoords,
+      })
+    );
+
+    expect(mockCheckSpendCap).toHaveBeenCalledWith('places');
+    expect(mockRecordSpend).toHaveBeenCalledWith('places', 1);
+  });
+
+  it('does not record spend when the client supplied coordinates', async () => {
+    await POST(
+      req({
+        name: 'Jo',
+        agreedToTerms: true,
+        parsedAddress: {
+          ...addressWithoutCoords,
+          latitude: 34.05,
+          longitude: -118.24,
+        },
+      })
+    );
+
+    expect(mockCheckSpendCap).not.toHaveBeenCalled();
+    expect(mockRecordSpend).not.toHaveBeenCalled();
+  });
+
+  it('skips the geocode but still saves when the spend cap is exceeded', async () => {
+    mockCheckSpendCap.mockResolvedValue({
+      allowed: false,
+      reason: 'Daily spend cap reached. Please try again tomorrow.',
+    });
+
+    const res = await POST(
+      req({
+        name: 'Jo',
+        agreedToTerms: true,
+        parsedAddress: addressWithoutCoords,
+      })
+    );
+
+    // The save must survive a blown cap — only the coordinates are missing.
+    expect(res.status).toBe(200);
+    expect(mockGeocodeAddress).not.toHaveBeenCalled();
+    expect(mockRecordSpend).not.toHaveBeenCalled();
+    const created = mockAddressCreate.mock.calls[0]![0].data;
+    expect(created.latitude).toBeNull();
+    expect(created.longitude).toBeNull();
+  });
+
+  it('records spend for a no_match — Google answered, so it is billable', async () => {
+    mockGeocodeAddress.mockResolvedValue({ outcome: 'no_match' });
+
+    const res = await POST(
+      req({
+        name: 'Jo',
+        agreedToTerms: true,
+        parsedAddress: addressWithoutCoords,
+      })
+    );
+
+    expect(res.status).toBe(200);
+    expect(mockRecordSpend).toHaveBeenCalledWith('places', 1);
+    // Billable, but there are still no coordinates to save.
+    const created = mockAddressCreate.mock.calls[0]![0].data;
+    expect(created.latitude).toBeNull();
+    expect(created.longitude).toBeNull();
+  });
+
+  it('does not record spend when the lookup fails (never billed)', async () => {
+    mockGeocodeAddress.mockResolvedValue({
+      outcome: 'failed',
+      reason: 'network error: Error: ECONNRESET',
+    });
+
+    await POST(
+      req({
+        name: 'Jo',
+        agreedToTerms: true,
+        parsedAddress: addressWithoutCoords,
+      })
+    );
+
+    expect(mockRecordSpend).not.toHaveBeenCalled();
+  });
+
+  it('still saves the address when geocoding fails', async () => {
+    mockGeocodeAddress.mockResolvedValue({
+      outcome: 'failed',
+      reason: 'network error',
+    });
+
+    const res = await POST(
+      req({
+        name: 'Jo',
+        agreedToTerms: true,
+        parsedAddress: addressWithoutCoords,
+      })
+    );
+
+    expect(res.status).toBe(200);
+    const created = mockAddressCreate.mock.calls[0]![0].data;
+    expect(created.latitude).toBeNull();
+    expect(created.longitude).toBeNull();
+  });
+});
+
+describe('PUT /api/profile address coordinates', () => {
+  function putReq(body: unknown) {
+    return new Request('http://t/api/profile', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    }) as any;
+  }
+
+  it('does not geocode when the client already supplied coordinates', async () => {
+    const res = await PUT(
+      putReq({
+        name: 'Jo',
+        parsedAddress: {
+          address1: '1 St',
+          city: 'Town',
+          state: 'CA',
+          zip: '90001',
+          latitude: 34.05,
+          longitude: -118.24,
+        },
+      })
+    );
+
+    expect(res.status).toBe(200);
+    expect(mockGeocodeAddress).not.toHaveBeenCalled();
+    const created = mockAddressCreate.mock.calls[0]![0].data;
+    expect(created.latitude).toBe(34.05);
+  });
+
+  it('geocodes server-side when coordinates are missing', async () => {
+    mockGeocodeAddress.mockResolvedValue({
+      outcome: 'ok',
+      coordinates: { latitude: 37.77, longitude: -122.42 },
+    });
+
+    const res = await PUT(
+      putReq({
+        name: 'Jo',
+        parsedAddress: {
+          address1: '1 St',
+          city: 'Town',
+          state: 'CA',
+          zip: '90001',
+        },
+      })
+    );
+
+    expect(res.status).toBe(200);
+    expect(mockGeocodeAddress).toHaveBeenCalledWith('1 St, Town, CA, 90001');
+    const created = mockAddressCreate.mock.calls[0]![0].data;
+    expect(created.latitude).toBe(37.77);
   });
 });
 

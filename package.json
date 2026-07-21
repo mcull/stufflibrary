@@ -41,6 +41,7 @@
     "supabase:branches": "tsx scripts/supabase-branch-manager.ts",
     "supabase:setup": "tsx scripts/supabase-branch-manager.ts setup",
     "backfill:watercolors": "tsx scripts/backfill-watercolors.ts",
+    "backfill:address-coordinates": "tsx scripts/backfill-address-coordinates.ts",
     "seed": "echo 'Seed script not implemented yet. See issue #19'",
     "prepare": "command -v husky >/dev/null 2>&1 && husky || echo 'Husky not available, skipping git hooks setup'"
   },

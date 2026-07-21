@@ -3,6 +3,17 @@
 import { Box, Paper, Typography } from '@mui/material';
 import { useState, useEffect, useRef, memo } from 'react';
 
+import type { MemberArea } from '@/lib/member-location-privacy';
+
+import {
+  areaTitle,
+  buildAreaBadge,
+  buildMemberInfoCard,
+  buildMemberPin,
+  displayName,
+  type LibraryMember,
+} from './library-map-markers';
+
 // Declare global google object
 declare global {
   interface Window {
@@ -11,32 +22,46 @@ declare global {
   }
 }
 
-interface LibraryMember {
-  id: string;
-  name?: string | null;
-  image?: string | null;
-  address?: string | null;
-  latitude?: number | undefined;
-  longitude?: number | undefined;
-}
+// Stable identities: these feed the effect's dependency array, so a fresh []
+// per render would tear the map down and rebuild it every time.
+const NO_MEMBERS: LibraryMember[] = [];
+const NO_AREAS: MemberArea[] = [];
 
-interface LibraryMapProps {
+interface LibraryMapBaseProps {
   libraryName: string;
-  members: LibraryMember[];
   currentUser?: {
     id: string;
-    latitude?: number | undefined;
-    longitude?: number | undefined;
+    latitude?: number | null | undefined;
+    longitude?: number | null | undefined;
   };
-  isGuest?: boolean;
+  /**
+   * Lock the map's controls — no zoom, pan, or scroll. Purely about the
+   * controls; it says nothing about who may see whom. That question is the
+   * `view` discriminant's job, and conflating the two is how a viewer ends up
+   * with a map they can't drag but can still read names off.
+   */
+  locked?: boolean;
 }
 
-function LibraryMapComponent({
-  libraryName,
-  members,
-  currentUser,
-  isGuest = false,
-}: LibraryMapProps) {
+/**
+ * Pins or areas — never both, and never neither. The two carry very different
+ * amounts of a real person (a pin is a name, a face and a doorstep; an area is
+ * a number), so which one a viewer gets is the whole privacy decision. Making
+ * it a discriminated union means a caller cannot pass members to an outsider's
+ * map by forgetting a flag: there is no shape where that type-checks.
+ */
+type LibraryMapProps = LibraryMapBaseProps &
+  (
+    | { view: 'pins'; members: LibraryMember[]; areas?: never }
+    | { view: 'areas'; areas: MemberArea[]; members?: never }
+  );
+
+function LibraryMapComponent(props: LibraryMapProps) {
+  const { libraryName, currentUser, locked = false } = props;
+  // Narrowed once, here. Everything downstream reads one of these two and the
+  // other is provably empty.
+  const members = props.view === 'pins' ? props.members : NO_MEMBERS;
+  const areas = props.view === 'areas' ? props.areas : NO_AREAS;
   const mapRef = useRef<HTMLDivElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [_map, setMap] = useState<any>(null);
@@ -90,18 +115,17 @@ function LibraryMapComponent({
       // Calculate center based on member locations or use default
       let mapCenter = { lat: 37.7749, lng: -122.4194 }; // Default to SF
 
-      // If members have coordinates, calculate center
-      const membersWithCoords = members.filter(
-        (m) => m.latitude && m.longitude
-      );
-      if (membersWithCoords.length > 0) {
-        const avgLat =
-          membersWithCoords.reduce((sum, m) => sum + m.latitude!, 0) /
-          membersWithCoords.length;
-        const avgLng =
-          membersWithCoords.reduce((sum, m) => sum + m.longitude!, 0) /
-          membersWithCoords.length;
-        mapCenter = { lat: avgLat, lng: avgLng };
+      // Centre on whatever we were given. The props union guarantees exactly
+      // one of these is populated.
+      const points: Array<{ lat: number; lng: number }> = [
+        ...members.map((m) => ({ lat: m.latitude, lng: m.longitude })),
+        ...areas.map((a) => ({ lat: a.lat, lng: a.lng })),
+      ];
+      if (points.length > 0) {
+        mapCenter = {
+          lat: points.reduce((sum, p) => sum + p.lat, 0) / points.length,
+          lng: points.reduce((sum, p) => sum + p.lng, 0) / points.length,
+        };
       }
 
       const mapOptions: any = {
@@ -109,11 +133,11 @@ function LibraryMapComponent({
         zoom: 12,
         tilt: 45, // Re-enable tilt for 3D perspective
         disableDefaultUI: true,
-        zoomControl: !isGuest,
-        gestureHandling: isGuest ? 'none' : 'greedy',
-        draggable: !isGuest,
-        scrollwheel: !isGuest,
-        doubleClickZoom: !isGuest,
+        zoomControl: !locked,
+        gestureHandling: locked ? 'none' : 'greedy',
+        draggable: !locked,
+        scrollwheel: !locked,
+        doubleClickZoom: !locked,
       };
       if (process.env.NEXT_PUBLIC_GOOGLE_MAP_ID) {
         mapOptions.mapId = process.env.NEXT_PUBLIC_GOOGLE_MAP_ID;
@@ -149,108 +173,47 @@ function LibraryMapComponent({
       setMap(newMap);
       setIsLoaded(true);
 
-      // Add custom markers for each member
-      members.forEach(async (member) => {
-        let lat = member.latitude;
-        let lng = member.longitude;
-
-        // If no coordinates but has address, geocode it
-        if ((!lat || !lng) && member.address) {
-          try {
-            const geocoder = new window.google.maps.Geocoder();
-            const result = await new Promise<any>((resolve, reject) => {
-              geocoder.geocode(
-                { address: member.address },
-                (results: any, status: any) => {
-                  if (status === 'OK' && results?.[0]) {
-                    resolve(results[0]);
-                  } else {
-                    reject(new Error('Geocoding failed'));
-                  }
-                }
-              );
+      // Counted areas for outsiders. The number is the whole story.
+      areas.forEach((area) => {
+        const position = { lat: area.lat, lng: area.lng };
+        const title = areaTitle(area);
+        try {
+          if (
+            window.google?.maps?.marker?.AdvancedMarkerElement &&
+            typeof window.google.maps.marker.AdvancedMarkerElement ===
+              'function'
+          ) {
+            new window.google.maps.marker.AdvancedMarkerElement({
+              position,
+              map: newMap,
+              title,
+              content: buildAreaBadge(area),
             });
-
-            lat = result.geometry.location.lat();
-            lng = result.geometry.location.lng();
-
-            // Save the coordinates to the database
-            await fetch('/api/profile/update-coordinates', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                userId: member.id,
-                latitude: lat,
-                longitude: lng,
-              }),
+          } else {
+            new window.google.maps.Marker({
+              position,
+              map: newMap,
+              title,
+              label: String(area.count),
             });
-          } catch (error) {
-            console.warn(
-              `Failed to geocode address for ${member.name}:`,
-              error
-            );
-            // Fall back to center with small offset
-            lat = mapCenter.lat + (Math.random() - 0.5) * 0.01;
-            lng = mapCenter.lng + (Math.random() - 0.5) * 0.01;
           }
-        } else if (!lat || !lng) {
-          // No address and no coordinates - place near center
-          lat = mapCenter.lat + (Math.random() - 0.5) * 0.01;
-          lng = mapCenter.lng + (Math.random() - 0.5) * 0.01;
+        } catch {
+          new window.google.maps.Marker({
+            position,
+            map: newMap,
+            title,
+            label: String(area.count),
+          });
         }
+      });
 
+      // A pin per member. Everyone here has coordinates — the caller drops
+      // anyone who doesn't rather than guessing at a spot.
+      members.forEach((member) => {
+        const position = { lat: member.latitude, lng: member.longitude };
         const isCurrentUser = currentUser?.id === member.id;
-        const markerSize = isCurrentUser ? 56 : 40;
-        const borderColor = isCurrentUser ? '#1976d2' : '#ffffff';
-        const borderWidth = isCurrentUser ? 3 : 2;
-        const blurFilter =
-          isGuest && !isCurrentUser ? 'filter: blur(4px);' : '';
+        const title = displayName(member.name);
 
-        // Create custom marker HTML
-        const markerDiv = document.createElement('div');
-        markerDiv.innerHTML = `
-          <div style="
-            width: ${markerSize}px;
-            height: ${markerSize}px;
-            border-radius: 50%;
-            border: ${borderWidth}px solid ${borderColor};
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            overflow: hidden;
-            cursor: pointer;
-            transition: transform 0.2s ease;
-            background: #f0f0f0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          ">
-            ${
-              member.image
-                ? `
-              <img
-                src="${member.image}"
-                alt="${member.name || 'Anonymous'}"
-                style="width: 100%; height: 100%; object-fit: cover; ${blurFilter}"
-                onerror="this.style.display='none'; this.parentElement.innerHTML='${(member.name || 'A')[0]}'; this.parentElement.style.fontSize='${markerSize * 0.4}px'; this.parentElement.style.fontWeight='bold'; this.parentElement.style.color='#666'; this.parentElement.style.filter='${isGuest && !isCurrentUser ? 'blur(4px)' : ''}';"
-              />
-            `
-                : `
-              <span style="font-size: ${markerSize * 0.4}px; font-weight: bold; color: #666; ${blurFilter}">
-                ${(member.name || 'A')[0]}
-              </span>
-            `
-            }
-          </div>
-        `;
-
-        // Add hover effect
-        markerDiv.addEventListener('mouseenter', () => {
-          markerDiv.style.transform = 'scale(1.1)';
-        });
-        markerDiv.addEventListener('mouseleave', () => {
-          markerDiv.style.transform = 'scale(1)';
-        });
-
-        // Create marker (use AdvancedMarkerElement if available, else fallback to Marker)
         let marker: any;
         try {
           if (
@@ -259,52 +222,32 @@ function LibraryMapComponent({
               'function'
           ) {
             marker = new window.google.maps.marker.AdvancedMarkerElement({
-              position: { lat, lng },
+              position,
               map: newMap,
-              title: member.name || 'Anonymous',
-              content: markerDiv,
+              title,
+              content: buildMemberPin(member, { isCurrentUser }),
             });
           } else {
             marker = new window.google.maps.Marker({
-              position: { lat, lng },
+              position,
               map: newMap,
-              title: member.name || 'Anonymous',
+              title,
             });
           }
         } catch {
           // Fallback to basic marker on any error
           marker = new window.google.maps.Marker({
-            position: { lat, lng },
+            position,
             map: newMap,
-            title: member.name || 'Anonymous',
+            title,
           });
         }
 
-        // Add info window
+        // The card naming this member. Unreachable for outsiders by
+        // construction: a props union with view:'areas' carries no members, so
+        // this loop has nothing to iterate.
         const infoWindow = new window.google.maps.InfoWindow({
-          content: `
-            <div style="padding: 12px; text-align: center; font-family: 'Roboto', sans-serif;">
-              <div style="margin-bottom: 8px;">
-                ${
-                  member.image
-                    ? `
-                  <img 
-                    src="${member.image}" 
-                    alt="${member.name || 'Anonymous'}" 
-                    style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"
-                  />
-                `
-                    : `
-                  <div style="width: 32px; height: 32px; border-radius: 50%; background: #1976d2; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; margin: 0 auto;">
-                    ${(member.name || 'A')[0]}
-                  </div>
-                `
-                }
-              </div>
-              <strong style="color: #333;">${member.name || 'Anonymous'}</strong>
-              ${isCurrentUser ? '<br><span style="color: #1976d2; font-weight: 600;">(You)</span>' : ''}
-            </div>
-          `,
+          content: buildMemberInfoCard(member, { isCurrentUser }),
         });
 
         marker.addListener('click', () => {
@@ -314,7 +257,7 @@ function LibraryMapComponent({
     };
 
     loadGoogleMaps();
-  }, [members, currentUser, isGuest]);
+  }, [members, areas, currentUser, locked]);
 
   return (
     <Paper

@@ -4,6 +4,12 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { libraryMemberCount, nonOwnerMemberRows } from '@/lib/library-members';
+import {
+  canSeeExactMemberLocations,
+  toMemberAreas,
+  toNeighborProfile,
+  toStrangerProfile,
+} from '@/lib/member-location-privacy';
 
 export async function GET(
   request: NextRequest,
@@ -46,12 +52,10 @@ export async function GET(
             addresses: {
               where: { isActive: true },
               select: {
-                address1: true,
                 city: true,
                 state: true,
                 latitude: true,
                 longitude: true,
-                formattedAddress: true,
               },
               take: 1,
             },
@@ -66,16 +70,13 @@ export async function GET(
                 name: true,
                 image: true,
                 status: true,
-                email: true,
                 addresses: {
                   where: { isActive: true },
                   select: {
-                    address1: true,
                     city: true,
                     state: true,
                     latitude: true,
                     longitude: true,
-                    formattedAddress: true,
                   },
                   take: 1,
                 },
@@ -206,6 +207,54 @@ export async function GET(
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
+    // Redact by role. Members/admins/owners see each other's exact pins;
+    // guests and anonymous viewers of a public library see only blurred,
+    // counted areas — no names, no avatars, no per-person coordinates. The
+    // page tells guests "you'll see who's who once you're in"; this keeps it.
+    const insideTheLibrary = canSeeExactMemberLocations(effectiveRole);
+
+    const nonOwnerRows = nonOwnerMemberRows(library.ownerId, library.members);
+
+    const members = insideTheLibrary
+      ? [
+          // Include owner as first member
+          {
+            id: 'owner-' + library.owner.id,
+            role: 'owner',
+            joinedAt: library.createdAt,
+            user: toNeighborProfile(library.owner),
+          },
+          // Then include other members
+          ...nonOwnerRows.map((member) => ({
+            id: member.id,
+            role: member.role,
+            joinedAt: member.joinedAt,
+            user: toNeighborProfile(member.user),
+          })),
+        ]
+      : [];
+
+    const memberAreas = insideTheLibrary
+      ? []
+      : toMemberAreas([
+          library.owner.addresses?.[0] ?? {},
+          ...nonOwnerRows.map((member) => member.user.addresses?.[0] ?? {}),
+        ]);
+
+    // Item listings name a person. Insiders get the whole card — full name and
+    // face. Outsiders get a first name and nothing else: enough to see that a
+    // real neighbor is behind the drill, not enough to identify them. The card
+    // used to overprint the name with block characters client-side, which left
+    // the real one sitting in the JSON one devtools panel away.
+    type ItemPerson = { id: string; name: string | null; image: string | null };
+    const itemOwner = (person: ItemPerson) =>
+      insideTheLibrary ? person : toStrangerProfile(person);
+
+    // Borrowers and lenders keep their ids: the item card compares the two to
+    // tell a self-borrow ("Offline") from a real loan.
+    const itemParticipant = (person: ItemPerson) =>
+      insideTheLibrary ? person : toStrangerProfile(person, { keepId: true });
+
     // Format response
     const formattedLibrary = {
       id: library.id,
@@ -215,7 +264,10 @@ export async function GET(
       isPublic: library.isPublic,
       createdAt: library.createdAt,
       updatedAt: library.updatedAt,
-      owner: library.owner,
+      // Guests get no owner object at all. Nothing in the client reads the
+      // library owner's id, so sending one would be a stable identifier for a
+      // real person handed to someone who is told nothing else about them.
+      owner: insideTheLibrary ? toNeighborProfile(library.owner) : null,
       userRole: effectiveRole,
       // Owner counts once; a stray owner self-member row (#409 dirty data)
       // must not inflate the count or list the owner twice.
@@ -226,24 +278,8 @@ export async function GET(
       }),
       itemCount: items.length,
       inviteRateLimitPerHour: (library as any).inviteRateLimitPerHour ?? 0,
-      members: [
-        // Include owner as first member
-        {
-          id: 'owner-' + library.owner.id,
-          role: 'owner',
-          joinedAt: library.createdAt,
-          user: library.owner,
-        },
-        // Then include other members
-        ...nonOwnerMemberRows(library.ownerId, library.members).map(
-          (member) => ({
-            id: member.id,
-            role: member.role,
-            joinedAt: member.joinedAt,
-            user: member.user,
-          })
-        ),
-      ],
+      members,
+      memberAreas,
       items: items.map((item) => {
         const activeBorrow = item.borrowRequests.find(
           (req) => req.status === 'ACTIVE' || req.status === 'APPROVED'
@@ -265,20 +301,20 @@ export async function GET(
           createdAt: item.createdAt,
           category: item.stuffType?.category || 'other',
           stuffType: item.stuffType,
-          owner: item.owner,
+          owner: itemOwner(item.owner),
           isOwnedByUser: item.ownerId === userId,
           currentBorrow: activeBorrow
             ? {
                 id: activeBorrow.id,
-                borrower: activeBorrow.borrower,
-                lender: activeBorrow.lender,
+                borrower: itemParticipant(activeBorrow.borrower),
+                lender: itemParticipant(activeBorrow.lender),
                 dueDate: activeBorrow.requestedReturnDate,
                 borrowedAt: activeBorrow.approvedAt,
               }
             : null,
           notificationQueue: pendingRequests.map((req) => ({
             id: req.id,
-            user: req.borrower,
+            user: itemParticipant(req.borrower),
             requestedAt: req.createdAt,
           })),
           queueDepth: pendingRequests.length,
@@ -311,20 +347,20 @@ export async function GET(
             isAvailable: !item.currentBorrowRequestId,
             createdAt: item.createdAt,
             stuffType: item.stuffType,
-            owner: item.owner,
+            owner: itemOwner(item.owner),
             isOwnedByUser: item.ownerId === userId,
             currentBorrow: activeBorrow
               ? {
                   id: activeBorrow.id,
-                  borrower: activeBorrow.borrower,
-                  lender: activeBorrow.lender,
+                  borrower: itemParticipant(activeBorrow.borrower),
+                  lender: itemParticipant(activeBorrow.lender),
                   dueDate: activeBorrow.requestedReturnDate,
                   borrowedAt: activeBorrow.approvedAt,
                 }
               : null,
             notificationQueue: pendingRequests.map((req) => ({
               id: req.id,
-              user: req.borrower,
+              user: itemParticipant(req.borrower),
               requestedAt: req.createdAt,
             })),
             queueDepth: pendingRequests.length,

@@ -72,14 +72,15 @@ interface Member {
   user: {
     id: string;
     name?: string;
-    email?: string;
     image?: string;
+    // Roster privacy: the members endpoint intentionally omits email and
+    // street-level address (address1/formattedAddress) so any member can't
+    // scrape every other member's home address. Only block-level location
+    // survives.
     addresses?: Array<{
-      address1?: string;
       city?: string;
       state?: string;
       zip?: string;
-      formattedAddress?: string;
     }>;
   };
 }
@@ -520,32 +521,10 @@ export function ManageMembersModal({
                           secondaryTypographyProps={{ component: 'div' }}
                           secondary={
                             <>
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
-                                component="span"
-                                sx={{ display: 'block' }}
-                              >
-                                {member.user.email}
-                              </Typography>
-                              {(() => {
-                                const addr = member.user.addresses?.[0];
-                                const text =
-                                  addr?.formattedAddress ||
-                                  (addr?.address1 && addr?.city && addr?.state
-                                    ? `${addr.address1}, ${addr.city}, ${addr.state} ${addr.zip || ''}`.trim()
-                                    : null);
-                                return text ? (
-                                  <Typography
-                                    variant="body2"
-                                    color="text.secondary"
-                                    component="span"
-                                    sx={{ display: 'block' }}
-                                  >
-                                    {text}
-                                  </Typography>
-                                ) : null;
-                              })()}
+                              {/* Roster privacy: the members endpoint no
+                                  longer serves email or street address (see
+                                  fix(privacy) commit) — only coarse
+                                  city/state/zip is available here now. */}
                               <Typography
                                 variant="caption"
                                 color="text.secondary"

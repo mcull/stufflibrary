@@ -5,7 +5,13 @@ import { z } from 'zod';
 import { authOptions } from '@/lib/auth';
 import { TERMS_VERSION } from '@/lib/capabilities';
 import { db } from '@/lib/db';
+import {
+  geocodeAddress,
+  isBillableOutcome,
+  type Coordinates,
+} from '@/lib/geocode';
 import { normalizeUsPhone } from '@/lib/phone';
+import { checkSpendCap, recordSpend } from '@/lib/spend-cap';
 import { StorageService } from '@/lib/storage';
 import { getUserCapabilities } from '@/lib/user-capabilities';
 
@@ -40,6 +46,93 @@ const createProfileSchema = z.object({
     })
     .optional(),
 });
+
+// Google's Geocoding API is $5 per 1000 requests — 0.5¢ per call. Rounded up
+// to a whole cent so the cap errs toward under-spending. (recordSpend floors
+// every call at 1 cent anyway, so sub-cent values can't be expressed.)
+const GEOCODE_COST_CENTS = 1;
+
+/**
+ * The address fields both save paths supply. Loose/optional throughout because
+ * PUT parses its body untyped.
+ */
+interface ParsedAddressFields {
+  address1?: string | null | undefined;
+  city?: string | null | undefined;
+  state?: string | null | undefined;
+  zip?: string | null | undefined;
+  country?: string | null | undefined;
+  latitude?: number | null | undefined;
+  longitude?: number | null | undefined;
+}
+
+/**
+ * Coordinates for an address that is about to be saved.
+ *
+ * Call this BEFORE opening the Prisma transaction. A network round-trip to
+ * Google while holding a DB connection is how connection pools get exhausted
+ * under load, so by the time `tx.address.create` runs the value is in hand.
+ *
+ * On the normal autocomplete path the client already supplied coordinates and
+ * this costs nothing — no Google call is made. Only a free-form address (typed
+ * without picking a suggestion, or a failed place-details lookup) triggers one.
+ *
+ * A geocoding failure returns null and the address saves without coordinates,
+ * exactly as before. Google being down must never block a valid save;
+ * scripts/backfill-address-coordinates.ts can pick the row up later.
+ */
+async function resolveCoordinates(
+  parsed: ParsedAddressFields
+): Promise<Coordinates | null> {
+  if (
+    typeof parsed.latitude === 'number' &&
+    typeof parsed.longitude === 'number'
+  ) {
+    return { latitude: parsed.latitude, longitude: parsed.longitude };
+  }
+
+  // Not enough to be worth a billable lookup. Unreachable from POST, whose
+  // caller already requires all four fields — but live for PUT, which parses
+  // its body untyped. Kept deliberately: a guard on a billable call earns its
+  // place even when one caller can't trip it.
+  if (!parsed.address1 || !parsed.city || !parsed.state) {
+    return null;
+  }
+
+  const addressText = [
+    parsed.address1,
+    parsed.city,
+    parsed.state,
+    parsed.zip,
+    parsed.country,
+  ]
+    .filter(Boolean)
+    .join(', ');
+
+  // Geocoding is billable, so it answers to the same daily cap as the Places
+  // routes. A blown cap must never block a profile save — skip the lookup and
+  // save without coordinates, as on any other geocoding failure. Logged
+  // distinctly so it isn't mistaken for Google refusing the request.
+  const spendCap = await checkSpendCap('places');
+  if (!spendCap.allowed) {
+    console.warn(
+      `Geocoding skipped: daily spend cap reached (${spendCap.reason}). ` +
+        'Address will save without coordinates; the backfill script can pick it up.'
+    );
+    return null;
+  }
+
+  const result = await geocodeAddress(addressText);
+
+  // Google charges for any request it answered — including one it searched and
+  // couldn't match — so spend follows the outcome, not whether we got usable
+  // coordinates out of it.
+  if (isBillableOutcome(result)) {
+    await recordSpend('places', GEOCODE_COST_CENTS);
+  }
+
+  return result.outcome === 'ok' ? result.coordinates : null;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -139,12 +232,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const parsed = validatedData.parsedAddress;
+
+    // Resolved outside the transaction on purpose — see resolveCoordinates.
+    const coordinates =
+      hasNewParsedAddress && parsed ? await resolveCoordinates(parsed) : null;
+
     // Use a transaction to create address and update user
     const result = await db.$transaction(async (tx) => {
       let addressId = null;
 
       // Create address record if we have parsed address data
-      const parsed = validatedData.parsedAddress;
       if (hasNewParsedAddress && parsed) {
         // Deactivate any existing active addresses for this user
         await tx.address.updateMany({
@@ -162,8 +260,8 @@ export async function POST(request: NextRequest) {
             state: parsed.state!,
             zip: parsed.zip!,
             country: parsed.country || 'US',
-            latitude: parsed.latitude ?? null,
-            longitude: parsed.longitude ?? null,
+            latitude: coordinates?.latitude ?? null,
+            longitude: coordinates?.longitude ?? null,
             formattedAddress: parsed.formatted_address ?? null,
             placeId: parsed.place_id ?? null,
             verificationMethod: 'google_places',
@@ -406,18 +504,25 @@ export async function PUT(request: NextRequest) {
       }
     }
 
+    const hasNewParsedAddress = Boolean(
+      data.parsedAddress &&
+        data.parsedAddress.address1 &&
+        data.parsedAddress.city &&
+        data.parsedAddress.state &&
+        data.parsedAddress.zip
+    );
+
+    // Resolved outside the transaction on purpose — see resolveCoordinates.
+    const coordinates = hasNewParsedAddress
+      ? await resolveCoordinates(data.parsedAddress)
+      : null;
+
     // Use a transaction to update user and potentially create/update address
     const result = await db.$transaction(async (tx) => {
       let addressId = user.currentAddressId;
 
       // Handle address update if we have parsed address data
-      if (
-        data.parsedAddress &&
-        data.parsedAddress.address1 &&
-        data.parsedAddress.city &&
-        data.parsedAddress.state &&
-        data.parsedAddress.zip
-      ) {
+      if (hasNewParsedAddress) {
         // Deactivate any existing active addresses for this user
         await tx.address.updateMany({
           where: { userId: user.id, isActive: true },
@@ -434,8 +539,8 @@ export async function PUT(request: NextRequest) {
             state: data.parsedAddress.state,
             zip: data.parsedAddress.zip,
             country: data.parsedAddress.country || 'US',
-            latitude: data.parsedAddress.latitude ?? null,
-            longitude: data.parsedAddress.longitude ?? null,
+            latitude: coordinates?.latitude ?? null,
+            longitude: coordinates?.longitude ?? null,
             formattedAddress: data.parsedAddress.formatted_address ?? null,
             placeId: data.parsedAddress.place_id ?? null,
             verificationMethod: 'google_places',
