@@ -9,9 +9,10 @@ export const CROCKFORD_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 export const JOIN_CODE_LENGTH = 8;
 
 /**
- * Substrings a generated code must not contain. Short and conservative — the
- * missing vowels already make most words unreachable. Expand as needed; the
- * cost of a false positive is one extra generation loop.
+ * Substrings a generated code must not contain. Short and conservative — I,
+ * O and U are missing from the alphabet, but A and E remain, so plenty of
+ * roots (A55, 5EX) are still reachable and need listing explicitly. Expand
+ * as needed; the cost of a false positive is one extra generation loop.
  */
 const FORBIDDEN = ['5H1T', 'A55', 'D1CK', 'C0CK', 'B00B', '5EX', 'N4Z1'];
 
@@ -21,11 +22,20 @@ function containsForbidden(code: string): boolean {
 
 /**
  * 32 divides 256 evenly (256 / 32 = 8), so `byte % 32` is uniform over the
- * alphabet with no modulo bias and no rejection sampling needed.
+ * alphabet with no modulo bias — no rejection sampling needed *for
+ * uniformity*. The loop below still rejects and retries on a profanity hit;
+ * that's a separate, deliberate use of rejection sampling, not dead code.
+ *
+ * `randomBytes` is injectable so tests can drive the profanity-rejection
+ * path deterministically without exporting the forbidden-word list or the
+ * predicate that checks it.
  */
-export function generateJoinCode(length: number = JOIN_CODE_LENGTH): string {
+export function generateJoinCode(
+  length: number = JOIN_CODE_LENGTH,
+  randomBytes: (size: number) => Buffer = crypto.randomBytes
+): string {
   for (;;) {
-    const bytes = crypto.randomBytes(length);
+    const bytes = randomBytes(length);
     let code = '';
     for (const byte of bytes) {
       code += CROCKFORD_ALPHABET[byte % 32];
@@ -50,6 +60,7 @@ export function normalizeJoinCode(input: string): string {
 
 /** Display form: XKF7-2M9Q. Never stored — storage is always unhyphenated. */
 export function formatJoinCode(code: string): string {
+  if (code.length < 2) return code;
   const mid = Math.ceil(code.length / 2);
   return `${code.slice(0, mid)}-${code.slice(mid)}`;
 }
