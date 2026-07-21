@@ -127,8 +127,33 @@ expiry, and that is the right shape for a code living in a mailbox — a flyer t
 days is worse than useless. Rotation deactivates the old row and mints a new one, so old flyers fail
 closed and the audit trail survives.
 
-`label` exists so an owner running both a mailbox drop and a corkboard posting can tell which one
-worked.
+**A library may have several active codes at once.** There is deliberately no unique constraint on
+`collectionId`. A mailbox drop and a corkboard posting get separate rows with separate labels, so
+rotating one does not kill the other and the blast radius of any rotation is one batch of paper.
+`label` is what makes that legible, and doubles as attribution — an owner running both can tell
+which one worked.
+
+### Rotation
+
+Rotation does **not** notify existing members. Membership does not depend on the code; once someone
+is in, the `JoinCode` row has no bearing on their access. Notifying them would announce a change
+with no consequence for them.
+
+Three consequences it does have, and where each is handled:
+
+- **Someone mid-join is dropped silently.** A stranger scans, reaches the guest preview, goes off to
+  sign in, and the code rotates while they are in the auth flow. Their cookie now holds a dead code,
+  and `consume` returns the library redirect with cookies cleared
+  (`src/app/api/invite/consume/route.ts:50-53`) — so they land signed in, **not a member**, on a
+  library page they have no role on, with no explanation. `consume` must distinguish "no invite
+  present" from "invite was valid and is now dead" and surface the latter. This is a pre-existing
+  gap in the failure path; rotation is what makes it likely.
+- **Co-admins lose their printed artifacts.** Whoever printed the flyers is the party that needs to
+  know, not the membership. Handled with a visible rotation record on the join-code screen, not an
+  email.
+- **The owner forgets what is in circulation.** Handled at the moment of rotation with a confirmation
+  showing the code's `label` and `useCount` — _"corkboard flyer — used 14 times. Anyone holding a
+  flyer with XKF7-2M9Q won't be able to join."_ — not with a notification afterward.
 
 ### Changed: `Invitation`
 
@@ -318,8 +343,10 @@ path currently believe SMS is being delivered.
 - **Prefill:** the invited address reaches the sign-in page via cookie and never appears in the
   URL.
 - **Join codes:** multi-use; `useCount` increments; rotation deactivates the old code and the old
-  code then fails; `joinedViaCodeId` is recorded.
-- **Roster:** default member response contains neither `address1` nor `email`.
+  code then fails; two codes on one library rotate independently; `joinedViaCodeId` is recorded.
+- **Rotation mid-join:** a code rotated while a user is in the auth flow produces an explanatory
+  result from `consume`, not a silent landing on a library they are not a member of.
+- **Roster:** default member response contains none of `address1`, `formattedAddress`, or `email`.
 - **Rate limiting:** repeated invalid `/join` lookups from one IP are throttled; valid lookups are not.
 - **Flyer:** renders at maximum-length field content without pushing the QR off the page.
 
@@ -338,8 +365,10 @@ work needs `POST /api/reports` and an affordance — small, and worth doing soon
 Also out of scope: server-sent SMS (Twilio), postal mail integration, per-code access levels, and
 max-use limits on join codes.
 
-## Open questions
+## Resolved
 
-- Should join-code rotation notify existing members, or is it silent?
-- Does the flyer generator need a corkboard variant with tear-off strips, or is the mailbox letter
-  enough for now? (Deferred; the letter was the requested artifact.)
+- **Rotation is silent.** No member notification. See [Rotation](#rotation) for the three
+  consequences it does have and where each is handled.
+- **No corkboard tear-off variant** in this round. The mailbox letter is the requested artifact;
+  tear-off strips are pointless in a mailbox and the corkboard case can wait for evidence that
+  anyone wants it.
