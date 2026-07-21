@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Flyer reference — zero-to-one mailbox letter</title>
+<style>
+body{margin:0;padding:40px 24px;background:#22262b;color:#e8e4dc;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;}
+h2{font-size:22px;margin:0 0 8px;text-align:center;}
+.subtitle{text-align:center;color:#a9a49a;max-width:680px;margin:0 auto 8px;line-height:1.55;}
+.keywrap{color:#d6d1c7;} .keywrap h4{color:#a9a49a;} .note,.warn{color:#c9c4ba;}
+</style></head><body>
+<p class="subtitle" style="font-size:13px;margin-bottom:22px"><em>Reference artifact for the flyer generator. See docs/superpowers/specs/2026-07-20-library-invitations-design.md.<br>The QR encodes stufflibrary.org/join/XKF72M9Q and is real — generated with the qrcode dependency.</em></p>
+<style>
+  .mono { font-family: "Roboto Mono", Monaco, Consolas, monospace; }
+  .stage { display:flex; gap:40px; flex-wrap:wrap; justify-content:center; align-items:flex-start; margin:26px 0; }
+  .flyer {
+    width: 352px; height: 456px; background: #F9F5EB; color: #333;
+    font-family: Georgia, "Times New Roman", serif; position: relative;
+    box-shadow: 0 8px 26px rgba(0,0,0,.3); box-sizing:border-box; overflow:hidden;
+  }
+  .b { padding:28px 30px 20px; display:flex; flex-direction:column; height:100%; }
+  .b-from { font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:#8a8a8a; }
+  .b-hi { font-size:23px; color:#1E3A5F; margin:9px 0 12px; line-height:1.2; }
+  .b-p { font-size:12.2px; line-height:1.6; color:#3d3d3d; margin:0 0 9px; }
+  .b-sig { font-size:16px; color:#1E3A5F; font-style:italic; margin-top:3px; }
+
+  .b-box { margin-top:auto; background:#F1EADA; border-left:3px solid #E3B505; padding:11px 13px; }
+  .b-row { display:flex; align-items:center; gap:12px; }
+  .b-q { width:66px; height:66px; flex:0 0 66px; }
+  .qr { width:100%; height:100%; }
+  .joinurl { font-size:11.5px; color:#1E3A5F; font-weight:700; }
+  .joinsub { font-size:9.5px; color:#7a7a7a; margin-top:3px; line-height:1.4; }
+  .whatis { font-size:8.8px; line-height:1.52; color:#63615c; margin-top:9px;
+            border-top:1px solid #DCD1B8; padding-top:8px; }
+  .whatis strong { color:#1E3A5F; }
+
+  .keywrap { width:320px; font-size:13.5px; line-height:1.62; }
+  .keywrap h4 { margin:0 0 9px; font-size:12.5px; letter-spacing:.1em; text-transform:uppercase; color:#8a8a8a; }
+  .keywrap p { margin:0 0 15px; }
+  .note { border-left:3px solid #E3B505; padding:2px 0 2px 13px; color:#555; }
+  .warn { border-left:3px solid #FF6347; padding:2px 0 2px 13px; color:#555; }
+</style>
+
+<h2>The letter, with your about-text</h2>
+<p class="subtitle">
+  The about block moved below the QR and runs full width — three sentences wouldn't fit beside it.
+  To buy the room, the letter body lost a little air.
+</p>
+
+<div class="stage">
+
+  <div class="flyer">
+    <div class="b">
+      <div class="b-from mono">A note from #412</div>
+      <h3 class="b-hi">Hello,<br>I'm your neighbor.</h3>
+
+      <p class="b-p">
+        I own a pressure washer. I've used it twice. It lives in my garage
+        being expensive and idle, and I suspect your garage has one of its
+        cousins in it.
+      </p>
+      <p class="b-p">
+        So I started a stuff library for our street — a shared list of things
+        any of us can borrow. It's free, it's small, and right now it's mostly
+        just me and the pressure washer.
+      </p>
+      <p class="b-p">
+        If you've got something you'd lend, or something you'd rather borrow
+        than buy, come add it.
+      </p>
+
+      <div class="b-sig">— your neighbor at #412</div>
+
+      <div class="b-box">
+        <div class="b-row">
+          <div class="b-q"><svg class="qr" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 29 29" shape-rendering="crispEdges"><path stroke="#1E3A5F" d="M0 0.5h7m1 0h4m2 0h1m4 0h2m1 0h7M0 1.5h1m5 0h1m1 0h1m1 0h2m3 0h2m5 0h1m5 0h1M0 2.5h1m1 0h3m1 0h1m3 0h2m1 0h1m1 0h2m3 0h1m1 0h1m1 0h3m1 0h1M0 3.5h1m1 0h3m1 0h1m1 0h1m1 0h3m2 0h3m1 0h1m2 0h1m1 0h3m1 0h1M0 4.5h1m1 0h3m1 0h1m2 0h2m1 0h6m1 0h1m2 0h1m1 0h3m1 0h1M0 5.5h1m5 0h1m2 0h1m1 0h1m2 0h2m1 0h3m2 0h1m5 0h1M0 6.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M8 7.5h2m1 0h1m1 0h2m1 0h4M0 8.5h1m1 0h2m1 0h3m1 0h1m2 0h3m2 0h1m4 0h1m2 0h1m1 0h2M3 9.5h1m1 0h1m3 0h4m3 0h4m1 0h4m3 0h1M0 10.5h1m4 0h2m1 0h1m1 0h2m2 0h2m2 0h1m2 0h1m1 0h2m1 0h2M0 11.5h2m2 0h2m1 0h1m1 0h2m2 0h2m3 0h2m3 0h1m4 0h1M2 12.5h3m1 0h1m1 0h3m4 0h1m1 0h1m1 0h2m4 0h2M3 13.5h1m1 0h1m2 0h1m3 0h2m1 0h2m2 0h1m2 0h1m3 0h3M2 14.5h1m2 0h4m5 0h1m1 0h2m1 0h1m1 0h1m1 0h1m2 0h3M0 15.5h3m2 0h1m1 0h2m1 0h4m4 0h2m1 0h1m1 0h2m2 0h1M0 16.5h1m3 0h1m1 0h1m4 0h2m3 0h1m1 0h1m2 0h1m2 0h2m1 0h1M8 17.5h2m3 0h1m1 0h1m1 0h1m2 0h1m2 0h1m1 0h3M0 18.5h1m1 0h1m1 0h1m1 0h2m2 0h2m3 0h1m1 0h1m2 0h3m1 0h1m1 0h1M2 19.5h2m1 0h1m3 0h1m1 0h1m5 0h2m1 0h2m4 0h1M1 20.5h1m2 0h1m1 0h2m2 0h1m2 0h1m3 0h10M8 21.5h1m4 0h2m2 0h2m1 0h1m3 0h5M0 22.5h7m1 0h3m1 0h2m1 0h3m1 0h2m1 0h1m1 0h2m1 0h1M0 23.5h1m5 0h1m1 0h1m2 0h1m3 0h1m2 0h1m1 0h1m3 0h2m1 0h2M0 24.5h1m1 0h3m1 0h1m3 0h1m1 0h1m1 0h1m2 0h1m2 0h5m1 0h1m1 0h1M0 25.5h1m1 0h3m1 0h1m1 0h2m3 0h2m1 0h1m4 0h1m2 0h2m1 0h1M0 26.5h1m1 0h3m1 0h1m1 0h2m2 0h1m3 0h4m3 0h1m2 0h1m1 0h1M0 27.5h1m5 0h1m4 0h1m2 0h2m2 0h4m1 0h1m1 0h1m1 0h1M0 28.5h7m1 0h1m3 0h1m6 0h2m1 0h2m1 0h1m1 0h1"/></svg></div>
+          <div>
+            <div class="joinurl mono">stufflibrary.org/join/XKF7-2M9Q</div>
+            <div class="joinsub">Scan it, or type it in. Same place either way.</div>
+          </div>
+        </div>
+        <div class="whatis">
+          <strong>StuffLibrary</strong> is a free website anyone can use to host virtual
+          libraries of real stuff. No ads, nothing for sale, no data sold. Just more
+          sharing, less buying, and a checkout system that makes it easy to remember
+          to return stuff on time.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="keywrap">
+    <h4>What changed</h4>
+    <p>
+      Your text runs <strong>full width beneath the QR</strong> rather than beside it, at
+      8.8px. Beside the QR it had a ~200px column and would have run nine lines deep,
+      shoving the letter off the page.
+    </p>
+
+    <h4>What it cost</h4>
+    <p class="note">
+      The letter body tightened — 12.2px, slightly less leading. Still comfortable, but
+      that's most of the slack gone. The three paragraphs are now close to their real ceiling,
+      which is worth knowing when we set the character limits.
+    </p>
+
+    <h4>Two small things</h4>
+    <p>
+      I fixed <em>"is free website"</em> → <strong>"is a free website"</strong> and
+      <em>"to hosting"</em> → <strong>"to host"</strong>.
+    </p>
+    <p class="warn">
+      I also added <em>"Scan it, or type it in. Same place either way."</em> under the URL —
+      it does the job the oversized code used to do, and tells a QR-wary reader they have
+      another option. Delete it if it's one line too many.
+    </p>
+  </div>
+
+</div>
+
+</body></html>
