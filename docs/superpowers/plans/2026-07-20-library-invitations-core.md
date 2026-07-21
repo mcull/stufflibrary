@@ -778,9 +778,7 @@ In `src/app/auth/callback/page.tsx:78-92`, the response body is currently only c
 
 ```ts
 if (body?.error === 'invite_bound_to_other_email') {
-  router.replace(
-    `/?invite=wrong_account&invited=${encodeURIComponent(body.invitedEmail ?? '')}`
-  );
+  router.replace(`/?invite=wrong_account`);
   return;
 }
 if (body?.error === 'invite_expired' || body?.error === 'invite_invalid') {
@@ -1065,6 +1063,18 @@ Then pass `disabled={!!boundEmail}` to the email `TextField`, and render above i
 ```
 
 No edit affordance — that is what binding means. Clear `invite_email` in `consume` alongside the other cookies.
+
+- [ ] **Step 3c: Build the wrong-account dead end**
+
+`?invite=wrong_account` currently renders nothing — no page reads the `invite` query param at all, so `invite=invalid` and `invite=expired` have been silent dead ends on `main` all along. Task 5 wires the redirect; this step gives it somewhere to land, and without it the masked-address plumbing has no UI.
+
+Modelled on Google's "You need access": _"This invitation was sent to d•••@example.com"_ with a button to sign in as that address.
+
+**Source the address from the cookie, not the URL.** Task 5 deliberately leaves `invite_token` / `invite_library` intact on a refusal — clearing them would destroy the recovery this screen offers, since the "sign in as that address" button needs an invite left to consume. So the page reads it through `/api/invite/context` (Step 3) and masks it server-side with `maskEmail`.
+
+Do **not** pass the masked address as a query parameter. It is masked, so not harvestable, but it still lands in browser history and outbound `Referer` — the same channel this spec rejects for the unmasked address, and there is no reason to accept it here when the cookie already carries the truth.
+
+Also give `invite=invalid` and `invite=expired` real copy while you are here. They have been rendering nothing since before this work.
 
 - [ ] **Step 4: Walk the flow by hand**
 

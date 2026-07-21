@@ -266,6 +266,19 @@ d•••@example.com"_ with a button to sign in as that address.
 that was locked to the invitation, so it matches by construction. Prefilling is what makes the happy
 path pass automatically.
 
+**Correction — the check must be enforced in two places, not one.** An earlier version of this spec
+claimed every entry path converges on `consume` and the check could therefore be implemented once
+there. That is wrong. `handleInviteLanding`'s signed-in branch (`src/lib/invite.ts`) calls
+`ensureActiveMembership` and `acceptInvitation` directly and never reaches `consume` — and that
+branch is exactly the forwardee-with-a-live-session case. Enforcing only in `consume` would have
+covered the unauthenticated path, which matches by construction once sign-in is prefilled, while
+leaving the real attack path open. Both call sites check, before any mutation.
+
+One consequence of putting the guard before the owner lookup: a library owner previewing a link
+addressed to someone else now sees the dead end rather than "your own library." Cosmetic — nothing
+is burned and nothing granted — and it keeps the guard a single unconditional comparison rather than
+a security check carrying an exemption.
+
 The check exists to catch arrivals by every _other_ route:
 
 - **OAuth.** `GitHubProvider` is configured (`src/lib/auth.ts:27`). A user who signs in with GitHub
