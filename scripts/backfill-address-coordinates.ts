@@ -159,9 +159,13 @@ async function main() {
       // One bad row must not abort the run.
       console.error(`❌ ${address.id}: failed —`, err);
       failed++;
+    } finally {
+      // In a finally so the delay applies to every attempted call, including
+      // the ones that failed. A failing row still hit Google, and a run where
+      // every row fails — which is what happens if the Geocoding API isn't
+      // enabled on the key — would otherwise become a delay-free tight loop.
+      await sleep(DELAY_MS);
     }
-
-    await sleep(DELAY_MS);
   }
 
   console.log(
