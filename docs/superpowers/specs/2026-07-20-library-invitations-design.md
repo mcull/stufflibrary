@@ -139,6 +139,26 @@ Rotation does **not** notify existing members. Membership does not depend on the
 is in, the `JoinCode` row has no bearing on their access. Notifying them would announce a change
 with no consequence for them.
 
+**Rotating an already-rotated code is refused**, returning null exactly as an unknown code does.
+Without that guard, rotating twice mints a fresh live code descended from a dead one and leaves the
+library with two live codes where the admin expected one replacement — an operation whose entire
+purpose is revocation would quietly widen access.
+
+**The replacement is created before the old row is deactivated, and that order is load-bearing.**
+Atomicity is not available: `createJoinCode` retries on the unique constraint, and in Postgres a
+constraint violation inside a transaction aborts it, so the retry cannot survive being wrapped. Given
+that, the order is chosen so the partial failure is the survivable one:
+
+| Order               | Failure between the two writes | Result                                                                                         |
+| ------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------- |
+| deactivate → create | create fails                   | **zero live codes** — every flyer in every mailbox silently dead, recovery manual              |
+| create → deactivate | deactivate fails               | **two live codes**, same label — both work, nothing printed stops working, admin rotates again |
+
+**This depends on the UI listing every active code**, not one per label. If the join-code screen
+collapses a label to a single row, or the rotate control assumes one live code per batch, a failed
+deactivation becomes invisible and "the admin can simply rotate again" stops being true. The
+service's safety argument is only as good as the list that surfaces it.
+
 Three consequences it does have, and where each is handled:
 
 - **Someone mid-join is dropped silently.** A stranger scans, reaches the guest preview, goes off to

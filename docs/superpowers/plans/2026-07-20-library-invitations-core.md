@@ -1101,6 +1101,8 @@ Why: Dave asked to join a specific library — a preview of it is answering a qu
 
 Create `src/app/api/collections/[id]/join-codes/route.ts`. Gate both verbs on `getUserCapabilities(userId, { libraryId })` → `caps.canInvite`, matching `src/app/api/collections/[id]/invite/route.ts:98-110`. `GET` returns active codes with `id`, `code`, `label`, `useCount`, `createdAt`. `POST` accepts `{ label?: string }` and calls `createJoinCode`.
 
+**`GET` must return every active code, never collapsed by label.** Rotation creates the replacement before deactivating the old row, so a failed deactivation deliberately leaves two live codes sharing a label — a survivable state, but only because the admin can see it and rotate again. Deduplicating or grouping by label here would hide exactly the failure this ordering was chosen to make visible. Add a test that two active codes with the same label both appear in the response.
+
 ```ts
 import { type NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
