@@ -89,6 +89,63 @@ function library(overrides: Record<string, unknown> = {}) {
   };
 }
 
+const ANA_ID = 'user_ana';
+const BRUNO_ID = 'user_bruno';
+
+// Full names and real avatar URLs on purpose. A fixture that already lacked the
+// surname would let these assertions pass against the unfixed route.
+const ANA = {
+  id: ANA_ID,
+  name: 'Ana Restrepo',
+  image: 'https://avatars.example/ana-restrepo.png',
+};
+const BRUNO = {
+  id: BRUNO_ID,
+  name: 'Bruno Salgado',
+  image: 'https://avatars.example/bruno-salgado.png',
+};
+
+function item() {
+  return {
+    id: 'item_1',
+    name: 'Cordless Drill',
+    description: 'Charges fast',
+    condition: 'good',
+    imageUrl: 'https://items.example/drill.jpg',
+    watercolorUrl: 'https://items.example/drill.png',
+    watercolorThumbUrl: 'https://items.example/drill-thumb.png',
+    currentBorrowRequestId: 'br_1',
+    createdAt: new Date('2026-01-05'),
+    ownerId: ANA_ID,
+    owner: { ...ANA },
+    stuffType: {
+      displayName: 'Drill',
+      iconPath: '/icons/drill.svg',
+      category: 'tools',
+    },
+    borrowRequests: [
+      {
+        id: 'br_1',
+        status: 'ACTIVE',
+        createdAt: new Date('2026-01-06'),
+        approvedAt: new Date('2026-01-07'),
+        requestedReturnDate: new Date('2026-01-14'),
+        borrower: { ...BRUNO },
+        lender: { ...ANA },
+      },
+      {
+        id: 'br_2',
+        status: 'PENDING',
+        createdAt: new Date('2026-01-08'),
+        approvedAt: null,
+        requestedReturnDate: null,
+        borrower: { ...BRUNO },
+        lender: { ...ANA },
+      },
+    ],
+  };
+}
+
 function request(cookies: Record<string, string> = {}) {
   return {
     url: `http://t/api/collections/${LIBRARY_ID}`,
@@ -108,7 +165,7 @@ async function callGET(cookies?: Record<string, string>) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockItemFindMany.mockResolvedValue([]);
+  mockItemFindMany.mockResolvedValue([item()]);
   mockCollectionFindUnique.mockResolvedValue(library());
   mockInvitationFindFirst.mockResolvedValue({ id: 'inv_1' });
 });
@@ -221,5 +278,80 @@ describe('GET /api/collections/[id] — member location privacy', () => {
     expect(body.collection.owner.name).toBe('Ada Owner');
     expect(body.collection.owner.email).toBeUndefined();
     expect(body.collection.memberAreas).toEqual([]);
+  });
+});
+
+describe('GET /api/collections/[id] — item owner names', () => {
+  async function asGuest() {
+    mockGetServerSession.mockResolvedValue(null);
+    return callGET({ invite_token: 'tok_1', invite_library: LIBRARY_ID });
+  }
+
+  it('gives a guest a first name and no surname anywhere in the payload', async () => {
+    const { body } = await asGuest();
+
+    const serialized = JSON.stringify(body);
+    expect(serialized).toContain('Ana');
+    expect(serialized).not.toContain('Restrepo');
+    expect(serialized).not.toContain('Salgado');
+    expect(body.collection.items[0].owner.name).toBe('Ana');
+    expect(body.collection.itemsByCategory.tools[0].owner.name).toBe('Ana');
+  });
+
+  it('gives a guest no avatar url for anyone attached to an item', async () => {
+    const { body } = await asGuest();
+
+    expect(JSON.stringify(body)).not.toContain('avatars.example');
+    const item = body.collection.items[0];
+    expect(item.owner.image).toBeNull();
+    expect(item.currentBorrow.borrower.image).toBeNull();
+    expect(item.currentBorrow.lender.image).toBeNull();
+    expect(item.notificationQueue[0].user.image).toBeNull();
+  });
+
+  it('withholds the item owner id from a guest', async () => {
+    const { body } = await asGuest();
+
+    expect(body.collection.items[0].owner.id).toBeUndefined();
+    expect(body.collection.itemsByCategory.tools[0].owner.id).toBeUndefined();
+  });
+
+  it('keeps borrower and lender ids, which the card compares to spot a self-borrow', async () => {
+    const { body } = await asGuest();
+
+    const borrow = body.collection.items[0].currentBorrow;
+    expect(borrow.borrower.id).toBe(BRUNO_ID);
+    expect(borrow.lender.id).toBe(ANA_ID);
+  });
+
+  it('shortens borrower and lender names for a guest too', async () => {
+    const { body } = await asGuest();
+
+    const borrow = body.collection.items[0].currentBorrow;
+    expect(borrow.borrower.name).toBe('Bruno');
+    expect(borrow.lender.name).toBe('Ana');
+    expect(body.collection.items[0].notificationQueue[0].user.name).toBe(
+      'Bruno'
+    );
+  });
+
+  it('leaves a member the full name and avatar', async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: MEMBER_ID } });
+
+    const { body } = await callGET();
+
+    const item = body.collection.items[0];
+    expect(item.owner).toEqual({
+      id: ANA_ID,
+      name: 'Ana Restrepo',
+      image: 'https://avatars.example/ana-restrepo.png',
+    });
+    expect(item.currentBorrow.borrower.name).toBe('Bruno Salgado');
+    expect(item.currentBorrow.borrower.image).toBe(
+      'https://avatars.example/bruno-salgado.png'
+    );
+    expect(body.collection.itemsByCategory.tools[0].owner.name).toBe(
+      'Ana Restrepo'
+    );
   });
 });

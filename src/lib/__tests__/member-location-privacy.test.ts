@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest';
 
 import {
   canSeeExactMemberLocations,
+  firstNameOnly,
   toNeighborProfile,
+  toStrangerProfile,
   roundCoordinate,
   toMemberAreas,
 } from '../member-location-privacy';
@@ -141,5 +143,62 @@ describe('canSeeExactMemberLocations', () => {
     expect(canSeeExactMemberLocations('guest')).toBe(false);
     expect(canSeeExactMemberLocations(null)).toBe(false);
     expect(canSeeExactMemberLocations(undefined)).toBe(false);
+  });
+});
+
+describe('firstNameOnly', () => {
+  it('keeps the given name and drops the rest', () => {
+    expect(firstNameOnly('Ana Restrepo')).toBe('Ana');
+    expect(firstNameOnly('Ana Maria Restrepo Vélez')).toBe('Ana');
+  });
+
+  it('passes a single-word name through unchanged', () => {
+    expect(firstNameOnly('Prince')).toBe('Prince');
+  });
+
+  it('ignores surrounding and repeated whitespace', () => {
+    expect(firstNameOnly('  Ana   Restrepo  ')).toBe('Ana');
+    expect(firstNameOnly('\tAna\n')).toBe('Ana');
+  });
+
+  it('returns null rather than an empty string for nothing', () => {
+    expect(firstNameOnly('')).toBeNull();
+    expect(firstNameOnly('   ')).toBeNull();
+    expect(firstNameOnly(null)).toBeNull();
+    expect(firstNameOnly(undefined)).toBeNull();
+  });
+});
+
+describe('toStrangerProfile', () => {
+  const ana = {
+    id: 'user_ana',
+    name: 'Ana Restrepo',
+    image: 'https://avatars.example/ana-restrepo.png',
+  };
+
+  it('gives a first name, no face and no id', () => {
+    expect(toStrangerProfile(ana)).toEqual({ name: 'Ana', image: null });
+  });
+
+  it('keeps the id only when something genuinely needs it', () => {
+    expect(toStrangerProfile(ana, { keepId: true })).toEqual({
+      id: 'user_ana',
+      name: 'Ana',
+      image: null,
+    });
+  });
+
+  it('never leaks the surname or the avatar url', () => {
+    const serialized = JSON.stringify(toStrangerProfile(ana, { keepId: true }));
+    expect(serialized).toContain('Ana');
+    expect(serialized).not.toContain('Restrepo');
+    expect(serialized).not.toContain('avatars.example');
+  });
+
+  it('tolerates a person with no name', () => {
+    expect(toStrangerProfile({ id: 'u2' })).toEqual({
+      name: null,
+      image: null,
+    });
   });
 });

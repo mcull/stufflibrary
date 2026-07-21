@@ -86,6 +86,49 @@ export function canSeeExactMemberLocations(
   return role === 'owner' || role === 'admin' || role === 'member';
 }
 
+interface RawPerson {
+  id: string;
+  name?: string | null;
+  image?: string | null;
+}
+
+/** What an outsider may know about someone attached to an item. */
+export interface StrangerProfile {
+  id?: string;
+  name: string | null;
+  image: null;
+}
+
+/**
+ * The part of a name a stranger gets: everything before the first space.
+ * A first name is enough for a listing to feel like it belongs to a person;
+ * a surname is enough to look that person up.
+ */
+export function firstNameOnly(name: string | null | undefined): string | null {
+  const first = (name ?? '').trim().split(/\s+/)[0];
+  return first ? first : null;
+}
+
+/**
+ * Project a person down to what someone outside the library may see: a first
+ * name, no face, and no id unless a caller genuinely needs one. Rebuilt field
+ * by field for the same reason as toNeighborProfile — a widened select must not
+ * be able to smuggle anything through.
+ *
+ * `keepId` exists for borrowers and lenders, whose ids the item card compares
+ * to each other to recognise a self-borrow. Item owners need no id at all.
+ */
+export function toStrangerProfile(
+  user: RawPerson,
+  { keepId = false }: { keepId?: boolean } = {}
+): StrangerProfile {
+  return {
+    ...(keepId ? { id: user.id } : {}),
+    name: firstNameOnly(user.name),
+    image: null,
+  };
+}
+
 interface RawAddress {
   city?: string | null;
   state?: string | null;

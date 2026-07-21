@@ -35,6 +35,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 
 import { useCapabilities } from '@/hooks/useCapabilities';
 import type { CapabilityReason } from '@/lib/capabilities';
+import type { MemberArea } from '@/lib/member-location-privacy';
 import { brandColors, spacing } from '@/theme/brandTokens';
 
 import { CompleteProfilePrompt } from './CompleteProfilePrompt';
@@ -60,10 +61,11 @@ interface LibraryItem {
     iconPath: string;
     category: string;
   };
+  // Guests get a first name and nothing else — no id, no avatar.
   owner: {
-    id: string;
-    name?: string;
-    image?: string;
+    id?: string;
+    name?: string | null;
+    image?: string | null;
   };
   isOwnedByUser: boolean;
   currentBorrow?: {
@@ -93,6 +95,16 @@ interface LibraryItem {
   queueDepth: number;
 }
 
+// Exactly what the API sends a member about a neighbor's address. `city` and
+// `state` are nullable in the database and the route passes them through as
+// such, so they are nullable here too.
+interface NeighborAddress {
+  city: string | null;
+  state: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
 interface LibraryData {
   id: string;
   name: string;
@@ -106,16 +118,7 @@ interface LibraryData {
     id: string;
     name?: string;
     image?: string;
-    addresses?: Array<{
-      // Redacted server-side (privacy): the API no longer sends street
-      // address or email at any role. Optional until the map stops asking.
-      address1?: string;
-      city: string;
-      state: string;
-      latitude?: number;
-      longitude?: number;
-      formattedAddress?: string;
-    }>;
+    addresses?: Array<NeighborAddress>;
   } | null;
   userRole: 'owner' | 'admin' | 'member' | 'guest' | null;
   memberCount: number;
@@ -128,16 +131,12 @@ interface LibraryData {
       id: string;
       name?: string;
       image?: string;
-      addresses?: Array<{
-        address1?: string;
-        city: string;
-        state: string;
-        latitude?: number;
-        longitude?: number;
-        formattedAddress?: string;
-      }>;
+      addresses?: Array<NeighborAddress>;
     };
   }>;
+  // Guests get counted areas instead of people: coordinates rounded to ~1.1km
+  // with identical points merged. Empty for members, who get real pins.
+  memberAreas?: MemberArea[];
   items?: LibraryItem[];
   itemsByCategory: Record<string, LibraryItem[]>;
 }
@@ -511,21 +510,40 @@ export function CollectionDetailClient({
     }
   }, [collectionId, library]);
 
-  // Memoize map props at the top level
+  // Memoize map props at the top level. Only members we can actually place go
+  // to the map — a member with no coordinates is left off rather than nudged
+  // to the middle of the neighborhood, which would point at someone else's
+  // house. Coordinates only ever arrive at profile-save time, so "no
+  // coordinates" is an ordinary state, not an edge case.
   const mapMembers = useMemo(() => {
     if (!library) return [];
-    return library?.members.map((member) => {
+    return library.members.flatMap((member) => {
       const address = member.user.addresses?.[0];
-      return {
-        id: member.user.id,
-        name: member.user.name || null,
-        image: member.user.image || null,
-        address: address?.formattedAddress || address?.address1 || null,
-        latitude: address?.latitude,
-        longitude: address?.longitude,
-      };
+      const { latitude, longitude } = address ?? {};
+      if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+        return [];
+      }
+      return [
+        {
+          id: member.user.id,
+          name: member.user.name || null,
+          image: member.user.image || null,
+          latitude,
+          longitude,
+        },
+      ];
     });
   }, [library]);
+
+  // Guests get these instead of members: rounded, merged, counted areas.
+  const mapAreas = useMemo(() => library?.memberAreas ?? [], [library]);
+
+  // Members the map cannot honestly place. Worth naming under the map so the
+  // pin count doesn't read as the whole neighborhood.
+  const unplottedCount = useMemo(() => {
+    if (!library) return 0;
+    return library.members.length - mapMembers.length;
+  }, [library, mapMembers]);
 
   const mapCurrentUser = useMemo(
     () => ({
@@ -540,7 +558,7 @@ export function CollectionDetailClient({
   // instead. One -> compact map (it hasn't earned the full-height hero yet).
   // Two+ -> the map is telling a real neighborhood story; give it room.
   const locatedCount = useMemo(() => {
-    const located = (lat?: number, lng?: number) =>
+    const located = (lat?: number | null, lng?: number | null) =>
       typeof lat === 'number' && typeof lng === 'number';
     const memberIds = new Set<string>();
     for (const m of mapMembers) {
@@ -552,8 +570,11 @@ export function CollectionDetailClient({
     ) {
       memberIds.add(mapCurrentUser.id);
     }
-    return memberIds.size;
-  }, [mapMembers, mapCurrentUser]);
+    // Guests have no members at all; their sense of "is anyone here?" comes
+    // from the counted areas instead.
+    const areaTotal = mapAreas.reduce((sum, area) => sum + area.count, 0);
+    return memberIds.size + areaTotal;
+  }, [mapMembers, mapCurrentUser, mapAreas]);
 
   const hasMapAnchor = locatedCount > 0;
   const mapEarnsFullSize = locatedCount >= 2;
@@ -1176,13 +1197,25 @@ export function CollectionDetailClient({
             <LibraryMap
               libraryName={library?.name}
               members={mapMembers}
+              areas={mapAreas}
               currentUser={mapCurrentUser}
               isGuest={library?.userRole === 'guest'}
             />
           </Box>
-          {!mapEarnsFullSize &&
-            library?.userRole &&
-            library.userRole !== 'guest' && (
+          {/* One caption at most. If neighbors are here but unplaceable, say
+              so — otherwise the pin count reads as the whole neighborhood, and
+              "invite a neighbor" is the wrong next step. */}
+          {library?.userRole && library.userRole !== 'guest' ? (
+            unplottedCount > 0 ? (
+              <Typography
+                variant="body2"
+                sx={{ color: 'text.secondary', textAlign: 'center', mt: 1 }}
+              >
+                {unplottedCount === 1
+                  ? '1 member hasn’t added a location yet'
+                  : `${unplottedCount} members haven’t added a location yet`}
+              </Typography>
+            ) : !mapEarnsFullSize ? (
               <Box
                 sx={{
                   display: 'flex',
@@ -1211,7 +1244,8 @@ export function CollectionDetailClient({
                   invite a neighbor to fill it in
                 </Button>
               </Box>
-            )}
+            ) : null
+          ) : null}
         </Box>
       ) : isLibraryManager ? (
         <Box
@@ -1434,7 +1468,6 @@ export function CollectionDetailClient({
                           key={item.id}
                           item={item}
                           libraryId={collectionId}
-                          isGuest={library?.userRole === 'guest'}
                         />
                       ))}
                     </Box>
@@ -1504,7 +1537,6 @@ export function CollectionDetailClient({
                           key={item.id}
                           item={item}
                           libraryId={collectionId}
-                          isGuest={library?.userRole === 'guest'}
                         />
                       ))}
                     </Box>

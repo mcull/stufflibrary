@@ -3,6 +3,8 @@
 import { Box, Paper, Typography } from '@mui/material';
 import { useState, useEffect, useRef, memo } from 'react';
 
+import type { MemberArea } from '@/lib/member-location-privacy';
+
 // Declare global google object
 declare global {
   interface Window {
@@ -11,22 +13,30 @@ declare global {
   }
 }
 
+// Only members the caller could actually place. Coordinates are required:
+// a member whose location we don't know is left off the map, never invented.
 interface LibraryMember {
   id: string;
   name?: string | null;
   image?: string | null;
-  address?: string | null;
-  latitude?: number | undefined;
-  longitude?: number | undefined;
+  latitude: number;
+  longitude: number;
 }
 
 interface LibraryMapProps {
   libraryName: string;
+  /** Real people with real pins — members and above only. */
   members: LibraryMember[];
+  /**
+   * What an outsider gets instead: coordinates rounded to ~1.1km with
+   * identical points merged, shown as a counted cluster. Nobody in an area is
+   * named, faced or individually locatable, so there is nothing to blur.
+   */
+  areas?: MemberArea[];
   currentUser?: {
     id: string;
-    latitude?: number | undefined;
-    longitude?: number | undefined;
+    latitude?: number | null | undefined;
+    longitude?: number | null | undefined;
   };
   isGuest?: boolean;
 }
@@ -34,6 +44,7 @@ interface LibraryMapProps {
 function LibraryMapComponent({
   libraryName,
   members,
+  areas = [],
   currentUser,
   isGuest = false,
 }: LibraryMapProps) {
@@ -90,18 +101,17 @@ function LibraryMapComponent({
       // Calculate center based on member locations or use default
       let mapCenter = { lat: 37.7749, lng: -122.4194 }; // Default to SF
 
-      // If members have coordinates, calculate center
-      const membersWithCoords = members.filter(
-        (m) => m.latitude && m.longitude
-      );
-      if (membersWithCoords.length > 0) {
-        const avgLat =
-          membersWithCoords.reduce((sum, m) => sum + m.latitude!, 0) /
-          membersWithCoords.length;
-        const avgLng =
-          membersWithCoords.reduce((sum, m) => sum + m.longitude!, 0) /
-          membersWithCoords.length;
-        mapCenter = { lat: avgLat, lng: avgLng };
+      // Centre on whatever we were given — pins for insiders, areas for
+      // everyone else. Exactly one of the two is ever populated.
+      const points: Array<{ lat: number; lng: number }> = [
+        ...members.map((m) => ({ lat: m.latitude, lng: m.longitude })),
+        ...areas.map((a) => ({ lat: a.lat, lng: a.lng })),
+      ];
+      if (points.length > 0) {
+        mapCenter = {
+          lat: points.reduce((sum, p) => sum + p.lat, 0) / points.length,
+          lng: points.reduce((sum, p) => sum + p.lng, 0) / points.length,
+        };
       }
 
       const mapOptions: any = {
@@ -149,62 +159,69 @@ function LibraryMapComponent({
       setMap(newMap);
       setIsLoaded(true);
 
-      // Add custom markers for each member
-      members.forEach(async (member) => {
-        let lat = member.latitude;
-        let lng = member.longitude;
+      // Counted areas for outsiders. One badge per rounded coordinate; the
+      // number is the whole story. No name, no face, no click target — there
+      // is no individual behind a badge to reveal.
+      areas.forEach((area) => {
+        const badge = document.createElement('div');
+        badge.innerHTML = `
+          <div style="
+            min-width: 40px;
+            height: 40px;
+            padding: 0 8px;
+            border-radius: 20px;
+            border: 2px solid #ffffff;
+            background: rgba(30, 58, 95, 0.85);
+            color: #ffffff;
+            font-family: 'Roboto', sans-serif;
+            font-weight: 700;
+            font-size: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          ">${area.count}</div>
+        `;
 
-        // If no coordinates but has address, geocode it
-        if ((!lat || !lng) && member.address) {
-          try {
-            const geocoder = new window.google.maps.Geocoder();
-            const result = await new Promise<any>((resolve, reject) => {
-              geocoder.geocode(
-                { address: member.address },
-                (results: any, status: any) => {
-                  if (status === 'OK' && results?.[0]) {
-                    resolve(results[0]);
-                  } else {
-                    reject(new Error('Geocoding failed'));
-                  }
-                }
-              );
+        const title = `${area.count} member${area.count === 1 ? '' : 's'} near here`;
+        try {
+          if (
+            window.google?.maps?.marker?.AdvancedMarkerElement &&
+            typeof window.google.maps.marker.AdvancedMarkerElement ===
+              'function'
+          ) {
+            new window.google.maps.marker.AdvancedMarkerElement({
+              position: { lat: area.lat, lng: area.lng },
+              map: newMap,
+              title,
+              content: badge,
             });
-
-            lat = result.geometry.location.lat();
-            lng = result.geometry.location.lng();
-
-            // Save the coordinates to the database
-            await fetch('/api/profile/update-coordinates', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                userId: member.id,
-                latitude: lat,
-                longitude: lng,
-              }),
+          } else {
+            new window.google.maps.Marker({
+              position: { lat: area.lat, lng: area.lng },
+              map: newMap,
+              title,
+              label: String(area.count),
             });
-          } catch (error) {
-            console.warn(
-              `Failed to geocode address for ${member.name}:`,
-              error
-            );
-            // Fall back to center with small offset
-            lat = mapCenter.lat + (Math.random() - 0.5) * 0.01;
-            lng = mapCenter.lng + (Math.random() - 0.5) * 0.01;
           }
-        } else if (!lat || !lng) {
-          // No address and no coordinates - place near center
-          lat = mapCenter.lat + (Math.random() - 0.5) * 0.01;
-          lng = mapCenter.lng + (Math.random() - 0.5) * 0.01;
+        } catch {
+          new window.google.maps.Marker({
+            position: { lat: area.lat, lng: area.lng },
+            map: newMap,
+            title,
+            label: String(area.count),
+          });
         }
+      });
 
+      // Add custom markers for each member. Everyone here has coordinates —
+      // the caller drops anyone who doesn't rather than guessing at a spot.
+      members.forEach((member) => {
+        const { latitude: lat, longitude: lng } = member;
         const isCurrentUser = currentUser?.id === member.id;
         const markerSize = isCurrentUser ? 56 : 40;
         const borderColor = isCurrentUser ? '#1976d2' : '#ffffff';
         const borderWidth = isCurrentUser ? 3 : 2;
-        const blurFilter =
-          isGuest && !isCurrentUser ? 'filter: blur(4px);' : '';
 
         // Create custom marker HTML
         const markerDiv = document.createElement('div');
@@ -229,12 +246,12 @@ function LibraryMapComponent({
               <img
                 src="${member.image}"
                 alt="${member.name || 'Anonymous'}"
-                style="width: 100%; height: 100%; object-fit: cover; ${blurFilter}"
-                onerror="this.style.display='none'; this.parentElement.innerHTML='${(member.name || 'A')[0]}'; this.parentElement.style.fontSize='${markerSize * 0.4}px'; this.parentElement.style.fontWeight='bold'; this.parentElement.style.color='#666'; this.parentElement.style.filter='${isGuest && !isCurrentUser ? 'blur(4px)' : ''}';"
+                style="width: 100%; height: 100%; object-fit: cover;"
+                onerror="this.style.display='none'; this.parentElement.innerHTML='${(member.name || 'A')[0]}'; this.parentElement.style.fontSize='${markerSize * 0.4}px'; this.parentElement.style.fontWeight='bold'; this.parentElement.style.color='#666';"
               />
             `
                 : `
-              <span style="font-size: ${markerSize * 0.4}px; font-weight: bold; color: #666; ${blurFilter}">
+              <span style="font-size: ${markerSize * 0.4}px; font-weight: bold; color: #666;">
                 ${(member.name || 'A')[0]}
               </span>
             `
@@ -280,7 +297,8 @@ function LibraryMapComponent({
           });
         }
 
-        // Add info window
+        // Add info window. Only reachable for insiders: outsiders are given
+        // areas, not members, so this loop is empty for them.
         const infoWindow = new window.google.maps.InfoWindow({
           content: `
             <div style="padding: 12px; text-align: center; font-family: 'Roboto', sans-serif;">
@@ -314,7 +332,7 @@ function LibraryMapComponent({
     };
 
     loadGoogleMaps();
-  }, [members, currentUser, isGuest]);
+  }, [members, areas, currentUser, isGuest]);
 
   return (
     <Paper

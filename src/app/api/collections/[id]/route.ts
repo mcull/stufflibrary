@@ -8,6 +8,7 @@ import {
   canSeeExactMemberLocations,
   toMemberAreas,
   toNeighborProfile,
+  toStrangerProfile,
 } from '@/lib/member-location-privacy';
 
 export async function GET(
@@ -240,6 +241,20 @@ export async function GET(
           ...nonOwnerRows.map((member) => member.user.addresses?.[0] ?? {}),
         ]);
 
+    // Item listings name a person. Insiders get the whole card — full name and
+    // face. Outsiders get a first name and nothing else: enough to see that a
+    // real neighbor is behind the drill, not enough to identify them. The card
+    // used to overprint the name with block characters client-side, which left
+    // the real one sitting in the JSON one devtools panel away.
+    type ItemPerson = { id: string; name: string | null; image: string | null };
+    const itemOwner = (person: ItemPerson) =>
+      insideTheLibrary ? person : toStrangerProfile(person);
+
+    // Borrowers and lenders keep their ids: the item card compares the two to
+    // tell a self-borrow ("Offline") from a real loan.
+    const itemParticipant = (person: ItemPerson) =>
+      insideTheLibrary ? person : toStrangerProfile(person, { keepId: true });
+
     // Format response
     const formattedLibrary = {
       id: library.id,
@@ -286,20 +301,20 @@ export async function GET(
           createdAt: item.createdAt,
           category: item.stuffType?.category || 'other',
           stuffType: item.stuffType,
-          owner: item.owner,
+          owner: itemOwner(item.owner),
           isOwnedByUser: item.ownerId === userId,
           currentBorrow: activeBorrow
             ? {
                 id: activeBorrow.id,
-                borrower: activeBorrow.borrower,
-                lender: activeBorrow.lender,
+                borrower: itemParticipant(activeBorrow.borrower),
+                lender: itemParticipant(activeBorrow.lender),
                 dueDate: activeBorrow.requestedReturnDate,
                 borrowedAt: activeBorrow.approvedAt,
               }
             : null,
           notificationQueue: pendingRequests.map((req) => ({
             id: req.id,
-            user: req.borrower,
+            user: itemParticipant(req.borrower),
             requestedAt: req.createdAt,
           })),
           queueDepth: pendingRequests.length,
@@ -332,20 +347,20 @@ export async function GET(
             isAvailable: !item.currentBorrowRequestId,
             createdAt: item.createdAt,
             stuffType: item.stuffType,
-            owner: item.owner,
+            owner: itemOwner(item.owner),
             isOwnedByUser: item.ownerId === userId,
             currentBorrow: activeBorrow
               ? {
                   id: activeBorrow.id,
-                  borrower: activeBorrow.borrower,
-                  lender: activeBorrow.lender,
+                  borrower: itemParticipant(activeBorrow.borrower),
+                  lender: itemParticipant(activeBorrow.lender),
                   dueDate: activeBorrow.requestedReturnDate,
                   borrowedAt: activeBorrow.approvedAt,
                 }
               : null,
             notificationQueue: pendingRequests.map((req) => ({
               id: req.id,
-              user: req.borrower,
+              user: itemParticipant(req.borrower),
               requestedAt: req.createdAt,
             })),
             queueDepth: pendingRequests.length,
