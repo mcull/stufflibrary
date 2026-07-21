@@ -8,6 +8,11 @@ const mockUserCreate = vi.hoisted(() => vi.fn());
 const mockGetServerSession = vi.hoisted(() => vi.fn());
 const mockGetUserCapabilities = vi.hoisted(() => vi.fn());
 const mockAddressFindUnique = vi.hoisted(() => vi.fn());
+const mockAddressCreate = vi.hoisted(() =>
+  vi.fn().mockResolvedValue({ id: 'a1' })
+);
+const mockGeocodeAddress = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/geocode', () => ({ geocodeAddress: mockGeocodeAddress }));
 
 vi.mock('@/lib/db', () => ({
   db: {
@@ -25,7 +30,7 @@ vi.mock('@/lib/db', () => ({
       fn({
         address: {
           updateMany: vi.fn(),
-          create: vi.fn().mockResolvedValue({ id: 'a1' }),
+          create: mockAddressCreate,
         },
         user: { update: mockUserUpdate },
       }),
@@ -64,6 +69,8 @@ function req(body: unknown) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockAddressCreate.mockResolvedValue({ id: 'a1' });
+  mockGeocodeAddress.mockResolvedValue(null);
   mockGetServerSession.mockResolvedValue({
     user: { id: 'u1', email: 'a@b.c' },
   });
@@ -118,6 +125,128 @@ describe('POST /api/profile full mode persists terms', () => {
     expect(data.profileCompleted).toBe(true);
     expect(data.agreedToTermsAt).toBeInstanceOf(Date);
     expect(data.agreedTermsVersion).toBe(TERMS_VERSION);
+  });
+});
+
+describe('POST /api/profile address coordinates', () => {
+  const addressWithoutCoords = {
+    address1: '1 St',
+    city: 'Town',
+    state: 'CA',
+    zip: '90001',
+  };
+
+  it('does not geocode when the client already supplied coordinates', async () => {
+    const res = await POST(
+      req({
+        name: 'Jo',
+        agreedToTerms: true,
+        parsedAddress: {
+          ...addressWithoutCoords,
+          latitude: 34.05,
+          longitude: -118.24,
+        },
+      })
+    );
+
+    expect(res.status).toBe(200);
+    expect(mockGeocodeAddress).not.toHaveBeenCalled();
+    const created = mockAddressCreate.mock.calls[0]![0].data;
+    expect(created.latitude).toBe(34.05);
+    expect(created.longitude).toBe(-118.24);
+  });
+
+  it('geocodes server-side when coordinates are missing', async () => {
+    mockGeocodeAddress.mockResolvedValue({
+      latitude: 37.77,
+      longitude: -122.42,
+    });
+
+    const res = await POST(
+      req({
+        name: 'Jo',
+        agreedToTerms: true,
+        parsedAddress: addressWithoutCoords,
+      })
+    );
+
+    expect(res.status).toBe(200);
+    expect(mockGeocodeAddress).toHaveBeenCalledWith('1 St, Town, CA, 90001');
+    const created = mockAddressCreate.mock.calls[0]![0].data;
+    expect(created.latitude).toBe(37.77);
+    expect(created.longitude).toBe(-122.42);
+  });
+
+  it('still saves the address when geocoding fails', async () => {
+    mockGeocodeAddress.mockResolvedValue(null);
+
+    const res = await POST(
+      req({
+        name: 'Jo',
+        agreedToTerms: true,
+        parsedAddress: addressWithoutCoords,
+      })
+    );
+
+    expect(res.status).toBe(200);
+    const created = mockAddressCreate.mock.calls[0]![0].data;
+    expect(created.latitude).toBeNull();
+    expect(created.longitude).toBeNull();
+  });
+});
+
+describe('PUT /api/profile address coordinates', () => {
+  function putReq(body: unknown) {
+    return new Request('http://t/api/profile', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    }) as any;
+  }
+
+  it('does not geocode when the client already supplied coordinates', async () => {
+    const res = await PUT(
+      putReq({
+        name: 'Jo',
+        parsedAddress: {
+          address1: '1 St',
+          city: 'Town',
+          state: 'CA',
+          zip: '90001',
+          latitude: 34.05,
+          longitude: -118.24,
+        },
+      })
+    );
+
+    expect(res.status).toBe(200);
+    expect(mockGeocodeAddress).not.toHaveBeenCalled();
+    const created = mockAddressCreate.mock.calls[0]![0].data;
+    expect(created.latitude).toBe(34.05);
+  });
+
+  it('geocodes server-side when coordinates are missing', async () => {
+    mockGeocodeAddress.mockResolvedValue({
+      latitude: 37.77,
+      longitude: -122.42,
+    });
+
+    const res = await PUT(
+      putReq({
+        name: 'Jo',
+        parsedAddress: {
+          address1: '1 St',
+          city: 'Town',
+          state: 'CA',
+          zip: '90001',
+        },
+      })
+    );
+
+    expect(res.status).toBe(200);
+    expect(mockGeocodeAddress).toHaveBeenCalledWith('1 St, Town, CA, 90001');
+    const created = mockAddressCreate.mock.calls[0]![0].data;
+    expect(created.latitude).toBe(37.77);
   });
 });
 
