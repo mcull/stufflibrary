@@ -52,8 +52,33 @@ export async function acceptInvitation(
   });
 }
 
+/**
+ * A personal invitation is bound to the address it was sent to. Defaults to
+ * false on any missing input — an absent session email must never satisfy the
+ * check, or an OAuth account with no address on it walks straight in.
+ */
+export function emailMatchesInvitation(
+  sessionEmail: string | null | undefined,
+  invitationEmail: string
+): boolean {
+  if (!sessionEmail) return false;
+  const seen = sessionEmail.trim().toLowerCase();
+  if (!seen) return false;
+  return seen === invitationEmail.trim().toLowerCase();
+}
+
+/** dave@example.com -> d•••@example.com — recognizable, not harvestable. */
+export function maskEmail(email: string): string {
+  const [local, domain] = email.split('@');
+  if (!local || !domain) return '•••';
+  return `${local[0]}•••@${domain}`;
+}
+
 export type InviteValidation =
-  | { ok: true; invitation: { libraryId: string; expiresAt: Date } }
+  | {
+      ok: true;
+      invitation: { libraryId: string; expiresAt: Date; email: string };
+    }
   | { ok: false; reason: 'invalid' | 'expired' };
 
 export async function validateLibraryInvite(
@@ -61,7 +86,7 @@ export async function validateLibraryInvite(
 ): Promise<InviteValidation> {
   const invitation = await db.invitation.findFirst({
     where: { token, type: 'library', status: { in: ['PENDING', 'SENT'] } },
-    select: { libraryId: true, expiresAt: true },
+    select: { libraryId: true, expiresAt: true, email: true },
   });
   if (!invitation || !invitation.libraryId)
     return { ok: false, reason: 'invalid' };
@@ -72,6 +97,7 @@ export async function validateLibraryInvite(
     invitation: {
       libraryId: invitation.libraryId,
       expiresAt: invitation.expiresAt,
+      email: invitation.email,
     },
   };
 }
@@ -114,9 +140,35 @@ export async function handleInviteLanding(
     const libId = result.invitation.libraryId;
 
     const session = await getServerSession(authOptions);
-    const userId = (session?.user as { id?: string } | undefined)?.id;
+    const sessionUser = session?.user as
+      | { id?: string; email?: string }
+      | undefined;
+    const userId = sessionUser?.id;
 
     if (userId) {
+      // This branch bypasses sign-in by design, so it never sees the address
+      // the sign-in page locks to the invitation. It is one of the two ways a
+      // forwarded link reaches a live session, so the binding check has to
+      // happen here as well as in /api/invite/consume.
+      //
+      // Deliberately before ensureActiveMembership: a mismatch must grant
+      // nothing and burn nothing. Checking after would leave the stranger
+      // rejected but Dave's invitation destroyed. The owner previewing their
+      // own link under a different address lands here too and sees the
+      // "sent to d•••@" dead end rather than "your own library" — a worse
+      // message, but the check stays a single unconditional comparison
+      // instead of a security guard with an exemption in it.
+      if (
+        !emailMatchesInvitation(sessionUser?.email, result.invitation.email)
+      ) {
+        const masked = encodeURIComponent(maskEmail(result.invitation.email));
+        const res = NextResponse.redirect(
+          new URL(`/?invite=wrong_account&invited=${masked}`, request.url)
+        );
+        clearInviteCookies(res);
+        return res;
+      }
+
       const membership = await ensureActiveMembership(userId, libId);
 
       // Consume the invitation ONLY when this click actually added someone.

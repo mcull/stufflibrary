@@ -5,7 +5,9 @@ import { authOptions } from '@/lib/auth';
 import {
   acceptInvitation,
   clearInviteCookies,
+  emailMatchesInvitation,
   ensureActiveMembership,
+  maskEmail,
   validateLibraryInvite,
 } from '@/lib/invite';
 
@@ -48,8 +50,41 @@ export async function POST(request: NextRequest) {
     });
 
     if (!validation.ok) {
-      console.log('[invite/consume] invalid or expired invite; returning');
-      return res;
+      // Naming the failure matters: silently redirecting drops the user at a
+      // library they are not a member of, which is exactly what arriving on a
+      // rotated-away code looks like.
+      console.log(
+        '[invite/consume] invite invalid or expired',
+        validation.reason
+      );
+      const dead = NextResponse.json(
+        { redirect: null, error: `invite_${validation.reason}` },
+        { status: 200 }
+      );
+      clearInviteCookies(dead);
+      return dead;
+    }
+
+    // Personal invitations are bound to their address. This cannot fail on the
+    // prefilled sign-in path — that address was locked to the invitation — so
+    // it exists for OAuth sign-in under another address and for a forwardee
+    // arriving on a live 90-day session.
+    //
+    // Before ensureActiveMembership on purpose: a mismatch burns nothing and
+    // grants nothing.
+    const sessionEmail = (session.user as { email?: string }).email;
+    if (!emailMatchesInvitation(sessionEmail, validation.invitation.email)) {
+      console.log('[invite/consume] email does not match invitation; refusing');
+      const refused = NextResponse.json(
+        {
+          redirect: null,
+          error: 'invite_bound_to_other_email',
+          invitedEmail: maskEmail(validation.invitation.email),
+        },
+        { status: 200 }
+      );
+      clearInviteCookies(refused);
+      return refused;
     }
 
     // Ensure membership; only consume the invitation when this actually
