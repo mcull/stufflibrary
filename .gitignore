@@ -50,3 +50,6 @@ docs/homepage-item-photos/*
 
 # local scratch (repro scripts, test photos) — never commit
 /tmp/
+
+# Superpowers brainstorm sessions
+.superpowers/
