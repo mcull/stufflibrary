@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { parseJoinCodeCookie } from '@/lib/invite';
+import { resolveJoinCodeById } from '@/lib/join-code-service';
 import { libraryMemberCount, nonOwnerMemberRows } from '@/lib/library-members';
 import {
   canSeeExactMemberLocations,
@@ -111,20 +113,39 @@ export async function GET(
     let userRole = userId === library.ownerId ? 'owner' : null;
     // Validate invite token for guest role
     if (!userRole && inviteToken && inviteLibrary === libraryId) {
-      console.log('[collections/:id GET] validating invite for guest role');
-      const inv = await db.invitation.findFirst({
-        where: {
-          token: inviteToken,
-          libraryId,
-          type: 'library',
-          status: { in: ['PENDING', 'SENT'] },
-          expiresAt: { gt: new Date() },
-        },
-        select: { id: true },
-      });
-      if (inv) {
-        console.log('[collections/:id GET] invite valid -> guest role');
-        userRole = 'guest' as any;
+      // The cookie carries two unrelated things. A `jc:` value is a JoinCode
+      // id — bearer, multi-use — and can never match an Invitation token, so
+      // without this branch every scanned flyer for a private library lands
+      // on a 403 and the guest preview the code exists to provide never
+      // renders.
+      const joinCodeId = parseJoinCodeCookie(inviteToken);
+      if (joinCodeId) {
+        console.log('[collections/:id GET] validating join code for guest');
+        const resolved = await resolveJoinCodeById(joinCodeId);
+        // collectionId is re-checked against the library actually being
+        // viewed. `invite_library` is only the cookie's own claim about
+        // itself; a code for someone else's library must grant nothing here,
+        // exactly as a mismatched invitation would.
+        if (resolved && resolved.collectionId === libraryId) {
+          console.log('[collections/:id GET] join code valid -> guest role');
+          userRole = 'guest' as any;
+        }
+      } else {
+        console.log('[collections/:id GET] validating invite for guest role');
+        const inv = await db.invitation.findFirst({
+          where: {
+            token: inviteToken,
+            libraryId,
+            type: 'library',
+            status: { in: ['PENDING', 'SENT'] },
+            expiresAt: { gt: new Date() },
+          },
+          select: { id: true },
+        });
+        if (inv) {
+          console.log('[collections/:id GET] invite valid -> guest role');
+          userRole = 'guest' as any;
+        }
       }
     }
     const membership = library.members.find(

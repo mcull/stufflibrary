@@ -101,11 +101,16 @@ describe('validateLibraryInvite', () => {
     mockInvitationFindFirst.mockResolvedValueOnce({
       libraryId: 'c1',
       expiresAt: future,
+      email: 'dave@example.com',
     });
     const r = await validateLibraryInvite('tok');
     expect(r).toEqual({
       ok: true,
-      invitation: { libraryId: 'c1', expiresAt: future },
+      invitation: {
+        libraryId: 'c1',
+        expiresAt: future,
+        email: 'dave@example.com',
+      },
     });
   });
   it('returns invalid when not found', async () => {
@@ -120,6 +125,7 @@ describe('validateLibraryInvite', () => {
     mockInvitationFindFirst.mockResolvedValueOnce({
       libraryId: 'c1',
       expiresAt: past,
+      email: 'dave@example.com',
     });
     expect(await validateLibraryInvite('tok')).toEqual({
       ok: false,
@@ -133,8 +139,11 @@ describe('handleInviteLanding', () => {
     mockInvitationFindFirst.mockResolvedValue({
       libraryId: 'c1',
       expiresAt: new Date(Date.now() + 86400000),
+      email: 'dave@example.com',
     });
-    mockGetServerSession.mockResolvedValue({ user: { id: 'u1' } });
+    mockGetServerSession.mockResolvedValue({
+      user: { id: 'u1', email: 'dave@example.com' },
+    });
     mockMemberFindUnique.mockResolvedValue(null);
     const res = await handleInviteLanding(
       { url: 'https://x/j/tok' } as any,
@@ -152,8 +161,11 @@ describe('handleInviteLanding', () => {
     mockInvitationFindFirst.mockResolvedValue({
       libraryId: 'c1',
       expiresAt: new Date(Date.now() + 86400000),
+      email: 'dave@example.com',
     });
-    mockGetServerSession.mockResolvedValue({ user: { id: 'owner-1' } });
+    mockGetServerSession.mockResolvedValue({
+      user: { id: 'owner-1', email: 'dave@example.com' },
+    });
     mockCollectionFindUnique.mockResolvedValue({ ownerId: 'owner-1' });
     const res = await handleInviteLanding(
       { url: 'https://x/j/tok' } as any,
@@ -172,8 +184,11 @@ describe('handleInviteLanding', () => {
     mockInvitationFindFirst.mockResolvedValue({
       libraryId: 'c1',
       expiresAt: new Date(Date.now() + 86400000),
+      email: 'dave@example.com',
     });
-    mockGetServerSession.mockResolvedValue({ user: { id: 'u1' } });
+    mockGetServerSession.mockResolvedValue({
+      user: { id: 'u1', email: 'dave@example.com' },
+    });
     mockMemberFindUnique.mockResolvedValue({ id: 'm1', isActive: true });
     const res = await handleInviteLanding(
       { url: 'https://x/j/tok' } as any,
@@ -197,6 +212,7 @@ describe('handleInviteLanding', () => {
     mockInvitationFindFirst.mockResolvedValue({
       libraryId: 'c1',
       expiresAt: new Date(Date.now() - 1000),
+      email: 'dave@example.com',
     });
     const res = await handleInviteLanding(
       { url: 'https://x/j/tok' } as any,
@@ -204,10 +220,11 @@ describe('handleInviteLanding', () => {
     );
     expect(res.headers.get('location')).toContain('/?invite=expired');
   });
-  it('unauthenticated user gets guest cookies and redirected to collection?guest=1', async () => {
+  it('unauthenticated user gets invite cookies and is sent to sign-in', async () => {
     mockInvitationFindFirst.mockResolvedValue({
       libraryId: 'c1',
       expiresAt: new Date(Date.now() + 86400000),
+      email: 'dave@example.com',
     });
     mockGetServerSession.mockResolvedValue(null);
     const res = await handleInviteLanding(
@@ -215,6 +232,8 @@ describe('handleInviteLanding', () => {
       'tok'
     );
     expect(res.status).toBe(307);
-    expect(res.headers.get('location')).toContain('/library/c1?guest=1');
+    expect(res.headers.get('location')).toContain('/auth/signin');
+    expect(res.cookies.get('invite_token')?.value).toBe('tok');
+    expect(res.cookies.get('invite_library')?.value).toBe('c1');
   });
 });

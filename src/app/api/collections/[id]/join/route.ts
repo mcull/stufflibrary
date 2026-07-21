@@ -5,9 +5,12 @@ import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import {
   acceptInvitation,
+  attributeJoinCode,
   clearInviteCookies,
   ensureActiveMembership,
+  parseJoinCodeCookie,
 } from '@/lib/invite';
+import { resolveJoinCodeById } from '@/lib/join-code-service';
 
 export async function POST(
   request: NextRequest,
@@ -68,6 +71,11 @@ export async function POST(
 
     let inviteOk = false;
     let validInviteToken: string | undefined;
+    // Set only on the join-code path. Kept separate from validInviteToken so
+    // the two authorizations can never be confused for one another: a join
+    // code is bearer and burns nothing, an invitation is bound and is
+    // consumed on success.
+    let validJoinCodeId: string | undefined;
 
     console.log('[collections/:id/join] checking invite access', {
       collectionId,
@@ -77,8 +85,26 @@ export async function POST(
       hasBodyToken: !!bodyInviteToken,
     });
 
+    // A `jc:` cookie is a JoinCode id and never matches an Invitation token.
+    // This is the third arrival path: guest preview on a scanned code, sign in
+    // somewhere else, come back and click Join. Without this branch a private
+    // library refuses them.
+    const cookieJoinCodeId = inviteToken
+      ? parseJoinCodeCookie(inviteToken)
+      : null;
+    if (cookieJoinCodeId && inviteLibrary === collectionId) {
+      const resolved = await resolveJoinCodeById(cookieJoinCodeId);
+      // The cookie's own claim about which library it belongs to is not
+      // evidence; the row's collectionId is.
+      if (resolved && resolved.collectionId === collectionId) {
+        inviteOk = true;
+        validJoinCodeId = resolved.id;
+        console.log('[collections/:id/join] valid join code cookie found');
+      }
+    }
+
     // Check cookie-based invite first
-    if (inviteToken && inviteLibrary === collectionId) {
+    if (!cookieJoinCodeId && inviteToken && inviteLibrary === collectionId) {
       const inv = await db.invitation.findFirst({
         where: {
           token: inviteToken,
@@ -134,6 +160,13 @@ export async function POST(
         { error: 'You are already a member of this collection' },
         { status: 400 }
       );
+    }
+
+    // Which piece of paper brought them in, and one more tick on its counter.
+    // Only reached when this call actually added someone — the early return
+    // above covers the existing member re-clicking.
+    if (validJoinCodeId) {
+      await attributeJoinCode(userId, collectionId, validJoinCodeId);
     }
 
     // If joined via invite, mark invitation accepted

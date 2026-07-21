@@ -91,6 +91,7 @@ model User {
   feedbackVotes         FeedbackVote[]
   complianceAdmin       ComplianceReport[] @relation("ComplianceAdmin")
   itemConcepts          ItemConcept[]
+  joinCodesCreated      JoinCode[]         @relation("JoinCodeCreator")
 
   @@map("users")
 }
@@ -102,6 +103,7 @@ model Invitation {
   status         InvitationStatus @default(PENDING)
   message        String?
   token          String?          @unique
+  shortCode      String?          @unique
   qrCode         String?
   postcardSentAt DateTime?
   addressId      String?
@@ -162,22 +164,43 @@ model Collection {
   invitations Invitation[]
   items       ItemCollection[]
   reports     UserReport[]
+  joinCodes   JoinCode[]
 
   @@map("libraries")
 }
 
 model CollectionMember {
-  id           String     @id @default(cuid())
-  joinedAt     DateTime   @default(now())
-  role         String     @default("member")
-  isActive     Boolean    @default(true)
-  userId       String
-  collectionId String     @map("libraryId")
-  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String     @id @default(cuid())
+  joinedAt        DateTime   @default(now())
+  role            String     @default("member")
+  isActive        Boolean    @default(true)
+  userId          String
+  collectionId    String     @map("libraryId")
+  joinedViaCodeId String?
+  collection      Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedViaCode   JoinCode?  @relation(fields: [joinedViaCodeId], references: [id], onDelete: SetNull)
 
   @@unique([userId, collectionId])
   @@map("library_members")
+}
+
+model JoinCode {
+  id           String             @id @default(cuid())
+  code         String             @unique
+  collectionId String             @map("libraryId")
+  createdById  String
+  isActive     Boolean            @default(true)
+  label        String?
+  useCount     Int                @default(0)
+  createdAt    DateTime           @default(now())
+  rotatedAt    DateTime?
+  collection   Collection         @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  createdBy    User               @relation("JoinCodeCreator", fields: [createdById], references: [id])
+  members      CollectionMember[]
+
+  @@index([collectionId])
+  @@map("join_codes")
 }
 
 model StuffType {

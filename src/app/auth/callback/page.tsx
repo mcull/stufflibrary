@@ -76,9 +76,29 @@ function AuthCallbackContent() {
             method: 'POST',
           });
           if (consumeRes.ok) {
-            const body = await consumeRes
-              .json()
-              .catch(() => ({}) as { redirect?: string });
+            const body = await consumeRes.json().catch(
+              () =>
+                ({}) as {
+                  redirect?: string;
+                  error?: string;
+                  invitedEmail?: string;
+                }
+            );
+            if (body?.error === 'invite_bound_to_other_email') {
+              router.replace(
+                `/?invite=wrong_account&invited=${encodeURIComponent(
+                  body.invitedEmail ?? ''
+                )}`
+              );
+              return;
+            }
+            if (
+              body?.error === 'invite_expired' ||
+              body?.error === 'invite_invalid'
+            ) {
+              router.replace('/?invite=expired');
+              return;
+            }
             if (body?.redirect) {
               const dest = body.redirect as string;
               if (minimalDone) {

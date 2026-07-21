@@ -4,8 +4,12 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import {
   acceptInvitation,
+  attributeJoinCode,
   clearInviteCookies,
+  emailMatchesInvitation,
   ensureActiveMembership,
+  maskEmail,
+  parseJoinCodeCookie,
   validateLibraryInvite,
 } from '@/lib/invite';
 
@@ -40,6 +44,21 @@ export async function POST(request: NextRequest) {
     const res = NextResponse.json({ redirect: `/library/${inviteLibrary}` });
     clearInviteCookies(res);
 
+    // A join code, not an invitation. Bearer by design: no address is
+    // attached to it, so there is nothing to bind a session to and the
+    // binding check below must not run — it would refuse every arrival.
+    // Nothing is burned either; the code stays live for the next scan.
+    const joinCodeId = parseJoinCodeCookie(inviteToken);
+    if (joinCodeId) {
+      const membership = await ensureActiveMembership(userId, inviteLibrary);
+      if (membership.created || membership.reactivated) {
+        await attributeJoinCode(userId, inviteLibrary, joinCodeId);
+      } else {
+        console.log('[invite/consume] join code: owner or existing member');
+      }
+      return res;
+    }
+
     // Validate invite
     const validation = await validateLibraryInvite(inviteToken);
     console.log('[invite/consume] invitation lookup', {
@@ -48,8 +67,45 @@ export async function POST(request: NextRequest) {
     });
 
     if (!validation.ok) {
-      console.log('[invite/consume] invalid or expired invite; returning');
-      return res;
+      // Naming the failure matters: silently redirecting drops the user at a
+      // library they are not a member of, which is exactly what arriving on a
+      // rotated-away code looks like.
+      console.log(
+        '[invite/consume] invite invalid or expired',
+        validation.reason
+      );
+      const dead = NextResponse.json(
+        { redirect: null, error: `invite_${validation.reason}` },
+        { status: 200 }
+      );
+      // A dead invite has no recovery — no address can revive it — so the
+      // cookies go, as they did before this branch was named.
+      clearInviteCookies(dead);
+      return dead;
+    }
+
+    // Personal invitations are bound to their address. This cannot fail on the
+    // prefilled sign-in path — that address was locked to the invitation — so
+    // it exists for OAuth sign-in under another address and for a forwardee
+    // arriving on a live 90-day session.
+    //
+    // Before ensureActiveMembership on purpose: a mismatch burns nothing and
+    // grants nothing.
+    const sessionEmail = (session.user as { email?: string }).email;
+    if (!emailMatchesInvitation(sessionEmail, validation.invitation.email)) {
+      console.log('[invite/consume] email does not match invitation; refusing');
+      const refused = NextResponse.json(
+        {
+          redirect: null,
+          error: 'invite_bound_to_other_email',
+          invitedEmail: maskEmail(validation.invitation.email),
+        },
+        { status: 200 }
+      );
+      // The cookies deliberately survive. The dead end offers "sign in as that
+      // address"; clearing here would leave that button with nothing to
+      // consume. They grant nothing on their own — this check runs every time.
+      return refused;
     }
 
     // Ensure membership; only consume the invitation when this actually

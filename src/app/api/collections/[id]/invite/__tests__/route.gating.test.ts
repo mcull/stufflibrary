@@ -7,6 +7,8 @@ const mockMemberFindFirst = vi.hoisted(() => vi.fn());
 const mockInvitationFindFirst = vi.hoisted(() => vi.fn());
 const mockInvitationCount = vi.hoisted(() => vi.fn());
 const mockInvitationCreate = vi.hoisted(() => vi.fn());
+const mockJoinCodeFindFirst = vi.hoisted(() => vi.fn());
+const mockJoinCodeCreate = vi.hoisted(() => vi.fn());
 
 vi.mock('next-auth', () => ({ getServerSession: mockGetServerSession }));
 vi.mock('@/lib/auth', () => ({ authOptions: {} }));
@@ -22,6 +24,10 @@ vi.mock('@/lib/db', () => ({
       count: mockInvitationCount,
       create: mockInvitationCreate,
       update: vi.fn(),
+    },
+    joinCode: {
+      findFirst: mockJoinCodeFindFirst,
+      create: mockJoinCodeCreate,
     },
   },
 }));
@@ -95,13 +101,11 @@ it('lets a permitted member send an invite (re-loads library, 200)', async () =>
     });
   mockInvitationFindFirst.mockResolvedValue(null);
   mockInvitationCount.mockResolvedValue(0);
-  mockInvitationCreate.mockResolvedValue({
-    id: 'inv1',
-    email: 'link-...@share.stufflibrary.local',
-    expiresAt: new Date(),
-    collection: { name: 'Lib', location: null },
-    sender: { name: 'M' },
-  });
+  // Share Link is a JoinCode now, not an Invitation with a fabricated
+  // addressee — see route.link-mode.test.ts for the behaviour itself.
+  mockJoinCodeFindFirst.mockResolvedValue(null);
+  mockJoinCodeCreate.mockResolvedValue({ id: 'jc1', code: 'XKF72M9Q' });
   const res = await call({ mode: 'link' });
   expect(res.status).toBe(200);
+  expect(mockInvitationCreate).not.toHaveBeenCalled();
 });
