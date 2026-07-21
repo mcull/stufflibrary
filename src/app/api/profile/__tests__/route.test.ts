@@ -12,7 +12,14 @@ const mockAddressCreate = vi.hoisted(() =>
   vi.fn().mockResolvedValue({ id: 'a1' })
 );
 const mockGeocodeAddress = vi.hoisted(() => vi.fn());
-vi.mock('@/lib/geocode', () => ({ geocodeAddress: mockGeocodeAddress }));
+// isBillableOutcome is pure and its behaviour is the thing under test here
+// (does a no_match record spend?), so use the real implementation rather than
+// a stub that would just echo whatever we told it.
+vi.mock('@/lib/geocode', async () => {
+  const actual =
+    await vi.importActual<typeof import('@/lib/geocode')>('@/lib/geocode');
+  return { ...actual, geocodeAddress: mockGeocodeAddress };
+});
 const mockCheckSpendCap = vi.hoisted(() => vi.fn());
 const mockRecordSpend = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/spend-cap', () => ({
@@ -76,7 +83,10 @@ function req(body: unknown) {
 beforeEach(() => {
   vi.clearAllMocks();
   mockAddressCreate.mockResolvedValue({ id: 'a1' });
-  mockGeocodeAddress.mockResolvedValue(null);
+  mockGeocodeAddress.mockResolvedValue({
+    outcome: 'failed',
+    reason: 'test default',
+  });
   mockCheckSpendCap.mockResolvedValue({ allowed: true });
   mockRecordSpend.mockResolvedValue(undefined);
   mockGetServerSession.mockResolvedValue({
@@ -166,8 +176,8 @@ describe('POST /api/profile address coordinates', () => {
 
   it('geocodes server-side when coordinates are missing', async () => {
     mockGeocodeAddress.mockResolvedValue({
-      latitude: 37.77,
-      longitude: -122.42,
+      outcome: 'ok',
+      coordinates: { latitude: 37.77, longitude: -122.42 },
     });
 
     const res = await POST(
@@ -187,8 +197,8 @@ describe('POST /api/profile address coordinates', () => {
 
   it('records places spend for a successful geocode', async () => {
     mockGeocodeAddress.mockResolvedValue({
-      latitude: 37.77,
-      longitude: -122.42,
+      outcome: 'ok',
+      coordinates: { latitude: 37.77, longitude: -122.42 },
     });
 
     await POST(
@@ -243,8 +253,30 @@ describe('POST /api/profile address coordinates', () => {
     expect(created.longitude).toBeNull();
   });
 
-  it('does not record spend when geocoding fails', async () => {
-    mockGeocodeAddress.mockResolvedValue(null);
+  it('records spend for a no_match — Google answered, so it is billable', async () => {
+    mockGeocodeAddress.mockResolvedValue({ outcome: 'no_match' });
+
+    const res = await POST(
+      req({
+        name: 'Jo',
+        agreedToTerms: true,
+        parsedAddress: addressWithoutCoords,
+      })
+    );
+
+    expect(res.status).toBe(200);
+    expect(mockRecordSpend).toHaveBeenCalledWith('places', 1);
+    // Billable, but there are still no coordinates to save.
+    const created = mockAddressCreate.mock.calls[0]![0].data;
+    expect(created.latitude).toBeNull();
+    expect(created.longitude).toBeNull();
+  });
+
+  it('does not record spend when the lookup fails (never billed)', async () => {
+    mockGeocodeAddress.mockResolvedValue({
+      outcome: 'failed',
+      reason: 'network error: Error: ECONNRESET',
+    });
 
     await POST(
       req({
@@ -258,7 +290,10 @@ describe('POST /api/profile address coordinates', () => {
   });
 
   it('still saves the address when geocoding fails', async () => {
-    mockGeocodeAddress.mockResolvedValue(null);
+    mockGeocodeAddress.mockResolvedValue({
+      outcome: 'failed',
+      reason: 'network error',
+    });
 
     const res = await POST(
       req({
@@ -307,8 +342,8 @@ describe('PUT /api/profile address coordinates', () => {
 
   it('geocodes server-side when coordinates are missing', async () => {
     mockGeocodeAddress.mockResolvedValue({
-      latitude: 37.77,
-      longitude: -122.42,
+      outcome: 'ok',
+      coordinates: { latitude: 37.77, longitude: -122.42 },
     });
 
     const res = await PUT(

@@ -5,7 +5,11 @@ import { z } from 'zod';
 import { authOptions } from '@/lib/auth';
 import { TERMS_VERSION } from '@/lib/capabilities';
 import { db } from '@/lib/db';
-import { geocodeAddress, type Coordinates } from '@/lib/geocode';
+import {
+  geocodeAddress,
+  isBillableOutcome,
+  type Coordinates,
+} from '@/lib/geocode';
 import { normalizeUsPhone } from '@/lib/phone';
 import { checkSpendCap, recordSpend } from '@/lib/spend-cap';
 import { StorageService } from '@/lib/storage';
@@ -118,11 +122,16 @@ async function resolveCoordinates(
     return null;
   }
 
-  const coordinates = await geocodeAddress(addressText);
-  if (coordinates) {
+  const result = await geocodeAddress(addressText);
+
+  // Google charges for any request it answered — including one it searched and
+  // couldn't match — so spend follows the outcome, not whether we got usable
+  // coordinates out of it.
+  if (isBillableOutcome(result)) {
     await recordSpend('places', GEOCODE_COST_CENTS);
   }
-  return coordinates;
+
+  return result.outcome === 'ok' ? result.coordinates : null;
 }
 
 export async function POST(request: NextRequest) {

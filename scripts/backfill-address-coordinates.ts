@@ -15,12 +15,17 @@
   Usage:
     tsx scripts/backfill-address-coordinates.ts [--limit 100] [--apply]
     npm run backfill:address-coordinates -- --apply
+
+  Calls are capped by the same daily spend ceiling as the Places routes. If
+  Redis isn't configured the cap fails open by design, and spend-cap.ts will
+  log "Spend cap DISABLED" once per call — expect that line repeatedly in a
+  long run, and treat it as "this run is uncapped", not as a per-row error.
 */
 
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 
-import { geocodeAddress } from '@/lib/geocode';
+import { geocodeAddress, isBillableOutcome } from '@/lib/geocode';
 import { checkSpendCap, recordSpend } from '@/lib/spend-cap';
 
 const prisma = new PrismaClient();
@@ -128,15 +133,31 @@ async function main() {
     attempted++;
 
     try {
-      const coordinates = await geocodeAddress(addressText);
+      const result = await geocodeAddress(addressText);
 
-      if (!coordinates) {
-        console.log(`❌ ${address.id}: no coordinates for "${addressText}"`);
+      // Google charges for any request it answered, including one it searched
+      // and couldn't match. This population is disproportionately malformed or
+      // ambiguous addresses — they're here precisely because they already
+      // failed to geocode — so no_match may well be most of a run. Recording
+      // spend only on success would defeat the cap on the very operation with
+      // the highest spend risk.
+      if (isBillableOutcome(result)) {
+        await recordSpend('places', GEOCODE_COST_CENTS);
+      }
+
+      if (result.outcome === 'no_match') {
+        console.log(`❌ ${address.id}: no match for "${addressText}"`);
         failed++;
         continue;
       }
 
-      await recordSpend('places', GEOCODE_COST_CENTS);
+      if (result.outcome === 'failed') {
+        console.log(`❌ ${address.id}: lookup failed — ${result.reason}`);
+        failed++;
+        continue;
+      }
+
+      const coordinates = result.coordinates;
 
       if (apply) {
         await prisma.address.update({

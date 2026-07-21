@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-import { geocodeAddress } from '../geocode';
+import { geocodeAddress, isBillableOutcome } from '../geocode';
 
 const originalKey = process.env.GOOGLE_PLACES_API_KEY;
 
@@ -43,7 +43,10 @@ describe('geocodeAddress', () => {
 
     const result = await geocodeAddress('1 Market St, San Francisco, CA 94105');
 
-    expect(result).toEqual({ latitude: 37.7749, longitude: -122.4194 });
+    expect(result).toEqual({
+      outcome: 'ok',
+      coordinates: { latitude: 37.7749, longitude: -122.4194 },
+    });
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
     // The address and key must actually reach Google, url-encoded.
@@ -55,17 +58,17 @@ describe('geocodeAddress', () => {
     expect(calledUrl).toContain('key=test-key');
   });
 
-  it('returns null (does not throw) on ZERO_RESULTS', async () => {
+  it('reports no_match (not a throw) on ZERO_RESULTS', async () => {
     fetchMock.mockResolvedValue(
       okResponse({ status: 'ZERO_RESULTS', results: [] })
     );
 
-    await expect(
-      geocodeAddress('nowhere at all, XX 00000')
-    ).resolves.toBeNull();
+    const result = await geocodeAddress('nowhere at all, XX 00000');
+
+    expect(result).toEqual({ outcome: 'no_match' });
   });
 
-  it('returns null and logs an actionable message on REQUEST_DENIED', async () => {
+  it('reports failed and logs an actionable message on REQUEST_DENIED', async () => {
     fetchMock.mockResolvedValue(
       okResponse({
         status: 'REQUEST_DENIED',
@@ -75,7 +78,7 @@ describe('geocodeAddress', () => {
 
     const result = await geocodeAddress('1 Market St, San Francisco, CA');
 
-    expect(result).toBeNull();
+    expect(result.outcome).toBe('failed');
     const logged = (console.error as any).mock.calls
       .flat()
       .map(String)
@@ -84,49 +87,87 @@ describe('geocodeAddress', () => {
     expect(logged).toContain('GOOGLE_PLACES_API_KEY');
   });
 
-  it('returns null (does not throw) when the network rejects', async () => {
+  it('reports failed (does not throw) when the network rejects', async () => {
     fetchMock.mockRejectedValue(new Error('ECONNRESET'));
 
-    await expect(
-      geocodeAddress('1 Market St, San Francisco, CA')
-    ).resolves.toBeNull();
+    const result = await geocodeAddress('1 Market St, San Francisco, CA');
+
+    expect(result.outcome).toBe('failed');
+    if (result.outcome === 'failed') {
+      expect(result.reason).toContain('network');
+    }
   });
 
-  it('returns null without attempting a fetch when the API key is missing', async () => {
+  it('reports failed without attempting a fetch when the API key is missing', async () => {
     delete process.env.GOOGLE_PLACES_API_KEY;
 
     const result = await geocodeAddress('1 Market St, San Francisco, CA');
 
-    expect(result).toBeNull();
+    expect(result.outcome).toBe('failed');
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('returns null on a non-ok HTTP response', async () => {
+  it('reports failed on a non-ok HTTP response', async () => {
     fetchMock.mockResolvedValue({
       ok: false,
       status: 503,
       json: async () => ({}),
     } as unknown as Response);
 
-    await expect(
-      geocodeAddress('1 Market St, San Francisco, CA')
-    ).resolves.toBeNull();
+    const result = await geocodeAddress('1 Market St, San Francisco, CA');
+
+    expect(result.outcome).toBe('failed');
   });
 
-  it('returns null on a malformed OK response missing coordinates', async () => {
+  it('reports failed on a malformed OK response missing coordinates', async () => {
     fetchMock.mockResolvedValue(
       okResponse({ status: 'OK', results: [{ geometry: {} }] })
     );
 
-    await expect(
-      geocodeAddress('1 Market St, San Francisco, CA')
-    ).resolves.toBeNull();
+    const result = await geocodeAddress('1 Market St, San Francisco, CA');
+
+    expect(result.outcome).toBe('failed');
   });
 
-  it('returns null without a fetch for blank address text', async () => {
+  it('reports failed without a fetch for blank address text', async () => {
     const result = await geocodeAddress('   ');
 
-    expect(result).toBeNull();
+    expect(result.outcome).toBe('failed');
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('carries a reason on every failure so callers can log it', async () => {
+    fetchMock.mockResolvedValue(okResponse({ status: 'OVER_QUERY_LIMIT' }));
+
+    const result = await geocodeAddress('1 Market St, San Francisco, CA');
+
+    expect(result.outcome).toBe('failed');
+    if (result.outcome === 'failed') {
+      expect(result.reason).toContain('OVER_QUERY_LIMIT');
+    }
+  });
+});
+
+describe('isBillableOutcome', () => {
+  // Google charges for a request it actually answered. A match and a
+  // searched-but-found-nothing both count; a rejected or never-sent request
+  // does not.
+  it('counts a successful lookup as billable', () => {
+    expect(
+      isBillableOutcome({
+        outcome: 'ok',
+        coordinates: { latitude: 1, longitude: 2 },
+      })
+    ).toBe(true);
+  });
+
+  it('counts no_match as billable — Google answered', () => {
+    expect(isBillableOutcome({ outcome: 'no_match' })).toBe(true);
+  });
+
+  it('does not count a failure as billable', () => {
+    expect(
+      isBillableOutcome({ outcome: 'failed', reason: 'network error' })
+    ).toBe(false);
   });
 });
