@@ -233,6 +233,65 @@ describe('rotateJoinCode', () => {
     expect(await rotateJoinCode('nope', 'user-1')).toBeNull();
     expect(mockCreate).not.toHaveBeenCalled();
   });
+
+  // Rotating a dead row would mint a fresh live code descended from it, so
+  // rotating twice would widen access during an operation meant to revoke.
+  it('refuses to rotate an already-rotated code', async () => {
+    mockFindFirst.mockResolvedValue(null);
+
+    expect(await rotateJoinCode('jc-already-rotated', 'user-1')).toBeNull();
+
+    expect(mockFindFirst).toHaveBeenCalledWith({
+      where: { id: 'jc-already-rotated', isActive: true },
+    });
+    expect(mockCreate).not.toHaveBeenCalled();
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+});
+
+describe('rotateJoinCode failure ordering', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  // Deactivating first and failing to create leaves the library with zero
+  // live codes — a silent outage on paper that cannot be recalled. Creating
+  // first and failing to deactivate leaves two working codes, which is
+  // visible and self-correcting.
+  it('creates the replacement before deactivating the old row', async () => {
+    mockFindFirst.mockResolvedValue({
+      id: 'jc-1',
+      code: 'XKF72M9Q',
+      collectionId: 'col-1',
+      label: 'corkboard flyer',
+    });
+    mockCreate.mockResolvedValue({ id: 'jc-2' });
+    mockUpdate.mockResolvedValue({});
+
+    await rotateJoinCode('jc-1', 'user-1');
+
+    expect(mockCreate.mock.invocationCallOrder[0]!).toBeLessThan(
+      mockUpdate.mock.invocationCallOrder[0]!
+    );
+  });
+
+  it('leaves the replacement in place when deactivation fails', async () => {
+    mockFindFirst.mockResolvedValue({
+      id: 'jc-1',
+      code: 'XKF72M9Q',
+      collectionId: 'col-1',
+      label: 'corkboard flyer',
+    });
+    mockCreate.mockResolvedValue({ id: 'jc-2' });
+    mockUpdate.mockRejectedValue(new Error('connection lost'));
+
+    await expect(rotateJoinCode('jc-1', 'user-1')).rejects.toThrow(
+      'connection lost'
+    );
+
+    // The new flyer exists and works; the old one also still works. The admin
+    // can see both and rotate again. Nothing printed has silently died.
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    expect(mockCreate.mock.calls[0]![0].data.collectionId).toBe('col-1');
+  });
 });
 
 describe('recordJoinCodeUse', () => {

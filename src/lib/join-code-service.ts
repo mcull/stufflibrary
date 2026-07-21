@@ -66,23 +66,48 @@ export async function resolveJoinCode(
  * Only the named row is touched: a library holds several live codes at once
  * (a mailbox drop and a corkboard posting are separate rows with separate
  * labels), so the blast radius of any rotation is one batch of paper.
+ *
+ * Already-rotated rows are refused rather than rotated again. Rotating a dead
+ * code would mint a fresh *live* one descended from it, so rotating twice
+ * would leave two live codes where the admin asked for one replacement —
+ * silently widening access during the one operation meant to revoke it.
+ *
+ * ORDER IS LOAD-BEARING: create the replacement first, then deactivate the
+ * old row. Do not "tidy" this back to the intuitive sequence. These two
+ * statements cannot be made atomic — createJoinCode retries on P2002, and in
+ * Postgres a constraint violation aborts the surrounding transaction, so
+ * wrapping them would break the retry. Given that, order it so the partial
+ * failure is the survivable one:
+ *
+ *   deactivate-then-create, create fails  -> ZERO live codes. Every flyer in
+ *     every mailbox is dead, silently, and there is no way to recall paper.
+ *   create-then-deactivate, deactivate fails -> TWO live codes, same label.
+ *     Both work, nothing printed stops working, and the admin can just
+ *     rotate again.
+ *
+ * Two live codes is visible, harmless and self-correcting. Zero is a silent
+ * outage on physical paper.
  */
 export async function rotateJoinCode(codeId: string, actorId: string) {
-  const existing = await db.joinCode.findFirst({ where: { id: codeId } });
+  const existing = await db.joinCode.findFirst({
+    where: { id: codeId, isActive: true },
+  });
   if (!existing) return null;
+
+  // The replacement is credited to whoever rotated, not the original author —
+  // the new paper is their doing.
+  const replacement = await createJoinCode(
+    existing.collectionId,
+    actorId,
+    existing.label ?? undefined
+  );
 
   await db.joinCode.update({
     where: { id: codeId },
     data: { isActive: false, rotatedAt: new Date() },
   });
 
-  // The replacement is credited to whoever rotated, not the original author —
-  // the new paper is their doing.
-  return createJoinCode(
-    existing.collectionId,
-    actorId,
-    existing.label ?? undefined
-  );
+  return replacement;
 }
 
 export async function recordJoinCodeUse(codeId: string) {
