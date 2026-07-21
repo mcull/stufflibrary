@@ -287,7 +287,10 @@ The check exists to catch arrivals by every _other_ route:
   be signed in as themselves and skip sign-in entirely.
 - **The signed-in branch of the join route**, which bypasses sign-in by design.
 
-Implement it once, in `consume`, rather than per-entry-path — every route converges there.
+Implement it at both mutation sites — `consume` and `handleInviteLanding`'s signed-in branch — and
+in each case **before** membership is created or the invitation is accepted. See the correction
+above: those two paths do not converge, and guarding only `consume` leaves the live-session
+forwardee unguarded.
 
 ### Join code
 

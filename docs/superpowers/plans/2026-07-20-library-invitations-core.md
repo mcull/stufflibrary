@@ -620,7 +620,9 @@ Why: rotation rather than expiry, because a flyer that dies after seven days is 
 
 ## Task 5: Bind personal invites to their email
 
-The comparison lives in `/api/invite/consume` because every entry path converges there. It cannot fail on the prefilled sign-in path — the address was locked to the invitation, so it matches by construction. It exists for OAuth sign-in under a different address, and for a forwardee arriving with a live 90-day session.
+The comparison lives in **two** places: `/api/invite/consume` and `handleInviteLanding`'s signed-in branch. Those paths do **not** converge — the signed-in branch calls `ensureActiveMembership` and `acceptInvitation` directly and never reaches `consume`. Guarding only `consume` would cover the unauthenticated path, which matches by construction once sign-in is prefilled, while leaving the live-session forwardee — the actual attack — unguarded.
+
+The check cannot fail on the prefilled sign-in path, for that same reason: the address was locked to the invitation, so it matches by construction. It exists for OAuth sign-in under a different address, for a forwardee arriving with a live 90-day session, and for the signed-in branch that bypasses sign-in entirely.
 
 **Files:**
 
