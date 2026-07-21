@@ -4,7 +4,7 @@
 
 **Goal:** Split library invitations into bound personal invites and bearer join codes, both addressed by short 8-character Crockford base32 codes at `/join/<code>`.
 
-**Architecture:** A new `JoinCode` model handles broadcast joining (multi-use, rotatable, no expiry). The existing `Invitation` model keeps its per-recipient semantics and gains a `shortCode` plus email binding enforced in `/api/invite/consume`, where every entry path already converges. The 64-hex `/j/<token>` route is untouched and keeps working. Before any of that, the member roster stops leaking street addresses — a prerequisite, since join codes make the library reachable by strangers.
+**Architecture:** A new `JoinCode` model handles broadcast joining (multi-use, rotatable, no expiry). The existing `Invitation` model keeps its per-recipient semantics and gains a `shortCode` plus email binding. Binding is enforced in **two** places — `/api/invite/consume` and `handleInviteLanding`'s signed-in branch — because those paths do not converge: the signed-in branch calls `acceptInvitation` directly and never reaches `consume`, and it is the forwardee-with-a-live-session case the check exists for. The 64-hex `/j/<token>` route is untouched and keeps working. Before any of that, the member roster stops leaking street addresses — a prerequisite, since join codes make the library reachable by strangers.
 
 **Tech Stack:** Next.js 15 (App Router), Prisma 6 / PostgreSQL, NextAuth v4, Vitest + happy-dom, npm.
 
