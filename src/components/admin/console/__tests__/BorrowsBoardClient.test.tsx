@@ -232,23 +232,29 @@ describe('BorrowsBoardClient', () => {
   });
 
   it('a 429 shows the reminder fact instead of error theatrics', async () => {
+    // The server's throttle response carries ITS date, and the component shows
+    // that ("a 429 carries the server's date"), not today's. Assert against the
+    // same timestamp the mock returned — computing "today" from `now` instead
+    // silently disagreed whenever `now - 2h` fell on the previous calendar day,
+    // i.e. the ~2h after local midnight, which is how this failed on CI (#499).
+    const serverReminderAt = now - 2 * HOUR;
     stubFetch([{ ...boardRows[2]!, lastOverdueReminderAt: null }], {
       status: 429,
       body: {
         error: 'reminded recently',
-        lastOverdueReminderAt: iso(now - 2 * HOUR),
+        lastOverdueReminderAt: iso(serverReminderAt),
       },
     });
     render(<BorrowsBoardClient />);
 
     fireEvent.click(await screen.findByRole('button', { name: 'NUDGE' }));
 
-    const today = new Date(now).toLocaleDateString('en-US', {
+    const serverDate = new Date(serverReminderAt).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
     });
     expect(
-      await screen.findByText(`last reminder ${today}`)
+      await screen.findByText(`last reminder ${serverDate}`)
     ).toBeInTheDocument();
     expect(screen.queryByText('could not send')).toBeNull();
     // Not falsely stamped REMINDED — this session sent nothing.
