@@ -106,6 +106,17 @@ export function AddressAutocomplete({
     <Autocomplete
       freeSolo
       options={options}
+      // The server already filtered these to match the query. MUI's default
+      // filterOptions re-filters on a substring match of the typed text against
+      // each label — and Google returns canonical abbreviations ("Exeter Dr")
+      // that don't contain what the user typed ("Exeter Drive"), so it would
+      // silently discard correct suggestions. Pass them through untouched.
+      filterOptions={(opts) => opts}
+      isOptionEqualToValue={(option, val) =>
+        typeof option === 'string' || typeof val === 'string'
+          ? option === val
+          : option.place_id === val.place_id
+      }
       getOptionLabel={(option) =>
         typeof option === 'string' ? option : option.label
       }
