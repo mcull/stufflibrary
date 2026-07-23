@@ -350,12 +350,23 @@ Create `src/lib/post-auth.ts`:
  */
 
 /** A destination is safe only if it stays on this origin: a relative path,
- *  not protocol-relative. Anything else becomes null (= no destination). */
+ *  not protocol-relative, with no backslash or control-char smuggling. */
 export function safeRelativePath(
   raw: string | null | undefined
 ): string | null {
   if (!raw) return null;
-  if (!raw.startsWith('/') || raw.startsWith('//')) return null;
+  if (!raw.startsWith('/')) return null;
+  if (raw.startsWith('//')) return null;
+  // Browsers normalize a backslash into a forward slash in the authority
+  // position (/\evil.example -> //evil.example), so a backslash anywhere can
+  // smuggle an off-origin redirect past the `//` check above.
+  if (raw.includes('\\')) return null;
+  // Reject C0 control chars and DEL: URL parsing strips them before
+  // resolving, and a path we build ourselves never legitimately contains one.
+  for (let i = 0; i < raw.length; i++) {
+    const c = raw.charCodeAt(i);
+    if (c <= 0x1f || c === 0x7f) return null;
+  }
   return raw;
 }
 
