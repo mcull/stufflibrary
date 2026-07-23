@@ -121,6 +121,18 @@ describe('POST /api/invitations/[token]/accept', () => {
     expect(res.status).toBe(403);
   });
 
+  it('admits the addressee despite case and whitespace drift, like every other entry', async () => {
+    mockUserFindUnique.mockResolvedValue({
+      email: `  ${EMAIL.toUpperCase()} `,
+      name: 'Test User',
+    });
+    const res = await POST(makeRequest(), {
+      params: Promise.resolve({ token: TOKEN }),
+    });
+    expect(res.status).toBe(200);
+    expect(mockMemberCreate).toHaveBeenCalled();
+  });
+
   it('returns 404 when invitation not found', async () => {
     mockInvitationFindFirst.mockResolvedValue(null);
     const res = await POST(makeRequest(), {

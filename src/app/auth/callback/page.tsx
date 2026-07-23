@@ -6,6 +6,7 @@ import { Suspense } from 'react';
 import { useEffect, useState } from 'react';
 
 import { hasMinimalProfile } from '@/lib/capabilities';
+import { safeRelativePath } from '@/lib/post-auth';
 import { brandColors } from '@/theme/brandTokens';
 
 function AuthCallbackContent() {
@@ -16,6 +17,7 @@ function AuthCallbackContent() {
 
   const invitationToken = searchParams.get('invitation');
   const libraryId = searchParams.get('library');
+  const nextParam = searchParams.get('next');
   // Client cookie reader no longer used; invite handling is server-side
 
   useEffect(() => {
@@ -114,9 +116,16 @@ function AuthCallbackContent() {
           // ignore and continue
         }
 
-        // Normal flow based on minimal onboarding completion
+        // Normal flow: no invite outcome. `next` is the fallback destination
+        // a login-walled page asked for — validated again here, and only ever
+        // consulted after the consume attempt above.
+        const next = safeRelativePath(nextParam);
         if (minimalDone) {
-          router.replace('/home');
+          router.replace(next ?? '/home');
+        } else if (next) {
+          router.replace(
+            `/profile/create?returnTo=${encodeURIComponent(next)}`
+          );
         } else {
           router.replace('/profile/create');
         }
@@ -128,7 +137,15 @@ function AuthCallbackContent() {
     };
 
     handleRedirect();
-  }, [session, status, router, invitationToken, libraryId, isRedirecting]);
+  }, [
+    session,
+    status,
+    router,
+    invitationToken,
+    libraryId,
+    nextParam,
+    isRedirecting,
+  ]);
 
   // Minimal loading state - no white flash
   return (

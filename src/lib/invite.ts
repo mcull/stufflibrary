@@ -240,12 +240,16 @@ export async function handleInviteLanding(
       return res;
     }
 
-    // No guest preview for a personal invite. Dave asked to join this library
-    // by name; a browse-first detour answers a question he did not ask. He
-    // goes to sign-in, where /api/invite/context reads the cookie set here and
-    // locks the field to the invited address. Join codes keep the preview —
-    // see handleJoinCodeLanding.
-    const res = NextResponse.redirect(new URL('/auth/signin', request.url));
+    // The front porch: a signed-out invitee sees the guest preview, exactly
+    // like a join-code holder. This reverses the earlier sign-in-first
+    // decision — the first real batch of six personal invites produced zero
+    // joins against that wall. The preview grants nothing and burns nothing;
+    // the email-binding check still runs on the signed-in branch above and in
+    // /api/invite/consume. The cookie set here is what later locks sign-in to
+    // the invited address when the invitee claims their card.
+    const res = NextResponse.redirect(
+      new URL(`/library/${libId}?guest=1`, request.url)
+    );
     setInviteCookies(res, token, libId);
     return res;
   } catch {
@@ -254,12 +258,10 @@ export async function handleInviteLanding(
 }
 
 /**
- * Join codes keep the guest preview; personal invites do not.
- *
- * A stranger who scanned a corkboard QR asked no question — they need to see
- * the shelf before deciding whether to bother making an account. Dave, invited
- * by name to a specific library, asked a direct one and gets a direct answer.
- * See `handleInviteLanding`, which sends him straight to sign-in.
+ * Signed-out visitors land on the guest preview whichever door they came
+ * through — join code or personal invite (see `handleInviteLanding`; the
+ * sign-in-first treatment for personal invites was reversed after the first
+ * real batch converted zero of six).
  *
  * There is no binding check here and there cannot be one: a join code is
  * addressed to nobody, so there is no address to compare a session against.

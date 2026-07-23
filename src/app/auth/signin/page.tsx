@@ -17,6 +17,7 @@ import { Suspense, useState, useEffect } from 'react';
 
 import { AuthLayout } from '@/components/AuthLayout';
 import { Wordmark } from '@/components/Wordmark';
+import { buildPostAuthCallbackUrl } from '@/lib/post-auth';
 import { brandColors } from '@/theme/brandTokens';
 
 function SignInForm() {
@@ -43,19 +44,16 @@ function SignInForm() {
     isMagicLink && isAutoComplete && prefilledEmail && prefilledCode
   );
 
-  // Default to server-side callback that decides destination post-auth
   const libraryId = searchParams.get('library');
-  const callbackUrl =
-    searchParams.get('callbackUrl') ||
-    (() => {
-      if (invitationToken) {
-        const params = new URLSearchParams();
-        params.set('invitation', invitationToken);
-        if (libraryId) params.set('library', libraryId);
-        return `/auth/callback?${params.toString()}`;
-      }
-      return '/auth/callback';
-    })();
+  // Every sign-in routes through /auth/callback so invite consumption always
+  // runs first. A ?callbackUrl= from a login-walled page (e.g. /feedback)
+  // rides along as a next= fallback — it can no longer pre-empt the callback
+  // and silently discard a pending invitation.
+  const callbackUrl = buildPostAuthCallbackUrl({
+    requested: searchParams.get('callbackUrl'),
+    invitationToken,
+    libraryId,
+  });
 
   // Auto-complete magic link sign-in
   useEffect(() => {

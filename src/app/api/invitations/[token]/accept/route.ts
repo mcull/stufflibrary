@@ -3,7 +3,11 @@ import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { acceptInvitation, ensureActiveMembership } from '@/lib/invite';
+import {
+  acceptInvitation,
+  emailMatchesInvitation,
+  ensureActiveMembership,
+} from '@/lib/invite';
 
 export async function POST(
   request: NextRequest,
@@ -76,7 +80,10 @@ export async function POST(
       select: { email: true },
     });
 
-    if (!user || user.email !== invitation.email) {
+    // Same normalized comparison as landing and consume — trim + lowercase —
+    // so casing or whitespace drift on the stored address can't reject the
+    // real addressee. Fail-closed either way: a mismatch never admits anyone.
+    if (!emailMatchesInvitation(user?.email, invitation.email)) {
       return NextResponse.json(
         { error: 'Email mismatch - this invitation is not for your account' },
         { status: 403 }

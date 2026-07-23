@@ -28,7 +28,10 @@ export async function GET(_request: NextRequest) {
     const invitations = await db.invitation.findMany({
       where: {
         email: user.email,
-        type: 'collection',
+        // 'library' is what every invitation is written with; 'collection'
+        // matched nothing, leaving the in-app pending panel permanently empty
+        // (InviteFlows §6.8).
+        type: 'library',
         status: { in: ['PENDING', 'SENT'] },
         expiresAt: {
           gte: new Date(), // Only non-expired invitations
