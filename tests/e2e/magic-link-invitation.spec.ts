@@ -124,10 +124,12 @@ test.describe('Magic Link Invitation Flow', () => {
     expect(membership).toBeTruthy();
   });
 
-  test('complete magic link invitation flow - existing user', async ({
+  test('legacy invite link lands a signed-out visitor on the guest preview, without auto-joining', async ({
     page,
   }) => {
-    // Step 1: Create existing user
+    // The user exists in the DB, but the browser session is signed out. The
+    // legacy path used to auto-create a session from the invite's own email
+    // and auto-join on a bare click (InviteFlows §6.3); that is gone.
     const existingUser = await db.user.create({
       data: {
         email: testInviteeEmail,
@@ -136,7 +138,6 @@ test.describe('Magic Link Invitation Flow', () => {
       },
     });
 
-    // Step 2: Create invitation
     const invitation = await db.invitation.create({
       data: {
         email: testInviteeEmail,
@@ -151,15 +152,13 @@ test.describe('Magic Link Invitation Flow', () => {
     });
     invitationToken = invitation.token!;
 
-    // Step 3: Click magic link
+    // The legacy route now delegates to the current landing, which shows a
+    // signed-out invitee the guest preview — never /auth/signin, never
+    // magic=true/auto=true.
     await page.goto(`/api/invitations/${invitationToken}`);
-    await page.waitForURL(/\/auth\/signin/, { timeout: 10000 });
+    await page.waitForURL(/\/library\/.*guest=1/, { timeout: 10000 });
 
-    // Step 4: Verify parameters
-    await expect(page).toHaveURL(/magic=true/);
-    await expect(page).toHaveURL(/auto=true/);
-
-    // Step 5: Verify library membership was created for existing user
+    // No membership is created on a click — a real join needs a typed code.
     const membership = await db.collectionMember.findFirst({
       where: {
         userId: existingUser.id,
@@ -167,11 +166,12 @@ test.describe('Magic Link Invitation Flow', () => {
         isActive: true,
       },
     });
-    expect(membership).toBeTruthy();
+    expect(membership).toBeNull();
   });
 
-  test('expired invitation shows error', async ({ page }) => {
-    // Create expired invitation
+  test('expired invitation lands on the invite=expired notice', async ({
+    page,
+  }) => {
     const expiredInvitation = await db.invitation.create({
       data: {
         email: testInviteeEmail,
@@ -185,25 +185,17 @@ test.describe('Magic Link Invitation Flow', () => {
       },
     });
 
-    // Click expired magic link
+    // The current landing sends an expired invite home with a notice, not to
+    // the legacy /auth/error page.
     await page.goto(`/api/invitations/${expiredInvitation.token}`);
-
-    // Should redirect to error page
-    await page.waitForURL(/\/auth\/error/, { timeout: 10000 });
-    await expect(page).toHaveURL(/error=invitation_expired/);
-
-    // Verify invitation status was updated to EXPIRED
-    const updatedInvitation = await db.invitation.findUnique({
-      where: { id: expiredInvitation.id },
-    });
-    expect(updatedInvitation?.status).toBe('EXPIRED');
+    await page.waitForURL(/\?invite=expired/, { timeout: 10000 });
   });
 
-  test('invalid invitation token shows error', async ({ page }) => {
+  test('invalid invitation token lands on the invite=invalid notice', async ({
+    page,
+  }) => {
     await page.goto('/api/invitations/invalid-token-12345');
-
-    await page.waitForURL(/\/auth\/error/, { timeout: 10000 });
-    await expect(page).toHaveURL(/error=invitation_not_found/);
+    await page.waitForURL(/\?invite=invalid/, { timeout: 10000 });
   });
 
   test.skip('user already member redirects to library', async ({ page }) => {
@@ -255,8 +247,9 @@ test.describe('Magic Link Invitation Flow', () => {
     await expect(page.locator('text=Enter your code')).toBeVisible();
   });
 
-  test('already accepted invitation redirects to signin', async ({ page }) => {
-    // Create already accepted invitation
+  test('already-accepted invitation is no longer live and lands on invite=invalid', async ({
+    page,
+  }) => {
     const acceptedInvitation = await db.invitation.create({
       data: {
         email: testInviteeEmail,
@@ -271,21 +264,11 @@ test.describe('Magic Link Invitation Flow', () => {
       },
     });
 
-    // Click magic link
+    // The sunset collapses the old ACCEPTED->signin special case: only
+    // PENDING/SENT invitations are live, so a consumed one now reads as
+    // invalid (a known, documented trade-off of the sunset).
     await page.goto(`/api/invitations/${acceptedInvitation.token}`);
-
-    // Should redirect to signin page with invitation token
-    await page.waitForURL(/\/auth\/signin/, { timeout: 10000 });
-    await expect(page).toHaveURL(
-      new RegExp(`invitation=${acceptedInvitation.token}`)
-    );
-    await expect(page).toHaveURL(
-      new RegExp(`email=${encodeURIComponent(testInviteeEmail)}`)
-    );
-
-    // Should NOT have magic=true or auto=true for already accepted invitations
-    expect(await page.url()).not.toContain('magic=true');
-    expect(await page.url()).not.toContain('auto=true');
+    await page.waitForURL(/\?invite=invalid/, { timeout: 10000 });
   });
 
   test.skip('profile creation flow after magic link authentication', async ({
