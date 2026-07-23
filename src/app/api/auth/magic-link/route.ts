@@ -1,96 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { storeAuthCode } from '@/lib/auth-codes';
-import { db } from '@/lib/db';
-import { acceptInvitation, ensureActiveMembership } from '@/lib/invite';
-
+/**
+ * Sunset (InviteFlows §6.3). This endpoint used to be the auto-sign-in half
+ * of the legacy invite flow: upsert the user from the invitation's email,
+ * mint a session, join the library — all from a bare link click. That is
+ * authentication without any proof from the invitee, and it contradicted the
+ * no-auto-sign-in posture the current flow is built on. It now forwards into
+ * the current landing (/invite/<token>), where claiming a card always means
+ * typing a code. Kept only so bookmarked URLs degrade gracefully; deletable
+ * once old emails have aged out.
+ */
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const invitationToken = searchParams.get('token');
+  const { searchParams } = new URL(request.url);
+  const token = searchParams.get('token');
 
-    if (!invitationToken) {
-      return NextResponse.redirect(
-        new URL('/auth/error?error=invalid_invitation', request.url)
-      );
-    }
-
-    // Validate invitation - don't filter by expiration here, check it separately
-    const invitation = await db.invitation.findFirst({
-      where: {
-        token: invitationToken,
-        type: 'library',
-        status: { in: ['PENDING', 'SENT'] },
-      },
-      include: {
-        collection: { select: { id: true, name: true } },
-      },
-    });
-
-    if (!invitation) {
-      return NextResponse.redirect(
-        new URL('/auth/error?error=invitation_not_found', request.url)
-      );
-    }
-
-    // Check if invitation has expired
-    if (new Date() > invitation.expiresAt) {
-      await db.invitation.update({
-        where: { id: invitation.id },
-        data: { status: 'EXPIRED' },
-      });
-      return NextResponse.redirect(
-        new URL('/auth/error?error=invitation_expired', request.url)
-      );
-    }
-
-    // Create or find user from invitation email
-    const user = await db.user.upsert({
-      where: { email: invitation.email },
-      update: {
-        emailVerified: new Date(),
-        updatedAt: new Date(),
-      },
-      create: {
-        email: invitation.email,
-        emailVerified: new Date(),
-        profileCompleted: false,
-      },
-    });
-
-    // Ensure library membership and mark invitation accepted. Identity here
-    // comes from the invitation's own email, so this is always the addressee —
-    // consume unless they turn out to own the library (#409 edge).
-    const membership = await ensureActiveMembership(
-      user.id,
-      invitation.libraryId!
-    );
-    if (!membership.owner) {
-      await acceptInvitation(invitationToken, invitation.libraryId!, user.id);
-    }
-
-    // Generate a temporary auth code and redirect to sign-in with auto-fill
-    const tempCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit code
-
-    // Set the auth code for the user
-    await storeAuthCode(user.email!, tempCode);
-
-    // Create a special redirect URL that will auto-complete the sign-in
-    const redirectUrl = new URL('/auth/signin', request.url);
-    redirectUrl.searchParams.set('email', user.email!);
-    redirectUrl.searchParams.set('code', tempCode);
-    if (invitationToken) {
-      redirectUrl.searchParams.set('invitation', invitationToken);
-      redirectUrl.searchParams.set('library', invitation.libraryId!);
-    }
-    redirectUrl.searchParams.set('magic', 'true');
-    redirectUrl.searchParams.set('auto', 'true'); // Signal for auto-completion
-
-    return NextResponse.redirect(redirectUrl);
-  } catch (error) {
-    console.error('Error processing magic link:', error);
-    return NextResponse.redirect(
-      new URL('/auth/error?error=invitation_processing_failed', request.url)
-    );
+  if (!token) {
+    return NextResponse.redirect(new URL('/?invite=invalid', request.url));
   }
+  return NextResponse.redirect(
+    new URL(`/invite/${encodeURIComponent(token)}`, request.url)
+  );
 }

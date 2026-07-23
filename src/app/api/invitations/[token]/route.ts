@@ -1,107 +1,21 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest } from 'next/server';
 
-import { db } from '@/lib/db';
+import { handleInviteLanding } from '@/lib/invite';
 
+/**
+ * Sunset (InviteFlows §6.3): this legacy entry point used to hand live
+ * invites to /api/auth/magic-link, which auto-created the account from the
+ * invitation's own email and auto-signed it in — authentication without any
+ * proof from the invitee, contradicting the posture every current flow is
+ * built on. Old emails still carry this URL, so the route stays alive as a
+ * plain redirect into the current landing, where nobody is signed in without
+ * typing a code. handleInviteLanding covers valid, expired, already-member,
+ * and wrong-account uniformly.
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
   const { token } = await params;
-  try {
-    // token already extracted above
-
-    if (!token || typeof token !== 'string') {
-      return NextResponse.redirect(
-        new URL('/auth/error?error=invalid_invitation', request.url)
-      );
-    }
-
-    // Find and validate invitation
-    const invitation = await db.invitation.findFirst({
-      where: {
-        token,
-        type: 'library',
-        status: { in: ['PENDING', 'SENT', 'ACCEPTED'] },
-      },
-      include: {
-        collection: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        sender: {
-          select: {
-            name: true,
-          },
-        },
-      },
-    });
-
-    if (!invitation) {
-      return NextResponse.redirect(
-        new URL('/auth/error?error=invitation_not_found', request.url)
-      );
-    }
-
-    // Check if invitation has expired
-    if (new Date() > invitation.expiresAt) {
-      // Mark as expired
-      await db.invitation.update({
-        where: { id: invitation.id },
-        data: { status: 'EXPIRED' },
-      });
-
-      return NextResponse.redirect(
-        new URL('/auth/error?error=invitation_expired', request.url)
-      );
-    }
-
-    // Check if user already exists and is already a member of THIS SPECIFIC library
-    const existingUser = await db.user.findFirst({
-      where: { email: invitation.email },
-      include: {
-        collectionMemberships: {
-          where: {
-            collectionId: invitation.libraryId!,
-            isActive: true,
-          },
-        },
-      },
-    });
-
-    // Only redirect if they're already a member of THIS specific library
-    if (
-      existingUser?.collectionMemberships &&
-      existingUser.collectionMemberships.length > 0
-    ) {
-      return NextResponse.redirect(
-        new URL(
-          `/library/${invitation.libraryId}?message=already_member`,
-          request.url
-        )
-      );
-    }
-
-    // If invitation is already accepted, redirect to sign-in instead of magic link
-    if (invitation.status === 'ACCEPTED') {
-      return NextResponse.redirect(
-        new URL(
-          `/auth/signin?invitation=${token}&email=${encodeURIComponent(invitation.email)}`,
-          request.url
-        )
-      );
-    }
-
-    // Redirect to magic link authentication endpoint
-    // This will handle user creation, session creation, and invitation processing
-    return NextResponse.redirect(
-      new URL(`/api/auth/magic-link?token=${token}`, request.url)
-    );
-  } catch (error) {
-    console.error('Error processing invitation link:', error);
-    return NextResponse.redirect(
-      new URL('/auth/error?error=invitation_processing_failed', request.url)
-    );
-  }
+  return handleInviteLanding(request, token);
 }
