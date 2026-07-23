@@ -266,15 +266,15 @@ describe('handleInviteLanding — the already-signed-in forwardee', () => {
     expect(mockInvitationUpdateMany).not.toHaveBeenCalled();
   });
 
-  it('sends the unauthenticated invitee to sign-in, not the guest preview', async () => {
+  it('sends the unauthenticated invitee to the guest preview, not a sign-in wall', async () => {
     mockInvitationFindFirst.mockResolvedValue(inviteRow());
     mockGetServerSession.mockResolvedValue(null);
 
     const res = await landing();
     const location = res.headers.get('location') ?? '';
 
-    expect(location).toContain('/auth/signin');
-    expect(location).not.toContain('guest=1');
+    expect(location).toContain('guest=1');
+    expect(location).not.toContain('/auth/signin');
   });
 
   // The whole point of the cookie: the address is what sign-in locks to, and
