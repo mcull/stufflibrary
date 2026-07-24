@@ -239,7 +239,7 @@ export async function POST(
         select: { name: true, location: true },
       },
       sender: {
-        select: { name: true },
+        select: { name: true, email: true },
       },
     };
 
@@ -328,21 +328,52 @@ export async function POST(
           name: i.name,
         }));
 
-        const { subject, html } = buildLibraryInviteEmail({
+        // The invitation now reads like a note from the sender, so it needs
+        // the sender's real name (for the from-line) and email (for reply-to).
+        // invitation.sender is the same row as userId, already loaded via
+        // invitationInclude on whichever of create/update ran above.
+        const senderFullName = invitation.sender?.name?.trim() || null;
+        const senderEmail = invitation.sender?.email?.trim() || null;
+
+        // Total things on the shelves for the "…and N things" line.
+        const itemCount = await db.item.count({
+          where: {
+            collections: { some: { collectionId: libraryId } },
+            active: true,
+          },
+        });
+
+        // The sender's own words: optional, trimmed, capped.
+        const noteInput =
+          typeof body?.note === 'string'
+            ? (body.note as string).trim().slice(0, 500)
+            : null;
+
+        const { subject, html, text } = buildLibraryInviteEmail({
           libraryName: invitation.collection?.name || 'a library',
-          senderName: invitation.sender?.name,
+          senderName: senderFullName,
           shareLink,
-          description:
-            (library as { description?: string | null }).description ?? null,
+          note: noteInput,
+          itemCount,
+          location: (library as { location?: string | null }).location ?? null,
           itemWatercolors,
         });
 
+        // Display name changes; the sending address stays invites@ so
+        // SPF/DKIM/DMARC alignment is untouched. Quote the display name (it
+        // contains parens) and strip any stray quotes from the sender's name.
+        const fromName = senderFullName
+          ? `"${senderFullName.replace(/[\r\n"]+/g, ' ').trim()} (via StuffLibrary)" <invites@stufflibrary.org>`
+          : 'StuffLibrary <invites@stufflibrary.org>';
+
         const resend = new Resend(process.env.RESEND_API_KEY);
         await resend.emails.send({
-          from: 'StuffLibrary <invites@stufflibrary.org>',
+          from: fromName,
           to: [email!],
+          ...(senderEmail ? { replyTo: senderEmail } : {}),
           subject,
           html,
+          text,
         });
 
         // Update invitation status to SENT
