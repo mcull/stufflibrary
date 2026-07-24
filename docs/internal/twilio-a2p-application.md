@@ -21,10 +21,18 @@ website-side checks; item 5 is still open._
 
 ## Campaign use case
 
-**Low Volume Mixed** — covers account notifications + two-factor authentication in
-one campaign, which fits both borrow-flow texts and SMS sign-in codes. (If sign-in
-codes stay email-only, use **Account Notifications** instead — single-use-case
-campaigns get slightly better filtering treatment.)
+**Account Notifications** (decided 2026-07-24). We send borrow-flow notifications
+over SMS and nothing else. Sign-in codes go by **email only** — `sendAuthCode()`
+in `src/lib/auth-codes.ts` delivers via Resend; there is no SMS path — so
+registering two-factor authentication would claim a message type we don't send,
+the same class of overclaim that (alongside the 30909 CTA problem) we're
+correcting. Single-use-case campaigns also get slightly better filtering. If SMS
+sign-in codes get built later, switch to **Low Volume Mixed** via a campaign
+update and re-add sample #5.
+
+_Was **Low Volume Mixed** — covers account notifications + 2FA — for the first
+two submissions. Change the console use-case selection to Account Notifications
+on this resubmission._
 
 ---
 
@@ -32,15 +40,28 @@ campaigns get slightly better filtering treatment.)
 
 ### Campaign description
 
-_**Rev 4 (CURRENT — paste this).** Rev 3 cleared the 30886 description problem
-but the campaign was then rejected with **Error 30909** — reviewers could not
-verify the call to action, because our opt-in lives behind a member login and
-we gave them nothing to look at ("No proof provided, hence unable to verify").
-Rev 4 changes two things: it points at the public proof page
-`www.stufflibrary.org/sms`, and it **drops the one-time-code phone
-verification claim** — `phoneVerified` is never set true in the product, and
-claiming a step we don't perform is exactly what a reviewer would catch. This
-exact string is 1003 characters (limit is 1024):_
+_**Rev 5 (CURRENT — paste this).** Account-Notifications-only. Drops the
+two-factor-authentication category from Rev 4: sign-in codes go by email, not
+SMS (`sendAuthCode` uses Resend), so registering 2FA over SMS claims a message
+type we don't send. This description covers only the borrow-flow notifications
+we actually text. 968 characters (limit 1024):_
+
+> This campaign is sent by StuffLibrary (www.stufflibrary.org), the
+> consumer-facing brand of Cull Ventures LLC - a free neighborhood item-lending
+> platform. Recipients are StuffLibrary's registered account holders: U.S.
+> consumers with an account who added their mobile number in profile settings
+> and checked an unchecked-by-default consent box agreeing to receive account
+> texts. The opt-in flow and consent wording are published for review, no login
+> required, at www.stufflibrary.org/sms. Messages are account notifications sent
+> when the member's own lending activity requires attention: a neighbor
+> requested to borrow the member's item, the member's borrow request was
+> approved or declined, a borrowed item is due back soon, or a lent item was
+> returned. Frequency varies with activity, typically 0-10 msgs per month. No
+> marketing, promotional, or third-party content is sent. STOP and HELP are
+> honored on every message; phone numbers are never shared with third parties.
+
+_Rev 4 (superseded — still registered 2FA/sign-in codes, which we send by email
+only; 1003 characters):_
 
 > This campaign is sent by StuffLibrary (www.stufflibrary.org), the
 > consumer-facing brand of Cull Ventures LLC - a free neighborhood
@@ -190,13 +211,18 @@ notification types. Links must be on our own domain (see prerequisites).
    > StuffLibrary: Reminder — the stand mixer you borrowed from Priya is due back
    > Fri, Jul 18. Arrange the return: https://www.stufflibrary.org/b/n9Tc4
 
-5. **Sign-in code (2FA — only if using Low Volume Mixed):**
+5. ~~**Sign-in code (2FA):**~~ **REMOVE from the console.** We chose Account
+   Notifications (2026-07-24); sign-in codes go by email, not SMS. Delete this
+   sample message and any 2FA/sign-in-code language from the campaign. Kept here
+   only so a future SMS-login build knows what to re-add:
    > StuffLibrary: Your sign-in code is 482913. It expires in 10 minutes. We will
    > never call or text to ask for this code.
 
 ### Opt-in keywords and confirmation
 
-- **Opt-in method:** Web form (checkbox + OTP verification), described above.
+- **Opt-in method:** Web form (unchecked-by-default consent checkbox at the point
+  the phone number is collected), described above. No SMS verification step — the
+  consent is the checkbox.
 - **Opt-in keywords:** START, UNSTOP, YES
 - **Opt-in confirmation message:** sample message 1 above.
 
