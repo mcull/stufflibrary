@@ -1,8 +1,9 @@
 // Pure module (no side-effectful imports — house rule): the library
-// invitation email, in brand (#412). Warm cream paper, ink-blue CTA, and a
-// shelf of watercolors — the library's own items when it has art, the stock
-// trio when it doesn't. Inline styles + a single-column layout for email
-// clients; images referenced by absolute blob URLs.
+// invitation email. Reshaped from product-newsletter to personal note so it
+// reaches the Primary tab (dossier Section D): a note-first body, the
+// sender's own words, real item art + count, one modest CTA to the guest
+// preview, privacy answered in the footer. Inline styles + a single-column
+// layout for email clients; images referenced by absolute blob URLs.
 
 // Mirror of brandTokens (can't import the theme here without dragging in MUI).
 const INK_BLUE = '#1E3A5F';
@@ -33,9 +34,15 @@ export const STOCK_WATERCOLORS: InviteEmailArt[] = [
 
 export interface LibraryInviteEmailInput {
   libraryName: string;
+  /** The sender's full name; the builder derives the first name for subject/footer. */
   senderName?: string | null | undefined;
   shareLink: string;
-  description?: string | null | undefined;
+  /** The sender's own words (already trimmed/capped by the caller). Blank → a default sentence. */
+  note?: string | null | undefined;
+  /** Total active items on the shelves; omits the count line when undefined/0. */
+  itemCount?: number | null | undefined;
+  /** Neighborhood/location descriptor for the subject line. */
+  location?: string | null | undefined;
   /** Up to 3 of the library's own item watercolors; stock art fills the gap. */
   itemWatercolors?: InviteEmailArt[];
 }
@@ -49,18 +56,53 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
+function firstName(fullName: string): string {
+  return fullName.trim().split(/\s+/)[0] || fullName.trim();
+}
+
 export function buildLibraryInviteEmail(input: LibraryInviteEmailInput): {
   subject: string;
   html: string;
+  text: string;
 } {
-  const libraryName = escapeHtml(input.libraryName);
-  const senderName = escapeHtml(input.senderName || 'Someone');
-  const description = input.description ? escapeHtml(input.description) : null;
+  const rawLibraryName = input.libraryName;
+  const rawSenderFull = input.senderName?.trim() || null;
+  const rawSenderFirst = rawSenderFull ? firstName(rawSenderFull) : null;
+  const rawLocation = input.location?.trim() || null;
+  const rawNote = input.note?.trim() || null;
+  const defaultNote = `I set aside a library card for you at ${rawLibraryName} — borrow anything, free.`;
+  const noteText = rawNote || defaultNote;
+
+  const count =
+    typeof input.itemCount === 'number' &&
+    Number.isFinite(input.itemCount) &&
+    input.itemCount > 0
+      ? Math.floor(input.itemCount)
+      : null;
+  const countPhrase = count
+    ? `${count} ${count === 1 ? 'thing' : 'things'} on the shelves`
+    : null;
+
+  // Subject — no exclamation point (deliverability).
+  const subject = rawSenderFirst
+    ? rawLocation
+      ? `${rawSenderFirst} invited you to ${rawLibraryName} — the stuff library for ${rawLocation}`
+      : `${rawSenderFirst} invited you to ${rawLibraryName}`
+    : `Someone invited you to ${rawLibraryName}`;
+
+  // Escaped for HTML.
+  const libraryName = escapeHtml(rawLibraryName);
+  const senderFull = escapeHtml(rawSenderFull || 'A neighbor');
+  const senderFirst = escapeHtml(rawSenderFirst || 'them');
+  const noteHtml = escapeHtml(noteText);
 
   const art = (
     input.itemWatercolors?.length ? input.itemWatercolors : STOCK_WATERCOLORS
   ).slice(0, 3);
 
+  // shareLink and art urls are server-generated (join link + app blob URLs),
+  // never user input, so they are intentionally interpolated unescaped into
+  // href/src. Every user-controlled field above IS escaped.
   const artCells = art
     .map(
       (a) => `
@@ -71,60 +113,71 @@ export function buildLibraryInviteEmail(input: LibraryInviteEmailInput): {
     )
     .join('');
 
-  const subject = `You're invited to join ${input.libraryName} on StuffLibrary!`;
+  const countLineHtml = countPhrase
+    ? `
+      <p style="font-size: 13px; color: ${CHARCOAL}; opacity: 0.7; text-align: center; margin: 0 0 24px 0; font-family: Arial, Helvetica, sans-serif;">
+        …and ${escapeHtml(countPhrase)}.
+      </p>`
+    : '';
 
   const html = `
   <div style="background-color: ${WARM_CREAM}; padding: 32px 16px; font-family: Georgia, 'Times New Roman', serif;">
     <div style="max-width: 560px; margin: 0 auto; background-color: #FFFFFF; border: 1px solid #eee4d0; border-radius: 16px; padding: 32px; box-sizing: border-box;">
 
-      <div style="text-align: center; margin-bottom: 28px;">
-        <span style="display: inline-block; background-color: ${WORDMARK_TOMATO}; color: #FFFFFF; font-family: 'Courier New', Courier, monospace; font-weight: bold; letter-spacing: 3px; padding: 6px 12px; font-size: 14px;">STUFFLIBRARY</span>
-        <p style="color: ${CHARCOAL}; opacity: 0.7; font-size: 14px; margin: 10px 0 0 0; font-family: Arial, Helvetica, sans-serif;">Share more, buy less</p>
-      </div>
+      <p style="font-size: 16px; line-height: 1.7; color: ${CHARCOAL}; margin: 0 0 16px 0;">Hi —</p>
 
-      <h1 style="color: ${CHARCOAL}; font-size: 26px; font-weight: 700; text-align: center; margin: 0 0 8px 0;">
-        ${libraryName}
-      </h1>
-
-      <p style="font-size: 16px; line-height: 1.6; color: ${CHARCOAL}; text-align: center; margin: 0 0 24px 0; font-family: Arial, Helvetica, sans-serif;">
-        ${senderName} has invited you to join their library on StuffLibrary &mdash;
-        a shelf your neighbors stock together, so everyone owns less and has more.
+      <p style="font-size: 16px; line-height: 1.7; color: ${CHARCOAL}; margin: 0 0 20px 0;">
+        <strong>${senderFull}</strong> set aside a library card for you at <strong>${libraryName}</strong> — a lending library of stuff your neighbors stock together. Borrow anything, free.
       </p>
+
+      <div style="border-left: 3px solid ${WORDMARK_TOMATO}; background-color: ${WARM_CREAM}; padding: 12px 18px; margin: 0 0 24px 0;">
+        <p style="margin: 0; color: ${CHARCOAL}; font-size: 15px; line-height: 1.6; font-style: italic;">${noteHtml}</p>
+      </div>
 
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto 8px auto;">
         <tr>${artCells}
         </tr>
-      </table>
-      <p style="font-size: 12px; color: ${CHARCOAL}; opacity: 0.6; text-align: center; margin: 0 0 24px 0; font-family: Arial, Helvetica, sans-serif;">
-        ${input.itemWatercolors?.length ? `Already on the shelves of ${libraryName}.` : 'The kinds of things neighbors share on StuffLibrary.'}
-      </p>
-${
-  description
-    ? `
-      <div style="background-color: ${WARM_CREAM}; padding: 16px 20px; border-radius: 12px; margin-bottom: 24px;">
-        <p style="margin: 0; color: ${CHARCOAL}; font-size: 14px; line-height: 1.5; font-family: Arial, Helvetica, sans-serif;">${description}</p>
-      </div>
-`
-    : ''
-}
-      <div style="text-align: center; margin: 28px 0;">
+      </table>${countLineHtml}
+
+      <div style="text-align: center; margin: 28px 0 12px 0;">
         <a href="${input.shareLink}"
            style="background-color: ${INK_BLUE}; color: #FFFFFF; padding: 15px 34px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; display: inline-block; font-family: Arial, Helvetica, sans-serif;">
-          Join ${libraryName}
+          Have a look at the shelves
         </a>
       </div>
+      <p style="font-size: 13px; color: ${CHARCOAL}; opacity: 0.7; text-align: center; margin: 0 0 24px 0; font-family: Arial, Helvetica, sans-serif;">
+        No account needed to look. Or paste this in your browser:<br>${input.shareLink}
+      </p>
 
-      <p style="font-size: 13px; color: ${CHARCOAL}; opacity: 0.7; text-align: center; margin: 0; font-family: Arial, Helvetica, sans-serif;">
-        This invitation will expire in 7 days. If you don't have a StuffLibrary
-        account, one will be created for you automatically.
+      <hr style="border: none; border-top: 1px solid #eee4d0; margin: 24px 0 16px 0;" />
+      <p style="font-size: 12.5px; color: ${CHARCOAL}; opacity: 0.7; line-height: 1.7; margin: 0; font-family: Arial, Helvetica, sans-serif;">
+        This card is reserved for this email address and expires in 7 days. Only members can see who's in a library — your name, face and address are never public. Didn't expect this? Ignore it; nothing happens. You can reply to this email — it goes to ${senderFirst}.
       </p>
     </div>
 
-    <p style="font-size: 12px; color: ${CHARCOAL}; opacity: 0.55; text-align: center; margin: 20px 0 0 0; font-family: Arial, Helvetica, sans-serif;">
-      StuffLibrary &mdash; building sharing communities, one neighborhood at a time.<br>
-      If you didn't expect this invitation, you can safely ignore this email.
+    <p style="text-align: center; margin: 20px 0 0 0;">
+      <span style="display: inline-block; background-color: ${WORDMARK_TOMATO}; color: #FFFFFF; font-family: 'Courier New', Courier, monospace; font-weight: bold; letter-spacing: 3px; padding: 4px 10px; font-size: 12px;">STUFFLIBRARY</span>
     </p>
   </div>`;
 
-  return { subject, html };
+  const textLines = [
+    'Hi —',
+    '',
+    `${rawSenderFull || 'A neighbor'} set aside a library card for you at ${rawLibraryName} — a lending library of stuff your neighbors stock together. Borrow anything, free.`,
+    '',
+    noteText,
+    '',
+    countPhrase
+      ? `On the shelves: ${count} ${count === 1 ? 'thing' : 'things'}.`
+      : null,
+    countPhrase ? '' : null,
+    'Have a look at the shelves (no account needed to look):',
+    input.shareLink,
+    '',
+    `This card is reserved for this email address and expires in 7 days. Only members can see who's in a library — your name, face and address are never public. Didn't expect this? Ignore it. You can reply to this email — it goes to ${rawSenderFirst || 'them'}.`,
+  ].filter((line) => line !== null);
+
+  const text = textLines.join('\n');
+
+  return { subject, html, text };
 }
