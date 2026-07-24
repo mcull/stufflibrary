@@ -7,10 +7,6 @@ import {
 } from '../profile-wizard/wizardPlan';
 
 const agreements = {
-  agreedToHouseholdGoods: true,
-  agreedToTrustAndCare: true,
-  agreedToCommunityValues: true,
-  agreedToAgeRestrictions: true,
   agreedToTerms: true,
 };
 

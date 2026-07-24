@@ -1,22 +1,15 @@
 'use client';
 
-import { ArrowForward, Person } from '@mui/icons-material';
-import {
-  Box,
-  Button,
-  CircularProgress,
-  Stack,
-  TextField,
-  Typography,
-} from '@mui/material';
+import { ArrowForward } from '@mui/icons-material';
+import { Box, Button, CircularProgress, Typography } from '@mui/material';
 import { useFormContext } from 'react-hook-form';
 
 import { brandColors } from '@/theme/brandTokens';
 
 import type { ProfileFormData } from '../ProfileWizard';
 
-import { CommunityAgreements } from './CommunityAgreements';
 import { canSubmitMinimal } from './minimalEntry';
+import { SignYourCard } from './SignYourCard';
 
 interface ProfileStep1Props {
   onNext: () => void;
@@ -34,19 +27,11 @@ export function ProfileStep1({
   onMinimalSubmit,
   isSubmittingMinimal,
 }: ProfileStep1Props) {
-  const {
-    register,
-    watch,
-    formState: { errors },
-  } = useFormContext<ProfileFormData>();
+  const { watch } = useFormContext<ProfileFormData>();
 
   const values = watch();
   const canStart = canSubmitMinimal({
     name: values.name ?? '',
-    agreedToHouseholdGoods: !!values.agreedToHouseholdGoods,
-    agreedToTrustAndCare: !!values.agreedToTrustAndCare,
-    agreedToCommunityValues: !!values.agreedToCommunityValues,
-    agreedToAgeRestrictions: !!values.agreedToAgeRestrictions,
     agreedToTerms: !!values.agreedToTerms,
   });
 
@@ -56,67 +41,19 @@ export function ProfileStep1({
       <Box sx={{ mb: 4 }}>
         <Typography
           variant="h5"
-          sx={{
-            fontWeight: 600,
-            color: brandColors.charcoal,
-            mb: 2,
-          }}
+          sx={{ fontWeight: 600, color: brandColors.charcoal, mb: 2 }}
         >
-          Let&apos;s start with the basics
+          Sign your card
         </Typography>
         <Typography
           variant="body1"
-          sx={{
-            color: brandColors.charcoal,
-            opacity: 0.7,
-            mb: 4,
-          }}
+          sx={{ color: brandColors.charcoal, opacity: 0.7, mb: 4 }}
         >
-          A photo and your address can come later.
+          You&rsquo;re in. One signature makes it official — a photo and your
+          address can come later.
         </Typography>
 
-        <Stack spacing={4}>
-          <TextField
-            {...register('name')}
-            label="Full Name"
-            placeholder="Enter your full name"
-            error={!!errors.name}
-            helperText={errors.name?.message}
-            fullWidth
-            variant="outlined"
-            InputProps={{
-              startAdornment: (
-                <Person
-                  sx={{ color: brandColors.charcoal, mr: 1, opacity: 0.6 }}
-                />
-              ),
-            }}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                borderRadius: '12px',
-                backgroundColor: brandColors.white,
-                '&:hover': {
-                  '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: brandColors.inkBlue,
-                  },
-                },
-                '&.Mui-focused': {
-                  '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: brandColors.inkBlue,
-                    borderWidth: 2,
-                  },
-                },
-              },
-              '& .MuiInputLabel-root': {
-                '&.Mui-focused': {
-                  color: brandColors.inkBlue,
-                },
-              },
-            }}
-          />
-
-          <CommunityAgreements />
-        </Stack>
+        <SignYourCard />
       </Box>
 
       {/* Navigation */}

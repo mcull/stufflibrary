@@ -17,12 +17,12 @@ describe('profileSubmitBlockMessage', () => {
     ).toMatch(/address/i);
   });
 
-  it('points at the agreements when one is unchecked', () => {
+  it('points at signing the card when the promise is unchecked', () => {
     expect(
       profileSubmitBlockMessage({
         agreedToTerms: { type: 'required', message: 'x' },
       })
-    ).toMatch(/agreement/i);
+    ).toMatch(/sign your card/i);
   });
 
   it('never returns an empty string, even with no known field', () => {
