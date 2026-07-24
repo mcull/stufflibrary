@@ -48,6 +48,7 @@ import {
 import { CompleteProfilePrompt } from './CompleteProfilePrompt';
 import { EditCollectionModal } from './EditCollectionModal';
 import { ExpandableText } from './ExpandableText';
+import { GuestPreview } from './GuestPreview';
 import { LibraryItemCard } from './LibraryItemCard';
 import { LibraryMap } from './LibraryMap';
 import { ManageMembersModal } from './ManageMembersModal';
@@ -129,6 +130,10 @@ interface LibraryData {
   } | null;
   userRole: 'owner' | 'admin' | 'member' | 'guest' | null;
   memberCount: number;
+  invitationContext?:
+    | { kind: 'personal'; inviterName: string | null }
+    | { kind: 'code'; inviterName: string | null }
+    | null;
   itemCount: number;
   members: Array<{
     id: string;
@@ -740,34 +745,15 @@ export function CollectionDetailClient({
 
   return (
     <Container maxWidth="lg" sx={{ py: 4, position: 'relative' }}>
-      {/* Guest Banner (magic link guest pass) */}
+      {/* Guest header: names the inviter/host + the privacy promise. */}
       {library?.userRole === 'guest' && (
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            p: 2,
-            mb: 2,
-            borderRadius: 2,
-            border: '1px solid rgba(25,118,210,0.2)',
-            bgcolor: 'rgba(25,118,210,0.05)',
-          }}
-        >
-          <Box>
-            <Typography
-              sx={{ color: brandColors.charcoal, mb: 1, fontWeight: 600 }}
-            >
-              Welcome! Check this out 👋
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              This is a library of &lsquo;stuff&rsquo; — where folks can make
-              their lendable stuff more visible, so it&rsquo;s easier to share
-              more and buy less as a community. Take a look around. Instructions
-              on how to join at the bottom!
-            </Typography>
-          </Box>
-        </Box>
+        <GuestPreview
+          slot="header"
+          libraryName={library.name}
+          invitationContext={library.invitationContext ?? null}
+          memberCount={library.memberCount}
+          onClaim={joinLibrary}
+        />
       )}
 
       {/* Welcome Banner for New Members */}
@@ -1350,28 +1336,6 @@ export function CollectionDetailClient({
         </Box>
       ) : null}
 
-      {/* Privacy explanation for guests - under map */}
-      {library?.userRole === 'guest' && (
-        <Box
-          sx={{
-            p: 2,
-            mb: 3,
-            borderRadius: 2,
-            bgcolor: 'rgba(0, 0, 0, 0.02)',
-            border: '1px solid rgba(0, 0, 0, 0.06)',
-          }}
-        >
-          <Typography
-            variant="body2"
-            sx={{ color: 'text.secondary', textAlign: 'center' }}
-          >
-            We keep member details private until you join—that&rsquo;s just one
-            of the perks of being part of a trusted community! Once you&rsquo;re
-            in, you&rsquo;ll see who&rsquo;s who.
-          </Typography>
-        </Box>
-      )}
-
       {/* Filter Chips — only when there are items to filter (no "All 0") */}
       {hasItems && (
         <Box sx={{ mb: spacing.lg / 16 }}>
@@ -1692,50 +1656,15 @@ export function CollectionDetailClient({
         </Box>
       )}
 
-      {/* Join section for guests - after items */}
+      {/* Guest claim: the library-card CTA. Join behavior is unchanged. */}
       {library?.userRole === 'guest' && (
-        <Box
-          sx={{
-            mt: spacing.xl / 16,
-            mb: spacing.xl / 16,
-            p: 3,
-            borderRadius: 2,
-            border: '1px solid rgba(25,118,210,0.2)',
-            bgcolor: 'rgba(25,118,210,0.05)',
-            textAlign: 'center',
-          }}
-        >
-          <Typography
-            variant="body2"
-            sx={{ fontWeight: 600, color: brandColors.charcoal, mb: 2 }}
-          >
-            Ready to join? It&rsquo;s easy:
-          </Typography>
-          <Box
-            component="ol"
-            sx={{
-              pl: 2,
-              m: 0,
-              mb: 3,
-              display: 'inline-block',
-              textAlign: 'left',
-              '& li': {
-                mb: 0.5,
-                fontSize: '0.875rem',
-                color: 'text.secondary',
-              },
-            }}
-          >
-            <li>Fill out a quick library card with your photo and address</li>
-            <li>Get verified by the community (usually same day!)</li>
-            <li>Start borrowing, lending, and saving money together</li>
-          </Box>
-          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-            <Button variant="contained" size="small" onClick={joinLibrary}>
-              Sign me up!
-            </Button>
-          </Box>
-        </Box>
+        <GuestPreview
+          slot="claim"
+          libraryName={library.name}
+          invitationContext={library.invitationContext ?? null}
+          memberCount={library.memberCount}
+          onClaim={joinLibrary}
+        />
       )}
 
       {/* Add Your Stuff section — only once there are items; when empty the
