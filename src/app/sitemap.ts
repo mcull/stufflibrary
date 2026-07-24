@@ -29,5 +29,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     page('/privacy', 0.3, 'yearly'),
     page('/terms', 0.3, 'yearly'),
     page('/cookies', 0.3, 'yearly'),
+    page('/sms', 0.3, 'yearly'),
   ];
 }

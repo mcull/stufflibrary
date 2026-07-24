@@ -24,6 +24,10 @@ import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { normalizeUsPhone } from '@/lib/phone';
+import {
+  SMS_CONSENT_DISCLOSURE,
+  SMS_CONSENT_HEADLINE,
+} from '@/lib/sms-consent';
 import { brandColors } from '@/theme/brandTokens';
 
 import { AddressAutocomplete } from './AddressAutocomplete';
@@ -524,12 +528,10 @@ export function ProfileView({
                     label={
                       <Box>
                         <Typography variant="body2">
-                          Text me borrow requests and account updates from
-                          StuffLibrary.
+                          {SMS_CONSENT_HEADLINE}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          Message and data rates may apply. Message frequency
-                          varies. Reply HELP for help, STOP to cancel.
+                          {SMS_CONSENT_DISCLOSURE}
                         </Typography>
                       </Box>
                     }

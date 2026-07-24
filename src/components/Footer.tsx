@@ -267,6 +267,21 @@ export function Footer({ isLoggedIn = false, slim = false }: FooterProps) {
             >
               Cookie Policy
             </Link>
+            <Link
+              href="/sms"
+              underline="none"
+              sx={{
+                color: brandColors.white,
+                opacity: 0.6,
+                fontSize: '0.875rem',
+                '&:hover': {
+                  opacity: 1,
+                },
+                transition: 'opacity 0.2s ease',
+              }}
+            >
+              Text Messages
+            </Link>
           </Stack>
         </Stack>
       </Container>
