@@ -31,7 +31,8 @@ import { Wordmark } from './Wordmark';
 
 export type { ProfileFormData } from './profile-wizard/wizardPlan';
 
-// Name + agreements, then photo, then address — each solicited separately so a
+// Sign the card (name + one promise), then photo, then address — each solicited
+// separately so a
 // just-in-time prompt can drop the user straight into the one they need.
 // Which of these actually run comes from wizardStepPlan (a user with a
 // verified address on file never sees the address step again).
