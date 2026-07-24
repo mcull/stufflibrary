@@ -28,8 +28,12 @@ vi.mock('@/lib/db', () => ({
       create: mockInvitationCreate,
       update: mockInvitationUpdate,
     },
-    // #412: the email body pulls up to 3 item watercolors from the library.
-    item: { findMany: vi.fn().mockResolvedValue([]) },
+    // #412: the email body pulls up to 3 item watercolors from the library,
+    // and (sub-project A) counts the shelves for the "…and N things" line.
+    item: {
+      findMany: vi.fn().mockResolvedValue([]),
+      count: vi.fn().mockResolvedValue(0),
+    },
   },
 }));
 
