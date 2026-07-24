@@ -8,6 +8,7 @@ import { resolveJoinCodeById } from '@/lib/join-code-service';
 import { libraryMemberCount, nonOwnerMemberRows } from '@/lib/library-members';
 import {
   canSeeExactMemberLocations,
+  firstNameOnly,
   toMemberAreas,
   toNeighborProfile,
   toStrangerProfile,
@@ -111,6 +112,10 @@ export async function GET(
       : null;
 
     let userRole = userId === library.ownerId ? 'owner' : null;
+    let invitationContext:
+      | { kind: 'personal'; inviterName: string | null }
+      | { kind: 'code'; inviterName: string | null }
+      | null = null;
     // Validate invite token for guest role
     if (!userRole && inviteToken && inviteLibrary === libraryId) {
       // The cookie carries two unrelated things. A `jc:` value is a JoinCode
@@ -129,6 +134,10 @@ export async function GET(
         if (resolved && resolved.collectionId === libraryId) {
           console.log('[collections/:id GET] join code valid -> guest role');
           userRole = 'guest' as any;
+          invitationContext = {
+            kind: 'code',
+            inviterName: firstNameOnly(library.owner.name),
+          };
         }
       } else {
         console.log('[collections/:id GET] validating invite for guest role');
@@ -140,11 +149,15 @@ export async function GET(
             status: { in: ['PENDING', 'SENT'] },
             expiresAt: { gt: new Date() },
           },
-          select: { id: true },
+          select: { id: true, sender: { select: { name: true } } },
         });
         if (inv) {
           console.log('[collections/:id GET] invite valid -> guest role');
           userRole = 'guest' as any;
+          invitationContext = {
+            kind: 'personal',
+            inviterName: firstNameOnly(inv.sender?.name),
+          };
         }
       }
     }
@@ -155,6 +168,7 @@ export async function GET(
       | 'owner'
       | 'admin'
       | 'member'
+      | 'guest'
       | null;
 
     const includeUnillustrated =
@@ -297,6 +311,9 @@ export async function GET(
         ownerActive: library.owner.status === 'active',
         rows: library.members,
       }),
+      // Guests only: the inviter's (or host's) first name, nothing more.
+      // Null for members/owners/admins.
+      invitationContext: effectiveRole === 'guest' ? invitationContext : null,
       itemCount: items.length,
       inviteRateLimitPerHour: (library as any).inviteRateLimitPerHour ?? 0,
       members,
