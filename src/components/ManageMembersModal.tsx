@@ -105,7 +105,7 @@ export function ManageMembersModal({
   const [email, setEmail] = useState('');
   const defaultNote = useMemo(
     () =>
-      `I set aside a card for you at ${collectionName} — borrow anything, free.`,
+      `I set aside a library card for you at ${collectionName} — borrow anything, free.`,
     [collectionName]
   );
   const [note, setNote] = useState(defaultNote);

@@ -12,7 +12,6 @@ const db = vi.hoisted(() => ({
     count: vi.fn(),
   },
   item: { findMany: vi.fn(), count: vi.fn() },
-  user: { findUnique: vi.fn() },
   joinCode: { findFirst: vi.fn() },
 }));
 
