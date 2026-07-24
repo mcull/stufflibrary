@@ -36,7 +36,7 @@ import {
 } from '@mui/material';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 
 import { useCapabilities } from '@/hooks/useCapabilities';
 import { inviteGateCopy } from '@/lib/capability-copy';
@@ -103,6 +103,12 @@ export function ManageMembersModal({
   });
   const [activeTab, setActiveTab] = useState(initialTab);
   const [email, setEmail] = useState('');
+  const defaultNote = useMemo(
+    () =>
+      `I set aside a card for you at ${collectionName} — borrow anything, free.`,
+    [collectionName]
+  );
+  const [note, setNote] = useState(defaultNote);
   const pathname = usePathname();
   // Know the invite gate BEFORE the user hits a dead button (#410). The
   // server 403 remains the authority; this is the up-front explanation.
@@ -215,6 +221,10 @@ export function ManageMembersModal({
     }
   }, [open, initialTab, loadData]);
 
+  useEffect(() => {
+    if (open) setNote(defaultNote);
+  }, [open, defaultNote]);
+
   const handleInviteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -227,7 +237,7 @@ export function ManageMembersModal({
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ email: email.trim(), note: note.trim() }),
       });
 
       const data = await response.json();
@@ -235,6 +245,7 @@ export function ManageMembersModal({
       if (response.ok) {
         setSuccess(`Invitation sent to ${email}`);
         setEmail('');
+        setNote(defaultNote);
         loadData(); // Refresh the invitations list
       } else {
         setError(data.error || 'Failed to send invitation');
@@ -842,6 +853,25 @@ export function ManageMembersModal({
                       <EmailIcon sx={{ mr: 1, color: 'text.secondary' }} />
                     ),
                   }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      backgroundColor: brandColors.white,
+                    },
+                  }}
+                />
+              </Box>
+
+              <Box sx={{ mb: 3 }}>
+                <TextField
+                  fullWidth
+                  multiline
+                  minRows={3}
+                  label="A note (optional)"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  disabled={isLoading || Boolean(inviteGate)}
+                  helperText="Your own words land this in their inbox, not their spam. Edit freely."
+                  inputProps={{ maxLength: 500 }}
                   sx={{
                     '& .MuiOutlinedInput-root': {
                       backgroundColor: brandColors.white,
