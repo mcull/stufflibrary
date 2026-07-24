@@ -247,12 +247,16 @@ notification types. Links must be on our own domain (see prerequisites).
    constants (`src/lib/sms-consent.ts`), so the page can never drift from the
    consent members actually give. Linked in the footer and the sitemap so it
    stays findable on re-review. Issue #505.
-5. ⛔️ **Short links on our own domain — still to build, and now a hard blocker
-   before the first message goes out.** We already have the `/j/[token]` pattern for
+5. ⛔️ **Short links on our own domain — still to build. A send-time blocker,
+   not an approval blocker.** We already have the `/j/[token]` pattern for
    invites; borrow-flow texts need an equivalent (e.g. `/b/[token]`, which can
-   redirect into the existing `borrow-approval/[token]` flow). The registered
-   sample messages — now also published on `/sms` — use `/b/…` URLs, so those
-   links must resolve before we send anything a reviewer might click.
+   redirect into the existing `borrow-approval/[token]` flow). This does _not_
+   gate campaign approval: the sample-message tokens (`x7Kq2`, etc.) are
+   illustrative, they render as plain text on `/sms` (not clickable), and
+   Twilio's link check is about domain reputation (no public shorteners) — which
+   an own-domain `/b/…` link satisfies whether or not it resolves yet. The real
+   deadline is operational: `/b/[token]` must resolve before we send the first
+   real borrow-flow text, so members don't receive a dead link.
 
 ## Not claimed, on purpose
 
