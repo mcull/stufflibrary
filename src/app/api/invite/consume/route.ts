@@ -41,8 +41,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Build base response now so we can always clear cookies
-    const res = NextResponse.json({ redirect: `/library/${inviteLibrary}` });
-    clearInviteCookies(res);
+    const libraryPath = `/library/${inviteLibrary}`;
+    const joinedPath = `${libraryPath}?message=joined_successfully`;
+    const respond = (redirect: string) => {
+      const r = NextResponse.json({ redirect });
+      clearInviteCookies(r);
+      return r;
+    };
 
     // A join code, not an invitation. Bearer by design: no address is
     // attached to it, so there is nothing to bind a session to and the
@@ -53,10 +58,10 @@ export async function POST(request: NextRequest) {
       const membership = await ensureActiveMembership(userId, inviteLibrary);
       if (membership.created || membership.reactivated) {
         await attributeJoinCode(userId, inviteLibrary, joinCodeId);
-      } else {
-        console.log('[invite/consume] join code: owner or existing member');
+        return respond(joinedPath);
       }
-      return res;
+      console.log('[invite/consume] join code: owner or existing member');
+      return respond(libraryPath);
     }
 
     // Validate invite
@@ -116,14 +121,11 @@ export async function POST(request: NextRequest) {
     if (membership.created || membership.reactivated) {
       console.log('[invite/consume] marking invite accepted');
       await acceptInvitation(inviteToken, inviteLibrary, userId);
-    } else {
-      console.log('[invite/consume] owner/existing member; invite left live');
+      return respond(joinedPath);
     }
 
-    console.log('[invite/consume] returning redirect', {
-      to: `/library/${inviteLibrary}`,
-    });
-    return res;
+    console.log('[invite/consume] owner/existing member; invite left live');
+    return respond(libraryPath);
   } catch (e) {
     console.error('[invite/consume] error', e);
     return NextResponse.json({ redirect: null }, { status: 200 });

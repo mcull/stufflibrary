@@ -86,7 +86,7 @@ describe('POST /api/invite/consume — jc: join code cookies', () => {
     const body = await res.json();
 
     expect(mockMemberCreate).toHaveBeenCalled();
-    expect(body.redirect).toBe(`/library/${LIB}`);
+    expect(body.redirect).toBe(`/library/${LIB}?message=joined_successfully`);
   });
 
   // Bearer by design: there is no address on a join code to match a session
@@ -99,7 +99,7 @@ describe('POST /api/invite/consume — jc: join code cookies', () => {
 
     expect(mockInvitationFindFirst).not.toHaveBeenCalled();
     expect(body.error).toBeUndefined();
-    expect(body.redirect).toBe(`/library/${LIB}`);
+    expect(body.redirect).toBe(`/library/${LIB}?message=joined_successfully`);
   });
 
   it('records which code brought the member in', async () => {
@@ -125,10 +125,12 @@ describe('POST /api/invite/consume — jc: join code cookies', () => {
   it('does not count a use for someone already a member', async () => {
     mockMemberFindUnique.mockResolvedValue({ id: 'm1', isActive: true });
 
-    await POST(post(joinCodeCookies));
+    const res = await POST(post(joinCodeCookies));
+    const body = await res.json();
 
     expect(mockRecordJoinCodeUse).not.toHaveBeenCalled();
     expect(mockMemberUpdateMany).not.toHaveBeenCalled();
+    expect(body.redirect).toBe(`/library/${LIB}`);
   });
 
   it('does not count a use for the owner', async () => {
@@ -136,10 +138,26 @@ describe('POST /api/invite/consume — jc: join code cookies', () => {
       user: { id: 'owner_1', email: 'owner@example.com' },
     });
 
-    await POST(post(joinCodeCookies));
+    const res = await POST(post(joinCodeCookies));
+    const body = await res.json();
 
     expect(mockRecordJoinCodeUse).not.toHaveBeenCalled();
     expect(mockMemberCreate).not.toHaveBeenCalled();
+    expect(body.redirect).toBe(`/library/${LIB}`);
+  });
+
+  it('shows the arrival banner only for a real join, never for owner or existing member', async () => {
+    mockMemberFindUnique.mockResolvedValue(null);
+    const joined = await POST(post(joinCodeCookies));
+    const joinedBody = await joined.json();
+    expect(joinedBody.redirect).toBe(
+      `/library/${LIB}?message=joined_successfully`
+    );
+
+    mockMemberFindUnique.mockResolvedValue({ id: 'm1', isActive: true });
+    const alreadyMember = await POST(post(joinCodeCookies));
+    const alreadyMemberBody = await alreadyMember.json();
+    expect(alreadyMemberBody.redirect).toBe(`/library/${LIB}`);
   });
 
   it('clears the invite cookies', async () => {
@@ -169,7 +187,7 @@ describe('POST /api/invite/consume — personal invitation tokens are unaffected
     expect(mockInvitationFindFirst).toHaveBeenCalled();
     expect(mockInvitationUpdateMany).toHaveBeenCalled();
     expect(mockRecordJoinCodeUse).not.toHaveBeenCalled();
-    expect(body.redirect).toBe(`/library/${LIB}`);
+    expect(body.redirect).toBe(`/library/${LIB}?message=joined_successfully`);
   });
 
   it('still refuses a token bound to another address', async () => {

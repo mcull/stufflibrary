@@ -509,7 +509,7 @@ export function CollectionDetailClient({
       if (res.ok) {
         // Clean up stored invite token on successful join
         localStorage.removeItem(`invite_token_${collectionId}`);
-        window.location.reload();
+        window.location.href = `/library/${collectionId}?message=joined_successfully`;
       } else if (res.status === 401) {
         // Store invite token in localStorage before redirecting to auth
         if (storedInviteToken) {
