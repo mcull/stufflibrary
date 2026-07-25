@@ -218,8 +218,10 @@ function SignInForm() {
     setResendSeconds(45);
   };
 
-  const handleCodeSubmit = async (e: React.FormEvent) => {
-    e.preventDefault?.();
+  // Takes the code value explicitly: the auto-submit fires from CodeCells'
+  // onComplete at the moment the sixth digit lands, when the `code` state has
+  // not yet re-rendered — reading state here would submit a stale 5-digit code.
+  const submitCode = async (codeValue: string) => {
     setIsLoading(true);
     setError('');
 
@@ -228,7 +230,7 @@ function SignInForm() {
       // This ensures proper session synchronization
       const signInResult = await signIn('email-code', {
         email,
-        code,
+        code: codeValue,
         // Let the callback page decide dashboard vs. profile/create
         callbackUrl,
         redirect: false, // Handle redirect manually for better error handling
@@ -254,6 +256,11 @@ function SignInForm() {
       setError('Something went wrong. Please try again.');
       setIsLoading(false);
     }
+  };
+
+  const handleCodeSubmit = (e: React.FormEvent) => {
+    e.preventDefault?.();
+    void submitCode(code);
   };
 
   // Show loading state for magic link processing to avoid flash
@@ -473,12 +480,8 @@ function SignInForm() {
                 <CodeCells
                   value={code}
                   onChange={setCode}
-                  onComplete={() => {
-                    if (!isLoading) {
-                      handleCodeSubmit(
-                        new Event('submit') as unknown as React.FormEvent
-                      );
-                    }
+                  onComplete={(completed) => {
+                    if (!isLoading) void submitCode(completed);
                   }}
                   disabled={isLoading}
                 />

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { signIn } from 'next-auth/react';
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 
 const mockSearchParams = vi.hoisted(() => new URLSearchParams());
@@ -200,5 +201,35 @@ describe('the code step, staged as the stamp', () => {
       name: /re-stamp in/i,
     });
     expect(resendButton).toBeDisabled();
+  });
+
+  // Regression: the sixth digit auto-submits, and the submit must carry the
+  // full six-digit value — not the five-digit `code` state from before the
+  // last cell re-rendered.
+  it('auto-submits the full six-digit code, not a stale five', async () => {
+    (signIn as ReturnType<typeof vi.fn>).mockResolvedValue({
+      error: 'CredentialsSignin',
+    });
+    const fetchMock = stubInviteAndSendCode(null);
+
+    render(<SignIn />);
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    fireEvent.change(emailField(), { target: { value: 'newby@example.com' } });
+    await advanceToCodeStep();
+
+    await screen.findByLabelText('Digit 1 of 6');
+    const cells = screen.getAllByRole('textbox') as HTMLInputElement[];
+    expect(cells).toHaveLength(6);
+    '508213'.split('').forEach((digit, i) => {
+      fireEvent.change(cells[i]!, { target: { value: digit } });
+    });
+
+    await waitFor(() =>
+      expect(signIn).toHaveBeenCalledWith(
+        'email-code',
+        expect.objectContaining({ code: '508213' })
+      )
+    );
   });
 });
