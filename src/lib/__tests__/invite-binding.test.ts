@@ -378,7 +378,8 @@ describe('POST /api/invite/consume — binding', () => {
     const res = await consume(COOKIES);
     const body = await res.json();
 
-    expect(body.redirect).toBe('/library/c1');
+    // A real join now carries the arrival banner trigger.
+    expect(body.redirect).toBe('/library/c1?message=joined_successfully');
     expect(body.error).toBeUndefined();
     expect(mockMemberCreate).toHaveBeenCalled();
     expect(mockInvitationUpdateMany).toHaveBeenCalledTimes(1);
