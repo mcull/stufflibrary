@@ -172,7 +172,8 @@ describe('POST /api/collections/[id]/join — join code cookies', () => {
     mockGetServerSession.mockResolvedValue({ user: { id: USER_ID } });
     mockCollectionFindUnique
       .mockResolvedValueOnce(privateCollection())
-      .mockResolvedValueOnce({ ownerId: OWNER_ID })
+      .mockResolvedValueOnce({ ownerId: OWNER_ID }) // ensureActiveMembership owner-guard
+      .mockResolvedValueOnce({ ownerId: OWNER_ID }) // attributeJoinCode → arrival notification recipient
       .mockResolvedValueOnce(updatedCollectionReturn());
     mockMemberFindUnique.mockResolvedValue(null);
     mockMemberCreate.mockResolvedValue({ id: 'mem_1', role: 'member' });
