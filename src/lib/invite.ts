@@ -5,6 +5,7 @@ import { authOptions } from './auth';
 import { db } from './db';
 import { normalizeJoinCode } from './join-code';
 import { recordJoinCodeUse, resolveJoinCode } from './join-code-service';
+import { createNotification } from './notification-service';
 
 const INVITE_COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 
@@ -44,6 +45,62 @@ export async function attributeJoinCode(
     data: { joinedViaCodeId: codeId },
   });
   await recordJoinCodeUse(codeId);
+
+  // A flyer/code has no single inviter — tell the library's owner.
+  try {
+    const collection = await db.collection.findUnique({
+      where: { id: collectionId },
+      select: { ownerId: true },
+    });
+    await notifyMemberJoined({
+      collectionId,
+      newMemberId: userId,
+      recipientId: collection?.ownerId,
+    });
+  } catch {
+    // best-effort
+  }
+}
+
+/**
+ * Tell the neighbor who brought someone in that they arrived. Best-effort: the
+ * join has already happened by the time this runs, so a notification failure
+ * must never surface. Never notifies the joiner about themselves.
+ */
+export async function notifyMemberJoined(opts: {
+  collectionId: string;
+  newMemberId: string;
+  recipientId: string | null | undefined;
+}): Promise<void> {
+  const { collectionId, newMemberId, recipientId } = opts;
+  if (!recipientId || recipientId === newMemberId) return;
+  try {
+    const [member, collection] = await Promise.all([
+      db.user.findUnique({
+        where: { id: newMemberId },
+        select: { name: true },
+      }),
+      db.collection.findUnique({
+        where: { id: collectionId },
+        select: { name: true },
+      }),
+    ]);
+    const firstName = member?.name?.trim().split(/\s+/)[0] || 'A neighbor';
+    const libraryName = collection?.name || 'your library';
+    // No relatedItemId/relatedRequestId discriminator on purpose: a per-library
+    // key would collapse two different neighbors joining within createNotification's
+    // 10-minute dedupe window into one notification, hiding the second arrival.
+    // One row per join event is what we want (callers already gate on a real join).
+    await createNotification({
+      userId: recipientId,
+      type: 'MEMBER_JOINED',
+      title: 'A neighbor joined',
+      message: `${firstName} joined ${libraryName} — say hi`,
+      actionUrl: `/library/${collectionId}`,
+    });
+  } catch {
+    // best-effort: never fail a join because a notification could not be sent
+  }
 }
 
 export async function ensureActiveMembership(
@@ -90,6 +147,22 @@ export async function acceptInvitation(
     where: { token, libraryId: collectionId },
     data: { status: 'ACCEPTED', acceptedAt: new Date(), receiverId: userId },
   });
+
+  // Tell the sender their invitee arrived. Wrapped so the lookup can never
+  // fail the accept.
+  try {
+    const invitation = await db.invitation.findFirst({
+      where: { token, libraryId: collectionId },
+      select: { senderId: true },
+    });
+    await notifyMemberJoined({
+      collectionId,
+      newMemberId: userId,
+      recipientId: invitation?.senderId,
+    });
+  } catch {
+    // best-effort
+  }
 }
 
 /**
