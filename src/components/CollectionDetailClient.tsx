@@ -2,7 +2,6 @@
 
 import {
   Add as AddIcon,
-  Close as CloseIcon,
   PhotoCamera as PhotoCameraIcon,
   Inventory as InventoryIcon,
   PersonAdd as PersonAddIcon,
@@ -41,6 +40,7 @@ import {
 } from '@/lib/member-location-privacy';
 import { brandColors, spacing } from '@/theme/brandTokens';
 
+import { ArrivalWelcome } from './ArrivalWelcome';
 import {
   chooseMapCaption,
   unplottedCaptionText,
@@ -756,41 +756,14 @@ export function CollectionDetailClient({
         />
       )}
 
-      {/* Welcome Banner for New Members */}
+      {/* Arrival: the "you're inside" moment for a brand-new member. */}
       {showWelcomeBanner && (
-        <Alert
-          severity="success"
-          action={
-            <IconButton
-              aria-label="close"
-              color="inherit"
-              size="small"
-              onClick={() => setShowWelcomeBanner(false)}
-            >
-              <CloseIcon fontSize="inherit" />
-            </IconButton>
-          }
-          sx={{
-            mb: 4,
-            bgcolor: '#f0f9ff',
-            border: '1px solid #3b82f6',
-            borderRadius: 2,
-            '& .MuiAlert-icon': {
-              color: '#3b82f6',
-            },
-            '& .MuiAlert-message': {
-              color: '#1e40af',
-              fontSize: '1rem',
-              fontWeight: 500,
-            },
-            '& .MuiAlert-action': {
-              color: '#3b82f6',
-            },
-          }}
-        >
-          Welcome to {library?.name}
-          {currentUserName ? `, ${currentUserName}` : ''}! 🎉
-        </Alert>
+        <ArrivalWelcome
+          name={currentUserName}
+          onBrowse={() => setShowWelcomeBanner(false)}
+          onAdd={handleAddNewItem}
+          onDismiss={() => setShowWelcomeBanner(false)}
+        />
       )}
 
       {/* Info banner: invite-link edge cases (owner preview / already member) */}
