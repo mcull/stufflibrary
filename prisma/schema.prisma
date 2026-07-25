@@ -590,6 +590,7 @@ enum NotificationType {
   RETURN_CONFIRMED          // Lender confirmed return
   PROBLEM_REPORTED          // Damage or issue reported on return
   LIBRARY_INVITATION        // Invited to join library
+  MEMBER_JOINED             // A new member joined a library you host/invited to
   SYSTEM_ANNOUNCEMENT       // General system messages
 }
 
