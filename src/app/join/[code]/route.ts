@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
+import { clientIp } from '@/lib/client-ip';
 import { db } from '@/lib/db';
 import { handleInviteLanding, handleJoinCodeLanding } from '@/lib/invite';
 import { normalizeJoinCode } from '@/lib/join-code';
@@ -7,15 +8,6 @@ import {
   isJoinLookupBlocked,
   recordJoinLookupFailure,
 } from '@/lib/join-code-rate-limit';
-
-function clientIp(request: NextRequest): string {
-  const xff = request.headers.get('x-forwarded-for');
-  if (xff) {
-    const first = xff.split(',')[0]?.trim();
-    if (first) return first;
-  }
-  return request.headers.get('x-real-ip') ?? 'unknown';
-}
 
 /**
  * The printable front door: `/join/XKF7-2M9Q`, resolved against JoinCode
