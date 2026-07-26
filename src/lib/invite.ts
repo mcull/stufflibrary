@@ -1,3 +1,4 @@
+import { type InvitationStatus } from '@prisma/client';
 import { type NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
@@ -8,6 +9,14 @@ import { recordJoinCodeUse, resolveJoinCode } from './join-code-service';
 import { createNotification } from './notification-service';
 
 const INVITE_COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
+
+/** Invitation statuses a library invite can still be redeemed from. The
+ *  consume path (validateLibraryInvite) and the resolve check
+ *  (shortCodeResolvesToLiveInvite) MUST agree, so they share this list. */
+const REDEEMABLE_LIBRARY_INVITE_STATUSES: InvitationStatus[] = [
+  'PENDING',
+  'SENT',
+];
 
 /**
  * `invite_token` carries two unrelated things. A bare value is a personal
@@ -198,7 +207,11 @@ export async function validateLibraryInvite(
   token: string
 ): Promise<InviteValidation> {
   const invitation = await db.invitation.findFirst({
-    where: { token, type: 'library', status: { in: ['PENDING', 'SENT'] } },
+    where: {
+      token,
+      type: 'library',
+      status: { in: REDEEMABLE_LIBRARY_INVITE_STATUSES },
+    },
     select: { libraryId: true, expiresAt: true, email: true },
   });
   if (!invitation || !invitation.libraryId)
@@ -213,6 +226,30 @@ export async function validateLibraryInvite(
       email: invitation.email,
     },
   };
+}
+
+/**
+ * Does a live library invitation carry this short code? Mirrors
+ * validateLibraryInvite's redeemability filter (type + PENDING/SENT status +
+ * unexpired) so /api/join/resolve can't green-light a personal-invite code that
+ * handleInviteLanding would then bounce as expired or already consumed — the
+ * resolve endpoint exists to keep a bad code from ejecting a signed-in member
+ * out of their lobby. shortCode is unique and never cleared on accept, so
+ * existence alone is not liveness.
+ */
+export async function shortCodeResolvesToLiveInvite(
+  shortCode: string
+): Promise<boolean> {
+  const invite = await db.invitation.findFirst({
+    where: {
+      shortCode,
+      type: 'library',
+      status: { in: REDEEMABLE_LIBRARY_INVITE_STATUSES },
+      expiresAt: { gt: new Date() },
+    },
+    select: { id: true },
+  });
+  return invite !== null;
 }
 
 export function setInviteCookies(

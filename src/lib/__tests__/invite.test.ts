@@ -31,6 +31,7 @@ import {
   acceptInvitation,
   validateLibraryInvite,
   handleInviteLanding,
+  shortCodeResolvesToLiveInvite,
 } from '../invite';
 
 beforeEach(() => {
@@ -131,6 +132,25 @@ describe('validateLibraryInvite', () => {
       ok: false,
       reason: 'expired',
     });
+  });
+});
+
+describe('shortCodeResolvesToLiveInvite', () => {
+  it('queries for a live library invitation by short code', async () => {
+    mockInvitationFindFirst.mockResolvedValue({ id: 'inv_1' });
+    const live = await shortCodeResolvesToLiveInvite('XKF72M9Q');
+    expect(live).toBe(true);
+    const where = mockInvitationFindFirst.mock.calls[0]![0].where;
+    expect(where.shortCode).toBe('XKF72M9Q');
+    expect(where.type).toBe('library');
+    expect(where.status).toEqual({ in: ['PENDING', 'SENT'] });
+    // unexpired only — expiresAt strictly in the future
+    expect(where.expiresAt.gt).toBeInstanceOf(Date);
+  });
+
+  it('returns false when no live invitation carries the code', async () => {
+    mockInvitationFindFirst.mockResolvedValue(null);
+    expect(await shortCodeResolvesToLiveInvite('ZZZZZZZZ')).toBe(false);
   });
 });
 

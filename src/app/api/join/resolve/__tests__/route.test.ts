@@ -2,15 +2,15 @@ import { NextRequest } from 'next/server';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 const mockResolveJoinCode = vi.hoisted(() => vi.fn());
-const mockInvitationFindFirst = vi.hoisted(() => vi.fn());
+const mockShortCodeLiveInvite = vi.hoisted(() => vi.fn());
 const mockIsBlocked = vi.hoisted(() => vi.fn());
 const mockRecordFailure = vi.hoisted(() => vi.fn());
 
 vi.mock('@/lib/join-code-service', () => ({
   resolveJoinCode: mockResolveJoinCode,
 }));
-vi.mock('@/lib/db', () => ({
-  db: { invitation: { findFirst: mockInvitationFindFirst } },
+vi.mock('@/lib/invite', () => ({
+  shortCodeResolvesToLiveInvite: mockShortCodeLiveInvite,
 }));
 vi.mock('@/lib/join-code-rate-limit', () => ({
   isJoinLookupBlocked: mockIsBlocked,
@@ -35,7 +35,7 @@ beforeEach(() => {
   mockIsBlocked.mockResolvedValue(false);
   mockRecordFailure.mockResolvedValue(undefined);
   mockResolveJoinCode.mockResolvedValue(null);
-  mockInvitationFindFirst.mockResolvedValue(null);
+  mockShortCodeLiveInvite.mockResolvedValue(false);
 });
 
 describe('POST /api/join/resolve', () => {
@@ -46,12 +46,12 @@ describe('POST /api/join/resolve', () => {
     });
     const res = await call('XKF72M9Q');
     expect(await res.json()).toEqual({ ok: true });
-    expect(mockInvitationFindFirst).not.toHaveBeenCalled();
+    expect(mockShortCodeLiveInvite).not.toHaveBeenCalled();
     expect(mockRecordFailure).not.toHaveBeenCalled();
   });
 
   it('falls through to a personal invitation short code', async () => {
-    mockInvitationFindFirst.mockResolvedValue({ id: 'inv_1' });
+    mockShortCodeLiveInvite.mockResolvedValue(true);
     const res = await call('ABCD1234');
     expect(await res.json()).toEqual({ ok: true });
     expect(mockRecordFailure).not.toHaveBeenCalled();
@@ -60,9 +60,7 @@ describe('POST /api/join/resolve', () => {
   it('normalizes before looking up', async () => {
     await call('xkf7-2m9q');
     expect(mockResolveJoinCode).toHaveBeenCalledWith('XKF72M9Q');
-    expect(mockInvitationFindFirst).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { shortCode: 'XKF72M9Q' } })
-    );
+    expect(mockShortCodeLiveInvite).toHaveBeenCalledWith('XKF72M9Q');
   });
 
   it('returns ok:false and records the miss when nothing matches', async () => {
@@ -81,7 +79,7 @@ describe('POST /api/join/resolve', () => {
     const res = await call('XKF72M9Q', { 'x-forwarded-for': IP });
     expect(res.status).toBe(429);
     expect(mockResolveJoinCode).not.toHaveBeenCalled();
-    expect(mockInvitationFindFirst).not.toHaveBeenCalled();
+    expect(mockShortCodeLiveInvite).not.toHaveBeenCalled();
   });
 
   it('rejects a missing code with 400 and does not count it as a guess', async () => {

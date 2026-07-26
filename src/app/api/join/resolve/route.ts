@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
 import { clientIp } from '@/lib/client-ip';
-import { db } from '@/lib/db';
+import { shortCodeResolvesToLiveInvite } from '@/lib/invite';
 import { normalizeJoinCode } from '@/lib/join-code';
 import {
   isJoinLookupBlocked,
@@ -40,11 +40,9 @@ export async function POST(request: NextRequest) {
   const joinCode = await resolveJoinCode(normalized);
   if (joinCode) return NextResponse.json({ ok: true });
 
-  const invitation = await db.invitation.findFirst({
-    where: { shortCode: normalized },
-    select: { id: true },
-  });
-  if (invitation) return NextResponse.json({ ok: true });
+  if (await shortCodeResolvesToLiveInvite(normalized)) {
+    return NextResponse.json({ ok: true });
+  }
 
   await recordJoinLookupFailure(ip);
   return NextResponse.json({ ok: false });
