@@ -18,6 +18,7 @@ import { brandColors } from '@/theme/brandTokens';
 
 import { CollectionCreationModal } from './CollectionCreationModal';
 import { CompleteProfilePrompt } from './CompleteProfilePrompt';
+import { JoinCodeEntry } from './JoinCodeEntry';
 import { GreetingDesk } from './member-home/GreetingDesk';
 import { DrawerSectionLabel, LibraryDrawer } from './member-home/LibraryDrawer';
 import {
@@ -241,6 +242,12 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
                 ownedLibraryName={started[0]?.name}
               />
             )}
+
+            {/* Redeem a code for a library you were invited to but haven't
+                joined yet — a flyer/SMS code with no in-app door until now. */}
+            <Box sx={{ mt: '48px' }}>
+              <JoinCodeEntry />
+            </Box>
           </Box>
         ) : (
           <Box>
