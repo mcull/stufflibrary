@@ -17,6 +17,7 @@ import { Suspense, useState, useEffect } from 'react';
 
 import { AuthLayout } from '@/components/AuthLayout';
 import { CodeCells } from '@/components/CodeCells';
+import { JoinCodeEntry } from '@/components/JoinCodeEntry';
 import { Wordmark } from '@/components/Wordmark';
 import { buildPostAuthCallbackUrl } from '@/lib/post-auth';
 import { brandColors } from '@/theme/brandTokens';
@@ -767,6 +768,10 @@ function SignInForm() {
               >
                 {isLoading ? 'Sending code...' : 'Continue'}
               </Button>
+            </Box>
+
+            <Box sx={{ mt: 3, textAlign: 'center' }}>
+              <JoinCodeEntry />
             </Box>
           </CardContent>
         </Card>

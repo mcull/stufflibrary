@@ -233,3 +233,13 @@ describe('the code step, staged as the stamp', () => {
     );
   });
 });
+
+describe('the guest-preview door on the email step', () => {
+  it('offers a join-code door on the email step', () => {
+    stubInviteContext(null);
+    render(<SignIn />);
+    expect(
+      screen.getByRole('button', { name: /have a code/i })
+    ).toBeInTheDocument();
+  });
+});
