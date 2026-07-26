@@ -16,6 +16,7 @@ import { signIn } from 'next-auth/react';
 import { Suspense, useState, useEffect } from 'react';
 
 import { AuthLayout } from '@/components/AuthLayout';
+import { CodeCells } from '@/components/CodeCells';
 import { Wordmark } from '@/components/Wordmark';
 import { buildPostAuthCallbackUrl } from '@/lib/post-auth';
 import { brandColors } from '@/theme/brandTokens';
@@ -32,6 +33,14 @@ function SignInForm() {
   } | null>(null);
   // The address a personal invitation is bound to. Set means locked.
   const [boundEmail, setBoundEmail] = useState<string | null>(null);
+  const [resendSeconds, setResendSeconds] = useState(0);
+
+  // maskEmail lives in server-only invite.ts; this is the client-safe twin.
+  const maskEmailLocal = (raw: string): string => {
+    const [local, domain] = raw.split('@');
+    if (!local || !domain) return '•••';
+    return `${local[0]}•••@${domain}`;
+  };
   const searchParams = useSearchParams();
   const invitationToken = searchParams.get('invitation');
   const isMagicLink = searchParams.get('magic') === 'true';
@@ -149,6 +158,16 @@ function SignInForm() {
     };
   }, [invitationToken, prefilledEmail]);
 
+  const counting = resendSeconds > 0;
+  useEffect(() => {
+    if (!counting) return;
+    const t = setInterval(
+      () => setResendSeconds((s) => (s <= 1 ? 0 : s - 1)),
+      1000
+    );
+    return () => clearInterval(t);
+  }, [counting]);
+
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -164,6 +183,7 @@ function SignInForm() {
       const result = await response.json();
 
       if (response.ok) {
+        setResendSeconds(45);
         setStep('code');
       } else {
         setError(result.error || 'Something went wrong. Please try again.');
@@ -175,8 +195,33 @@ function SignInForm() {
     }
   };
 
-  const handleCodeSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleResend = async () => {
+    if (resendSeconds > 0 || !email) return;
+    setError('');
+    try {
+      const response = await fetch('/api/auth/send-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        setError(
+          result.error || 'Could not resend the code. Please try again shortly.'
+        );
+        return; // leave the button enabled; don't reset the timer on failure
+      }
+    } catch {
+      setError('Could not resend the code. Please try again shortly.');
+      return;
+    }
+    setResendSeconds(45);
+  };
+
+  // Takes the code value explicitly: the auto-submit fires from CodeCells'
+  // onComplete at the moment the sixth digit lands, when the `code` state has
+  // not yet re-rendered — reading state here would submit a stale 5-digit code.
+  const submitCode = async (codeValue: string) => {
     setIsLoading(true);
     setError('');
 
@@ -185,7 +230,7 @@ function SignInForm() {
       // This ensures proper session synchronization
       const signInResult = await signIn('email-code', {
         email,
-        code,
+        code: codeValue,
         // Let the callback page decide dashboard vs. profile/create
         callbackUrl,
         redirect: false, // Handle redirect manually for better error handling
@@ -211,6 +256,11 @@ function SignInForm() {
       setError('Something went wrong. Please try again.');
       setIsLoading(false);
     }
+  };
+
+  const handleCodeSubmit = (e: React.FormEvent) => {
+    e.preventDefault?.();
+    void submitCode(code);
   };
 
   // Show loading state for magic link processing to avoid flash
@@ -347,28 +397,65 @@ function SignInForm() {
                   fontSize: { xs: '1.75rem', sm: '2rem' },
                 }}
               >
-                Enter your code
+                {boundEmail ? 'We stamped your card' : 'Enter your code'}
               </Typography>
 
-              <Typography
-                variant="body1"
-                sx={{
-                  textAlign: 'center',
-                  color: brandColors.charcoal,
-                  opacity: 0.8,
-                  mb: 4,
-                  lineHeight: 1.6,
-                }}
-              >
-                We emailed a sign-in button and a 6-digit code to{' '}
-                <Box
-                  component="span"
-                  sx={{ fontWeight: 500, color: brandColors.inkBlue }}
+              {boundEmail ? (
+                <>
+                  <Box
+                    sx={{
+                      display: 'inline-flex',
+                      alignSelf: 'center',
+                      gap: 1,
+                      alignItems: 'center',
+                      mb: 2,
+                      px: 1.5,
+                      py: 0.5,
+                      borderRadius: 999,
+                      border: `1px solid ${brandColors.softGray}`,
+                      fontFamily: 'monospace',
+                      fontSize: '0.9rem',
+                      color: brandColors.inkBlue,
+                    }}
+                  >
+                    {maskEmailLocal(boundEmail)} 🔒
+                  </Box>
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      textAlign: 'center',
+                      color: brandColors.charcoal,
+                      opacity: 0.8,
+                      mb: 4,
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    The code&rsquo;s in your inbox — it&rsquo;s from a
+                    neighbor&rsquo;s library, so check Primary, not Promotions.
+                    No passwords here — your inbox is your key.
+                  </Typography>
+                </>
+              ) : (
+                <Typography
+                  variant="body1"
+                  sx={{
+                    textAlign: 'center',
+                    color: brandColors.charcoal,
+                    opacity: 0.8,
+                    mb: 4,
+                    lineHeight: 1.6,
+                  }}
                 >
-                  {email}
-                </Box>
-                . Tap the button there, or enter the code here.
-              </Typography>
+                  We emailed a sign-in button and a 6-digit code to{' '}
+                  <Box
+                    component="span"
+                    sx={{ fontWeight: 500, color: brandColors.inkBlue }}
+                  >
+                    {email}
+                  </Box>
+                  . Tap the button there, or enter the code here.
+                </Typography>
+              )}
 
               {error && (
                 <Alert
@@ -390,49 +477,13 @@ function SignInForm() {
               )}
 
               <Box component="form" onSubmit={handleCodeSubmit}>
-                <TextField
-                  fullWidth
-                  id="code"
-                  name="code"
-                  type="text"
-                  autoComplete="one-time-code"
-                  required
+                <CodeCells
                   value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  placeholder="000000"
-                  variant="outlined"
-                  inputProps={{
-                    maxLength: 6,
-                    pattern: '[0-9]{6}',
-                    inputMode: 'numeric',
+                  onChange={setCode}
+                  onComplete={(completed) => {
+                    if (!isLoading) void submitCode(completed);
                   }}
-                  sx={{
-                    mb: 3,
-                    '& .MuiOutlinedInput-root': {
-                      backgroundColor: brandColors.white,
-                      borderRadius: 2,
-                      fontSize: '1.25rem',
-                      fontFamily: 'monospace',
-                      letterSpacing: '0.2em',
-                      textAlign: 'center',
-                      '& fieldset': {
-                        borderColor: brandColors.softGray,
-                        borderWidth: 2,
-                      },
-                      '&:hover fieldset': {
-                        borderColor: brandColors.inkBlue,
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: brandColors.inkBlue,
-                        borderWidth: 2,
-                      },
-                    },
-                    '& .MuiOutlinedInput-input': {
-                      py: 1.5,
-                      px: 2,
-                      textAlign: 'center',
-                    },
-                  }}
+                  disabled={isLoading}
                 />
 
                 <Button
@@ -460,6 +511,28 @@ function SignInForm() {
                   }}
                 >
                   {isLoading ? 'Verifying...' : 'Continue'}
+                </Button>
+
+                <Button
+                  variant="text"
+                  fullWidth
+                  onClick={handleResend}
+                  disabled={resendSeconds > 0}
+                  sx={{
+                    color: brandColors.inkBlue,
+                    textTransform: 'none',
+                    '&:hover': { backgroundColor: 'transparent' },
+                    '&.Mui-disabled': {
+                      color: brandColors.charcoal,
+                      opacity: 0.5,
+                    },
+                  }}
+                >
+                  {resendSeconds > 0
+                    ? `Re-stamp in ${Math.floor(resendSeconds / 60)}:${String(
+                        resendSeconds % 60
+                      ).padStart(2, '0')}`
+                    : 'Re-stamp — send a new code'}
                 </Button>
 
                 <Button

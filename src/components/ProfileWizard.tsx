@@ -31,7 +31,8 @@ import { Wordmark } from './Wordmark';
 
 export type { ProfileFormData } from './profile-wizard/wizardPlan';
 
-// Name + agreements, then photo, then address — each solicited separately so a
+// Sign the card (name + one promise), then photo, then address — each solicited
+// separately so a
 // just-in-time prompt can drop the user straight into the one they need.
 // Which of these actually run comes from wizardStepPlan (a user with a
 // verified address on file never sees the address step again).
@@ -85,14 +86,8 @@ export function profileSubmitBlockMessage(
   if (errors.name) {
     return 'Please enter your name.';
   }
-  if (
-    errors.agreedToHouseholdGoods ||
-    errors.agreedToTrustAndCare ||
-    errors.agreedToCommunityValues ||
-    errors.agreedToAgeRestrictions ||
-    errors.agreedToTerms
-  ) {
-    return 'Please accept the community agreements to continue.';
+  if (errors.agreedToTerms) {
+    return 'Please sign your card to continue.';
   }
   return 'Please complete the highlighted fields to continue.';
 }
@@ -131,10 +126,6 @@ export function ProfileWizard({
       address: '',
       bio: undefined,
       profilePictureUrl: undefined,
-      agreedToHouseholdGoods: false,
-      agreedToTrustAndCare: false,
-      agreedToCommunityValues: false,
-      agreedToAgeRestrictions: false,
       agreedToTerms: false,
       parsedAddress: undefined,
       ...initialData,
@@ -247,17 +238,11 @@ export function ProfileWizard({
   };
 
   const handleComplete = async (data: ProfileFormData) => {
-    // Validate checkboxes before proceeding
-    if (
-      !data.agreedToHouseholdGoods ||
-      !data.agreedToTrustAndCare ||
-      !data.agreedToCommunityValues ||
-      !data.agreedToAgeRestrictions ||
-      !data.agreedToTerms
-    ) {
-      // The agreements live on Step 1; surface the reason rather than
-      // silently no-op'ing (which reads as a dead "Complete Profile" button).
-      setSubmitError('Please accept the community agreements to continue.');
+    // Validate the promise before proceeding
+    if (!data.agreedToTerms) {
+      // The promise lives on Step 1; surface the reason rather than silently
+      // no-op'ing (which reads as a dead "Complete Profile" button).
+      setSubmitError('Please sign your card to continue.');
       return;
     }
 
@@ -280,19 +265,12 @@ export function ProfileWizard({
     setSubmitError(profileSubmitBlockMessage(errors));
   };
 
-  // Minimal entry: name + agreements only. Bypasses the full zod schema
-  // (which requires address + photo); UI gating in Step 1 enforces the
-  // agreements via canSubmitMinimal.
+  // Minimal entry: name + the one promise only. Bypasses the full zod schema
+  // (which requires address + photo); UI gating in Step 1 enforces it via
+  // canSubmitMinimal.
   const handleMinimalSubmit = () => {
     const data = getValues();
-    if (
-      !data.agreedToHouseholdGoods ||
-      !data.agreedToTrustAndCare ||
-      !data.agreedToCommunityValues ||
-      !data.agreedToAgeRestrictions ||
-      !data.agreedToTerms ||
-      !data.name?.trim()
-    ) {
+    if (!data.agreedToTerms || !data.name?.trim()) {
       return;
     }
 
@@ -307,14 +285,7 @@ export function ProfileWizard({
   function getFieldsForStep(step: number): (keyof ProfileFormData)[] {
     switch (plan[step]) {
       case 'entry':
-        return [
-          'name',
-          'agreedToHouseholdGoods',
-          'agreedToTrustAndCare',
-          'agreedToCommunityValues',
-          'agreedToAgeRestrictions',
-          'agreedToTerms',
-        ];
+        return ['name', 'agreedToTerms'];
       case 'photo':
         // Photo step advances via its own button gating (which also accepts an
         // already-saved photo URL, not just a freshly-uploaded File).

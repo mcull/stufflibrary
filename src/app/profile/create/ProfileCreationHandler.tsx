@@ -267,10 +267,6 @@ export function ProfileCreationHandler({
                   name: user?.name ?? initialData?.name ?? '',
                   profilePictureUrl:
                     user?.image ?? initialData?.profilePictureUrl ?? undefined,
-                  agreedToHouseholdGoods: true,
-                  agreedToTrustAndCare: true,
-                  agreedToCommunityValues: true,
-                  agreedToAgeRestrictions: true,
                   agreedToTerms: true,
                 },
               }

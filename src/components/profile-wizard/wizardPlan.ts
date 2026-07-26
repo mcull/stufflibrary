@@ -26,10 +26,6 @@ export const profileFormSchema = z.object({
     )
     .optional(),
   profilePictureUrl: z.string().optional(),
-  agreedToHouseholdGoods: z.boolean(),
-  agreedToTrustAndCare: z.boolean(),
-  agreedToCommunityValues: z.boolean(),
-  agreedToAgeRestrictions: z.boolean(),
   agreedToTerms: z.boolean(),
   // Store parsed address data from Google Places
   parsedAddress: z.any().optional(),
