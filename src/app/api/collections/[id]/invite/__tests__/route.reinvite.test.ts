@@ -176,3 +176,49 @@ it('still rejects when the invitee is already an active member', async () => {
   const res = await call({ email: 'n@x.z', mode: 'email' });
   expect(res.status).toBe(400);
 });
+
+it('resends a specific invitation by id even when the current user is not the original sender (#513)', async () => {
+  // The invite was sent by someone else; the id-load returns it directly.
+  mockInvitationFindFirst.mockResolvedValue(
+    INVITE_ROW({ status: 'SENT', senderId: 'someone-else' })
+  );
+  const res = await call({ invitationId: 'inv1', mode: 'email' });
+  expect(res.status).toBe(200);
+  // No duplicate row: it updates the existing invitation, never creates.
+  expect(mockInvitationCreate).not.toHaveBeenCalled();
+  const reissue = mockInvitationUpdate.mock.calls[0]![0];
+  expect(reissue.where).toEqual({ id: 'inv1' });
+  // A still-live invite keeps its token (fresh token only appears on re-issue).
+  expect(reissue.data.token).toBeUndefined();
+  expect(mockEmailSend).toHaveBeenCalled();
+});
+
+it('clears openedAt when re-issuing an expired invitation so the funnel cannot lie (#513)', async () => {
+  mockInvitationFindFirst.mockResolvedValue(
+    INVITE_ROW({
+      status: 'SENT',
+      expiresAt: new Date(Date.now() - 1000),
+      openedAt: new Date(),
+    })
+  );
+  const res = await call({ email: 'n@x.z', mode: 'email' });
+  expect(res.status).toBe(200);
+  const reissue = mockInvitationUpdate.mock.calls[0]![0];
+  expect(reissue.data.openedAt).toBeNull();
+  expect(reissue.data.token).not.toBe('old-token');
+});
+
+it('scopes the id lookup to this library and type (IDOR guard) (#513)', async () => {
+  mockInvitationFindFirst.mockResolvedValue(INVITE_ROW({ status: 'SENT' }));
+  await call({ invitationId: 'inv1', mode: 'email' });
+  expect(mockInvitationFindFirst).toHaveBeenCalledWith({
+    where: { id: 'inv1', libraryId: 'lib1', type: 'library' },
+  });
+});
+
+it('404s when the invitationId does not resolve in this library (#513)', async () => {
+  mockInvitationFindFirst.mockResolvedValue(null);
+  const res = await call({ invitationId: 'bad-id', mode: 'email' });
+  expect(res.status).toBe(404);
+  expect(mockInvitationCreate).not.toHaveBeenCalled();
+});

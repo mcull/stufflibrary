@@ -126,7 +126,7 @@ export function ManageMembersModal({
   const [members, setMembers] = useState<Member[]>([]);
   const [loadingData, setLoadingData] = useState(false);
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
-  const [resendingEmail, setResendingEmail] = useState<string | null>(null);
+  const [resendingId, setResendingId] = useState<string | null>(null);
   const [_updatingRoleId, setUpdatingRoleId] = useState<string | null>(null);
   const [_transferringOwnerId, setTransferringOwnerId] = useState<
     string | null
@@ -263,15 +263,15 @@ export function ManageMembersModal({
   // Resend reuses the invite endpoint: a live invite keeps its link and just
   // re-fires the email; an expired one heals with a fresh token. No note — a
   // resend is a nudge, not a fresh personalized invite.
-  const handleResend = async (inviteEmail: string) => {
-    setResendingEmail(inviteEmail);
+  const handleResend = async (inviteId: string, inviteEmail: string) => {
+    setResendingId(inviteId);
     setError(null);
     setSuccess(null);
     try {
       const response = await fetch(`/api/collections/${collectionId}/invite`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: inviteEmail }),
+        body: JSON.stringify({ invitationId: inviteId }),
       });
       const data = await response.json();
       if (response.ok) {
@@ -284,7 +284,7 @@ export function ManageMembersModal({
       console.error('Failed to resend invitation:', error);
       setError('Failed to resend invitation. Please try again.');
     } finally {
-      setResendingEmail(null);
+      setResendingId(null);
     }
   };
 
@@ -1027,14 +1027,16 @@ export function ManageMembersModal({
                             <Button
                               size="small"
                               variant="text"
-                              disabled={resendingEmail === invitation.email}
+                              disabled={resendingId === invitation.id}
                               aria-label={`Resend invitation to ${invitation.email}`}
                               startIcon={
-                                resendingEmail === invitation.email ? (
+                                resendingId === invitation.id ? (
                                   <CircularProgress size={14} />
                                 ) : undefined
                               }
-                              onClick={() => handleResend(invitation.email)}
+                              onClick={() =>
+                                handleResend(invitation.id, invitation.email)
+                              }
                             >
                               Resend
                             </Button>
