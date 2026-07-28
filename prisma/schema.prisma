@@ -112,6 +112,7 @@ model Invitation {
   receiverId     String?
   createdAt      DateTime         @default(now())
   sentAt         DateTime?
+  openedAt       DateTime?
   acceptedAt     DateTime?
   expiresAt      DateTime
   address        Address?         @relation(fields: [addressId], references: [id])
