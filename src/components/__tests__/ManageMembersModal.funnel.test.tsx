@@ -114,4 +114,32 @@ describe('ManageMembersModal — sender funnel', () => {
     // jo is ACCEPTED: its row has no Resend. Total Resend buttons = 2 (nora, dave).
     expect(screen.getAllByRole('button', { name: /resend/i })).toHaveLength(2);
   });
+
+  it('surfaces the error when Resend fails', async () => {
+    const fetchMock = vi.fn(async (url: string, opts?: RequestInit) => {
+      if (url.endsWith('/invite') && opts?.method === 'POST') {
+        return {
+          ok: false,
+          json: async () => ({ error: 'Rate limited' }),
+        } as Response;
+      }
+      if (url.endsWith('/invitations')) {
+        return {
+          ok: true,
+          json: async () => ({ invitations: INVITES }),
+        } as Response;
+      }
+      if (url.endsWith('/members')) {
+        return { ok: true, json: async () => ({ members: [] }) } as Response;
+      }
+      return { ok: true, json: async () => ({ collection: {} }) } as Response;
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    open();
+    await screen.findByText('dave@example.com');
+    const resendButtons = screen.getAllByRole('button', { name: /resend/i });
+    fireEvent.click(resendButtons[1]!); // dave's row
+    expect(await screen.findByText(/Rate limited/)).toBeInTheDocument();
+  });
 });
