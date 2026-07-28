@@ -58,6 +58,7 @@ interface Invitation {
   status: string;
   createdAt: string;
   sentAt?: string;
+  openedAt?: string | null;
   isExpired: boolean;
   sender?: {
     name: string;
@@ -255,6 +256,31 @@ export function ManageMembersModal({
       setError('Failed to send invitation. Please try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Resend reuses the invite endpoint: a live invite keeps its link and just
+  // re-fires the email; an expired one heals with a fresh token. No note — a
+  // resend is a nudge, not a fresh personalized invite.
+  const handleResend = async (inviteEmail: string) => {
+    setError(null);
+    setSuccess(null);
+    try {
+      const response = await fetch(`/api/collections/${collectionId}/invite`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: inviteEmail }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setSuccess(`Invitation resent to ${inviteEmail}`);
+        loadData();
+      } else {
+        setError(data.error || 'Failed to resend invitation');
+      }
+    } catch (error) {
+      console.error('Failed to resend invitation:', error);
+      setError('Failed to resend invitation. Please try again.');
     }
   };
 
@@ -945,6 +971,18 @@ export function ManageMembersModal({
                                   ? `Sent ${new Date(invitation.sentAt).toLocaleDateString()}`
                                   : `Created ${new Date(invitation.createdAt).toLocaleDateString()}`}
                               </Typography>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                component="span"
+                                sx={{ display: 'block' }}
+                              >
+                                {invitation.openedAt
+                                  ? `Opened ${new Date(invitation.openedAt).toLocaleDateString()}`
+                                  : invitation.status === 'ACCEPTED'
+                                    ? 'Opened'
+                                    : 'Not opened yet'}
+                              </Typography>
                               {invitation.sender && (
                                 <Typography
                                   variant="caption"
@@ -958,22 +996,39 @@ export function ManageMembersModal({
                             </>
                           }
                         />
-                        <Chip
-                          label={getStatusText(
-                            invitation.status,
-                            invitation.isExpired
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                          }}
+                        >
+                          <Chip
+                            label={getStatusText(
+                              invitation.status,
+                              invitation.isExpired
+                            )}
+                            size="small"
+                            color={getStatusColor(
+                              invitation.status,
+                              invitation.isExpired
+                            )}
+                            variant={
+                              invitation.status === 'ACCEPTED'
+                                ? 'filled'
+                                : 'outlined'
+                            }
+                          />
+                          {invitation.status !== 'ACCEPTED' && (
+                            <Button
+                              size="small"
+                              variant="text"
+                              onClick={() => handleResend(invitation.email)}
+                            >
+                              Resend
+                            </Button>
                           )}
-                          size="small"
-                          color={getStatusColor(
-                            invitation.status,
-                            invitation.isExpired
-                          )}
-                          variant={
-                            invitation.status === 'ACCEPTED'
-                              ? 'filled'
-                              : 'outlined'
-                          }
-                        />
+                        </Box>
                       </ListItem>
                       {index < invitations.length - 1 && <Divider />}
                     </Box>
