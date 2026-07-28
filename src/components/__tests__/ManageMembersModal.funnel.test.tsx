@@ -104,7 +104,9 @@ describe('ManageMembersModal — sender funnel', () => {
     // one Resend per non-accepted invite (nora + dave), none for the accepted jo
     expect(resendButtons).toHaveLength(2);
     fireEvent.click(resendButtons[1]!); // dave's row
-    await waitFor(() => expect(posted).toEqual({ email: 'dave@example.com' }));
+    await waitFor(() =>
+      expect(posted).toEqual({ invitationId: 'inv_unopened' })
+    );
   });
 
   it('hides Resend for an accepted invite', async () => {

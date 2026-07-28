@@ -35,7 +35,8 @@ export async function POST(
 
     // Validate request body
     const body = await request.json();
-    const email = body?.email as string | undefined;
+    let email = body?.email as string | undefined;
+    const invitationId = body?.invitationId as string | undefined;
     const mode = (body?.mode as 'email' | 'link' | undefined) || 'email';
     console.log('[api/collections/:id/invite] body', {
       mode,
@@ -43,7 +44,11 @@ export async function POST(
     });
     const sendEmail = body?.sendEmail !== false; // default true
 
-    if (mode !== 'link' && (!email || typeof email !== 'string')) {
+    if (
+      mode !== 'link' &&
+      !invitationId &&
+      (!email || typeof email !== 'string')
+    ) {
       return NextResponse.json(
         { error: 'Valid email is required' },
         { status: 400 }
@@ -52,7 +57,7 @@ export async function POST(
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (mode !== 'link' && !emailRegex.test(email!)) {
+    if (mode !== 'link' && !invitationId && !emailRegex.test(email!)) {
       return NextResponse.json(
         { error: 'Invalid email format' },
         { status: 400 }
@@ -115,6 +120,25 @@ export async function POST(
         },
         { status: 403 }
       );
+    }
+
+    // Resend targets a specific invitation by id: the pending list is
+    // library-wide, so the person resending may not be the original sender.
+    // Load and heal that exact row rather than the sender-scoped lookup below,
+    // which would otherwise mint a duplicate under the current user. (#513)
+    const existingInvitationById = invitationId
+      ? await db.invitation.findFirst({
+          where: { id: invitationId, libraryId, type: 'library' },
+        })
+      : null;
+    if (invitationId && !existingInvitationById) {
+      return NextResponse.json(
+        { error: 'Invitation not found' },
+        { status: 404 }
+      );
+    }
+    if (existingInvitationById) {
+      email = existingInvitationById.email;
     }
 
     // "Share Link" is a bearer link: it goes on a group chat or a flyer and
@@ -203,9 +227,11 @@ export async function POST(
     // a unique constraint on that triple, so a second create would 500 (#409).
     // A live one gets re-sent as-is; a consumed/expired/declined one gets
     // re-issued with a fresh token so a wrongly-burned invite heals itself.
-    const existingInvitation = await db.invitation.findFirst({
-      where: { email: email!, libraryId, senderId: userId },
-    });
+    const existingInvitation = invitationId
+      ? existingInvitationById
+      : await db.invitation.findFirst({
+          where: { email: email!, libraryId, senderId: userId },
+        });
 
     // Rate limiting per library (0 = unlimited)
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
@@ -279,6 +305,7 @@ export async function POST(
               acceptedAt: null,
               receiverId: null,
               sentAt: null,
+              openedAt: null,
             },
         include: invitationInclude,
       });
