@@ -77,6 +77,7 @@ export async function GET(
       status: invitation.status,
       createdAt: invitation.createdAt,
       sentAt: invitation.sentAt,
+      openedAt: invitation.openedAt,
       acceptedAt: invitation.acceptedAt,
       expiresAt: invitation.expiresAt,
       sender: invitation.sender,
