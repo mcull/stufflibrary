@@ -20,6 +20,7 @@ import { CollectionCreationModal } from './CollectionCreationModal';
 import { CompleteProfilePrompt } from './CompleteProfilePrompt';
 import { JoinCodeEntry } from './JoinCodeEntry';
 import { GreetingDesk } from './member-home/GreetingDesk';
+import { InvitedLibraries } from './member-home/InvitedLibraries';
 import { DrawerSectionLabel, LibraryDrawer } from './member-home/LibraryDrawer';
 import {
   JoinedEmptyState,
@@ -197,6 +198,8 @@ export function LobbyClient({ user, showWelcome }: LobbyClientProps) {
         cardNumber={cardNumber(user.id)}
         firstName={firstNameOf(user.name)}
       />
+
+      <InvitedLibraries />
 
       <LibraryDrawer
         tabs={[
