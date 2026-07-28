@@ -126,6 +126,7 @@ export function ManageMembersModal({
   const [members, setMembers] = useState<Member[]>([]);
   const [loadingData, setLoadingData] = useState(false);
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
+  const [resendingEmail, setResendingEmail] = useState<string | null>(null);
   const [_updatingRoleId, setUpdatingRoleId] = useState<string | null>(null);
   const [_transferringOwnerId, setTransferringOwnerId] = useState<
     string | null
@@ -263,6 +264,7 @@ export function ManageMembersModal({
   // re-fires the email; an expired one heals with a fresh token. No note — a
   // resend is a nudge, not a fresh personalized invite.
   const handleResend = async (inviteEmail: string) => {
+    setResendingEmail(inviteEmail);
     setError(null);
     setSuccess(null);
     try {
@@ -281,6 +283,8 @@ export function ManageMembersModal({
     } catch (error) {
       console.error('Failed to resend invitation:', error);
       setError('Failed to resend invitation. Please try again.');
+    } finally {
+      setResendingEmail(null);
     }
   };
 
@@ -1023,6 +1027,13 @@ export function ManageMembersModal({
                             <Button
                               size="small"
                               variant="text"
+                              disabled={resendingEmail === invitation.email}
+                              aria-label={`Resend invitation to ${invitation.email}`}
+                              startIcon={
+                                resendingEmail === invitation.email ? (
+                                  <CircularProgress size={14} />
+                                ) : undefined
+                              }
                               onClick={() => handleResend(invitation.email)}
                             >
                               Resend
