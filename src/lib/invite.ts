@@ -320,6 +320,20 @@ export async function handleInviteLanding(
     // the email-binding check still runs on the signed-in branch above and in
     // /api/invite/consume. The cookie set here is what later locks sign-in to
     // the invited address when the invitee claims their card.
+
+    // "Opened" = the invitee clicked their link and is looking at the library.
+    // First view wins (openedAt: null in the WHERE); best-effort — a stamp
+    // failure must never cost the invitee their front porch, so it is caught
+    // here rather than falling through to the outer catch's /?invite=error.
+    try {
+      await db.invitation.updateMany({
+        where: { token, openedAt: null },
+        data: { openedAt: new Date() },
+      });
+    } catch {
+      // swallow — visibility is a nicety, the landing is not
+    }
+
     const res = NextResponse.redirect(
       new URL(`/library/${libId}?guest=1`, request.url)
     );

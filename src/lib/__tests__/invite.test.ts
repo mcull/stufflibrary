@@ -220,7 +220,7 @@ describe('handleInviteLanding', () => {
     );
     expect(res.headers.get('location')).toContain('/?invite=expired');
   });
-  it('unauthenticated invitee gets invite cookies and the guest preview (front porch)', async () => {
+  it('unauthenticated invitee gets invite cookies, the guest preview, and is marked opened', async () => {
     mockInvitationFindFirst.mockResolvedValue({
       libraryId: 'c1',
       expiresAt: new Date(Date.now() + 86400000),
@@ -235,5 +235,27 @@ describe('handleInviteLanding', () => {
     expect(res.headers.get('location')).toContain('/library/c1?guest=1');
     expect(res.cookies.get('invite_token')?.value).toBe('tok');
     expect(res.cookies.get('invite_library')?.value).toBe('c1');
+    // First view is stamped, keyed by token, only when not already opened.
+    expect(mockInvitationUpdateMany).toHaveBeenCalledWith({
+      where: { token: 'tok', openedAt: null },
+      data: { openedAt: expect.any(Date) },
+    });
+  });
+
+  it('a failed opened-stamp never costs the invitee their guest preview', async () => {
+    mockInvitationFindFirst.mockResolvedValue({
+      libraryId: 'c1',
+      expiresAt: new Date(Date.now() + 86400000),
+      email: 'dave@example.com',
+    });
+    mockGetServerSession.mockResolvedValue(null);
+    mockInvitationUpdateMany.mockRejectedValue(new Error('db blip'));
+    const res = await handleInviteLanding(
+      { url: 'https://x/j/tok' } as any,
+      'tok'
+    );
+    // The stamp failed but the landing still lands.
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toContain('/library/c1?guest=1');
   });
 });
